@@ -1,0 +1,32 @@
+# Dependencies
+/node_modules/
+/vendor/
+
+# Build artifacts
+/js/*.js
+/js/*.js.map
+/js/*.mjs
+/js/*.mjs.map
+!/js/README.md
+
+# Development
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.log
+
+# PHP
+/composer.phar
+
+# Testing
+/phpunit.xml
+/coverage/
+/phpqa/
+
+# Environment
+.env
+.env.local

@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<!--
+  - SPDX-FileCopyrightText: 2024 MyDash Contributors
+  - SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	  xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+	<id>mydash</id>
+	<name>MyDash</name>
+	<summary>Enhanced dashboard with grid layout and admin controls</summary>
+	<description><![CDATA[MyDash - Your Customizable Dashboard
+
+MyDash provides an enhanced dashboard experience for Nextcloud with:
+- Grid-based widget layout with drag-and-drop positioning
+- Widget resizing and custom styling (colors, borders, titles)
+- Multiple dashboards per user
+- Admin-controlled dashboard templates
+- Conditional widget visibility (by group, time, date)
+- Permission levels (view-only, add-only, full customization)
+- Full compatibility with existing Nextcloud widgets
+
+Administrators can create dashboard templates for user groups and mark certain widgets as compulsory.]]>
+	</description>
+	<version>1.0.0</version>
+	<licence>agpl</licence>
+	<author>MyDash Contributors</author>
+	<namespace>MyDash</namespace>
+
+	<category>customization</category>
+
+	<bugs>https://github.com/mydash/issues</bugs>
+
+	<dependencies>
+		<php min-version="8.1"/>
+		<nextcloud min-version="28" max-version="33"/>
+	</dependencies>
+
+	<settings>
+		<admin>OCA\MyDash\Settings\MyDashAdmin</admin>
+		<admin-section>OCA\MyDash\Settings\MyDashAdminSection</admin-section>
+	</settings>
+
+	<navigations>
+		<navigation>
+			<name>MyDash</name>
+			<route>mydash.page.index</route>
+			<icon>mydash.svg</icon>
+			<order>-5</order>
+		</navigation>
+	</navigations>
+</info>
