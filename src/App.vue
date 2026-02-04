@@ -6,38 +6,33 @@
 <template>
 	<NcContent app-name="mydash">
 		<NcAppContent>
-			<!-- Header with greeting and controls -->
-			<div class="mydash-header">
-				<div class="mydash-header__left">
-					<h1 class="mydash-header__greeting">
-						{{ greeting }}
-					</h1>
-					<DashboardSwitcher
-						v-if="dashboards.length > 1"
-						:dashboards="dashboards"
-						:active-id="activeDashboard?.id"
-						@switch="switchDashboard" />
-				</div>
-				<div class="mydash-header__actions">
-					<NcButton
-						v-if="canEdit"
-						:type="isEditMode ? 'primary' : 'secondary'"
-						@click="toggleEditMode">
-						<template #icon>
-							<Pencil :size="20" />
-						</template>
-						{{ isEditMode ? t('mydash', 'Done') : t('mydash', 'Customize') }}
-					</NcButton>
-					<NcButton
-						v-if="isEditMode"
-						type="secondary"
-						@click="openWidgetPicker">
-						<template #icon>
-							<Plus :size="20" />
-						</template>
-						{{ t('mydash', 'Add widget') }}
-					</NcButton>
-				</div>
+			<!-- Floating controls in top right -->
+			<div class="mydash-floating-controls">
+				<DashboardSwitcher
+					v-if="dashboards.length > 1"
+					:dashboards="dashboards"
+					:active-id="activeDashboard?.id"
+					@switch="switchDashboard" />
+				<NcButton
+					v-if="canEdit"
+					:type="isEditMode ? 'primary' : 'secondary'"
+					:aria-label="isEditMode ? t('mydash', 'Save') : t('mydash', 'Customize')"
+					@click="toggleEditMode">
+					<template #icon>
+						<ContentSave v-if="isEditMode" :size="20" />
+						<Cog v-else :size="20" />
+					</template>
+					{{ isEditMode ? t('mydash', 'Save') : '' }}
+				</NcButton>
+				<NcButton
+					v-if="isEditMode"
+					type="secondary"
+					@click="openWidgetPicker">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+					{{ t('mydash', 'Add') }}
+				</NcButton>
 			</div>
 
 			<!-- Main dashboard grid -->
@@ -72,9 +67,11 @@
 			<WidgetPicker
 				:open="isPickerOpen"
 				:widgets="availableWidgets"
+				:tiles="tiles"
 				:placed-widget-ids="placedWidgetIds"
 				@close="closeWidgetPicker"
-				@add="addWidget" />
+				@add="addWidget"
+				@add-tile="openTileEditor()" />
 
 			<!-- Style editor modal -->
 			<WidgetStyleEditor
@@ -83,6 +80,13 @@
 				:open="isStyleEditorOpen"
 				@close="closeStyleEditor"
 				@update="updateWidgetStyle" />
+
+			<!-- Tile editor modal -->
+			<TileEditor
+				:open="isTileEditorOpen"
+				:tile="editingTile"
+				@close="closeTileEditor"
+				@save="saveTile" />
 		</NcAppContent>
 	</NcContent>
 </template>
@@ -90,17 +94,21 @@
 <script>
 import { mapState, mapActions } from 'pinia'
 import { NcContent, NcAppContent, NcButton, NcEmptyContent } from '@nextcloud/vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
+import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Cog from 'vue-material-design-icons/Cog.vue'
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
 
 import { useDashboardStore } from './stores/dashboard.js'
 import { useWidgetStore } from './stores/widgets.js'
+import { useTileStore } from './stores/tiles.js'
 
 import DashboardGrid from './components/DashboardGrid.vue'
 import DashboardSwitcher from './components/DashboardSwitcher.vue'
 import WidgetPicker from './components/WidgetPicker.vue'
 import WidgetStyleEditor from './components/WidgetStyleEditor.vue'
+import TileEditor from './components/TileEditor.vue'
 
 export default {
 	name: 'App',
@@ -110,13 +118,16 @@ export default {
 		NcAppContent,
 		NcButton,
 		NcEmptyContent,
+		ContentSave,
 		Pencil,
+		Cog,
 		Plus,
 		ViewDashboard,
 		DashboardGrid,
 		DashboardSwitcher,
 		WidgetPicker,
 		WidgetStyleEditor,
+		TileEditor,
 	},
 
 	data() {
@@ -125,6 +136,8 @@ export default {
 			isPickerOpen: false,
 			isStyleEditorOpen: false,
 			editingPlacement: null,
+			isTileEditorOpen: false,
+			editingTile: null,
 		}
 	},
 
@@ -137,6 +150,7 @@ export default {
 			'loading',
 		]),
 		...mapState(useWidgetStore, ['availableWidgets']),
+		...mapState(useTileStore, ['tiles']),
 
 		greeting() {
 			const hour = new Date().getHours()
@@ -165,10 +179,12 @@ export default {
 	async created() {
 		const dashboardStore = useDashboardStore()
 		const widgetStore = useWidgetStore()
+		const tileStore = useTileStore()
 
 		await Promise.all([
 			dashboardStore.loadDashboards(),
 			widgetStore.loadAvailableWidgets(),
+			tileStore.loadTiles(),
 		])
 	},
 
@@ -181,6 +197,7 @@ export default {
 			'removeWidgetFromDashboard',
 			'updateWidgetPlacement',
 		]),
+		...mapActions(useTileStore, ['createTile', 'updateTile', 'deleteTile']),
 
 		toggleEditMode() {
 			this.isEditMode = !this.isEditMode
@@ -219,6 +236,37 @@ export default {
 		async updateWidgetStyle(placementId, styleConfig) {
 			await this.updateWidgetPlacement(placementId, { styleConfig })
 			this.closeStyleEditor()
+		},
+
+		openTileEditor(tile = null) {
+			this.editingTile = tile
+			this.isTileEditorOpen = true
+		},
+
+		closeTileEditor() {
+			this.isTileEditorOpen = false
+			this.editingTile = null
+		},
+
+		async saveTile(tileData) {
+			try {
+				if (this.editingTile) {
+					await this.updateTile(this.editingTile.id, tileData)
+				} else {
+					await this.createTile(tileData)
+				}
+				this.closeTileEditor()
+			} catch (error) {
+				console.error('Failed to save tile:', error)
+			}
+		},
+
+		async removeTile(tileId) {
+			try {
+				await this.deleteTile(tileId)
+			} catch (error) {
+				console.error('Failed to remove tile:', error)
+			}
 		},
 	},
 }

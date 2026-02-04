@@ -102,4 +102,21 @@ export const api = {
 	updateAdminSettings(data) {
 		return axios.put(`${baseUrl}/api/admin/settings`, data)
 	},
+
+	// Tile endpoints
+	getTiles() {
+		return axios.get(`${baseUrl}/api/tiles`)
+	},
+
+	createTile(data) {
+		return axios.post(`${baseUrl}/api/tiles`, data)
+	},
+
+	updateTile(id, data) {
+		return axios.put(`${baseUrl}/api/tiles/${id}`, data)
+	},
+
+	deleteTile(id) {
+		return axios.delete(`${baseUrl}/api/tiles/${id}`)
+	},
 }

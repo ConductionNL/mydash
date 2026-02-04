@@ -10,6 +10,11 @@
 			<NcLoadingIcon :size="32" />
 		</div>
 
+		<!-- Custom Tile Widget -->
+		<TileWidget
+			v-else-if="isTileWidget && tileData"
+			:tile="tileData" />
+
 		<!-- API Widget V1 or V2 - Use NcDashboardWidget -->
 		<template v-else-if="isApiWidget">
 			<NcDashboardWidget
@@ -49,7 +54,9 @@ import { NcDashboardWidget, NcDashboardWidgetItem, NcEmptyContent, NcLoadingIcon
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import { mapState, mapActions } from 'pinia'
 import { useWidgetStore } from '../stores/widgets.js'
+import { useTileStore } from '../stores/tiles.js'
 import { widgetBridge } from '../services/widgetBridge.js'
+import TileWidget from './TileWidget.vue'
 
 export default {
 	name: 'WidgetRenderer',
@@ -60,6 +67,7 @@ export default {
 		NcEmptyContent,
 		NcLoadingIcon,
 		AlertCircleOutline,
+		TileWidget,
 	},
 
 	props: {
@@ -83,6 +91,21 @@ export default {
 
 	computed: {
 		...mapState(useWidgetStore, ['getWidgetItems']),
+		...mapState(useTileStore, ['tiles']),
+
+		isTileWidget() {
+			return this.placement.widgetId && this.placement.widgetId.startsWith('tile-')
+		},
+
+		tileId() {
+			if (!this.isTileWidget) return null
+			return parseInt(this.placement.widgetId.replace('tile-', ''))
+		},
+
+		tileData() {
+			if (!this.isTileWidget) return null
+			return this.tiles.find(t => t.id === this.tileId)
+		},
 
 		isApiWidgetV2() {
 			return this.widget?.itemApiVersions?.includes(2)
@@ -123,8 +146,16 @@ export default {
 		widget: {
 			immediate: true,
 			handler(newWidget) {
-				if (newWidget) {
+				if (newWidget || this.isTileWidget) {
 					this.initWidget()
+				}
+			},
+		},
+		placement: {
+			immediate: true,
+			handler() {
+				if (this.isTileWidget) {
+					this.loading = false
 				}
 			},
 		},
@@ -140,7 +171,13 @@ export default {
 		...mapActions(useWidgetStore, ['loadWidgetItems', 'refreshWidgetItems']),
 
 		async initWidget() {
-			if (!this.widget) {
+			if (!this.widget && !this.isTileWidget) {
+				this.loading = false
+				return
+			}
+
+			// Tiles don't need initialization.
+			if (this.isTileWidget) {
 				this.loading = false
 				return
 			}

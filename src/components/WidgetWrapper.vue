@@ -89,8 +89,20 @@ export default {
 	emits: ['remove', 'style'],
 
 	computed: {
+		isTileWidget() {
+			const result = this.placement.widgetId && this.placement.widgetId.startsWith('tile-')
+			console.log('[WidgetWrapper] isTileWidget check:', {
+				widgetId: this.placement.widgetId,
+				result: result
+			})
+			return result
+		},
+
 		showHeader() {
-			return this.placement.showTitle !== false
+			// Tiles don't show headers - they render directly.
+			const show = this.isTileWidget ? false : (this.placement.showTitle !== false)
+			console.log('[WidgetWrapper] showHeader:', show, 'isTileWidget:', this.isTileWidget)
+			return show
 		},
 
 		widgetTitle() {
@@ -117,11 +129,19 @@ export default {
 		widgetStyles() {
 			const styles = {}
 
+			// Tiles should fill the entire grid cell without padding.
+			if (this.isTileWidget) {
+				return {
+					padding: '0',
+					background: 'transparent',
+				}
+			}
+
 			if (this.styleConfig.backgroundColor) {
 				styles.backgroundColor = this.styleConfig.backgroundColor
 				if (this.styleConfig.backgroundOpacity !== undefined) {
 					const opacity = this.styleConfig.backgroundOpacity
-					// Convert hex to rgba with opacity
+					// Convert hex to rgba with opacity.
 					styles.backgroundColor = this.hexToRgba(
 						this.styleConfig.backgroundColor,
 						opacity,

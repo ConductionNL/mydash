@@ -27,6 +27,12 @@ return [
 		['name' => 'widget_api#updatePlacement', 'url' => '/api/widgets/{placementId}', 'verb' => 'PUT'],
 		['name' => 'widget_api#removePlacement', 'url' => '/api/widgets/{placementId}', 'verb' => 'DELETE'],
 
+		// Tile endpoints
+		['name' => 'tile_api#index', 'url' => '/api/tiles', 'verb' => 'GET'],
+		['name' => 'tile_api#create', 'url' => '/api/tiles', 'verb' => 'POST'],
+		['name' => 'tile_api#update', 'url' => '/api/tiles/{id}', 'verb' => 'PUT'],
+		['name' => 'tile_api#destroy', 'url' => '/api/tiles/{id}', 'verb' => 'DELETE'],
+
 		// Conditional rules endpoints
 		['name' => 'widget_api#getRules', 'url' => '/api/widgets/{placementId}/rules', 'verb' => 'GET'],
 		['name' => 'widget_api#addRule', 'url' => '/api/widgets/{placementId}/rules', 'verb' => 'POST'],

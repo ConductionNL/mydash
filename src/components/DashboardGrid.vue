@@ -18,7 +18,16 @@
 				:gs-min-w="2"
 				:gs-min-h="2">
 				<div class="grid-stack-item-content">
+					<!-- Render Tile directly for tile placements. -->
+					<TileWidget
+						v-if="isTilePlacement(placement)"
+						:tile="getTileData(placement)"
+						:edit-mode="editMode"
+						@remove="$emit('widget-remove', placement.id)" />
+					
+					<!-- Render Widget with wrapper for widget placements. -->
 					<WidgetWrapper
+						v-else
 						:placement="placement"
 						:widget="getWidget(placement.widgetId)"
 						:edit-mode="editMode"
@@ -33,12 +42,16 @@
 <script>
 import { GridStack } from 'gridstack'
 import WidgetWrapper from './WidgetWrapper.vue'
+import TileWidget from './TileWidget.vue'
+import { useTileStore } from '../stores/tiles.js'
+import { mapState } from 'pinia'
 
 export default {
 	name: 'DashboardGrid',
 
 	components: {
 		WidgetWrapper,
+		TileWidget,
 	},
 
 	props: {
@@ -66,6 +79,10 @@ export default {
 		return {
 			grid: null,
 		}
+	},
+
+	computed: {
+		...mapState(useTileStore, ['tiles']),
 	},
 
 	watch: {
@@ -102,6 +119,32 @@ export default {
 	methods: {
 		getWidget(widgetId) {
 			return this.widgets.find(w => w.id === widgetId)
+		},
+
+		isTilePlacement(placement) {
+			// Check if this placement is for a tile (widgetId starts with 'tile-').
+			return placement.widgetId && placement.widgetId.startsWith('tile-')
+		},
+
+		getTileData(placement) {
+			// Extract tile ID from widgetId (e.g., 'tile-4' -> 4).
+			if (!this.isTilePlacement(placement)) return null
+			const tileId = parseInt(placement.widgetId.replace('tile-', ''))
+			const tile = this.tiles.find(t => t.id === tileId)
+			console.log('[DashboardGrid] getTileData:', {
+				placementId: placement.id,
+				widgetId: placement.widgetId,
+				tileId,
+				foundTile: tile ? {
+					id: tile.id,
+					title: tile.title,
+					backgroundColor: tile.backgroundColor,
+					textColor: tile.textColor,
+					icon: tile.icon?.substring(0, 50),
+					iconType: tile.iconType
+				} : null
+			})
+			return tile
 		},
 
 		initGrid() {
