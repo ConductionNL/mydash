@@ -98,7 +98,14 @@
 					:placeholder="t('mydash', 'https://example.com or /apps/files')"
 					type="text" />
 
-				<div class="tile-editor__actions">
+			<div class="tile-editor__actions">
+				<NcButton
+					v-if="tile"
+					type="error"
+					@click="$emit('delete')">
+					{{ t('mydash', 'Delete') }}
+				</NcButton>
+				<div class="tile-editor__actions-right">
 					<NcButton @click="$emit('close')">
 						{{ t('mydash', 'Cancel') }}
 					</NcButton>
@@ -106,6 +113,7 @@
 						{{ t('mydash', 'Save') }}
 					</NcButton>
 				</div>
+			</div>
 			</div>
 		</div>
 	</NcModal>
@@ -163,7 +171,7 @@ export default {
 		},
 	},
 
-	emits: ['close', 'save'],
+	emits: ['close', 'save', 'delete'],
 
 	data() {
 		return {
@@ -352,10 +360,16 @@ export default {
 
 .tile-editor__actions {
 	display: flex;
-	justify-content: flex-end;
+	justify-content: space-between;
+	align-items: center;
 	gap: 8px;
 	margin-top: 20px;
 	padding-top: 20px;
+}
+
+.tile-editor__actions-right {
+	display: flex;
+	gap: 8px;
 }
 
 .icon-option {

@@ -150,7 +150,64 @@ class WidgetService {
 		$placement->setIsCompulsory(0); // Use 0 for false in SMALLINT column.
 		$placement->setIsVisible(1); // Use 1 for true in SMALLINT column.
 		$placement->setShowTitle(1); // Use 1 for true in SMALLINT column.
-		$placement->setSortOrder($this->placementMapper->getMaxSortOrder($dashboardId) + 1);
+		$placement->setCreatedAt($now);
+		$placement->setUpdatedAt($now);
+
+		return $this->placementMapper->insert($placement);
+	}
+
+	/**
+	 * Add a tile to a dashboard
+	 *
+	 * @param int $dashboardId Dashboard ID.
+	 * @param string $title Tile title.
+	 * @param string $icon Tile icon.
+	 * @param string $iconType Icon type.
+	 * @param string $backgroundColor Background color.
+	 * @param string $textColor Text color.
+	 * @param string $linkType Link type.
+	 * @param string $linkValue Link value.
+	 * @param int $gridX Grid X position.
+	 * @param int $gridY Grid Y position.
+	 * @param int $gridWidth Grid width.
+	 * @param int $gridHeight Grid height.
+	 *
+	 * @return WidgetPlacement The created tile placement.
+	 */
+	public function addTile(
+		int $dashboardId,
+		string $title,
+		string $icon,
+		string $iconType,
+		string $backgroundColor = '#0082c9',
+		string $textColor = '#ffffff',
+		string $linkType = 'app',
+		string $linkValue = '',
+		int $gridX = 0,
+		int $gridY = 0,
+		int $gridWidth = 2,
+		int $gridHeight = 2
+	): WidgetPlacement {
+		$placement = new WidgetPlacement();
+		$now = (new DateTime())->format('Y-m-d H:i:s');
+		$placement->setDashboardId($dashboardId);
+		$placement->setWidgetId('tile-' . uniqid()); // Generate unique ID for the tile.
+		$placement->setGridX($gridX);
+		$placement->setGridY($gridY);
+		$placement->setGridWidth($gridWidth);
+		$placement->setGridHeight($gridHeight);
+		$placement->setIsCompulsory(0);
+		$placement->setIsVisible(1);
+		$placement->setShowTitle(1);
+		// Set tile configuration.
+		$placement->setTileType('custom');
+		$placement->setTileTitle($title);
+		$placement->setTileIcon($icon);
+		$placement->setTileIconType($iconType);
+		$placement->setTileBackgroundColor($backgroundColor);
+		$placement->setTileTextColor($textColor);
+		$placement->setTileLinkType($linkType);
+		$placement->setTileLinkValue($linkValue);
 		$placement->setCreatedAt($now);
 		$placement->setUpdatedAt($now);
 
@@ -189,8 +246,33 @@ class WidgetService {
 		if (isset($data['customTitle'])) {
 			$placement->setCustomTitle($data['customTitle']);
 		}
+		if (isset($data['customIcon'])) {
+			$placement->setCustomIcon($data['customIcon']);
+		}
 		if (isset($data['styleConfig'])) {
 			$placement->setStyleConfigArray($data['styleConfig']);
+		}
+		// Tile configuration updates.
+		if (isset($data['tileTitle'])) {
+			$placement->setTileTitle($data['tileTitle']);
+		}
+		if (isset($data['tileIcon'])) {
+			$placement->setTileIcon($data['tileIcon']);
+		}
+		if (isset($data['tileIconType'])) {
+			$placement->setTileIconType($data['tileIconType']);
+		}
+		if (isset($data['tileBackgroundColor'])) {
+			$placement->setTileBackgroundColor($data['tileBackgroundColor']);
+		}
+		if (isset($data['tileTextColor'])) {
+			$placement->setTileTextColor($data['tileTextColor']);
+		}
+		if (isset($data['tileLinkType'])) {
+			$placement->setTileLinkType($data['tileLinkType']);
+		}
+		if (isset($data['tileLinkValue'])) {
+			$placement->setTileLinkValue($data['tileLinkValue']);
 		}
 
 		$placement->setUpdatedAt((new DateTime())->format('Y-m-d H:i:s'));

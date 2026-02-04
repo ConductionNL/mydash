@@ -13,17 +13,17 @@
 					:dashboards="dashboards"
 					:active-id="activeDashboard?.id"
 					@switch="switchDashboard" />
-				<NcButton
-					v-if="canEdit"
-					:type="isEditMode ? 'primary' : 'secondary'"
-					:aria-label="isEditMode ? t('mydash', 'Save') : t('mydash', 'Customize')"
-					@click="toggleEditMode">
-					<template #icon>
-						<ContentSave v-if="isEditMode" :size="20" />
-						<Cog v-else :size="20" />
-					</template>
-					{{ isEditMode ? t('mydash', 'Save') : '' }}
-				</NcButton>
+			<NcButton
+				v-if="canEdit"
+				:type="isEditMode ? 'primary' : 'secondary'"
+				:aria-label="isEditMode ? t('mydash', 'Close') : t('mydash', 'Customize')"
+				@click="toggleEditMode">
+				<template #icon>
+					<Close v-if="isEditMode" :size="20" />
+					<Cog v-else :size="20" />
+				</template>
+				{{ isEditMode ? t('mydash', 'Close') : '' }}
+			</NcButton>
 				<NcButton
 					v-if="isEditMode"
 					type="secondary"
@@ -42,10 +42,11 @@
 					:placements="widgetPlacements"
 					:widgets="availableWidgets"
 					:edit-mode="isEditMode"
-					:grid-columns="activeDashboard.gridColumns"
-					@update:placements="updatePlacements"
-					@widget-remove="removeWidget"
-					@widget-style="openStyleEditor" />
+				:grid-columns="activeDashboard.gridColumns"
+				@update:placements="updatePlacements"
+				@widget-remove="removeWidget"
+				@widget-edit="openStyleEditor"
+				@tile-edit="openTileEditorForEdit" />
 
 				<div v-else class="mydash-empty">
 					<NcEmptyContent
@@ -63,30 +64,37 @@
 				</div>
 			</div>
 
-			<!-- Widget picker sidebar -->
-			<WidgetPicker
-				:open="isPickerOpen"
-				:widgets="availableWidgets"
-				:tiles="tiles"
-				:placed-widget-ids="placedWidgetIds"
-				@close="closeWidgetPicker"
-				@add="addWidget"
-				@add-tile="openTileEditor()" />
+		<!-- Widget picker sidebar -->
+		<WidgetPicker
+			:open="isPickerOpen"
+			:widgets="availableWidgets"
+			:placed-widget-ids="placedWidgetIds"
+			:dashboards="dashboards"
+			:active-dashboard-id="activeDashboard?.id"
+			@close="closeWidgetPicker"
+			@add="addWidget"
+			@add-tile="openTileEditor()"
+			@switch-dashboard="switchDashboard"
+			@create-dashboard="handleCreateDashboard"
+			@edit-dashboard="handleEditDashboard"
+			@delete-dashboard="handleDeleteDashboard" />
 
-			<!-- Style editor modal -->
-			<WidgetStyleEditor
-				v-if="editingPlacement"
-				:placement="editingPlacement"
-				:open="isStyleEditorOpen"
-				@close="closeStyleEditor"
-				@update="updateWidgetStyle" />
+		<!-- Style editor modal -->
+		<WidgetStyleEditor
+			v-if="editingPlacement"
+			:placement="editingPlacement"
+			:open="isStyleEditorOpen"
+			@close="closeStyleEditor"
+			@update="updateWidgetStyle"
+			@delete="deleteWidget" />
 
-			<!-- Tile editor modal -->
-			<TileEditor
-				:open="isTileEditorOpen"
-				:tile="editingTile"
-				@close="closeTileEditor"
-				@save="saveTile" />
+		<!-- Tile editor modal -->
+		<TileEditor
+			:open="isTileEditorOpen"
+			:tile="editingTile"
+			@close="closeTileEditor"
+			@save="saveTile"
+			@delete="deleteTile" />
 		</NcAppContent>
 	</NcContent>
 </template>
@@ -94,7 +102,7 @@
 <script>
 import { mapState, mapActions } from 'pinia'
 import { NcContent, NcAppContent, NcButton, NcEmptyContent } from '@nextcloud/vue'
-import ContentSave from 'vue-material-design-icons/ContentSave.vue'
+import Close from 'vue-material-design-icons/Close.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
@@ -103,6 +111,7 @@ import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
 import { useDashboardStore } from './stores/dashboard.js'
 import { useWidgetStore } from './stores/widgets.js'
 import { useTileStore } from './stores/tiles.js'
+import { api } from './services/api.js'
 
 import DashboardGrid from './components/DashboardGrid.vue'
 import DashboardSwitcher from './components/DashboardSwitcher.vue'
@@ -118,7 +127,7 @@ export default {
 		NcAppContent,
 		NcButton,
 		NcEmptyContent,
-		ContentSave,
+		Close,
 		Pencil,
 		Cog,
 		Plus,
@@ -192,8 +201,10 @@ export default {
 		...mapActions(useDashboardStore, [
 			'switchDashboard',
 			'createDashboard',
+			'loadDashboards',
 			'updatePlacements',
 			'addWidgetToDashboard',
+			'addTileToDashboard',
 			'removeWidgetFromDashboard',
 			'updateWidgetPlacement',
 		]),
@@ -233,14 +244,38 @@ export default {
 			this.editingPlacement = null
 		},
 
-		async updateWidgetStyle(placementId, styleConfig) {
-			await this.updateWidgetPlacement(placementId, { styleConfig })
+	async updateWidgetStyle(placementId, updates) {
+		console.log('[App] updateWidgetStyle called with:', placementId, updates)
+		await this.updateWidgetPlacement(placementId, updates)
+		this.closeStyleEditor()
+	},
+
+	async deleteWidget() {
+		if (this.editingPlacement?.id) {
+			console.log('[App] Deleting widget:', this.editingPlacement.id)
+			await this.removeWidget(this.editingPlacement.id)
 			this.closeStyleEditor()
-		},
+		}
+	},
 
 		openTileEditor(tile = null) {
 			this.editingTile = tile
 			this.isTileEditorOpen = true
+		},
+
+		openTileEditorForEdit(placement) {
+			// Convert placement data to tile format for editing.
+			const tileData = {
+				id: placement.id,
+				title: placement.tileTitle,
+				icon: placement.tileIcon,
+				iconType: placement.tileIconType,
+				backgroundColor: placement.tileBackgroundColor,
+				textColor: placement.tileTextColor,
+				linkType: placement.tileLinkType,
+				linkValue: placement.tileLinkValue,
+			}
+			this.openTileEditor(tileData)
 		},
 
 		closeTileEditor() {
@@ -249,15 +284,39 @@ export default {
 		},
 
 		async saveTile(tileData) {
+			console.log('[App] saveTile called with data:', tileData)
 			try {
 				if (this.editingTile) {
-					await this.updateTile(this.editingTile.id, tileData)
+					console.log('[App] Updating existing tile:', this.editingTile.id)
+					// Update existing tile (which is stored as a placement).
+					await this.updateWidgetPlacement(this.editingTile.id, {
+						tileTitle: tileData.title,
+						tileIcon: tileData.icon,
+						tileIconType: tileData.iconType,
+						tileBackgroundColor: tileData.backgroundColor,
+						tileTextColor: tileData.textColor,
+						tileLinkType: tileData.linkType,
+						tileLinkValue: tileData.linkValue,
+					})
+					console.log('[App] Tile updated successfully')
 				} else {
-					await this.createTile(tileData)
+					console.log('[App] Creating new tile for dashboard')
+					// Create new tile using the store action (like widgets).
+					await this.addTileToDashboard(tileData)
+					console.log('[App] Tile added successfully')
 				}
 				this.closeTileEditor()
 			} catch (error) {
-				console.error('Failed to save tile:', error)
+				console.error('[App] Failed to save tile:', error)
+				console.error('[App] Error details:', error.response?.data)
+			}
+		},
+
+		async deleteTile() {
+			if (this.editingTile?.id) {
+				console.log('[App] Deleting tile:', this.editingTile.id)
+				await this.removeWidget(this.editingTile.id)
+				this.closeTileEditor()
 			}
 		},
 
@@ -268,11 +327,59 @@ export default {
 				console.error('Failed to remove tile:', error)
 			}
 		},
+
+		async handleCreateDashboard() {
+			const name = prompt(this.t('mydash', 'Dashboard name'))
+			if (!name) return
+
+			try {
+				await this.createDashboard({ name })
+			} catch (error) {
+				console.error('Failed to create dashboard:', error)
+			}
+		},
+
+		async handleEditDashboard(dashboard) {
+			const name = prompt(this.t('mydash', 'Dashboard name'), dashboard.name)
+			if (!name || name === dashboard.name) return
+
+			try {
+				await api.updateDashboard(dashboard.id, { name })
+				// Refresh dashboards.
+				await this.loadDashboards()
+			} catch (error) {
+				console.error('Failed to update dashboard:', error)
+			}
+		},
+
+		async handleDeleteDashboard(dashboard) {
+			if (!confirm(this.t('mydash', 'Are you sure you want to delete this dashboard?'))) {
+				return
+			}
+
+			try {
+				await api.deleteDashboard(dashboard.id)
+				// Refresh dashboards.
+				await this.loadDashboards()
+			} catch (error) {
+				console.error('Failed to delete dashboard:', error)
+			}
+		},
 	},
 }
 </script>
 
 <style scoped>
+.mydash-floating-controls {
+	position: fixed;
+	top: 80px;
+	right: 16px;
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	z-index: 1000;
+}
+
 .mydash-container {
 	flex: 1;
 	padding: 24px;

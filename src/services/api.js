@@ -49,6 +49,10 @@ export const api = {
 		return axios.post(`${baseUrl}/api/dashboard/${dashboardId}/widgets`, data)
 	},
 
+	addTile(dashboardId, data) {
+		return axios.post(`${baseUrl}/api/dashboard/${dashboardId}/tile`, data)
+	},
+
 	updateWidgetPlacement(placementId, data) {
 		return axios.put(`${baseUrl}/api/widgets/${placementId}`, data)
 	},

@@ -99,6 +99,69 @@ class WidgetApiController extends Controller {
 	}
 
 	/**
+	 * Add a tile to a dashboard
+	 *
+	 * @param int $dashboardId Dashboard ID.
+	 * @param string $title Tile title.
+	 * @param string $icon Tile icon (class, URL, emoji, or SVG path).
+	 * @param string $iconType Icon type (class, url, emoji, svg).
+	 * @param string $backgroundColor Background color hex code.
+	 * @param string $textColor Text color hex code.
+	 * @param string $linkType Link type (app or url).
+	 * @param string $linkValue Link value (app ID or URL).
+	 * @param int $gridX Grid X position.
+	 * @param int $gridY Grid Y position.
+	 * @param int $gridWidth Grid width.
+	 * @param int $gridHeight Grid height.
+	 * 
+	 * @return JSONResponse The created tile placement.
+	 */
+	#[NoAdminRequired]
+	public function addTile(
+		int $dashboardId,
+		string $title,
+		string $icon,
+		string $iconType,
+		string $backgroundColor = '#0082c9',
+		string $textColor = '#ffffff',
+		string $linkType = 'app',
+		string $linkValue = '',
+		int $gridX = 0,
+		int $gridY = 0,
+		int $gridWidth = 2,
+		int $gridHeight = 2
+	): JSONResponse {
+		if ($this->userId === null) {
+			return new JSONResponse(['error' => 'Not logged in'], Http::STATUS_UNAUTHORIZED);
+		}
+
+		if (!$this->permissionService->canAddWidget($this->userId, $dashboardId)) {
+			return new JSONResponse(['error' => 'Access denied'], Http::STATUS_FORBIDDEN);
+		}
+
+		try {
+			$placement = $this->widgetService->addTile(
+				$dashboardId,
+				$title,
+				$icon,
+				$iconType,
+				$backgroundColor,
+				$textColor,
+				$linkType,
+				$linkValue,
+				$gridX,
+				$gridY,
+				$gridWidth,
+				$gridHeight
+			);
+
+			return new JSONResponse($placement->jsonSerialize(), Http::STATUS_CREATED);
+		} catch (\Exception $e) {
+			return new JSONResponse(['error' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
+	}
+
+	/**
 	 * Update a widget placement
 	 */
 	#[NoAdminRequired]
@@ -111,7 +174,15 @@ class WidgetApiController extends Controller {
 		?bool $isVisible = null,
 		?bool $showTitle = null,
 		?string $customTitle = null,
-		?array $styleConfig = null
+		?string $customIcon = null,
+		?array $styleConfig = null,
+		?string $tileTitle = null,
+		?string $tileIcon = null,
+		?string $tileIconType = null,
+		?string $tileBackgroundColor = null,
+		?string $tileTextColor = null,
+		?string $tileLinkType = null,
+		?string $tileLinkValue = null
 	): JSONResponse {
 		if ($this->userId === null) {
 			return new JSONResponse(['error' => 'Not logged in'], Http::STATUS_UNAUTHORIZED);
@@ -144,8 +215,33 @@ class WidgetApiController extends Controller {
 			if ($customTitle !== null) {
 				$data['customTitle'] = $customTitle;
 			}
+			if ($customIcon !== null) {
+				$data['customIcon'] = $customIcon;
+			}
 			if ($styleConfig !== null) {
 				$data['styleConfig'] = $styleConfig;
+			}
+			// Tile configuration updates.
+			if ($tileTitle !== null) {
+				$data['tileTitle'] = $tileTitle;
+			}
+			if ($tileIcon !== null) {
+				$data['tileIcon'] = $tileIcon;
+			}
+			if ($tileIconType !== null) {
+				$data['tileIconType'] = $tileIconType;
+			}
+			if ($tileBackgroundColor !== null) {
+				$data['tileBackgroundColor'] = $tileBackgroundColor;
+			}
+			if ($tileTextColor !== null) {
+				$data['tileTextColor'] = $tileTextColor;
+			}
+			if ($tileLinkType !== null) {
+				$data['tileLinkType'] = $tileLinkType;
+			}
+			if ($tileLinkValue !== null) {
+				$data['tileLinkValue'] = $tileLinkValue;
 			}
 
 			$placement = $this->widgetService->updatePlacement($placementId, $data);

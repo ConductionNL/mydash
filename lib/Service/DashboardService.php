@@ -296,7 +296,7 @@ class DashboardService {
 			$dashboard->setGridColumns($data['gridColumns']);
 		}
 
-		$dashboard->setUpdatedAt(new DateTime());
+		$dashboard->setUpdatedAt((new \DateTime())->format('Y-m-d H:i:s'));
 
 		// Update widget placements if provided
 		if (isset($data['placements']) && is_array($data['placements'])) {

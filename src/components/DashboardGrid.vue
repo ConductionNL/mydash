@@ -8,7 +8,7 @@
 		<div class="grid-stack">
 			<div
 				v-for="placement in placements"
-				:key="placement.id"
+				:key="getPlacementKey(placement)"
 				class="grid-stack-item"
 				:gs-id="placement.id"
 				:gs-x="placement.gridX"
@@ -18,21 +18,22 @@
 				:gs-min-w="2"
 				:gs-min-h="2">
 				<div class="grid-stack-item-content">
-					<!-- Render Tile directly for tile placements. -->
-					<TileWidget
-						v-if="isTilePlacement(placement)"
-						:tile="getTileData(placement)"
-						:edit-mode="editMode"
-						@remove="$emit('widget-remove', placement.id)" />
+				<!-- Render Tile directly for tile placements. -->
+				<TileWidget
+					v-if="isTilePlacement(placement)"
+					:tile="getTileData(placement)"
+					:edit-mode="editMode"
+					@edit="$emit('tile-edit', placement)" />
 					
 					<!-- Render Widget with wrapper for widget placements. -->
 					<WidgetWrapper
 						v-else
 						:placement="placement"
-						:widget="getWidget(placement.widgetId)"
-						:edit-mode="editMode"
-						@remove="$emit('widget-remove', placement.id)"
-						@style="$emit('widget-style', placement)" />
+					:widget="getWidget(placement.widgetId)"
+					:edit-mode="editMode"
+					@remove="$emit('widget-remove', placement.id)"
+					@style="$emit('widget-style', placement)"
+					@edit="$emit('widget-edit', placement)" />
 				</div>
 			</div>
 		</div>
@@ -43,8 +44,6 @@
 import { GridStack } from 'gridstack'
 import WidgetWrapper from './WidgetWrapper.vue'
 import TileWidget from './TileWidget.vue'
-import { useTileStore } from '../stores/tiles.js'
-import { mapState } from 'pinia'
 
 export default {
 	name: 'DashboardGrid',
@@ -73,16 +72,12 @@ export default {
 		},
 	},
 
-	emits: ['update:placements', 'widget-remove', 'widget-style'],
+	emits: ['update:placements', 'widget-remove', 'widget-style', 'tile-edit', 'widget-edit'],
 
 	data() {
 		return {
 			grid: null,
 		}
-	},
-
-	computed: {
-		...mapState(useTileStore, ['tiles']),
 	},
 
 	watch: {
@@ -117,34 +112,35 @@ export default {
 	},
 
 	methods: {
+		getPlacementKey(placement) {
+			// Generate a key that changes when placement properties update.
+			// Include updatedAt or stringify relevant properties to force re-render.
+			return `${placement.id}-${placement.updatedAt || Date.now()}-${JSON.stringify(placement.styleConfig || {})}`
+		},
+
 		getWidget(widgetId) {
 			return this.widgets.find(w => w.id === widgetId)
 		},
 
 		isTilePlacement(placement) {
-			// Check if this placement is for a tile (widgetId starts with 'tile-').
-			return placement.widgetId && placement.widgetId.startsWith('tile-')
+			// Check if this placement is for a tile (has tileType field).
+			return placement.tileType === 'custom'
 		},
 
 		getTileData(placement) {
-			// Extract tile ID from widgetId (e.g., 'tile-4' -> 4).
+			// Return tile data from the placement itself.
 			if (!this.isTilePlacement(placement)) return null
-			const tileId = parseInt(placement.widgetId.replace('tile-', ''))
-			const tile = this.tiles.find(t => t.id === tileId)
-			console.log('[DashboardGrid] getTileData:', {
-				placementId: placement.id,
-				widgetId: placement.widgetId,
-				tileId,
-				foundTile: tile ? {
-					id: tile.id,
-					title: tile.title,
-					backgroundColor: tile.backgroundColor,
-					textColor: tile.textColor,
-					icon: tile.icon?.substring(0, 50),
-					iconType: tile.iconType
-				} : null
-			})
-			return tile
+			
+			return {
+				id: placement.id,
+				title: placement.tileTitle,
+				icon: placement.tileIcon,
+				iconType: placement.tileIconType,
+				backgroundColor: placement.tileBackgroundColor,
+				textColor: placement.tileTextColor,
+				linkType: placement.tileLinkType,
+				linkValue: placement.tileLinkValue,
+			}
 		},
 
 		initGrid() {
@@ -165,25 +161,32 @@ export default {
 			})
 		},
 
-		handleGridChange(items) {
-			if (!items || items.length === 0) return
+	handleGridChange(items) {
+		if (!items || items.length === 0) return
 
-			const updatedPlacements = this.placements.map(placement => {
-				const gridItem = items.find(item => String(item.id) === String(placement.id))
-				if (gridItem) {
-					return {
-						...placement,
-						gridX: gridItem.x,
-						gridY: gridItem.y,
-						gridWidth: gridItem.w,
-						gridHeight: gridItem.h,
-					}
+		console.log('[DashboardGrid] Grid change detected. Items count:', items.length)
+
+		const updatedPlacements = this.placements.map(placement => {
+			const gridItem = items.find(item => String(item.id) === String(placement.id))
+			if (gridItem) {
+				console.log(`[DashboardGrid] Updating placement ${placement.id}:`, {
+					from: { x: placement.gridX, y: placement.gridY, w: placement.gridWidth, h: placement.gridHeight },
+					to: { x: gridItem.x, y: gridItem.y, w: gridItem.w, h: gridItem.h }
+				})
+				return {
+					...placement,
+					gridX: gridItem.x,
+					gridY: gridItem.y,
+					gridWidth: gridItem.w,
+					gridHeight: gridItem.h,
 				}
-				return placement
-			})
+			}
+			return placement
+		})
 
-			this.$emit('update:placements', updatedPlacements)
-		},
+		console.log('[DashboardGrid] Emitting updated placements, count:', updatedPlacements.length)
+		this.$emit('update:placements', updatedPlacements)
+	},
 
 		syncGridItems(placements) {
 			// Add new items
@@ -227,9 +230,15 @@ export default {
 
 :deep(.grid-stack-item-content) {
 	background: var(--color-main-background);
-	border-radius: var(--border-radius-large);
-	box-shadow: 0 0 10px var(--color-box-shadow);
+	border-radius: 0;
+	border: none;
+	box-shadow: none;
 	overflow: hidden;
+}
+
+/* Only widgets should have borders, not tiles */
+:deep(.grid-stack-item-content:has(.mydash-widget)) {
+	border: 1px solid var(--color-border);
 }
 
 :deep(.grid-stack-placeholder > .placeholder-content) {

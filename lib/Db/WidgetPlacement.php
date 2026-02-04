@@ -46,6 +46,24 @@ use OCP\AppFramework\Db\Entity;
  * @method void setShowTitle(int $showTitle)
  * @method int getSortOrder()
  * @method void setSortOrder(int $sortOrder)
+ * @method string|null getTileType()
+ * @method void setTileType(?string $tileType)
+ * @method string|null getTileTitle()
+ * @method void setTileTitle(?string $tileTitle)
+ * @method string|null getTileIcon()
+ * @method void setTileIcon(?string $tileIcon)
+ * @method string|null getTileIconType()
+ * @method void setTileIconType(?string $tileIconType)
+ * @method string|null getTileBackgroundColor()
+ * @method void setTileBackgroundColor(?string $tileBackgroundColor)
+ * @method string|null getTileTextColor()
+ * @method void setTileTextColor(?string $tileTextColor)
+ * @method string|null getTileLinkType()
+ * @method void setTileLinkType(?string $tileLinkType)
+ * @method string|null getTileLinkValue()
+ * @method void setTileLinkValue(?string $tileLinkValue)
+ * @method string|null getCustomIcon()
+ * @method void setCustomIcon(?string $customIcon)
  * @method string|null getCreatedAt()
  * @method void setCreatedAt(?string $createdAt)
  * @method string|null getUpdatedAt()
@@ -62,8 +80,18 @@ class WidgetPlacement extends Entity implements JsonSerializable {
 	protected int $isVisible = 1; // SMALLINT in DB (0/1).
 	protected ?string $styleConfig = null;
 	protected ?string $customTitle = null;
+	protected ?string $customIcon = null;
 	protected int $showTitle = 1; // SMALLINT in DB (0/1).
 	protected int $sortOrder = 0;
+	// Tile configuration fields.
+	protected ?string $tileType = null;
+	protected ?string $tileTitle = null;
+	protected ?string $tileIcon = null;
+	protected ?string $tileIconType = null;
+	protected ?string $tileBackgroundColor = null;
+	protected ?string $tileTextColor = null;
+	protected ?string $tileLinkType = null;
+	protected ?string $tileLinkValue = null;
 	protected ?string $createdAt = null; // Stored as string to avoid DateTime conversion issues.
 	protected ?string $updatedAt = null; // Stored as string to avoid DateTime conversion issues.
 
@@ -110,7 +138,7 @@ class WidgetPlacement extends Entity implements JsonSerializable {
 	 * @return array The serialized widget placement.
 	 */
 	public function jsonSerialize(): array {
-		return [
+		$data = [
 			'id' => $this->getId(),
 			'dashboardId' => $this->dashboardId,
 			'widgetId' => $this->widgetId,
@@ -122,10 +150,25 @@ class WidgetPlacement extends Entity implements JsonSerializable {
 			'isVisible' => $this->isVisible,
 			'styleConfig' => $this->getStyleConfigArray(),
 			'customTitle' => $this->customTitle,
+			'customIcon' => $this->customIcon,
 			'showTitle' => $this->showTitle,
 			'sortOrder' => $this->sortOrder,
 			'createdAt' => $this->createdAt, // Already a string.
 			'updatedAt' => $this->updatedAt, // Already a string.
 		];
+
+		// Include tile configuration if this is a tile.
+		if ($this->tileType !== null) {
+			$data['tileType'] = $this->tileType;
+			$data['tileTitle'] = $this->tileTitle;
+			$data['tileIcon'] = $this->tileIcon;
+			$data['tileIconType'] = $this->tileIconType;
+			$data['tileBackgroundColor'] = $this->tileBackgroundColor;
+			$data['tileTextColor'] = $this->tileTextColor;
+			$data['tileLinkType'] = $this->tileLinkType;
+			$data['tileLinkValue'] = $this->tileLinkValue;
+		}
+
+		return $data;
 	}
 }

@@ -33,120 +33,66 @@
 					:placeholder="placement.widget?.title || t('mydash', 'Widget title')" />
 			</div>
 
-			<!-- Background settings -->
-			<div class="style-editor__section">
-				<h3 class="style-editor__section-title">
-					{{ t('mydash', 'Background') }}
-				</h3>
+		<!-- Background settings -->
+		<div class="style-editor__section">
+			<h3 class="style-editor__section-title">
+				{{ t('mydash', 'Background') }}
+			</h3>
 
-				<div class="style-editor__row">
-					<label class="style-editor__label">{{ t('mydash', 'Color') }}</label>
-					<NcColorPicker v-model="localStyle.backgroundColor">
-						<NcButton type="secondary">
-							<template #icon>
-								<div
-									class="style-editor__color-preview"
-									:style="{ backgroundColor: localStyle.backgroundColor }" />
-							</template>
-							{{ localStyle.backgroundColor || t('mydash', 'Default') }}
-						</NcButton>
-					</NcColorPicker>
-				</div>
-
-				<div v-if="localStyle.backgroundColor" class="style-editor__row">
-					<label class="style-editor__label">{{ t('mydash', 'Opacity') }}</label>
-					<input
-						v-model.number="localStyle.backgroundOpacity"
-						type="range"
-						min="0"
-						max="1"
-						step="0.1"
-						class="style-editor__slider">
-					<span class="style-editor__value">{{ Math.round(localStyle.backgroundOpacity * 100) }}%</span>
-				</div>
+			<div class="style-editor__row">
+				<label class="style-editor__label">{{ t('mydash', 'Color') }}</label>
+				<NcColorPicker v-model="localStyle.backgroundColor">
+					<NcButton type="secondary">
+						<template #icon>
+							<div
+								class="style-editor__color-preview"
+								:style="{ backgroundColor: localStyle.backgroundColor }" />
+						</template>
+						{{ localStyle.backgroundColor || t('mydash', 'Default') }}
+					</NcButton>
+				</NcColorPicker>
 			</div>
+		</div>
 
-			<!-- Border settings -->
-			<div class="style-editor__section">
-				<h3 class="style-editor__section-title">
-					{{ t('mydash', 'Border') }}
-				</h3>
+		<!-- Icon settings -->
+		<div class="style-editor__section">
+			<h3 class="style-editor__section-title">
+				{{ t('mydash', 'Icon') }}
+			</h3>
 
-				<div class="style-editor__row">
-					<label class="style-editor__label">{{ t('mydash', 'Style') }}</label>
-					<NcSelect
-						v-model="localStyle.borderStyle"
-						:options="borderStyleOptions"
-						:clearable="false" />
-				</div>
-
-				<template v-if="localStyle.borderStyle !== 'none'">
-					<div class="style-editor__row">
-						<label class="style-editor__label">{{ t('mydash', 'Color') }}</label>
-						<NcColorPicker v-model="localStyle.borderColor">
-							<NcButton type="secondary">
-								<template #icon>
-									<div
-										class="style-editor__color-preview"
-										:style="{ backgroundColor: localStyle.borderColor }" />
-								</template>
-								{{ localStyle.borderColor || t('mydash', 'Default') }}
-							</NcButton>
-						</NcColorPicker>
-					</div>
-
-					<div class="style-editor__row">
-						<label class="style-editor__label">{{ t('mydash', 'Width') }}</label>
-						<input
-							v-model.number="localStyle.borderWidth"
-							type="number"
-							min="1"
-							max="10"
-							class="style-editor__input">
-						<span class="style-editor__unit">px</span>
+			<NcSelect
+				v-model="selectedIcon"
+				:options="iconOptions"
+				:label="t('mydash', 'Icon')"
+				label-outside>
+				<template #selected-option="{ label }">
+					<div class="icon-option">
+						<svg class="icon-option__preview" viewBox="0 0 24 24">
+							<path :d="selectedIcon.icon" />
+						</svg>
+						<span class="icon-option__label">{{ label }}</span>
 					</div>
 				</template>
-
-				<div class="style-editor__row">
-					<label class="style-editor__label">{{ t('mydash', 'Radius') }}</label>
-					<input
-						v-model.number="localStyle.borderRadius"
-						type="range"
-						min="0"
-						max="24"
-						class="style-editor__slider">
-					<span class="style-editor__value">{{ localStyle.borderRadius }}px</span>
-				</div>
-			</div>
-
-			<!-- Padding settings -->
-			<div class="style-editor__section">
-				<h3 class="style-editor__section-title">
-					{{ t('mydash', 'Padding') }}
-				</h3>
-
-				<div class="style-editor__padding-grid">
-					<div class="style-editor__padding-row">
-						<label>{{ t('mydash', 'Top') }}</label>
-						<input v-model.number="localStyle.padding.top" type="number" min="0" max="48">
+				<template #option="option">
+					<div class="icon-option">
+						<svg class="icon-option__preview" viewBox="0 0 24 24">
+							<path :d="option.icon" />
+						</svg>
+						<span class="icon-option__label">{{ option.label }}</span>
 					</div>
-					<div class="style-editor__padding-row">
-						<label>{{ t('mydash', 'Right') }}</label>
-						<input v-model.number="localStyle.padding.right" type="number" min="0" max="48">
-					</div>
-					<div class="style-editor__padding-row">
-						<label>{{ t('mydash', 'Bottom') }}</label>
-						<input v-model.number="localStyle.padding.bottom" type="number" min="0" max="48">
-					</div>
-					<div class="style-editor__padding-row">
-						<label>{{ t('mydash', 'Left') }}</label>
-						<input v-model.number="localStyle.padding.left" type="number" min="0" max="48">
-					</div>
-				</div>
-			</div>
+				</template>
+			</NcSelect>
+		</div>
 
-			<!-- Actions -->
-			<div class="style-editor__actions">
+		<!-- Actions -->
+		<div class="style-editor__actions">
+			<NcButton
+				v-if="!placement.isCompulsory"
+				type="error"
+				@click="$emit('delete')">
+				{{ t('mydash', 'Delete') }}
+			</NcButton>
+			<div class="style-editor__actions-right">
 				<NcButton type="secondary" @click="resetStyle">
 					{{ t('mydash', 'Reset') }}
 				</NcButton>
@@ -154,6 +100,7 @@
 					{{ t('mydash', 'Save') }}
 				</NcButton>
 			</div>
+		</div>
 		</div>
 	</NcModal>
 </template>
@@ -167,12 +114,39 @@ import {
 	NcColorPicker,
 	NcCheckboxRadioSwitch,
 } from '@nextcloud/vue'
+import {
+	mdiFile,
+	mdiFolder,
+	mdiCalendar,
+	mdiAccount,
+	mdiEmail,
+	mdiBriefcase,
+	mdiLink,
+	mdiHome,
+	mdiAccountCircle,
+	mdiAccountGroup,
+	mdiCog,
+	mdiImage,
+	mdiVideo,
+	mdiMusic,
+	mdiStar,
+	mdiHeart,
+	mdiCheck,
+	mdiTag,
+	mdiComment,
+	mdiShare,
+	mdiMagnify,
+	mdiDownload,
+	mdiUpload,
+	mdiChartLine,
+	mdiConnection,
+} from '@mdi/js'
 
 const defaultStyle = {
 	showTitle: true,
 	customTitle: '',
+	customIcon: '',
 	backgroundColor: '',
-	backgroundOpacity: 1,
 	borderStyle: 'none',
 	borderColor: '',
 	borderWidth: 1,
@@ -203,18 +177,51 @@ export default {
 		},
 	},
 
-	emits: ['close', 'update'],
+	emits: ['close', 'update', 'delete'],
 
 	data() {
 		return {
 			localStyle: { ...defaultStyle },
-			borderStyleOptions: [
-				{ id: 'none', label: this.t('mydash', 'None') },
-				{ id: 'solid', label: this.t('mydash', 'Solid') },
-				{ id: 'dashed', label: this.t('mydash', 'Dashed') },
-				{ id: 'dotted', label: this.t('mydash', 'Dotted') },
+			iconOptions: [
+				{ id: 'file', label: this.t('mydash', 'Files'), icon: mdiFile },
+				{ id: 'folder', label: this.t('mydash', 'Folder'), icon: mdiFolder },
+				{ id: 'calendar', label: this.t('mydash', 'Calendar'), icon: mdiCalendar },
+				{ id: 'contacts', label: this.t('mydash', 'Contacts'), icon: mdiAccount },
+				{ id: 'mail', label: this.t('mydash', 'Mail'), icon: mdiEmail },
+				{ id: 'office', label: this.t('mydash', 'Office'), icon: mdiBriefcase },
+				{ id: 'link', label: this.t('mydash', 'Link'), icon: mdiLink },
+				{ id: 'home', label: this.t('mydash', 'Home'), icon: mdiHome },
+				{ id: 'user', label: this.t('mydash', 'User'), icon: mdiAccountCircle },
+				{ id: 'group', label: this.t('mydash', 'Group'), icon: mdiAccountGroup },
+				{ id: 'settings', label: this.t('mydash', 'Settings'), icon: mdiCog },
+				{ id: 'picture', label: this.t('mydash', 'Picture'), icon: mdiImage },
+				{ id: 'video', label: this.t('mydash', 'Video'), icon: mdiVideo },
+				{ id: 'audio', label: this.t('mydash', 'Audio'), icon: mdiMusic },
+				{ id: 'star', label: this.t('mydash', 'Star'), icon: mdiStar },
+				{ id: 'favorite', label: this.t('mydash', 'Favorite'), icon: mdiHeart },
+				{ id: 'checkmark', label: this.t('mydash', 'Checkmark'), icon: mdiCheck },
+				{ id: 'tag', label: this.t('mydash', 'Tag'), icon: mdiTag },
+				{ id: 'comment', label: this.t('mydash', 'Comment'), icon: mdiComment },
+				{ id: 'share', label: this.t('mydash', 'Share'), icon: mdiShare },
+				{ id: 'search', label: this.t('mydash', 'Search'), icon: mdiMagnify },
+				{ id: 'download', label: this.t('mydash', 'Download'), icon: mdiDownload },
+				{ id: 'upload', label: this.t('mydash', 'Upload'), icon: mdiUpload },
+				{ id: 'monitoring', label: this.t('mydash', 'Monitoring'), icon: mdiChartLine },
+				{ id: 'integration', label: this.t('mydash', 'Integration'), icon: mdiConnection },
 			],
 		}
+	},
+
+	computed: {
+		selectedIcon: {
+			get() {
+				const option = this.iconOptions.find(opt => opt.icon === this.localStyle.customIcon)
+				return option || this.iconOptions[0]
+			},
+			set(value) {
+				this.localStyle.customIcon = value.icon
+			},
+		},
 	},
 
 	watch: {
@@ -234,8 +241,8 @@ export default {
 			this.localStyle = {
 				showTitle: this.placement.showTitle !== false,
 				customTitle: this.placement.customTitle || '',
+				customIcon: this.placement.customIcon || '',
 				backgroundColor: styleConfig.backgroundColor || '',
-				backgroundOpacity: styleConfig.backgroundOpacity ?? 1,
 				borderStyle: styleConfig.borderStyle || 'none',
 				borderColor: styleConfig.borderColor || '',
 				borderWidth: styleConfig.borderWidth || 1,
@@ -256,7 +263,6 @@ export default {
 		saveStyle() {
 			const styleConfig = {
 				backgroundColor: this.localStyle.backgroundColor || null,
-				backgroundOpacity: this.localStyle.backgroundOpacity,
 				borderStyle: this.localStyle.borderStyle,
 				borderColor: this.localStyle.borderColor || null,
 				borderWidth: this.localStyle.borderWidth,
@@ -267,6 +273,7 @@ export default {
 			this.$emit('update', this.placement.id, {
 				showTitle: this.localStyle.showTitle,
 				customTitle: this.localStyle.customTitle || null,
+				customIcon: this.localStyle.customIcon || null,
 				styleConfig,
 			})
 		},
@@ -365,8 +372,33 @@ export default {
 
 .style-editor__actions {
 	display: flex;
-	justify-content: flex-end;
+	justify-content: space-between;
+	align-items: center;
 	gap: 12px;
 	margin-top: 24px;
+}
+
+.style-editor__actions-right {
+	display: flex;
+	gap: 12px;
+}
+
+.icon-option {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 4px 0;
+}
+
+.icon-option__preview {
+	width: 24px;
+	height: 24px;
+	display: block;
+	flex-shrink: 0;
+	fill: currentColor;
+}
+
+.icon-option__label {
+	flex: 1;
 }
 </style>

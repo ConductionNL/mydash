@@ -11,13 +11,13 @@
 			'--tile-bg-color': tile.backgroundColor || '#0082c9',
 			'--tile-text-color': tile.textColor || '#ffffff'
 		}">
-		<!-- Delete button in edit mode -->
+		<!-- Edit button in edit mode -->
 		<button
 			v-if="editMode"
-			class="tile-widget__delete"
-			@click.prevent="$emit('remove')"
-			aria-label="Remove tile">
-			<span class="icon-close" />
+			class="tile-widget__edit"
+			@click.prevent="$emit('edit')"
+			aria-label="Edit tile">
+			<span class="icon-settings" />
 		</button>
 
 		<a
@@ -111,7 +111,8 @@ export default {
 	position: absolute;
 	top: 0;
 	left: 0;
-	border-radius: var(--border-radius-large);
+	border-radius: 0;
+	border: none;
 	overflow: hidden;
 	background-color: var(--tile-bg-color) !important;
 }
@@ -124,11 +125,11 @@ export default {
 	height: 100%;
 	width: 100%;
 	text-decoration: none;
-	border-radius: var(--border-radius-large);
+	border-radius: 0;
 	padding: 20px;
 	gap: 12px;
 	transition: transform 0.2s ease, opacity 0.2s ease;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	box-shadow: none;
 	background-color: var(--tile-bg-color) !important;
 	color: var(--tile-text-color) !important;
 }
@@ -136,7 +137,7 @@ export default {
 .tile-widget__link:hover {
 	transform: scale(1.02);
 	opacity: 0.95;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	box-shadow: none;
 }
 
 .tile-widget__icon {
@@ -188,7 +189,7 @@ export default {
 	color: var(--tile-text-color) !important;
 }
 
-.tile-widget__delete {
+.tile-widget__edit {
 	position: absolute;
 	top: 8px;
 	right: 8px;
@@ -205,11 +206,11 @@ export default {
 	transition: background 0.2s ease;
 }
 
-.tile-widget__delete:hover {
+.tile-widget__edit:hover {
 	background: rgba(0, 0, 0, 0.7) !important;
 }
 
-.tile-widget__delete .icon-close {
+.tile-widget__edit .icon-settings {
 	filter: brightness(0) invert(1);
 	background-size: 20px;
 	width: 20px;

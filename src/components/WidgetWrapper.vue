@@ -18,21 +18,13 @@
 					{{ widgetTitle }}
 				</h3>
 			</div>
-			<div v-if="editMode" class="mydash-widget__actions">
-				<NcButton type="tertiary" @click="$emit('style', placement)">
-					<template #icon>
-						<Palette :size="20" />
-					</template>
-				</NcButton>
-				<NcButton
-					v-if="canRemove"
-					type="tertiary"
-					@click="$emit('remove')">
-					<template #icon>
-						<Close :size="20" />
-					</template>
-				</NcButton>
-			</div>
+		<div v-if="editMode" class="mydash-widget__actions">
+			<NcButton type="tertiary" @click="$emit('edit', placement)">
+				<template #icon>
+					<Cog :size="20" />
+				</template>
+			</NcButton>
+		</div>
 		</div>
 
 		<!-- Widget content -->
@@ -57,8 +49,7 @@
 
 <script>
 import { NcButton } from '@nextcloud/vue'
-import Palette from 'vue-material-design-icons/Palette.vue'
-import Close from 'vue-material-design-icons/Close.vue'
+import Cog from 'vue-material-design-icons/Cog.vue'
 import WidgetRenderer from './WidgetRenderer.vue'
 
 export default {
@@ -66,8 +57,7 @@ export default {
 
 	components: {
 		NcButton,
-		Palette,
-		Close,
+		Cog,
 		WidgetRenderer,
 	},
 
@@ -86,7 +76,7 @@ export default {
 		},
 	},
 
-	emits: ['remove', 'style'],
+	emits: ['remove', 'style', 'edit'],
 
 	computed: {
 		isTileWidget() {
@@ -137,19 +127,11 @@ export default {
 				}
 			}
 
-			if (this.styleConfig.backgroundColor) {
-				styles.backgroundColor = this.styleConfig.backgroundColor
-				if (this.styleConfig.backgroundOpacity !== undefined) {
-					const opacity = this.styleConfig.backgroundOpacity
-					// Convert hex to rgba with opacity.
-					styles.backgroundColor = this.hexToRgba(
-						this.styleConfig.backgroundColor,
-						opacity,
-					)
-				}
-			}
+		if (this.styleConfig.backgroundColor) {
+			styles.backgroundColor = this.styleConfig.backgroundColor
+		}
 
-			if (this.styleConfig.borderStyle && this.styleConfig.borderStyle !== 'none') {
+		if (this.styleConfig.borderStyle && this.styleConfig.borderStyle !== 'none') {
 				styles.border = `${this.styleConfig.borderWidth || 1}px ${this.styleConfig.borderStyle} ${this.styleConfig.borderColor || 'var(--color-border)'}`
 			}
 
@@ -198,7 +180,8 @@ export default {
 	display: flex;
 	flex-direction: column;
 	background: var(--color-main-background);
-	border-radius: var(--border-radius-large);
+	border-radius: 0;
+	border: 1px solid var(--color-border);
 	overflow: hidden;
 }
 

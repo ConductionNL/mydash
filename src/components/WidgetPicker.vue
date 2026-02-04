@@ -7,7 +7,7 @@
 	<div class="mydash-picker" :class="{ 'mydash-picker--open': open }">
 		<div class="mydash-picker__header">
 			<h2 class="mydash-picker__title">
-				{{ t('mydash', 'Add to dashboard') }}
+				{{ activeTab === 'widgets' ? t('mydash', 'Add to dashboard') : t('mydash', 'Manage Dashboards') }}
 			</h2>
 			<NcButton type="tertiary" @click="$emit('close')">
 				<template #icon>
@@ -27,15 +27,26 @@
 			</button>
 			<button
 				class="mydash-picker__tab"
-				:class="{ 'mydash-picker__tab--active': activeTab === 'tiles' }"
-				@click="activeTab = 'tiles'">
-				<ViewGrid :size="20" />
-				{{ t('mydash', 'Tiles') }}
+				:class="{ 'mydash-picker__tab--active': activeTab === 'dashboards' }"
+				@click="activeTab = 'dashboards'">
+				<ViewDashboard :size="20" />
+				{{ t('mydash', 'Dashboards') }}
 			</button>
 		</div>
 
 		<!-- Widgets Tab -->
 		<div v-if="activeTab === 'widgets'" class="mydash-picker__content">
+			<!-- Add Tile Button -->
+			<div class="mydash-picker__add-tile">
+				<NcButton
+					type="primary"
+					@click="$emit('add-tile')">
+					<template #icon>
+						<Plus :size="20" />
+					</template>
+					{{ t('mydash', 'Create Tile') }}
+				</NcButton>
+			</div>
 			<div class="mydash-picker__search">
 				<NcTextField
 					v-model="searchQuery"
@@ -82,59 +93,71 @@
 			</div>
 		</div>
 
-		<!-- Tiles Tab -->
-		<div v-if="activeTab === 'tiles'" class="mydash-picker__content">
-			<div class="mydash-picker__tiles-header">
+		<!-- Dashboards Tab -->
+		<div v-if="activeTab === 'dashboards'" class="mydash-picker__content">
+			<div class="mydash-picker__add-tile">
 				<NcButton
 					type="primary"
-					@click="$emit('add-tile')">
+					@click="createDashboard">
 					<template #icon>
 						<Plus :size="20" />
 					</template>
-					{{ t('mydash', 'Create Tile') }}
+					{{ t('mydash', 'Create Dashboard') }}
 				</NcButton>
 			</div>
 
-			<div v-if="tiles.length > 0" class="tiles-list">
+			<div class="mydash-picker__list">
 				<div
-					v-for="tile in tiles"
-					:key="tile.id"
-					class="tile-item"
-					:style="{
-						backgroundColor: tile.backgroundColor,
-						color: tile.textColor
-					}"
-					@click="addTile(tile)">
-					<svg
-						v-if="tile.iconType === 'svg'"
-						class="tile-item__icon"
-						:style="{ fill: tile.textColor }"
-						viewBox="0 0 24 24">
-						<path :d="tile.icon" />
-					</svg>
-					<span v-else-if="tile.iconType === 'class'" :class="tile.icon" class="tile-item__icon" />
-					<img v-else-if="tile.iconType === 'url'" :src="tile.icon" class="tile-item__icon" alt="Icon">
-					<span v-else-if="tile.iconType === 'emoji'" class="tile-item__icon tile-item__emoji">{{ tile.icon }}</span>
-					<span class="tile-item__title">{{ tile.title }}</span>
-					<Plus :size="20" class="tile-item__add" />
+					v-for="dashboard in dashboards"
+					:key="dashboard.id"
+					class="mydash-picker__dashboard">
+					<div class="mydash-picker__dashboard-content">
+						<ViewDashboard :size="20" class="mydash-picker__dashboard-icon" />
+						<div class="mydash-picker__dashboard-info">
+							<span class="mydash-picker__dashboard-title">{{ dashboard.name }}</span>
+							<span v-if="dashboard.id === activeDashboardId" class="mydash-picker__dashboard-badge">
+								{{ t('mydash', 'Active') }}
+							</span>
+						</div>
+					</div>
+					<div class="mydash-picker__dashboard-actions">
+						<NcButton
+							v-if="dashboard.id !== activeDashboardId"
+							type="tertiary"
+							:aria-label="t('mydash', 'Switch to this dashboard')"
+							@click="$emit('switch-dashboard', dashboard.id)">
+							<template #icon>
+								<SwapHorizontal :size="20" />
+							</template>
+						</NcButton>
+						<NcButton
+							type="tertiary"
+							:aria-label="t('mydash', 'Edit dashboard')"
+							@click="editDashboard(dashboard)">
+							<template #icon>
+								<Pencil :size="20" />
+							</template>
+						</NcButton>
+						<NcButton
+							v-if="dashboards.length > 1"
+							type="tertiary"
+							:aria-label="t('mydash', 'Delete dashboard')"
+							@click="deleteDashboard(dashboard)">
+							<template #icon>
+								<Delete :size="20" />
+							</template>
+						</NcButton>
+					</div>
 				</div>
-			</div>
 
-			<NcEmptyContent
-				v-else
-				:description="t('mydash', 'No tiles yet')">
-				<template #icon>
-					<ViewGrid :size="48" />
-				</template>
-				<template #action>
-					<NcButton type="primary" @click="$emit('add-tile')">
-						<template #icon>
-							<Plus :size="20" />
-						</template>
-						{{ t('mydash', 'Create your first tile') }}
-					</NcButton>
-				</template>
-			</NcEmptyContent>
+				<NcEmptyContent
+					v-if="dashboards.length === 0"
+					:description="t('mydash', 'No dashboards yet')">
+					<template #icon>
+						<ViewDashboard :size="48" />
+					</template>
+				</NcEmptyContent>
+			</div>
 		</div>
 	</div>
 </template>
@@ -146,7 +169,10 @@ import Magnify from 'vue-material-design-icons/Magnify.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Check from 'vue-material-design-icons/Check.vue'
 import ViewModule from 'vue-material-design-icons/ViewModule.vue'
-import ViewGrid from 'vue-material-design-icons/ViewGrid.vue'
+import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
+import SwapHorizontal from 'vue-material-design-icons/SwapHorizontal.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
+import Delete from 'vue-material-design-icons/Delete.vue'
 
 export default {
 	name: 'WidgetPicker',
@@ -160,7 +186,10 @@ export default {
 		Plus,
 		Check,
 		ViewModule,
-		ViewGrid,
+		ViewDashboard,
+		SwapHorizontal,
+		Pencil,
+		Delete,
 	},
 
 	props: {
@@ -176,13 +205,17 @@ export default {
 			type: Array,
 			default: () => [],
 		},
-		tiles: {
+		dashboards: {
 			type: Array,
 			default: () => [],
 		},
+		activeDashboardId: {
+			type: Number,
+			default: null,
+		},
 	},
 
-	emits: ['close', 'add', 'add-tile', 'add-tile-to-dashboard', 'edit-tile'],
+	emits: ['close', 'add', 'add-tile', 'switch-dashboard', 'create-dashboard', 'edit-dashboard', 'delete-dashboard'],
 
 	data() {
 		return {
@@ -205,13 +238,13 @@ export default {
 
 		sortedWidgets() {
 			return [...this.widgets].sort((a, b) => {
-				// Show not-placed widgets first
+				// Show not-placed widgets first.
 				const aPlaced = this.isPlaced(a.id)
 				const bPlaced = this.isPlaced(b.id)
 				if (aPlaced !== bPlaced) {
 					return aPlaced ? 1 : -1
 				}
-				// Then sort by order
+				// Then sort by order.
 				return (a.order || 0) - (b.order || 0)
 			})
 		},
@@ -227,9 +260,16 @@ export default {
 			this.$emit('add', widget.id)
 		},
 
-		addTile(tile) {
-			// Emit event to add tile as a widget (using tile-{id} as widget ID).
-			this.$emit('add', `tile-${tile.id}`)
+		createDashboard() {
+			this.$emit('create-dashboard')
+		},
+
+		editDashboard(dashboard) {
+			this.$emit('edit-dashboard', dashboard)
+		},
+
+		deleteDashboard(dashboard) {
+			this.$emit('delete-dashboard', dashboard)
 		},
 	},
 }
@@ -301,6 +341,11 @@ export default {
 	border-bottom-color: var(--color-primary-element);
 }
 
+.mydash-picker__add-tile {
+	padding: 16px;
+	border-bottom: 1px solid var(--color-border);
+}
+
 .mydash-picker__content {
 	flex: 1;
 	overflow-y: auto;
@@ -309,11 +354,6 @@ export default {
 }
 
 .mydash-picker__search {
-	padding: 16px;
-	border-bottom: 1px solid var(--color-border);
-}
-
-.mydash-picker__tiles-header {
 	padding: 16px;
 	border-bottom: 1px solid var(--color-border);
 }
@@ -443,5 +483,66 @@ export default {
 
 .tile-item:hover .tile-item__add {
 	opacity: 1;
+}
+
+.mydash-picker__dashboard {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 12px;
+	border-radius: var(--border-radius);
+	transition: background 0.1s ease;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.mydash-picker__dashboard:hover {
+	background: var(--color-background-hover);
+}
+
+.mydash-picker__dashboard-content {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex: 1;
+	min-width: 0;
+}
+
+.mydash-picker__dashboard-icon {
+	flex-shrink: 0;
+	color: var(--color-text-lighter);
+}
+
+.mydash-picker__dashboard-info {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	flex: 1;
+	min-width: 0;
+}
+
+.mydash-picker__dashboard-title {
+	font-size: 14px;
+	font-weight: 500;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.mydash-picker__dashboard-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	background: var(--color-primary-element);
+	color: white;
+	border-radius: 12px;
+	font-size: 11px;
+	font-weight: 600;
+	width: fit-content;
+}
+
+.mydash-picker__dashboard-actions {
+	display: flex;
+	gap: 4px;
+	flex-shrink: 0;
 }
 </style>
