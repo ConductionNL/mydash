@@ -23,12 +23,16 @@ Administrators can create dashboard templates for user groups and mark certain w
 	</description>
 	<version>1.0.0</version>
 	<licence>agpl</licence>
-	<author>MyDash Contributors</author>
+	<author mail="info@conduction.nl" homepage="https://www.conduction.nl/">Conduction</author>
 	<namespace>MyDash</namespace>
 
 	<category>customization</category>
 
-	<bugs>https://github.com/mydash/issues</bugs>
+	<website>https://github.com/ConductionNL/mydash</website>
+	<bugs>https://github.com/ConductionNL/mydash/issues</bugs>
+	<repository>https://github.com/ConductionNL/mydash</repository>
+
+	<screenshot>https://raw.githubusercontent.com/ConductionNL/mydash/main/img/screenshot.png</screenshot>
 
 	<dependencies>
 		<php min-version="8.1"/>
