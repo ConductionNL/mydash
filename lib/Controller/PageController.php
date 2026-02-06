@@ -41,7 +41,7 @@ class PageController extends Controller {
 	 * This ensures legacy widgets can register their callbacks via OCA.Dashboard.register.
 	 */
 	private function loadWidgetScripts(): void {
-		$dashboardManager = \OC::$server->get(\OCP\Dashboard\IDashboardManager::class);
+		$dashboardManager = \OC::$server->get(\OCP\Dashboard\IManager::class);
 		$widgets = $dashboardManager->getWidgets();
 
 		foreach ($widgets as $widget) {
