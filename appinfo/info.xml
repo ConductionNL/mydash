@@ -21,7 +21,7 @@ MyDash provides an enhanced dashboard experience for Nextcloud with:
 
 Administrators can create dashboard templates for user groups and mark certain widgets as compulsory.]]>
 	</description>
-	<version>1.0.0</version>
+	<version>1.0.1-beta.1</version>
 	<licence>agpl</licence>
 	<author mail="info@conduction.nl" homepage="https://www.conduction.nl/">Conduction</author>
 	<namespace>MyDash</namespace>
