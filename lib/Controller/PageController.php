@@ -30,6 +30,23 @@ class PageController extends Controller {
 		Util::addScript(Application::APP_ID, 'mydash-main');
 		Util::addStyle(Application::APP_ID, 'mydash');
 
+		// Load all widget scripts so legacy widgets can register their callbacks.
+		$this->loadWidgetScripts();
+
 		return new TemplateResponse(Application::APP_ID, 'index');
+	}
+
+	/**
+	 * Load scripts for all available dashboard widgets.
+	 * This ensures legacy widgets can register their callbacks via OCA.Dashboard.register.
+	 */
+	private function loadWidgetScripts(): void {
+		$dashboardManager = \OC::$server->get(\OCP\Dashboard\IDashboardManager::class);
+		$widgets = $dashboardManager->getWidgets();
+
+		foreach ($widgets as $widget) {
+			// Call the widget's load() method to inject its scripts.
+			$widget->load();
+		}
 	}
 }

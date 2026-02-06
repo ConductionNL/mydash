@@ -208,13 +208,14 @@ export default {
 		mountLegacyWidget() {
 			if (!this.$refs.legacyWidgetContainer) return
 
-			// Call the widget's load method to inject scripts
-			if (typeof this.widget.load === 'function') {
-				this.widget.load()
-			}
-
-			// Try to mount via the bridge
-			widgetBridge.mountWidget(this.widget.id, this.$refs.legacyWidgetContainer)
+			// Wait for the widget callback to be registered.
+			// The script was already loaded by the PageController.
+			this.$nextTick(() => {
+				// Small delay to ensure callback registration is complete.
+				setTimeout(() => {
+					widgetBridge.mountWidget(this.widget.id, this.$refs.legacyWidgetContainer)
+				}, 100)
+			})
 		},
 
 		setupAutoRefresh(intervalSeconds) {

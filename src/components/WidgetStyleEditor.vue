@@ -60,28 +60,36 @@
 				{{ t('mydash', 'Icon') }}
 			</h3>
 
-			<NcSelect
-				v-model="selectedIcon"
-				:options="iconOptions"
-				:label="t('mydash', 'Icon')"
-				label-outside>
-				<template #selected-option="{ label }">
-					<div class="icon-option">
-						<svg class="icon-option__preview" viewBox="0 0 24 24">
-							<path :d="selectedIcon.icon" />
-						</svg>
-						<span class="icon-option__label">{{ label }}</span>
-					</div>
-				</template>
-				<template #option="option">
-					<div class="icon-option">
-						<svg class="icon-option__preview" viewBox="0 0 24 24">
-							<path :d="option.icon" />
-						</svg>
-						<span class="icon-option__label">{{ option.label }}</span>
-					</div>
-				</template>
-			</NcSelect>
+		<NcSelect
+			v-model="selectedIcon"
+			:options="iconOptions"
+			:label="t('mydash', 'Icon')"
+			label-outside>
+			<template #selected-option="{ label }">
+				<div class="icon-option">
+					<img v-if="selectedIcon.type === 'nldesign'" 
+						class="icon-option__preview" 
+						:src="selectedIcon.icon" 
+						:alt="label">
+					<svg v-else class="icon-option__preview" viewBox="0 0 24 24">
+						<path :d="selectedIcon.icon" />
+					</svg>
+					<span class="icon-option__label">{{ label }}</span>
+				</div>
+			</template>
+			<template #option="option">
+				<div class="icon-option">
+					<img v-if="option.type === 'nldesign'" 
+						class="icon-option__preview" 
+						:src="option.icon" 
+						:alt="option.label">
+					<svg v-else class="icon-option__preview" viewBox="0 0 24 24">
+						<path :d="option.icon" />
+					</svg>
+					<span class="icon-option__label">{{ option.label }}</span>
+				</div>
+			</template>
+		</NcSelect>
 		</div>
 
 		<!-- Actions -->
@@ -208,6 +216,41 @@ export default {
 				{ id: 'upload', label: this.t('mydash', 'Upload'), icon: mdiUpload },
 				{ id: 'monitoring', label: this.t('mydash', 'Monitoring'), icon: mdiChartLine },
 				{ id: 'integration', label: this.t('mydash', 'Integration'), icon: mdiConnection },
+				// NlDesign Icons
+				{ id: 'nl-airplane', label: this.t('mydash', 'Airplane'), icon: this.getNlDesignIconUrl('Airplane'), type: 'nldesign' },
+				{ id: 'nl-bell', label: this.t('mydash', 'Bell'), icon: this.getNlDesignIconUrl('Bell'), type: 'nldesign' },
+				{ id: 'nl-bike', label: this.t('mydash', 'Bike'), icon: this.getNlDesignIconUrl('Bike'), type: 'nldesign' },
+				{ id: 'nl-building', label: this.t('mydash', 'Building'), icon: this.getNlDesignIconUrl('Building'), type: 'nldesign' },
+				{ id: 'nl-bus', label: this.t('mydash', 'Bus'), icon: this.getNlDesignIconUrl('Bus'), type: 'nldesign' },
+				{ id: 'nl-cake', label: this.t('mydash', 'Cake'), icon: this.getNlDesignIconUrl('Cake'), type: 'nldesign' },
+				{ id: 'nl-calendar', label: this.t('mydash', 'Calendar'), icon: this.getNlDesignIconUrl('Calendar'), type: 'nldesign' },
+				{ id: 'nl-camera', label: this.t('mydash', 'Camera'), icon: this.getNlDesignIconUrl('Camera'), type: 'nldesign' },
+				{ id: 'nl-car', label: this.t('mydash', 'Car'), icon: this.getNlDesignIconUrl('Car'), type: 'nldesign' },
+				{ id: 'nl-certificate', label: this.t('mydash', 'Certificate'), icon: this.getNlDesignIconUrl('Certificate'), type: 'nldesign' },
+				{ id: 'nl-clock', label: this.t('mydash', 'Clock'), icon: this.getNlDesignIconUrl('Clock'), type: 'nldesign' },
+				{ id: 'nl-cogwheel', label: this.t('mydash', 'Cogwheel'), icon: this.getNlDesignIconUrl('Cogwheel'), type: 'nldesign' },
+				{ id: 'nl-document', label: this.t('mydash', 'Document'), icon: this.getNlDesignIconUrl('Document'), type: 'nldesign' },
+				{ id: 'nl-earth', label: this.t('mydash', 'Earth'), icon: this.getNlDesignIconUrl('Earth'), type: 'nldesign' },
+				{ id: 'nl-euro', label: this.t('mydash', 'Euro'), icon: this.getNlDesignIconUrl('Euro'), type: 'nldesign' },
+				{ id: 'nl-flower', label: this.t('mydash', 'Flower'), icon: this.getNlDesignIconUrl('Flower'), type: 'nldesign' },
+				{ id: 'nl-folder', label: this.t('mydash', 'Folder'), icon: this.getNlDesignIconUrl('Folder'), type: 'nldesign' },
+				{ id: 'nl-heart', label: this.t('mydash', 'Heart'), icon: this.getNlDesignIconUrl('Heart'), type: 'nldesign' },
+				{ id: 'nl-house', label: this.t('mydash', 'House'), icon: this.getNlDesignIconUrl('House'), type: 'nldesign' },
+				{ id: 'nl-image', label: this.t('mydash', 'Image'), icon: this.getNlDesignIconUrl('Image'), type: 'nldesign' },
+				{ id: 'nl-lightbulb', label: this.t('mydash', 'Light Bulb'), icon: this.getNlDesignIconUrl('LightBulb'), type: 'nldesign' },
+				{ id: 'nl-lightning', label: this.t('mydash', 'Lightning'), icon: this.getNlDesignIconUrl('Lightning'), type: 'nldesign' },
+				{ id: 'nl-mail', label: this.t('mydash', 'Mail'), icon: this.getNlDesignIconUrl('Mail'), type: 'nldesign' },
+				{ id: 'nl-map', label: this.t('mydash', 'Map'), icon: this.getNlDesignIconUrl('Map'), type: 'nldesign' },
+				{ id: 'nl-megaphone', label: this.t('mydash', 'Megaphone'), icon: this.getNlDesignIconUrl('Megaphone'), type: 'nldesign' },
+				{ id: 'nl-monument', label: this.t('mydash', 'Monument'), icon: this.getNlDesignIconUrl('Monument'), type: 'nldesign' },
+				{ id: 'nl-park', label: this.t('mydash', 'Park'), icon: this.getNlDesignIconUrl('Park'), type: 'nldesign' },
+				{ id: 'nl-parking', label: this.t('mydash', 'Parking'), icon: this.getNlDesignIconUrl('Parking'), type: 'nldesign' },
+				{ id: 'nl-person', label: this.t('mydash', 'Person'), icon: this.getNlDesignIconUrl('Person'), type: 'nldesign' },
+				{ id: 'nl-phone', label: this.t('mydash', 'Phone'), icon: this.getNlDesignIconUrl('Phone'), type: 'nldesign' },
+				{ id: 'nl-search', label: this.t('mydash', 'Search'), icon: this.getNlDesignIconUrl('Search'), type: 'nldesign' },
+				{ id: 'nl-star', label: this.t('mydash', 'Star'), icon: this.getNlDesignIconUrl('Star'), type: 'nldesign' },
+				{ id: 'nl-tree', label: this.t('mydash', 'Tree'), icon: this.getNlDesignIconUrl('Tree'), type: 'nldesign' },
+				{ id: 'nl-wallet', label: this.t('mydash', 'Wallet'), icon: this.getNlDesignIconUrl('Wallet'), type: 'nldesign' },
 			],
 		}
 	},
@@ -236,6 +279,11 @@ export default {
 	},
 
 	methods: {
+		getNlDesignIconUrl(iconName) {
+			// Generate URL for NlDesign icons
+			return `${window.location.origin}/apps/nldesign/img/icons/${iconName}.svg`
+		},
+
 		loadStyle() {
 			const styleConfig = this.placement.styleConfig || {}
 			this.localStyle = {
