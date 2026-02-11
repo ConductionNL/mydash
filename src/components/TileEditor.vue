@@ -18,7 +18,7 @@
 						backgroundColor: form.backgroundColor,
 						color: form.textColor
 					}">
-					<svg 
+					<svg
 						class="tile-preview__icon"
 						:style="{ fill: form.textColor }"
 						viewBox="0 0 24 24">
@@ -35,36 +35,36 @@
 					:placeholder="t('mydash', 'Enter tile title')"
 					required />
 
-			<NcSelect
-				v-model="selectedIcon"
-				:options="iconOptions"
-				:label="t('mydash', 'Icon')"
-				label-outside>
-				<template #selected-option="{ label }">
-					<div class="icon-option">
-						<img v-if="selectedIcon.type === 'nldesign'" 
-							class="icon-option__preview" 
-							:src="selectedIcon.icon" 
-							:alt="label">
-						<svg v-else class="icon-option__preview" viewBox="0 0 24 24">
-							<path :d="selectedIcon.icon" />
-						</svg>
-						<span class="icon-option__label">{{ label }}</span>
-					</div>
-				</template>
-				<template #option="option">
-					<div class="icon-option">
-						<img v-if="option.type === 'nldesign'" 
-							class="icon-option__preview" 
-							:src="option.icon" 
-							:alt="option.label">
-						<svg v-else class="icon-option__preview" viewBox="0 0 24 24">
-							<path :d="option.icon" />
-						</svg>
-						<span class="icon-option__label">{{ option.label }}</span>
-					</div>
-				</template>
-			</NcSelect>
+				<NcSelect
+					v-model="selectedIcon"
+					:options="iconOptions"
+					:label="t('mydash', 'Icon')"
+					label-outside>
+					<template #selected-option="{ label }">
+						<div class="icon-option">
+							<img v-if="selectedIcon.type === 'nldesign'"
+								class="icon-option__preview"
+								:src="selectedIcon.icon"
+								:alt="label">
+							<svg v-else class="icon-option__preview" viewBox="0 0 24 24">
+								<path :d="selectedIcon.icon" />
+							</svg>
+							<span class="icon-option__label">{{ label }}</span>
+						</div>
+					</template>
+					<template #option="option">
+						<div class="icon-option">
+							<img v-if="option.type === 'nldesign'"
+								class="icon-option__preview"
+								:src="option.icon"
+								:alt="option.label">
+							<svg v-else class="icon-option__preview" viewBox="0 0 24 24">
+								<path :d="option.icon" />
+							</svg>
+							<span class="icon-option__label">{{ option.label }}</span>
+						</div>
+					</template>
+				</NcSelect>
 
 				<div class="form-row">
 					<div class="form-row__item">
@@ -106,22 +106,22 @@
 					:placeholder="t('mydash', 'https://example.com or /apps/files')"
 					type="text" />
 
-			<div class="tile-editor__actions">
-				<NcButton
-					v-if="tile"
-					type="error"
-					@click="$emit('delete')">
-					{{ t('mydash', 'Delete') }}
-				</NcButton>
-				<div class="tile-editor__actions-right">
-					<NcButton @click="$emit('close')">
-						{{ t('mydash', 'Cancel') }}
+				<div class="tile-editor__actions">
+					<NcButton
+						v-if="tile"
+						type="error"
+						@click="$emit('delete')">
+						{{ t('mydash', 'Delete') }}
 					</NcButton>
-					<NcButton type="primary" @click="saveTile">
-						{{ t('mydash', 'Save') }}
-					</NcButton>
+					<div class="tile-editor__actions-right">
+						<NcButton @click="$emit('close')">
+							{{ t('mydash', 'Cancel') }}
+						</NcButton>
+						<NcButton type="primary" @click="saveTile">
+							{{ t('mydash', 'Save') }}
+						</NcButton>
+					</div>
 				</div>
-			</div>
 			</div>
 		</div>
 	</NcModal>
@@ -320,7 +320,7 @@ export default {
 			// Convert icon ID to the actual SVG path for the API
 			const tileData = {
 				...this.form,
-				icon: this.iconPath
+				icon: this.iconPath,
 			}
 			this.$emit('save', tileData)
 		},

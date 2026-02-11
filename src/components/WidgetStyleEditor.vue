@@ -33,82 +33,82 @@
 					:placeholder="placement.widget?.title || t('mydash', 'Widget title')" />
 			</div>
 
-		<!-- Background settings -->
-		<div class="style-editor__section">
-			<h3 class="style-editor__section-title">
-				{{ t('mydash', 'Background') }}
-			</h3>
+			<!-- Background settings -->
+			<div class="style-editor__section">
+				<h3 class="style-editor__section-title">
+					{{ t('mydash', 'Background') }}
+				</h3>
 
-			<div class="style-editor__row">
-				<label class="style-editor__label">{{ t('mydash', 'Color') }}</label>
-				<NcColorPicker v-model="localStyle.backgroundColor">
-					<NcButton type="secondary">
-						<template #icon>
-							<div
-								class="style-editor__color-preview"
-								:style="{ backgroundColor: localStyle.backgroundColor }" />
-						</template>
-						{{ localStyle.backgroundColor || t('mydash', 'Default') }}
+				<div class="style-editor__row">
+					<label class="style-editor__label">{{ t('mydash', 'Color') }}</label>
+					<NcColorPicker v-model="localStyle.backgroundColor">
+						<NcButton type="secondary">
+							<template #icon>
+								<div
+									class="style-editor__color-preview"
+									:style="{ backgroundColor: localStyle.backgroundColor }" />
+							</template>
+							{{ localStyle.backgroundColor || t('mydash', 'Default') }}
+						</NcButton>
+					</NcColorPicker>
+				</div>
+			</div>
+
+			<!-- Icon settings -->
+			<div class="style-editor__section">
+				<h3 class="style-editor__section-title">
+					{{ t('mydash', 'Icon') }}
+				</h3>
+
+				<NcSelect
+					v-model="selectedIcon"
+					:options="iconOptions"
+					:label="t('mydash', 'Icon')"
+					label-outside>
+					<template #selected-option="{ label }">
+						<div class="icon-option">
+							<img v-if="selectedIcon.type === 'nldesign'"
+								class="icon-option__preview"
+								:src="selectedIcon.icon"
+								:alt="label">
+							<svg v-else class="icon-option__preview" viewBox="0 0 24 24">
+								<path :d="selectedIcon.icon" />
+							</svg>
+							<span class="icon-option__label">{{ label }}</span>
+						</div>
+					</template>
+					<template #option="option">
+						<div class="icon-option">
+							<img v-if="option.type === 'nldesign'"
+								class="icon-option__preview"
+								:src="option.icon"
+								:alt="option.label">
+							<svg v-else class="icon-option__preview" viewBox="0 0 24 24">
+								<path :d="option.icon" />
+							</svg>
+							<span class="icon-option__label">{{ option.label }}</span>
+						</div>
+					</template>
+				</NcSelect>
+			</div>
+
+			<!-- Actions -->
+			<div class="style-editor__actions">
+				<NcButton
+					v-if="!placement.isCompulsory"
+					type="error"
+					@click="$emit('delete')">
+					{{ t('mydash', 'Delete') }}
+				</NcButton>
+				<div class="style-editor__actions-right">
+					<NcButton type="secondary" @click="resetStyle">
+						{{ t('mydash', 'Reset') }}
 					</NcButton>
-				</NcColorPicker>
-			</div>
-		</div>
-
-		<!-- Icon settings -->
-		<div class="style-editor__section">
-			<h3 class="style-editor__section-title">
-				{{ t('mydash', 'Icon') }}
-			</h3>
-
-		<NcSelect
-			v-model="selectedIcon"
-			:options="iconOptions"
-			:label="t('mydash', 'Icon')"
-			label-outside>
-			<template #selected-option="{ label }">
-				<div class="icon-option">
-					<img v-if="selectedIcon.type === 'nldesign'" 
-						class="icon-option__preview" 
-						:src="selectedIcon.icon" 
-						:alt="label">
-					<svg v-else class="icon-option__preview" viewBox="0 0 24 24">
-						<path :d="selectedIcon.icon" />
-					</svg>
-					<span class="icon-option__label">{{ label }}</span>
+					<NcButton type="primary" @click="saveStyle">
+						{{ t('mydash', 'Save') }}
+					</NcButton>
 				</div>
-			</template>
-			<template #option="option">
-				<div class="icon-option">
-					<img v-if="option.type === 'nldesign'" 
-						class="icon-option__preview" 
-						:src="option.icon" 
-						:alt="option.label">
-					<svg v-else class="icon-option__preview" viewBox="0 0 24 24">
-						<path :d="option.icon" />
-					</svg>
-					<span class="icon-option__label">{{ option.label }}</span>
-				</div>
-			</template>
-		</NcSelect>
-		</div>
-
-		<!-- Actions -->
-		<div class="style-editor__actions">
-			<NcButton
-				v-if="!placement.isCompulsory"
-				type="error"
-				@click="$emit('delete')">
-				{{ t('mydash', 'Delete') }}
-			</NcButton>
-			<div class="style-editor__actions-right">
-				<NcButton type="secondary" @click="resetStyle">
-					{{ t('mydash', 'Reset') }}
-				</NcButton>
-				<NcButton type="primary" @click="saveStyle">
-					{{ t('mydash', 'Save') }}
-				</NcButton>
 			</div>
-		</div>
 		</div>
 	</NcModal>
 </template>

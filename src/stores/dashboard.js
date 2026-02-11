@@ -78,34 +78,34 @@ export const useDashboardStore = defineStore('dashboard', {
 			}
 		},
 
-	async updatePlacements(placements) {
-		console.log('[DashboardStore] updatePlacements called, count:', placements.length)
+		async updatePlacements(placements) {
+			console.log('[DashboardStore] updatePlacements called, count:', placements.length)
 
-		// Update local state immediately for responsiveness
-		this.widgetPlacements = placements
+			// Update local state immediately for responsiveness
+			this.widgetPlacements = placements
 
-		// Debounced save to backend
-		this.saving = true
-		try {
-			const placementsData = placements.map(p => ({
-				id: p.id,
-				gridX: p.gridX,
-				gridY: p.gridY,
-				gridWidth: p.gridWidth,
-				gridHeight: p.gridHeight,
-			}))
-			console.log('[DashboardStore] Sending placements to API:', JSON.stringify(placementsData, null, 2))
+			// Debounced save to backend
+			this.saving = true
+			try {
+				const placementsData = placements.map(p => ({
+					id: p.id,
+					gridX: p.gridX,
+					gridY: p.gridY,
+					gridWidth: p.gridWidth,
+					gridHeight: p.gridHeight,
+				}))
+				console.log('[DashboardStore] Sending placements to API:', JSON.stringify(placementsData, null, 2))
 
-			await api.updateDashboard(this.activeDashboard.id, {
-				placements: placementsData,
-			})
-			console.log('[DashboardStore] Successfully saved placements')
-		} catch (error) {
-			console.error('Failed to save placements:', error)
-		} finally {
-			this.saving = false
-		}
-	},
+				await api.updateDashboard(this.activeDashboard.id, {
+					placements: placementsData,
+				})
+				console.log('[DashboardStore] Successfully saved placements')
+			} catch (error) {
+				console.error('Failed to save placements:', error)
+			} finally {
+				this.saving = false
+			}
+		},
 
 		async addWidgetToDashboard(widgetId, position = null) {
 			try {
@@ -153,24 +153,24 @@ export const useDashboardStore = defineStore('dashboard', {
 			}
 		},
 
-	async updateWidgetPlacement(placementId, updates) {
-		console.log('[DashboardStore] updateWidgetPlacement called:', JSON.stringify({ placementId, updates }, null, 2))
-		try {
-			const response = await api.updateWidgetPlacement(placementId, updates)
-			console.log('[DashboardStore] API response:', JSON.stringify(response.data, null, 2))
-			
-			const index = this.widgetPlacements.findIndex(p => p.id === placementId)
-			console.log('[DashboardStore] Found placement at index:', index)
-			
-			if (index !== -1) {
+		async updateWidgetPlacement(placementId, updates) {
+			console.log('[DashboardStore] updateWidgetPlacement called:', JSON.stringify({ placementId, updates }, null, 2))
+			try {
+				const response = await api.updateWidgetPlacement(placementId, updates)
+				console.log('[DashboardStore] API response:', JSON.stringify(response.data, null, 2))
+
+				const index = this.widgetPlacements.findIndex(p => p.id === placementId)
+				console.log('[DashboardStore] Found placement at index:', index)
+
+				if (index !== -1) {
 				// Use splice for reactive update.
-				this.widgetPlacements.splice(index, 1, response.data)
-				console.log('[DashboardStore] Updated placement:', JSON.stringify(this.widgetPlacements[index], null, 2))
+					this.widgetPlacements.splice(index, 1, response.data)
+					console.log('[DashboardStore] Updated placement:', JSON.stringify(this.widgetPlacements[index], null, 2))
+				}
+			} catch (error) {
+				console.error('Failed to update widget placement:', error)
+				console.error('Error details:', error.response?.data)
 			}
-		} catch (error) {
-			console.error('Failed to update widget placement:', error)
-			console.error('Error details:', error.response?.data)
-		}
-	},
+		},
 	},
 })

@@ -83,7 +83,7 @@ export default {
 
 	data() {
 		return {
-			loading: false,  // Start false, will be set to true for API widgets only
+			loading: false, // Start false, will be set to true for API widgets only
 			itemsLoading: false,
 			refreshInterval: null,
 		}
@@ -144,7 +144,7 @@ export default {
 
 	watch: {
 		widget: {
-			immediate: false,  // Don't run immediately, wait for mounted
+			immediate: false, // Don't run immediately, wait for mounted
 			handler(newWidget) {
 				console.log('[WidgetRenderer] widget watch triggered:', newWidget?.id, newWidget)
 				if (newWidget || this.isTileWidget) {
@@ -153,7 +153,7 @@ export default {
 			},
 		},
 		placement: {
-			immediate: false,  // Don't run immediately
+			immediate: false, // Don't run immediately
 			handler() {
 				console.log('[WidgetRenderer] placement watch triggered:', this.placement)
 				if (this.isTileWidget) {
@@ -188,7 +188,7 @@ export default {
 				isApiWidgetV1: this.isApiWidgetV1,
 				isApiWidgetV2: this.isApiWidgetV2,
 				itemApiVersions: this.widget?.itemApiVersions,
-				fullWidget: this.widget
+				fullWidget: this.widget,
 			})
 
 			if (!this.widget && !this.isTileWidget) {
@@ -251,7 +251,7 @@ export default {
 			// to register their callbacks. Try multiple times with increasing delays.
 			const tryMount = (attempt = 0, maxAttempts = 20) => {
 				console.log(`[WidgetRenderer] Mount attempt ${attempt + 1}/${maxAttempts} for:`, this.widget.id)
-				
+
 				// Check if callback is registered
 				if (widgetBridge.hasWidgetCallback(this.widget.id)) {
 					console.log('[WidgetRenderer] Callback found! Mounting:', this.widget.id)

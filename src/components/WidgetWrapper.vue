@@ -18,13 +18,13 @@
 					{{ widgetTitle }}
 				</h3>
 			</div>
-		<div v-if="editMode" class="mydash-widget__actions">
-			<NcButton type="tertiary" @click="$emit('edit', placement)">
-				<template #icon>
-					<Cog :size="20" />
-				</template>
-			</NcButton>
-		</div>
+			<div v-if="editMode" class="mydash-widget__actions">
+				<NcButton type="tertiary" @click="$emit('edit', placement)">
+					<template #icon>
+						<Cog :size="20" />
+					</template>
+				</NcButton>
+			</div>
 		</div>
 
 		<!-- Widget content -->
@@ -83,7 +83,7 @@ export default {
 			const result = this.placement.widgetId && this.placement.widgetId.startsWith('tile-')
 			console.log('[WidgetWrapper] isTileWidget check:', {
 				widgetId: this.placement.widgetId,
-				result: result
+				result,
 			})
 			return result
 		},
@@ -127,11 +127,11 @@ export default {
 				}
 			}
 
-		if (this.styleConfig.backgroundColor) {
-			styles.backgroundColor = this.styleConfig.backgroundColor
-		}
+			if (this.styleConfig.backgroundColor) {
+				styles.backgroundColor = this.styleConfig.backgroundColor
+			}
 
-		if (this.styleConfig.borderStyle && this.styleConfig.borderStyle !== 'none') {
+			if (this.styleConfig.borderStyle && this.styleConfig.borderStyle !== 'none') {
 				styles.border = `${this.styleConfig.borderWidth || 1}px ${this.styleConfig.borderStyle} ${this.styleConfig.borderColor || 'var(--color-border)'}`
 			}
 

@@ -18,22 +18,22 @@
 				:gs-min-w="2"
 				:gs-min-h="2">
 				<div class="grid-stack-item-content">
-				<!-- Render Tile directly for tile placements. -->
-				<TileWidget
-					v-if="isTilePlacement(placement)"
-					:tile="getTileData(placement)"
-					:edit-mode="editMode"
-					@edit="$emit('tile-edit', placement)" />
-					
+					<!-- Render Tile directly for tile placements. -->
+					<TileWidget
+						v-if="isTilePlacement(placement)"
+						:tile="getTileData(placement)"
+						:edit-mode="editMode"
+						@edit="$emit('tile-edit', placement)" />
+
 					<!-- Render Widget with wrapper for widget placements. -->
 					<WidgetWrapper
 						v-else
 						:placement="placement"
-					:widget="getWidget(placement.widgetId)"
-					:edit-mode="editMode"
-					@remove="$emit('widget-remove', placement.id)"
-					@style="$emit('widget-style', placement)"
-					@edit="$emit('widget-edit', placement)" />
+						:widget="getWidget(placement.widgetId)"
+						:edit-mode="editMode"
+						@remove="$emit('widget-remove', placement.id)"
+						@style="$emit('widget-style', placement)"
+						@edit="$emit('widget-edit', placement)" />
 				</div>
 			</div>
 		</div>
@@ -130,7 +130,7 @@ export default {
 		getTileData(placement) {
 			// Return tile data from the placement itself.
 			if (!this.isTilePlacement(placement)) return null
-			
+
 			return {
 				id: placement.id,
 				title: placement.tileTitle,
@@ -161,32 +161,32 @@ export default {
 			})
 		},
 
-	handleGridChange(items) {
-		if (!items || items.length === 0) return
+		handleGridChange(items) {
+			if (!items || items.length === 0) return
 
-		console.log('[DashboardGrid] Grid change detected. Items count:', items.length)
+			console.log('[DashboardGrid] Grid change detected. Items count:', items.length)
 
-		const updatedPlacements = this.placements.map(placement => {
-			const gridItem = items.find(item => String(item.id) === String(placement.id))
-			if (gridItem) {
-				console.log(`[DashboardGrid] Updating placement ${placement.id}:`, {
-					from: { x: placement.gridX, y: placement.gridY, w: placement.gridWidth, h: placement.gridHeight },
-					to: { x: gridItem.x, y: gridItem.y, w: gridItem.w, h: gridItem.h }
-				})
-				return {
-					...placement,
-					gridX: gridItem.x,
-					gridY: gridItem.y,
-					gridWidth: gridItem.w,
-					gridHeight: gridItem.h,
+			const updatedPlacements = this.placements.map(placement => {
+				const gridItem = items.find(item => String(item.id) === String(placement.id))
+				if (gridItem) {
+					console.log(`[DashboardGrid] Updating placement ${placement.id}:`, {
+						from: { x: placement.gridX, y: placement.gridY, w: placement.gridWidth, h: placement.gridHeight },
+						to: { x: gridItem.x, y: gridItem.y, w: gridItem.w, h: gridItem.h },
+					})
+					return {
+						...placement,
+						gridX: gridItem.x,
+						gridY: gridItem.y,
+						gridWidth: gridItem.w,
+						gridHeight: gridItem.h,
+					}
 				}
-			}
-			return placement
-		})
+				return placement
+			})
 
-		console.log('[DashboardGrid] Emitting updated placements, count:', updatedPlacements.length)
-		this.$emit('update:placements', updatedPlacements)
-	},
+			console.log('[DashboardGrid] Emitting updated placements, count:', updatedPlacements.length)
+			this.$emit('update:placements', updatedPlacements)
+		},
 
 		syncGridItems(placements) {
 			// Add new items
