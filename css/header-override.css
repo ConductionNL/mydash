@@ -10,6 +10,15 @@
    NEXTCLOUD HEADER - FORCE WHITE BACKGROUND
    ============================================ */
 
+/* Allow header to overflow for blue bar sticking out */
+html body.body-user #body-user,
+body.body-user #body-user,
+html body #body-user,
+body #body-user,
+#body-user {
+	overflow: visible !important;
+}
+
 /* Maximum specificity selectors for white header */
 html body.body-user #body-user #header,
 body.body-user #body-user #header,
@@ -23,75 +32,64 @@ body #header,
 	background-image: none !important;
 	background: #ffffff !important;
 	border-bottom: 1px solid #e0e0e0 !important;
+	position: relative !important;
+	overflow: visible !important;
 }
 
 /* ============================================
-   LOGO WITH BLUE BAR
+   BLUE BAR WITH LOGO - STICKING OUT ABOVE HEADER
    ============================================ */
 
-/* Logo container */
-html body #header .header-appname-container,
-body #header .header-appname-container,
-html body #header .logo,
-body #header .logo,
-#header .header-appname-container,
-#header .logo {
-	position: relative !important;
-	background: transparent !important;
-	background-image: none !important;
-	background-color: transparent !important;
-	padding-left: 70px !important;
-	min-height: 50px !important;
-	display: flex !important;
-	align-items: center !important;
-}
-
-/* Blue bar - ::before pseudo-element */
-html body #header .logo::before,
-body #header .logo::before,
-#header .logo::before,
-html body #header .header-appname-container::before,
-body #header .header-appname-container::before,
-#header .header-appname-container::before {
+/* Blue bar - sticking out above the header using ::before */
+html body #header::before,
+body #header::before,
+#header::before {
 	content: '' !important;
 	position: absolute !important;
-	left: 0 !important;
-	top: 50% !important;
-	transform: translateY(-50%) !important;
+	left: 5px !important;
+	top: -50px !important;
 	width: 60px !important;
 	height: 100px !important;
 	background: #154273 !important;
 	background-color: #154273 !important;
 	background-image: none !important;
-	z-index: 999 !important;
+	z-index: 100 !important;
 	display: block !important;
 	pointer-events: none !important;
 }
 
-/* White Nederland logo on blue bar - ::after pseudo-element */
-html body #header .logo::after,
-body #header .logo::after,
-#header .logo::after,
-html body #header .header-appname-container::after,
-body #header .header-appname-container::after,
-#header .header-appname-container::after {
+/* White Nederland logo on blue bar - at the bottom of the bar */
+html body #header::after,
+body #header::after,
+#header::after {
 	content: '' !important;
 	position: absolute !important;
-	left: 10px !important;
-	bottom: 10px !important;
+	left: 15px !important;
+	bottom: 5px !important;
 	width: 40px !important;
-	height: 30px !important;
-	background-image: url('/apps/nldesign/img/nederland-logo.svg') !important;
+	height: 32px !important;
+	background-image: url('../img/nederland-logo.svg') !important;
 	background-repeat: no-repeat !important;
-	background-position: center !important;
+	background-position: center bottom !important;
 	background-size: contain !important;
 	filter: brightness(0) invert(1) !important;
-	z-index: 1000 !important;
+	z-index: 101 !important;
 	display: block !important;
 	pointer-events: none !important;
 }
 
-/* Hide original Nextcloud logo */
+/* ============================================
+   LOGO AREA ADJUSTMENTS
+   ============================================ */
+
+/* Push header left content to make space for blue bar */
+html body #header .header-left,
+body #header .header-left,
+#header .header-left {
+	padding-left: 80px !important;
+}
+
+/* Hide original Nextcloud logo if present */
 html body #header .logo img,
 body #header .logo img,
 #header .logo img,
@@ -126,6 +124,13 @@ body #header .menutoggle,
 	color: #333333 !important;
 	filter: none !important;
 	opacity: 1 !important;
+}
+
+/* Header icons - invert for visibility on white */
+html body #header .header-right [class^="icon-"],
+body #header .header-right [class^="icon-"],
+#header .header-right [class^="icon-"] {
+	filter: invert(1) !important;
 }
 
 /* App menu styling */
