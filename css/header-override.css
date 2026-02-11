@@ -68,10 +68,12 @@ html body #header a[href="/"],
 body #header a[href="/"],
 #header a[href="/"] {
 	position: fixed !important;
-	left: 5px !important;
+	left: 15px !important;
 	top: 0 !important;
 	width: 60px !important;
-	height: 100px !important;
+	height: 60px !important;
+	margin-top: 0px !important;
+	margin-left: 0px !important;
 	background: #154273 !important;
 	background-color: #154273 !important;
 	background-image: none !important;
@@ -94,7 +96,7 @@ html body #header a[href="/"] .logo,
 body #header a[href="/"] .logo,
 #header a[href="/"] .logo {
 	width: 40px !important;
-	height: 35px !important;
+	height: 30px !important;
 	background-image: url('../img/nederland-logo.svg') !important;
 	background-repeat: no-repeat !important;
 	background-position: center !important;
