@@ -108,10 +108,21 @@ body #header .header-appname-container svg,
 }
 
 /* ============================================
-   HEADER ICONS AND TEXT - DARK ON WHITE
+   HEADER ICONS AND TEXT - DARK/BLUE ON WHITE
    ============================================ */
 
-/* Header right side icons and buttons */
+/* Header app name and branding text */
+html body #header .header-appname,
+body #header .header-appname,
+#header .header-appname,
+html body #header .header-left a,
+body #header .header-left a,
+#header .header-left a {
+	color: #154273 !important;
+	font-weight: 600 !important;
+}
+
+/* Header right side icons and buttons - dark text */
 html body #header .header-right a,
 body #header .header-right a,
 #header .header-right a,
@@ -122,24 +133,35 @@ html body #header .menutoggle,
 body #header .menutoggle,
 #header .menutoggle {
 	color: #333333 !important;
-	filter: none !important;
 	opacity: 1 !important;
 }
 
-/* Header icons - invert for visibility on white */
+/* Header icons - NO invert, keep them dark */
 html body #header .header-right [class^="icon-"],
 body #header .header-right [class^="icon-"],
-#header .header-right [class^="icon-"] {
-	filter: invert(1) !important;
+#header .header-right [class^="icon-"],
+html body #header .header-right svg,
+body #header .header-right svg,
+#header .header-right svg {
+	filter: none !important;
+	opacity: 0.8 !important;
 }
 
-/* App menu styling */
+/* App menu styling - dark text on white */
+html body #header #appmenu,
+body #header #appmenu,
+#header #appmenu {
+	background: transparent !important;
+}
+
 html body #header #appmenu li a,
 body #header #appmenu li a,
 #header #appmenu li a {
 	color: #333333 !important;
+	font-weight: 500 !important;
 }
 
+/* Active and hover states - blue text */
 html body #header #appmenu li.active a,
 body #header #appmenu li.active a,
 #header #appmenu li.active a,
@@ -148,12 +170,41 @@ body #header #appmenu li:hover a,
 #header #appmenu li:hover a {
 	background-color: #f0f0f0 !important;
 	color: #154273 !important;
+	font-weight: 600 !important;
 }
 
-/* Unified search icon */
+/* Unified search - dark icon and text */
 html body #header .unified-search__button,
 body #header .unified-search__button,
 #header .unified-search__button {
 	color: #333333 !important;
 	filter: none !important;
+}
+
+html body #header .unified-search__button svg,
+body #header .unified-search__button svg,
+#header .unified-search__button svg {
+	fill: #333333 !important;
+	filter: none !important;
+}
+
+/* User menu and notifications - dark icons */
+html body #header .header-right .icon-more,
+body #header .header-right .icon-more,
+#header .header-right .icon-more,
+html body #header .header-right .notifications,
+body #header .header-right .notifications,
+#header .header-right .notifications,
+html body #header .header-right .contactsmenu,
+body #header .header-right .contactsmenu,
+#header .header-right .contactsmenu {
+	opacity: 0.8 !important;
+}
+
+/* Settings menu icon */
+html body #header .header-right #settings,
+body #header .header-right #settings,
+#header .header-right #settings {
+	filter: none !important;
+	opacity: 0.8 !important;
 }
