@@ -10,6 +10,13 @@
    NEXTCLOUD HEADER - FORCE WHITE BACKGROUND
    ============================================ */
 
+/* Remove any top margin/padding from body to eliminate white space */
+html,
+body {
+	margin-top: 0 !important;
+	padding-top: 0 !important;
+}
+
 /* Allow header to overflow for blue bar sticking out */
 html body.body-user #body-user,
 body.body-user #body-user,
@@ -17,6 +24,8 @@ html body #body-user,
 body #body-user,
 #body-user {
 	overflow: visible !important;
+	margin-top: 0 !important;
+	padding-top: 0 !important;
 }
 
 /* Maximum specificity selectors for white header */
@@ -68,10 +77,11 @@ body #header a[href="/"],
 	background-image: none !important;
 	z-index: 9999 !important;
 	display: flex !important;
-	align-items: flex-end !important;
-	justify-content: center !important;
-	padding: 10px !important;
-	padding-bottom: 8px !important;
+	flex-direction: column !important;
+	align-items: center !important;
+	justify-content: flex-end !important;
+	padding: 0 !important;
+	padding-bottom: 10px !important;
 	overflow: visible !important;
 	box-sizing: border-box !important;
 }
