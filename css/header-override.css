@@ -37,45 +37,81 @@ body #header,
 }
 
 /* ============================================
-   BLUE BAR WITH LOGO - STICKING OUT ABOVE HEADER
+   BLUE BAR WITH LOGO - BETTER APPROACH
    ============================================ */
 
-/* Blue bar - sticking out above the header using ::before */
-html body #header::before,
-body #header::before,
-#header::before {
-	content: '' !important;
-	position: absolute !important;
+/* Create wrapper for logo with blue background bar */
+html body #header .header-left,
+body #header .header-left,
+#header .header-left {
+	position: relative !important;
+	z-index: 1000 !important;
+}
+
+/* Blue bar container - using the logo/header-appname link */
+html body #header .header-appname-container,
+body #header .header-appname-container,
+#header .header-appname-container,
+html body #header a[href*="index.php/apps/dashboard"],
+body #header a[href*="index.php/apps/dashboard"],
+#header a[href*="index.php/apps/dashboard"] {
+	position: fixed !important;
 	left: 5px !important;
-	top: -50px !important;
+	top: 0 !important;
 	width: 60px !important;
 	height: 100px !important;
 	background: #154273 !important;
 	background-color: #154273 !important;
 	background-image: none !important;
-	z-index: 100 !important;
-	display: block !important;
-	pointer-events: none !important;
+	z-index: 9999 !important;
+	display: flex !important;
+	align-items: flex-end !important;
+	justify-content: center !important;
+	padding: 10px !important;
+	overflow: visible !important;
 }
 
-/* White Nederland logo on blue bar - at the bottom of the bar */
+/* Logo image inside the blue bar - make it white and position at bottom */
+html body #header .header-appname-container img,
+body #header .header-appname-container img,
+#header .header-appname-container img,
+html body #header a[href*="index.php/apps/dashboard"] img,
+body #header a[href*="index.php/apps/dashboard"] img,
+#header a[href*="index.php/apps/dashboard"] img {
+	display: block !important;
+	width: 40px !important;
+	height: auto !important;
+	max-height: 35px !important;
+	filter: brightness(0) invert(1) !important;
+	opacity: 1 !important;
+	visibility: visible !important;
+	object-fit: contain !important;
+}
+
+/* If there's an SVG instead of img */
+html body #header .header-appname-container svg,
+body #header .header-appname-container svg,
+#header .header-appname-container svg,
+html body #header a[href*="index.php/apps/dashboard"] svg,
+body #header a[href*="index.php/apps/dashboard"] svg,
+#header a[href*="index.php/apps/dashboard"] svg {
+	display: block !important;
+	width: 40px !important;
+	height: auto !important;
+	max-height: 35px !important;
+	fill: white !important;
+	filter: brightness(0) invert(1) !important;
+}
+
+/* Remove the old pseudo-element approach */
+html body #header::before,
+body #header::before,
+#header::before,
 html body #header::after,
 body #header::after,
 #header::after {
-	content: '' !important;
-	position: absolute !important;
-	left: 15px !important;
-	bottom: 5px !important;
-	width: 40px !important;
-	height: 32px !important;
-	background-image: url('../img/nederland-logo.svg') !important;
-	background-repeat: no-repeat !important;
-	background-position: center bottom !important;
-	background-size: contain !important;
-	filter: brightness(0) invert(1) !important;
-	z-index: 101 !important;
-	display: block !important;
-	pointer-events: none !important;
+	content: none !important;
+	display: none !important;
 }
 
 /* ============================================
