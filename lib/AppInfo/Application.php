@@ -27,6 +27,9 @@ class Application extends App implements IBootstrap {
 
 	public function boot(IBootContext $context): void {
 		// App initialization after all apps are registered.
+		// Load custom header styling to override nldesign theme.
+		// This must be loaded here (not in PageController) to override theme CSS.
 		\OCP\Util::addStyle(self::APP_ID, 'mydash');
+		\OCP\Util::addStyle(self::APP_ID, 'header-override');
 	}
 }

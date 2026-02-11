@@ -1,0 +1,154 @@
+/**
+ * SPDX-FileCopyrightText: 2024 MyDash Contributors
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ *
+ * NUCLEAR OPTION: Override ALL theme CSS for header styling
+ * This file is loaded LAST to ensure it overrides nldesign theme
+ */
+
+/* ============================================
+   NEXTCLOUD HEADER - FORCE WHITE BACKGROUND
+   ============================================ */
+
+/* Maximum specificity selectors for white header */
+html body.body-user #body-user #header,
+body.body-user #body-user #header,
+html body #body-user #header,
+body #body-user #header,
+html body #header,
+body #header,
+#body-user #header,
+#header {
+	background-color: #ffffff !important;
+	background-image: none !important;
+	background: #ffffff !important;
+	border-bottom: 1px solid #e0e0e0 !important;
+}
+
+/* ============================================
+   LOGO WITH BLUE BAR
+   ============================================ */
+
+/* Logo container */
+html body #header .header-appname-container,
+body #header .header-appname-container,
+html body #header .logo,
+body #header .logo,
+#header .header-appname-container,
+#header .logo {
+	position: relative !important;
+	background: transparent !important;
+	background-image: none !important;
+	background-color: transparent !important;
+	padding-left: 70px !important;
+	min-height: 50px !important;
+	display: flex !important;
+	align-items: center !important;
+}
+
+/* Blue bar - ::before pseudo-element */
+html body #header .logo::before,
+body #header .logo::before,
+#header .logo::before,
+html body #header .header-appname-container::before,
+body #header .header-appname-container::before,
+#header .header-appname-container::before {
+	content: '' !important;
+	position: absolute !important;
+	left: 0 !important;
+	top: 50% !important;
+	transform: translateY(-50%) !important;
+	width: 60px !important;
+	height: 100px !important;
+	background: #154273 !important;
+	background-color: #154273 !important;
+	background-image: none !important;
+	z-index: 999 !important;
+	display: block !important;
+	pointer-events: none !important;
+}
+
+/* White Nederland logo on blue bar - ::after pseudo-element */
+html body #header .logo::after,
+body #header .logo::after,
+#header .logo::after,
+html body #header .header-appname-container::after,
+body #header .header-appname-container::after,
+#header .header-appname-container::after {
+	content: '' !important;
+	position: absolute !important;
+	left: 10px !important;
+	bottom: 10px !important;
+	width: 40px !important;
+	height: 30px !important;
+	background-image: url('/apps/nldesign/img/nederland-logo.svg') !important;
+	background-repeat: no-repeat !important;
+	background-position: center !important;
+	background-size: contain !important;
+	filter: brightness(0) invert(1) !important;
+	z-index: 1000 !important;
+	display: block !important;
+	pointer-events: none !important;
+}
+
+/* Hide original Nextcloud logo */
+html body #header .logo img,
+body #header .logo img,
+#header .logo img,
+html body #header .logo svg,
+body #header .logo svg,
+#header .logo svg,
+html body #header .header-appname-container img,
+body #header .header-appname-container img,
+#header .header-appname-container img,
+html body #header .header-appname-container svg,
+body #header .header-appname-container svg,
+#header .header-appname-container svg {
+	display: none !important;
+	opacity: 0 !important;
+	visibility: hidden !important;
+}
+
+/* ============================================
+   HEADER ICONS AND TEXT - DARK ON WHITE
+   ============================================ */
+
+/* Header right side icons and buttons */
+html body #header .header-right a,
+body #header .header-right a,
+#header .header-right a,
+html body #header .header-right button,
+body #header .header-right button,
+#header .header-right button,
+html body #header .menutoggle,
+body #header .menutoggle,
+#header .menutoggle {
+	color: #333333 !important;
+	filter: none !important;
+	opacity: 1 !important;
+}
+
+/* App menu styling */
+html body #header #appmenu li a,
+body #header #appmenu li a,
+#header #appmenu li a {
+	color: #333333 !important;
+}
+
+html body #header #appmenu li.active a,
+body #header #appmenu li.active a,
+#header #appmenu li.active a,
+html body #header #appmenu li:hover a,
+body #header #appmenu li:hover a,
+#header #appmenu li:hover a {
+	background-color: #f0f0f0 !important;
+	color: #154273 !important;
+}
+
+/* Unified search icon */
+html body #header .unified-search__button,
+body #header .unified-search__button,
+#header .unified-search__button {
+	color: #333333 !important;
+	filter: none !important;
+}
