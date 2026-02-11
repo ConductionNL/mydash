@@ -5,14 +5,9 @@
 
 <template>
 	<div class="widget-renderer">
-		<!-- Loading state -->
-		<div v-if="loading" class="widget-renderer__loading">
-			<NcLoadingIcon :size="32" />
-		</div>
-
 		<!-- Custom Tile Widget -->
 		<TileWidget
-			v-else-if="isTileWidget && tileData"
+			v-if="isTileWidget && tileData"
 			:tile="tileData" />
 
 		<!-- API Widget V1 or V2 - Use NcDashboardWidget -->
@@ -20,7 +15,7 @@
 			<NcDashboardWidget
 				:items="widgetItems"
 				:show-more-url="widget.widgetUrl"
-				:loading="itemsLoading"
+				:loading="loading || itemsLoading"
 				:item-menu="false"
 				:round-icons="widget.itemIconsRound">
 				<template #empty-content>
@@ -36,11 +31,16 @@
 		</template>
 
 		<!-- Legacy Widget - Mount via callback -->
-		<div v-else ref="legacyWidgetContainer" class="widget-renderer__legacy" />
+		<div v-else-if="!loading" ref="legacyWidgetContainer" class="widget-renderer__legacy" />
+
+		<!-- Loading state for unknown widget types -->
+		<div v-else-if="loading" class="widget-renderer__loading">
+			<NcLoadingIcon :size="32" />
+		</div>
 
 		<!-- Unknown widget type -->
 		<NcEmptyContent
-			v-if="!loading && !widget"
+			v-else
 			:description="t('mydash', 'Widget not available')">
 			<template #icon>
 				<AlertCircleOutline :size="48" />
@@ -83,7 +83,7 @@ export default {
 
 	data() {
 		return {
-			loading: true,
+			loading: false,  // Start false, will be set to true for API widgets only
 			itemsLoading: false,
 			refreshInterval: null,
 		}
@@ -144,21 +144,31 @@ export default {
 
 	watch: {
 		widget: {
-			immediate: true,
+			immediate: false,  // Don't run immediately, wait for mounted
 			handler(newWidget) {
+				console.log('[WidgetRenderer] widget watch triggered:', newWidget?.id, newWidget)
 				if (newWidget || this.isTileWidget) {
 					this.initWidget()
 				}
 			},
 		},
 		placement: {
-			immediate: true,
+			immediate: false,  // Don't run immediately
 			handler() {
+				console.log('[WidgetRenderer] placement watch triggered:', this.placement)
 				if (this.isTileWidget) {
 					this.loading = false
 				}
 			},
 		},
+	},
+
+	mounted() {
+		// Initialize widget after component is mounted and refs are available
+		console.log('[WidgetRenderer] mounted hook called')
+		if (this.widget || this.isTileWidget) {
+			this.initWidget()
+		}
 	},
 
 	beforeDestroy() {
@@ -171,6 +181,16 @@ export default {
 		...mapActions(useWidgetStore, ['loadWidgetItems', 'refreshWidgetItems']),
 
 		async initWidget() {
+			console.log('[WidgetRenderer] initWidget called:', {
+				widgetId: this.widget?.id,
+				isTileWidget: this.isTileWidget,
+				isApiWidget: this.isApiWidget,
+				isApiWidgetV1: this.isApiWidgetV1,
+				isApiWidgetV2: this.isApiWidgetV2,
+				itemApiVersions: this.widget?.itemApiVersions,
+				fullWidget: this.widget
+			})
+
 			if (!this.widget && !this.isTileWidget) {
 				this.loading = false
 				return
@@ -182,10 +202,18 @@ export default {
 				return
 			}
 
-			this.loading = true
+			console.log('[WidgetRenderer] Initializing widget:', this.widget.id, this.widget)
+
+			// Only show loading for API widgets
+			// Legacy widgets render themselves, so we don't need a loading state
+			const isLegacy = !this.isApiWidget
+			if (!isLegacy) {
+				this.loading = true
+			}
 
 			try {
 				if (this.isApiWidget) {
+					console.log('[WidgetRenderer] Detected as API widget')
 					// Load widget items from API (supports both v1 and v2).
 					await this.loadWidgetItems([this.widget.id])
 
@@ -194,27 +222,56 @@ export default {
 						this.setupAutoRefresh(this.widget.reloadInterval)
 					}
 				} else {
+					console.log('[WidgetRenderer] Legacy widget detected:', this.widget.id)
 					// Legacy widget - mount via callback.
+					// Wait for DOM to be ready
 					await this.$nextTick()
+					// Give it a bit more time for the ref to be available
+					await new Promise(resolve => setTimeout(resolve, 50))
 					this.mountLegacyWidget()
 				}
 			} catch (error) {
 				console.error('Failed to initialize widget:', error)
 			} finally {
-				this.loading = false
+				if (!isLegacy) {
+					this.loading = false
+				}
 			}
 		},
 
 		mountLegacyWidget() {
-			if (!this.$refs.legacyWidgetContainer) return
+			if (!this.$refs.legacyWidgetContainer) {
+				console.error('[WidgetRenderer] No legacyWidgetContainer ref found!')
+				return
+			}
 
-			// Wait for the widget callback to be registered.
-			// The script was already loaded by the PageController.
+			console.log('[WidgetRenderer] Mounting legacy widget:', this.widget.id, 'Container:', this.$refs.legacyWidgetContainer)
+
+			// Widget scripts are loaded with defer, so we need to wait for them
+			// to register their callbacks. Try multiple times with increasing delays.
+			const tryMount = (attempt = 0, maxAttempts = 20) => {
+				console.log(`[WidgetRenderer] Mount attempt ${attempt + 1}/${maxAttempts} for:`, this.widget.id)
+				
+				// Check if callback is registered
+				if (widgetBridge.hasWidgetCallback(this.widget.id)) {
+					console.log('[WidgetRenderer] Callback found! Mounting:', this.widget.id)
+					// Pass widget data to the bridge so callbacks can access it
+					widgetBridge.mountWidget(this.widget.id, this.$refs.legacyWidgetContainer, this.widget)
+					console.log('[WidgetRenderer] After mountWidget, container innerHTML length:', this.$refs.legacyWidgetContainer?.innerHTML.length)
+				} else if (attempt < maxAttempts) {
+					// Try again after a short delay
+					const delay = Math.min(100 * (attempt + 1), 1000) // Exponential backoff up to 1s
+					console.log(`[WidgetRenderer] Callback not found yet, retrying in ${delay}ms...`)
+					setTimeout(() => tryMount(attempt + 1, maxAttempts), delay)
+				} else {
+					console.error('[WidgetRenderer] Failed to mount widget after', maxAttempts, 'attempts:', this.widget.id)
+					console.log('[WidgetRenderer] Available callbacks:', widgetBridge.getRegisteredWidgetIds())
+				}
+			}
+
+			// Start trying immediately
 			this.$nextTick(() => {
-				// Small delay to ensure callback registration is complete.
-				setTimeout(() => {
-					widgetBridge.mountWidget(this.widget.id, this.$refs.legacyWidgetContainer)
-				}, 100)
+				tryMount()
 			})
 		},
 
