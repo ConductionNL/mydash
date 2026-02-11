@@ -50,9 +50,9 @@
 </template>
 
 <script>
-import { NcDashboardWidget, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcDashboardWidget, NcDashboardWidgetItem, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
-import { mapActions, storeToRefs } from 'pinia'
+import { mapState, mapActions } from 'pinia'
 import { useWidgetStore } from '../stores/widgets.js'
 import { useTileStore } from '../stores/tiles.js'
 import { widgetBridge } from '../services/widgetBridge.js'
@@ -63,6 +63,7 @@ export default {
 
 	components: {
 		NcDashboardWidget,
+		NcDashboardWidgetItem,
 		NcEmptyContent,
 		NcLoadingIcon,
 		AlertCircleOutline,
@@ -82,15 +83,16 @@ export default {
 
 	data() {
 		return {
-			loading: false, // Start false, will be set to true for API widgets only
+			loading: false,  // Start false, will be set to true for API widgets only
 			itemsLoading: false,
 			refreshInterval: null,
-			// Local reactive data for widget items.
-			localWidgetItemsData: { items: [], loading: false },
 		}
 	},
 
 	computed: {
+		...mapState(useWidgetStore, ['getWidgetItems']),
+		...mapState(useTileStore, ['tiles']),
+
 		isTileWidget() {
 			return this.placement.widgetId && this.placement.widgetId.startsWith('tile-')
 		},
@@ -102,8 +104,7 @@ export default {
 
 		tileData() {
 			if (!this.isTileWidget) return null
-			const { tiles } = storeToRefs(useTileStore())
-			return tiles.value.find(t => t.id === this.tileId)
+			return this.tiles.find(t => t.id === this.tileId)
 		},
 
 		isApiWidgetV2() {
@@ -119,18 +120,11 @@ export default {
 		},
 
 		widgetItemsData() {
-			// Return local reactive data that is updated by watcher.
-			return this.localWidgetItemsData
+			return this.getWidgetItems(this.widget?.id)
 		},
 
 		widgetItems() {
 			const items = this.widgetItemsData.items || []
-			console.log('[WidgetRenderer] widgetItems computed:', {
-				widgetId: this.widget?.id,
-				rawItems: items,
-				itemsLength: items.length,
-				widgetItemsData: this.widgetItemsData,
-			})
 			// Transform items to NcDashboardWidget format.
 			return items.map(item => ({
 				id: item.sinceId || item.id || String(Math.random()),
@@ -150,7 +144,7 @@ export default {
 
 	watch: {
 		widget: {
-			immediate: false, // Don't run immediately, wait for mounted
+			immediate: false,  // Don't run immediately, wait for mounted
 			handler(newWidget) {
 				console.log('[WidgetRenderer] widget watch triggered:', newWidget?.id, newWidget)
 				if (newWidget || this.isTileWidget) {
@@ -159,7 +153,7 @@ export default {
 			},
 		},
 		placement: {
-			immediate: false, // Don't run immediately
+			immediate: false,  // Don't run immediately
 			handler() {
 				console.log('[WidgetRenderer] placement watch triggered:', this.placement)
 				if (this.isTileWidget) {
@@ -172,8 +166,6 @@ export default {
 	mounted() {
 		// Initialize widget after component is mounted and refs are available
 		console.log('[WidgetRenderer] mounted hook called')
-		// Set up store subscription.
-		this.setupStoreSubscription()
 		if (this.widget || this.isTileWidget) {
 			this.initWidget()
 		}
@@ -183,38 +175,10 @@ export default {
 		if (this.refreshInterval) {
 			clearInterval(this.refreshInterval)
 		}
-		// Clean up store subscription.
-		if (this.unsubscribe) {
-			this.unsubscribe()
-		}
 	},
 
 	methods: {
 		...mapActions(useWidgetStore, ['loadWidgetItems', 'refreshWidgetItems']),
-
-		setupStoreSubscription() {
-			// Subscribe to store changes.
-			const widgetStore = useWidgetStore()
-
-			this.unsubscribe = widgetStore.$subscribe((mutation, state) => {
-				// Check if our widget's items were updated.
-				if (this.widget?.id && state.widgetItems[this.widget.id]) {
-					const newData = state.widgetItems[this.widget.id]
-					console.log('[WidgetRenderer] Store subscription fired for:', this.widget.id, newData)
-					this.localWidgetItemsData = { ...newData }
-				}
-			})
-		},
-
-		updateLocalWidgetItems() {
-			if (!this.widget?.id) return
-			const widgetStore = useWidgetStore()
-			const data = widgetStore.widgetItems[this.widget.id]
-			if (data) {
-				console.log('[WidgetRenderer] updateLocalWidgetItems:', this.widget.id, data)
-				this.localWidgetItemsData = { ...data }
-			}
-		},
 
 		async initWidget() {
 			console.log('[WidgetRenderer] initWidget called:', {
@@ -224,7 +188,7 @@ export default {
 				isApiWidgetV1: this.isApiWidgetV1,
 				isApiWidgetV2: this.isApiWidgetV2,
 				itemApiVersions: this.widget?.itemApiVersions,
-				fullWidget: this.widget,
+				fullWidget: this.widget
 			})
 
 			if (!this.widget && !this.isTileWidget) {
@@ -287,7 +251,7 @@ export default {
 			// to register their callbacks. Try multiple times with increasing delays.
 			const tryMount = (attempt = 0, maxAttempts = 20) => {
 				console.log(`[WidgetRenderer] Mount attempt ${attempt + 1}/${maxAttempts} for:`, this.widget.id)
-
+				
 				// Check if callback is registered
 				if (widgetBridge.hasWidgetCallback(this.widget.id)) {
 					console.log('[WidgetRenderer] Callback found! Mounting:', this.widget.id)

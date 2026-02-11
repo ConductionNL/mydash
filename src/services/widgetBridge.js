@@ -60,7 +60,7 @@ class WidgetBridge {
 	mountWidget(widgetId, container, widgetData = {}) {
 		console.log('[WidgetBridge] mountWidget called for:', widgetId)
 		console.log('[WidgetBridge] Available callbacks:', Array.from(this.widgetCallbacks.keys()))
-
+		
 		const callback = this.widgetCallbacks.get(widgetId)
 
 		if (callback && typeof callback === 'function') {
@@ -105,7 +105,7 @@ class WidgetBridge {
 	/**
 	 * Check if a widget has been registered via callback
 	 * @param {string} widgetId - The widget ID
-	 * @return {boolean}
+	 * @returns {boolean}
 	 */
 	hasWidgetCallback(widgetId) {
 		return this.widgetCallbacks.has(widgetId)
@@ -113,7 +113,7 @@ class WidgetBridge {
 
 	/**
 	 * Get all registered widget IDs
-	 * @return {string[]}
+	 * @returns {string[]}
 	 */
 	getRegisteredWidgetIds() {
 		return Array.from(this.widgetCallbacks.keys())
