@@ -37,24 +37,27 @@ body #header,
 }
 
 /* ============================================
-   BLUE BAR WITH LOGO - BETTER APPROACH
+   BLUE BAR WITH LOGO - FIXED POSITIONING
    ============================================ */
 
 /* Create wrapper for logo with blue background bar */
 html body #header .header-left,
 body #header .header-left,
-#header .header-left {
+#header .header-left,
+html body #header .header-start,
+body #header .header-start,
+#header .header-start {
 	position: relative !important;
 	z-index: 1000 !important;
 }
 
-/* Blue bar container - using the logo/header-appname link */
-html body #header .header-appname-container,
-body #header .header-appname-container,
-#header .header-appname-container,
-html body #header a[href*="index.php/apps/dashboard"],
-body #header a[href*="index.php/apps/dashboard"],
-#header a[href*="index.php/apps/dashboard"] {
+/* Blue bar container - target the actual nextcloud logo link */
+html body #header a#nextcloud,
+body #header a#nextcloud,
+#header a#nextcloud,
+html body #header a[href="/"],
+body #header a[href="/"],
+#header a[href="/"] {
 	position: fixed !important;
 	left: 5px !important;
 	top: 0 !important;
@@ -68,16 +71,43 @@ body #header a[href*="index.php/apps/dashboard"],
 	align-items: flex-end !important;
 	justify-content: center !important;
 	padding: 10px !important;
+	padding-bottom: 8px !important;
 	overflow: visible !important;
+	box-sizing: border-box !important;
 }
 
-/* Logo image inside the blue bar - make it white and position at bottom */
-html body #header .header-appname-container img,
-body #header .header-appname-container img,
-#header .header-appname-container img,
-html body #header a[href*="index.php/apps/dashboard"] img,
-body #header a[href*="index.php/apps/dashboard"] img,
-#header a[href*="index.php/apps/dashboard"] img {
+/* Logo div inside the blue bar - replace background with Nederland logo */
+html body #header a#nextcloud .logo,
+body #header a#nextcloud .logo,
+#header a#nextcloud .logo,
+html body #header a[href="/"] .logo,
+body #header a[href="/"] .logo,
+#header a[href="/"] .logo {
+	width: 40px !important;
+	height: 35px !important;
+	background-image: url('../img/nederland-logo.svg') !important;
+	background-repeat: no-repeat !important;
+	background-position: center !important;
+	background-size: contain !important;
+	filter: brightness(0) invert(1) !important;
+	opacity: 1 !important;
+	display: block !important;
+	margin: 0 !important;
+}
+
+/* Legacy support: if there's an img or svg element, style it too */
+html body #header a#nextcloud img,
+body #header a#nextcloud img,
+#header a#nextcloud img,
+html body #header a#nextcloud svg,
+body #header a#nextcloud svg,
+#header a#nextcloud svg,
+html body #header a[href="/"] img,
+body #header a[href="/"] img,
+#header a[href="/"] img,
+html body #header a[href="/"] svg,
+body #header a[href="/"] svg,
+#header a[href="/"] svg {
 	display: block !important;
 	width: 40px !important;
 	height: auto !important;
@@ -88,19 +118,12 @@ body #header a[href*="index.php/apps/dashboard"] img,
 	object-fit: contain !important;
 }
 
-/* If there's an SVG instead of img */
-html body #header .header-appname-container svg,
-body #header .header-appname-container svg,
-#header .header-appname-container svg,
-html body #header a[href*="index.php/apps/dashboard"] svg,
-body #header a[href*="index.php/apps/dashboard"] svg,
-#header a[href*="index.php/apps/dashboard"] svg {
-	display: block !important;
-	width: 40px !important;
-	height: auto !important;
-	max-height: 35px !important;
-	fill: white !important;
-	filter: brightness(0) invert(1) !important;
+/* Remove old selectors that targeted dashboard link */
+html body #header .header-appname-container,
+body #header .header-appname-container,
+#header .header-appname-container {
+	position: relative !important;
+	z-index: auto !important;
 }
 
 /* Remove the old pseudo-element approach */
