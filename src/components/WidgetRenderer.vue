@@ -50,10 +50,9 @@
 </template>
 
 <script>
-import { NcDashboardWidget, NcDashboardWidgetItem, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcDashboardWidget, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
-import { mapActions } from 'pinia'
-import { storeToRefs } from 'pinia'
+import { mapActions, storeToRefs } from 'pinia'
 import { useWidgetStore } from '../stores/widgets.js'
 import { useTileStore } from '../stores/tiles.js'
 import { widgetBridge } from '../services/widgetBridge.js'
@@ -64,7 +63,6 @@ export default {
 
 	components: {
 		NcDashboardWidget,
-		NcDashboardWidgetItem,
 		NcEmptyContent,
 		NcLoadingIcon,
 		AlertCircleOutline,
@@ -125,25 +123,25 @@ export default {
 			return this.localWidgetItemsData
 		},
 
-	widgetItems() {
-		const items = this.widgetItemsData.items || []
-		console.log('[WidgetRenderer] widgetItems computed:', {
-			widgetId: this.widget?.id,
-			rawItems: items,
-			itemsLength: items.length,
-			widgetItemsData: this.widgetItemsData,
-		})
-		// Transform items to NcDashboardWidget format.
-		return items.map(item => ({
-			id: item.sinceId || item.id || String(Math.random()),
-			targetUrl: item.link || item.targetUrl || '',
-			avatarUrl: item.iconUrl || item.avatarUrl || '',
-			avatarUsername: item.avatarUsername || '',
-			overlayIconUrl: item.overlayIconUrl || '',
-			mainText: item.title || item.mainText || '',
-			subText: item.subtitle || item.subText || '',
-		}))
-	},
+		widgetItems() {
+			const items = this.widgetItemsData.items || []
+			console.log('[WidgetRenderer] widgetItems computed:', {
+				widgetId: this.widget?.id,
+				rawItems: items,
+				itemsLength: items.length,
+				widgetItemsData: this.widgetItemsData,
+			})
+			// Transform items to NcDashboardWidget format.
+			return items.map(item => ({
+				id: item.sinceId || item.id || String(Math.random()),
+				targetUrl: item.link || item.targetUrl || '',
+				avatarUrl: item.iconUrl || item.avatarUrl || '',
+				avatarUsername: item.avatarUsername || '',
+				overlayIconUrl: item.overlayIconUrl || '',
+				mainText: item.title || item.mainText || '',
+				subText: item.subtitle || item.subText || '',
+			}))
+		},
 
 		emptyContentMessage() {
 			return this.widgetItemsData.emptyContentMessage || ''
@@ -197,7 +195,7 @@ export default {
 		setupStoreSubscription() {
 			// Subscribe to store changes.
 			const widgetStore = useWidgetStore()
-			
+
 			this.unsubscribe = widgetStore.$subscribe((mutation, state) => {
 				// Check if our widget's items were updated.
 				if (this.widget?.id && state.widgetItems[this.widget.id]) {
