@@ -37,6 +37,7 @@ export const useWidgetStore = defineStore('widgets', {
 		},
 
 		async loadWidgetItems(widgetIds) {
+			console.log('[WidgetStore] loadWidgetItems called:', widgetIds)
 			// Mark widgets as loading
 			for (const id of widgetIds) {
 				this.widgetItems[id] = { ...this.widgetItems[id], loading: true }
@@ -44,7 +45,9 @@ export const useWidgetStore = defineStore('widgets', {
 
 			try {
 				const response = await api.getWidgetItems(widgetIds)
+				console.log('[WidgetStore] API response:', response.data)
 				for (const [widgetId, data] of Object.entries(response.data)) {
+					console.log('[WidgetStore] Setting items for widget:', widgetId, 'Items count:', data.items?.length, 'Items:', data.items)
 					this.widgetItems[widgetId] = {
 						items: data.items || [],
 						emptyContentMessage: data.emptyContentMessage || '',
