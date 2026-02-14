@@ -4,10 +4,10 @@
 -->
 
 <template>
-	<div v-if="tile" 
+	<div v-if="tile"
 		class="tile-widget"
 		:data-tile-id="tile.id"
-		:style="{ 
+		:style="{
 			'--tile-bg-color': tile.backgroundColor || '#0082c9',
 			'--tile-text-color': tile.textColor || '#ffffff'
 		}">
@@ -15,8 +15,8 @@
 		<button
 			v-if="editMode"
 			class="tile-widget__edit"
-			@click.prevent="$emit('edit')"
-			aria-label="Edit tile">
+			aria-label="Edit tile"
+			@click.prevent="$emit('edit')">
 			<span class="icon-settings" />
 		</button>
 
@@ -39,9 +39,9 @@
 				<img v-else-if="tile.iconType === 'url'" :src="tile.icon" alt="Icon">
 				<span v-else-if="tile.iconType === 'emoji'" class="tile-widget__emoji">{{ tile.icon }}</span>
 			</div>
-			<div 
-				class="tile-widget__title" 
-				:style="{ 
+			<div
+				class="tile-widget__title"
+				:style="{
 					color: tile.textColor || '#ffffff',
 					'--title-color': tile.textColor || '#ffffff'
 				}">
@@ -68,6 +68,15 @@ export default {
 		},
 	},
 
+	computed: {
+		tileUrl() {
+			if (this.tile.linkType === 'app') {
+				return generateUrl('/apps/' + this.tile.linkValue)
+			}
+			return this.tile.linkValue
+		},
+	},
+
 	mounted() {
 		console.log('[TileWidget] Mounted with tile:', JSON.stringify({
 			id: this.tile?.id,
@@ -75,10 +84,10 @@ export default {
 			backgroundColor: this.tile?.backgroundColor,
 			textColor: this.tile?.textColor,
 			icon: this.tile?.icon?.substring(0, 30),
-			iconType: this.tile?.iconType
+			iconType: this.tile?.iconType,
 		}, null, 2))
 		console.log('[TileWidget] Full tile object keys:', this.tile ? Object.keys(this.tile) : 'tile is null')
-		
+
 		// Add dynamic style to override nldesign's aggressive CSS.
 		const styleId = `tile-${this.tile.id}-style`
 		if (!document.getElementById(styleId)) {
@@ -91,15 +100,6 @@ export default {
 			`
 			document.head.appendChild(style)
 		}
-	},
-
-	computed: {
-		tileUrl() {
-			if (this.tile.linkType === 'app') {
-				return generateUrl('/apps/' + this.tile.linkValue)
-			}
-			return this.tile.linkValue
-		},
 	},
 }
 </script>

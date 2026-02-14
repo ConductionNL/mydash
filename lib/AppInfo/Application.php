@@ -26,6 +26,7 @@ class Application extends App implements IBootstrap {
 	}
 
 	public function boot(IBootContext $context): void {
-		// App initialization after all apps are registered
+		// App initialization after all apps are registered.
+		\OCP\Util::addStyle(self::APP_ID, 'mydash');
 	}
 }
