@@ -2,7 +2,7 @@
 	"name": "mydash/mydash",
 	"description": "Enhanced dashboard with grid layout and admin controls for Nextcloud",
 	"type": "project",
-	"license": "AGPL-3.0-or-later",
+	"license": "EUPL-1.2",
 	"authors": [
 		{
 			"name": "MyDash Contributors"
