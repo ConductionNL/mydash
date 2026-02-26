@@ -1,11 +1,23 @@
 <?php
 
-declare(strict_types=1);
-
 /**
+ * ConditionalRuleMapper
+ *
+ * Database mapper for conditional rule entities.
+ *
+ * @category  Database
+ * @package   OCA\MyDash\Db
+ * @author    Conduction b.v. <info@conduction.nl>
+ * @copyright 2024 Conduction b.v.
+ * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * @version   GIT:auto
+ * @link      https://conduction.nl
+ *
  * SPDX-FileCopyrightText: 2024 MyDash Contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
+
+declare(strict_types=1);
 
 namespace OCA\MyDash\Db;
 
@@ -15,51 +27,102 @@ use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
 /**
+ * ConditionalRuleMapper
+ *
+ * Mapper for conditional rule entities.
+ *
  * @extends QBMapper<ConditionalRule>
  */
-class ConditionalRuleMapper extends QBMapper {
+class ConditionalRuleMapper extends QBMapper
+{
+    /**
+     * Constructor
+     *
+     * @param IDBConnection $db The database connection.
+     */
+    public function __construct(IDBConnection $db)
+    {
+        parent::__construct(
+            db: $db,
+            tableName: 'mydash_conditional_rules',
+            entityClass: ConditionalRule::class
+        );
+    }//end __construct()
 
-	public function __construct(IDBConnection $db) {
-		parent::__construct($db, 'mydash_conditional_rules', ConditionalRule::class);
-	}
+    /**
+     * Find rule by ID.
+     *
+     * @param int $id The rule ID.
+     *
+     * @return ConditionalRule The found rule.
+     *
+     * @throws DoesNotExistException If not found.
+     */
+    public function find(int $id): ConditionalRule
+    {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select(selects: '*')
+            ->from(from: $this->getTableName())
+            ->where(
+                $qb->expr()->eq(
+                    x: 'id',
+                    y: $qb->createNamedParameter(
+                        value: $id,
+                        type: IQueryBuilder::PARAM_INT
+                    )
+                )
+            );
 
-	/**
-	 * Find rule by ID
-	 *
-	 * @throws DoesNotExistException
-	 */
-	public function find(int $id): ConditionalRule {
-		$qb = $this->db->getQueryBuilder();
-		$qb->select('*')
-			->from($this->getTableName())
-			->where($qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)));
+        return $this->findEntity(query: $qb);
+    }//end find()
 
-		return $this->findEntity($qb);
-	}
+    /**
+     * Find all rules for a widget placement.
+     *
+     * @param int $placementId The placement ID.
+     *
+     * @return ConditionalRule[] The list of rules.
+     */
+    public function findByPlacementId(int $placementId): array
+    {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select(selects: '*')
+            ->from(from: $this->getTableName())
+            ->where(
+                $qb->expr()->eq(
+                    x: 'widget_placement_id',
+                    y: $qb->createNamedParameter(
+                        value: $placementId,
+                        type: IQueryBuilder::PARAM_INT
+                    )
+                )
+            )
+            ->orderBy(sort: 'created_at', order: 'ASC');
 
-	/**
-	 * Find all rules for a widget placement
-	 *
-	 * @return ConditionalRule[]
-	 */
-	public function findByPlacementId(int $placementId): array {
-		$qb = $this->db->getQueryBuilder();
-		$qb->select('*')
-			->from($this->getTableName())
-			->where($qb->expr()->eq('widget_placement_id', $qb->createNamedParameter($placementId, IQueryBuilder::PARAM_INT)))
-			->orderBy('created_at', 'ASC');
+        return $this->findEntities(query: $qb);
+    }//end findByPlacementId()
 
-		return $this->findEntities($qb);
-	}
+    /**
+     * Delete all rules for a widget placement.
+     *
+     * @param int $placementId The placement ID.
+     *
+     * @return void
+     */
+    public function deleteByPlacementId(int $placementId): void
+    {
+        $qb = $this->db->getQueryBuilder();
+        $qb->delete(delete: $this->getTableName())
+            ->where(
+                $qb->expr()->eq(
+                    x: 'widget_placement_id',
+                    y: $qb->createNamedParameter(
+                        value: $placementId,
+                        type: IQueryBuilder::PARAM_INT
+                    )
+                )
+            );
 
-	/**
-	 * Delete all rules for a widget placement
-	 */
-	public function deleteByPlacementId(int $placementId): void {
-		$qb = $this->db->getQueryBuilder();
-		$qb->delete($this->getTableName())
-			->where($qb->expr()->eq('widget_placement_id', $qb->createNamedParameter($placementId, IQueryBuilder::PARAM_INT)));
-
-		$qb->executeStatement();
-	}
-}
+        $qb->executeStatement();
+    }//end deleteByPlacementId()
+}//end class

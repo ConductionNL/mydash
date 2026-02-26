@@ -3,6 +3,18 @@
 declare(strict_types=1);
 
 /**
+ * ConditionalRule Entity
+ *
+ * Represents a conditional rule for widget visibility.
+ *
+ * @category  Database
+ * @package   OCA\MyDash\Db
+ * @author    Conduction b.v. <info@conduction.nl>
+ * @copyright 2024 Conduction b.v.
+ * @license   https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12 EUPL-1.2
+ * @version   GIT:auto
+ * @link      https://conduction.nl
+ *
  * SPDX-FileCopyrightText: 2024 MyDash Contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
@@ -14,6 +26,8 @@ use JsonSerializable;
 use OCP\AppFramework\Db\Entity;
 
 /**
+ * Conditional rule entity for controlling widget visibility.
+ *
  * @method int getWidgetPlacementId()
  * @method void setWidgetPlacementId(int $widgetPlacementId)
  * @method string getRuleType()
@@ -25,52 +39,139 @@ use OCP\AppFramework\Db\Entity;
  * @method DateTime getCreatedAt()
  * @method void setCreatedAt(DateTime $createdAt)
  */
-class ConditionalRule extends Entity implements JsonSerializable {
+class ConditionalRule extends Entity implements JsonSerializable
+{
 
-	// Rule types
-	public const TYPE_GROUP = 'group';
-	public const TYPE_TIME = 'time';
-	public const TYPE_DATE = 'date';
-	public const TYPE_ATTRIBUTE = 'attribute';
+    /**
+     * Rule type for group-based rules.
+     *
+     * @var string
+     */
+    public const TYPE_GROUP = 'group';
 
-	protected int $widgetPlacementId = 0;
-	protected string $ruleType = '';
-	protected ?string $ruleConfig = null;
-	protected bool $isInclude = true;
-	protected ?DateTime $createdAt = null;
+    /**
+     * Rule type for time-based rules.
+     *
+     * @var string
+     */
+    public const TYPE_TIME = 'time';
 
-	public function __construct() {
-		$this->addType('id', 'integer');
-		$this->addType('widgetPlacementId', 'integer');
-		$this->addType('isInclude', 'boolean');
-	}
+    /**
+     * Rule type for date-based rules.
+     *
+     * @var string
+     */
+    public const TYPE_DATE = 'date';
 
-	/**
-	 * Get rule config as array
-	 */
-	public function getRuleConfigArray(): array {
-		if (empty($this->ruleConfig)) {
-			return [];
-		}
-		$decoded = json_decode($this->ruleConfig, true);
-		return is_array($decoded) ? $decoded : [];
-	}
+    /**
+     * Rule type for attribute-based rules.
+     *
+     * @var string
+     */
+    public const TYPE_ATTRIBUTE = 'attribute';
 
-	/**
-	 * Set rule config from array
-	 */
-	public function setRuleConfigArray(array $config): void {
-		$this->setRuleConfig(json_encode($config));
-	}
+    /**
+     * The widget placement ID.
+     *
+     * @var integer
+     */
+    protected int $widgetPlacementId = 0;
 
-	public function jsonSerialize(): array {
-		return [
-			'id' => $this->getId(),
-			'widgetPlacementId' => $this->widgetPlacementId,
-			'ruleType' => $this->ruleType,
-			'ruleConfig' => $this->getRuleConfigArray(),
-			'isInclude' => $this->isInclude,
-			'createdAt' => $this->createdAt?->format('c'),
-		];
-	}
-}
+    /**
+     * The rule type.
+     *
+     * @var string
+     */
+    protected string $ruleType = '';
+
+    /**
+     * The rule configuration JSON.
+     *
+     * @var string|null
+     */
+    protected ?string $ruleConfig = null;
+
+    /**
+     * Whether this is an include rule.
+     *
+     * @var boolean
+     */
+    protected bool $isInclude = true;
+
+    /**
+     * The creation timestamp.
+     *
+     * @var DateTime|null
+     */
+    protected ?DateTime $createdAt = null;
+
+    /**
+     * Constructor
+     *
+     * Registers column types for proper ORM handling.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        $this->addType(fieldName: 'id', type: 'integer');
+        $this->addType(
+            fieldName: 'widgetPlacementId',
+            type: 'integer'
+        );
+        $this->addType(fieldName: 'isInclude', type: 'boolean');
+    }//end __construct()
+
+    /**
+     * Get rule config as array.
+     *
+     * @return array The decoded rule configuration.
+     */
+    public function getRuleConfigArray(): array
+    {
+        if (empty($this->ruleConfig) === true) {
+            return [];
+        }
+
+        $decoded = json_decode(json: $this->ruleConfig, associative: true);
+        if (is_array($decoded) === true) {
+            return $decoded;
+        }
+
+        return [];
+    }//end getRuleConfigArray()
+
+    /**
+     * Set rule config from array.
+     *
+     * @param array $config The rule configuration array.
+     *
+     * @return void
+     */
+    public function setRuleConfigArray(array $config): void
+    {
+        $this->setRuleConfig(ruleConfig: json_encode(value: $config));
+    }//end setRuleConfigArray()
+
+    /**
+     * Serialize to JSON.
+     *
+     * @return array The serialized conditional rule.
+     */
+    public function jsonSerialize(): array
+    {
+        $createdAtValue = null;
+        if ($this->createdAt !== null) {
+            $createdAtValue = $this->createdAt->format(format: 'c');
+        }
+
+        return [
+            'id'                => $this->getId(),
+            'widgetPlacementId' => $this->widgetPlacementId,
+            'ruleType'          => $this->ruleType,
+            'ruleConfig'        => $this->getRuleConfigArray(),
+            'isInclude'         => $this->isInclude,
+            'createdAt'         => $createdAtValue,
+        ];
+    }//end jsonSerialize()
+}//end class
