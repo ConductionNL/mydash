@@ -1,0 +1,50 @@
+schema: conduction
+
+context: |
+  Project: MyDash
+  Repo: ConductionNL/mydash
+  Type: Nextcloud App (PHP backend + Vue 2 frontend)
+  Description: Customizable dashboard for Nextcloud — drag-and-drop widgets, tiles, templates, permissions
+  Key components: Dashboards, Widget Placements, Tiles, Conditional Rules, Admin Templates, Admin Settings
+  Database: PostgreSQL (own tables via Nextcloud ORM)
+  Mount path: /var/www/html/custom_apps/mydash
+
+  Architecture:
+    Pattern: Full-stack — MyDash owns its data model (5 database tables)
+    Grid engine: GridStack 10.3.1 (12-column, 80px cell height, drag-and-drop)
+    Widget bridge: Nextcloud Dashboard Widget API v1/v2 (IManager::getWidgets())
+    Frontend: Vue 2.7 + Pinia stores + GridStack integration
+    Backend: Controllers → Services → Mappers/Entities (Nextcloud ORM)
+    Admin: Settings panel at Settings → Administration → MyDash
+
+  Database tables:
+    - oc_mydash_dashboards (user or template dashboard, grid config, permissions)
+    - oc_mydash_widget_placements (widget position/size on grid, styling, tile data)
+    - oc_mydash_tiles (custom shortcut cards)
+    - oc_mydash_conditional_rules (visibility rules per widget placement)
+    - oc_mydash_admin_settings (global key-value settings)
+
+  Shared specs: See ../openspec/specs/ for cross-project conventions
+  Project guidelines: See ../project.md for workspace-wide standards
+
+rules:
+  proposal:
+    - Reference shared nextcloud-app spec for app structure requirements
+    - Consider permission level impact (view_only, add_only, full)
+    - Consider template inheritance when modifying dashboard behavior
+    - Consider conditional visibility rule evaluation
+  specs:
+    - Define permission requirements for each feature (which levels can use it)
+    - Include grid layout considerations (position, size constraints)
+    - Specify widget vs tile distinction where relevant
+    - Use GIVEN/WHEN/THEN scenarios for all requirements
+  design:
+    - GridStack handles all grid layout — don't reinvent drag-and-drop
+    - Widget rendering via Nextcloud Dashboard Widget API callbacks
+    - Tile rendering is direct (no widget wrapper needed)
+    - Debounce grid position saves to reduce API calls
+  tasks:
+    - Test with multiple Nextcloud widgets enabled
+    - Test permission levels (view_only, add_only, full)
+    - Test template distribution to target groups
+    - Test conditional visibility rules (group, time, date, attribute)
