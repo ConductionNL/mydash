@@ -48,7 +48,7 @@ Administrators can create dashboard templates for user groups and mark certain w
 		<navigation>
 			<name>MyDash</name>
 			<route>mydash.page.index</route>
-			<icon>mydash.svg</icon>
+			<icon>app.svg</icon>
 			<order>-5</order>
 		</navigation>
 	</navigations>

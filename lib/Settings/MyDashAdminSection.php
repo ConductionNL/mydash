@@ -79,7 +79,7 @@ class MyDashAdminSection implements IIconSection
     {
         return $this->urlGenerator->imagePath(
             appName: Application::APP_ID,
-            file: 'mydash.svg'
+            file: 'app-dark.svg'
         );
     }//end getIcon()
 }//end class

@@ -27,6 +27,14 @@
 				</template>
 				{{ t('mydash', 'Add') }}
 			</NcButton>
+			<NcButton
+				type="tertiary"
+				:aria-label="t('mydash', 'Documentation')"
+				@click="openLink('https://mydash.app', '_blank')">
+				<template #icon>
+					<BookOpenVariantOutline :size="20" />
+				</template>
+			</NcButton>
 		</div>
 
 		<!-- Main dashboard grid -->
@@ -102,6 +110,7 @@ import Close from 'vue-material-design-icons/Close.vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
+import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
 
 // Components
 import DashboardGrid from '../components/DashboardGrid.vue'
@@ -125,6 +134,7 @@ export default {
 		Cog,
 		Plus,
 		ViewDashboard,
+		BookOpenVariantOutline,
 		DashboardGrid,
 		WidgetPicker,
 		WidgetStyleEditor,
@@ -184,6 +194,9 @@ export default {
 		]),
 		...mapActions(useTileStore, ['createTile', 'updateTile', 'deleteTile']),
 
+		openLink(url, target) {
+			window.open(url, target)
+		},
 		toggleEditMode() {
 			this.isEditMode = !this.isEditMode
 			if (!this.isEditMode) {
