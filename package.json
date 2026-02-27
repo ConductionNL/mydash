@@ -17,6 +17,7 @@
 		"stylelint:fix": "stylelint src/**/*.vue src/**/*.scss src/**/*.css --fix"
 	},
 	"dependencies": {
+		"@conduction/nextcloud-vue": "github:ConductionNL/nextcloud-vue#main",
 		"@mdi/js": "^7.4.47",
 		"@nextcloud/axios": "^2.5.0",
 		"@nextcloud/dialogs": "^6.1.1",
