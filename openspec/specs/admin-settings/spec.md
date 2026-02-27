@@ -1,0 +1,310 @@
+# Admin Settings Specification
+
+## Purpose
+
+Admin settings provide Nextcloud administrators with global configuration options for the MyDash app. These settings control system-wide behavior such as whether users can create their own dashboards, how many dashboards they can have, default permission levels for new dashboards, and default grid configuration. Settings are stored as key-value pairs in a dedicated database table and are applied as defaults or constraints across the entire MyDash installation.
+
+## Data Model
+
+### Admin Settings (oc_mydash_admin_settings)
+Settings are stored as key-value pairs:
+- **key**: Unique string identifier for the setting
+- **value**: String value (parsed as appropriate type by the application)
+
+### Defined Settings
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `allow_user_dashboards` | boolean | `true` | Whether non-admin users can create their own dashboards |
+| `allow_multiple_dashboards` | boolean | `true` | Whether users can have more than one dashboard |
+| `default_permission_level` | string | `full` | Default permission level for user-created dashboards |
+| `default_grid_columns` | integer | `12` | Default number of grid columns for new dashboards |
+
+## Requirements
+
+### REQ-ASET-001: Retrieve Admin Settings
+
+Administrators MUST be able to retrieve all current admin settings.
+
+#### Scenario: Get all settings with defaults
+- GIVEN no admin settings have been explicitly configured (fresh installation)
+- WHEN the admin sends GET /api/admin/settings
+- THEN the system MUST return HTTP 200 with all settings at their default values:
+  ```json
+  {
+    "allow_user_dashboards": true,
+    "allow_multiple_dashboards": true,
+    "default_permission_level": "full",
+    "default_grid_columns": 12
+  }
+  ```
+
+#### Scenario: Get settings after modification
+- GIVEN the admin has set `allow_user_dashboards` to `false`
+- WHEN the admin sends GET /api/admin/settings
+- THEN the system MUST return the updated value:
+  ```json
+  {
+    "allow_user_dashboards": false,
+    "allow_multiple_dashboards": true,
+    "default_permission_level": "full",
+    "default_grid_columns": 12
+  }
+  ```
+
+#### Scenario: Non-admin user retrieves settings
+- GIVEN a regular user "alice"
+- WHEN she sends GET /api/admin/settings
+- THEN the system MUST return HTTP 403
+- AND admin settings MUST NOT be exposed to non-admin users
+
+#### Scenario: Settings used by non-admin endpoints
+- GIVEN the admin has set `allow_user_dashboards` to `false`
+- WHEN user "alice" sends POST /api/dashboard (to create a dashboard)
+- THEN the system MUST internally check the `allow_user_dashboards` setting
+- AND the non-admin user MUST NOT need to call GET /api/admin/settings to experience the effect
+
+### REQ-ASET-002: Update Admin Settings
+
+Administrators MUST be able to update individual or multiple admin settings.
+
+#### Scenario: Update a single boolean setting
+- GIVEN the admin wants to disable user dashboard creation
+- WHEN they send PUT /api/admin/settings with body `{"allow_user_dashboards": false}`
+- THEN the system MUST update the `allow_user_dashboards` setting to `false`
+- AND the response MUST return HTTP 200 with all current settings
+
+#### Scenario: Update multiple settings at once
+- GIVEN the admin wants to change several settings
+- WHEN they send PUT /api/admin/settings with body:
+  ```json
+  {
+    "allow_user_dashboards": true,
+    "allow_multiple_dashboards": false,
+    "default_grid_columns": 8
+  }
+  ```
+- THEN the system MUST update all three specified settings
+- AND settings not included in the request MUST remain unchanged
+
+#### Scenario: Update with invalid permission level value
+- GIVEN the admin sends PUT /api/admin/settings with body `{"default_permission_level": "super_admin"}`
+- THEN the system MUST return HTTP 400 with a validation error
+- AND only `view_only`, `add_only`, and `full` MUST be accepted for this setting
+
+#### Scenario: Update with invalid grid columns value
+- GIVEN the admin sends PUT /api/admin/settings with body `{"default_grid_columns": 0}`
+- THEN the system MUST return HTTP 400 with a validation error
+- AND `default_grid_columns` MUST be a positive integer between 1 and 24
+
+#### Scenario: Update with invalid boolean value
+- GIVEN the admin sends PUT /api/admin/settings with body `{"allow_user_dashboards": "maybe"}`
+- THEN the system MUST return HTTP 400 with a validation error
+- AND boolean settings MUST only accept `true` or `false`
+
+#### Scenario: Non-admin cannot update settings
+- GIVEN a regular user "alice"
+- WHEN she sends PUT /api/admin/settings with any body
+- THEN the system MUST return HTTP 403
+- AND no settings MUST be modified
+
+#### Scenario: Update with unknown setting key
+- GIVEN the admin sends PUT /api/admin/settings with body `{"unknown_setting": "value"}`
+- THEN the system MUST ignore the unknown key
+- OR return HTTP 400 indicating the setting key is not recognized
+- AND known settings MUST NOT be affected
+
+### REQ-ASET-003: Allow User Dashboards Setting
+
+When `allow_user_dashboards` is false, non-admin users MUST NOT be able to create their own dashboards.
+
+#### Scenario: User dashboard creation blocked
+- GIVEN `allow_user_dashboards` is set to `false`
+- WHEN user "alice" sends POST /api/dashboard with body `{"name": "My Dashboard"}`
+- THEN the system MUST return HTTP 403 with a message indicating user dashboard creation is disabled
+- AND no dashboard MUST be created
+
+#### Scenario: User dashboard creation allowed
+- GIVEN `allow_user_dashboards` is set to `true` (default)
+- WHEN user "alice" sends POST /api/dashboard with body `{"name": "My Dashboard"}`
+- THEN the system MUST allow the creation
+- AND the response MUST return HTTP 201
+
+#### Scenario: Admins can always create dashboards
+- GIVEN `allow_user_dashboards` is set to `false`
+- WHEN a Nextcloud admin sends POST /api/dashboard with body `{"name": "Admin Dashboard"}`
+- THEN the system MUST allow the creation
+- AND the admin setting MUST NOT restrict admin users
+
+#### Scenario: Existing user dashboards preserved when setting is disabled
+- GIVEN user "alice" has 3 dashboards
+- AND the admin sets `allow_user_dashboards` to `false`
+- WHEN alice views her dashboards via GET /api/dashboards
+- THEN all 3 existing dashboards MUST still be returned
+- AND alice MUST still be able to view, edit (per permission level), and delete her existing dashboards
+- AND alice MUST NOT be able to create new dashboards
+
+#### Scenario: Frontend hides create button when disabled
+- GIVEN `allow_user_dashboards` is set to `false`
+- WHEN user "alice" views the MyDash interface
+- THEN the "Create Dashboard" button MUST NOT be displayed
+- AND the UI SHOULD display a message such as "Dashboard creation is managed by your administrator"
+
+### REQ-ASET-004: Allow Multiple Dashboards Setting
+
+When `allow_multiple_dashboards` is false, users MUST be limited to one dashboard.
+
+#### Scenario: Second dashboard creation blocked
+- GIVEN `allow_multiple_dashboards` is set to `false`
+- AND user "alice" already has 1 dashboard
+- WHEN she sends POST /api/dashboard with body `{"name": "Second Dashboard"}`
+- THEN the system MUST return HTTP 403 with a message indicating multiple dashboards are not allowed
+- AND no dashboard MUST be created
+
+#### Scenario: First dashboard creation allowed
+- GIVEN `allow_multiple_dashboards` is set to `false`
+- AND user "bob" has no dashboards
+- WHEN he sends POST /api/dashboard with body `{"name": "My Dashboard"}`
+- THEN the system MUST allow the creation (this is his first dashboard)
+- AND the response MUST return HTTP 201
+
+#### Scenario: Multiple dashboards allowed (default)
+- GIVEN `allow_multiple_dashboards` is set to `true` (default)
+- AND user "alice" already has 3 dashboards
+- WHEN she sends POST /api/dashboard with body `{"name": "Fourth Dashboard"}`
+- THEN the system MUST allow the creation
+- AND the response MUST return HTTP 201
+
+#### Scenario: Existing dashboards preserved when setting is disabled
+- GIVEN user "alice" has 3 dashboards
+- AND the admin sets `allow_multiple_dashboards` to `false`
+- WHEN alice views her dashboards via GET /api/dashboards
+- THEN all 3 existing dashboards MUST still be returned
+- AND alice MUST NOT be able to create additional dashboards
+- AND alice MUST be able to delete dashboards to get down to 1
+
+#### Scenario: Template distribution overrides multiple dashboard restriction
+- GIVEN `allow_multiple_dashboards` is set to `false`
+- AND user "alice" has 1 dashboard
+- AND a new admin template targets alice's group
+- WHEN the template distribution triggers for alice
+- THEN the system MUST still create the template copy for alice
+- AND alice MUST have 2 dashboards (the restriction applies to user-initiated creation, not admin-initiated distribution)
+
+### REQ-ASET-005: Default Permission Level Setting
+
+The `default_permission_level` setting MUST be applied to new user-created dashboards.
+
+#### Scenario: Default permission level applied to new dashboard
+- GIVEN `default_permission_level` is set to `add_only`
+- WHEN user "alice" sends POST /api/dashboard with body `{"name": "My Dashboard"}`
+- THEN the created dashboard MUST have `permission_level: "add_only"`
+
+#### Scenario: Default full permission (factory default)
+- GIVEN `default_permission_level` is at its factory default of `full`
+- WHEN user "alice" creates a new dashboard
+- THEN the dashboard MUST have `permission_level: "full"`
+
+#### Scenario: Default permission does not affect template copies
+- GIVEN `default_permission_level` is set to `view_only`
+- AND an admin template exists with `permission_level: "full"`
+- WHEN a user receives a copy of that template
+- THEN the copy MUST have `permission_level: "full"` (from the template)
+- AND the global default MUST NOT override the template's permission level
+
+#### Scenario: Admin can override default for individual templates
+- GIVEN `default_permission_level` is set to `add_only`
+- WHEN the admin creates a template with `permission_level: "full"`
+- THEN the template MUST have `permission_level: "full"`
+- AND the global default MUST NOT constrain template configuration
+
+### REQ-ASET-006: Default Grid Columns Setting
+
+The `default_grid_columns` setting MUST be applied to new dashboards when no explicit grid_columns is specified.
+
+#### Scenario: Default grid columns applied
+- GIVEN `default_grid_columns` is set to `8`
+- WHEN user "alice" sends POST /api/dashboard with body `{"name": "My Dashboard"}`
+- THEN the created dashboard MUST have `grid_columns: 8`
+
+#### Scenario: Explicit grid columns overrides default
+- GIVEN `default_grid_columns` is set to `8`
+- WHEN user "alice" sends POST /api/dashboard with body `{"name": "My Dashboard", "grid_columns": 12}`
+- THEN the created dashboard MUST have `grid_columns: 12` (explicit value takes precedence)
+
+#### Scenario: Default grid columns for template copies
+- GIVEN `default_grid_columns` is set to `8`
+- AND an admin template exists with `grid_columns: 12`
+- WHEN a user receives a copy of that template
+- THEN the copy MUST have `grid_columns: 12` (from the template)
+- AND the global default MUST NOT override the template's grid configuration
+
+### REQ-ASET-007: Settings Persistence
+
+Admin settings MUST be persisted across server restarts and app updates.
+
+#### Scenario: Settings survive server restart
+- GIVEN the admin has configured `allow_user_dashboards: false`
+- WHEN the Nextcloud server is restarted
+- THEN GET /api/admin/settings MUST still return `allow_user_dashboards: false`
+- AND the setting MUST NOT revert to its default value
+
+#### Scenario: Settings survive app update
+- GIVEN the admin has configured custom settings
+- WHEN the MyDash app is updated to a new version
+- THEN all previously configured settings MUST be preserved
+- AND new settings introduced in the update MUST use their default values
+
+#### Scenario: Factory reset behavior
+- GIVEN the admin wants to reset all settings to defaults
+- WHEN they send PUT /api/admin/settings with all default values:
+  ```json
+  {
+    "allow_user_dashboards": true,
+    "allow_multiple_dashboards": true,
+    "default_permission_level": "full",
+    "default_grid_columns": 12
+  }
+  ```
+- THEN all settings MUST be reset to their factory defaults
+- AND the response MUST confirm the update
+
+### REQ-ASET-008: Admin Settings UI
+
+The admin settings MUST be accessible via a Nextcloud admin panel page.
+
+#### Scenario: Admin settings page is registered
+- GIVEN a Nextcloud admin user
+- WHEN they navigate to Settings > Administration
+- THEN a "MyDash" entry MUST appear in the admin settings navigation
+- AND clicking it MUST display the MyDash admin settings page
+
+#### Scenario: Regular user cannot access admin settings page
+- GIVEN a regular (non-admin) Nextcloud user
+- WHEN they navigate to Settings
+- THEN the "MyDash" entry MUST NOT appear in their settings navigation
+- AND direct URL access to the admin settings page MUST return HTTP 403
+
+#### Scenario: Settings form layout
+- GIVEN the admin opens the MyDash admin settings page
+- THEN the page MUST display:
+  - A toggle for "Allow user dashboards" (on/off)
+  - A toggle for "Allow multiple dashboards" (on/off)
+  - A dropdown for "Default permission level" (view_only, add_only, full)
+  - A number input for "Default grid columns" (1-24)
+  - A "Save" button
+- AND each setting MUST show its current value
+
+#### Scenario: Settings saved via the UI
+- GIVEN the admin changes "Allow user dashboards" to off and clicks Save
+- WHEN the save completes
+- THEN the system MUST display a success notification
+- AND GET /api/admin/settings MUST reflect the change
+
+## Non-Functional Requirements
+
+- **Performance**: GET /api/admin/settings MUST return within 100ms. Settings lookups during user operations MUST be cached in memory (e.g., via IAppConfig or a short-lived cache) to avoid per-request database queries.
+- **Security**: All admin settings endpoints MUST require Nextcloud admin authentication. Settings MUST NOT be exposed to non-admin users in any way (not even setting keys).
+- **Data integrity**: Settings MUST survive server restarts and app updates. Missing settings MUST fall back to documented defaults without errors.
+- **Accessibility**: The admin settings form MUST have proper labels, be keyboard-navigable, and meet WCAG AA standards. Toggle states MUST be communicated to screen readers.
+- **Localization**: All setting labels, descriptions, validation messages, and success/error notifications MUST support English and Dutch.
