@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # Admin Settings Specification
 
 ## Purpose
@@ -8,17 +12,21 @@ Admin settings provide Nextcloud administrators with global configuration option
 
 ### Admin Settings (oc_mydash_admin_settings)
 Settings are stored as key-value pairs:
-- **key**: Unique string identifier for the setting
-- **value**: String value (parsed as appropriate type by the application)
+- **id**: Auto-increment integer primary key
+- **settingKey**: Unique string identifier for the setting (STRING)
+- **settingValue**: JSON-encoded string value (STRING, nullable). Values are stored via `json_encode()` and retrieved via `json_decode()`.
+- **updatedAt**: Timestamp (DATETIME)
 
 ### Defined Settings
 
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `allow_user_dashboards` | boolean | `true` | Whether non-admin users can create their own dashboards |
-| `allow_multiple_dashboards` | boolean | `true` | Whether users can have more than one dashboard |
-| `default_permission_level` | string | `full` | Default permission level for user-created dashboards |
-| `default_grid_columns` | integer | `12` | Default number of grid columns for new dashboards |
+| Setting Key (DB) | API Response Key | Type | Default | Description |
+|------------------|------------------|------|---------|-------------|
+| `allow_user_dashboards` | `allowUserDashboards` | boolean | `true` | Whether non-admin users can create their own dashboards |
+| `allow_multiple_dashboards` | `allowMultipleDashboards` | boolean | `true` | Whether users can have more than one dashboard |
+| `default_permission_level` | `defaultPermissionLevel` | string | `add_only` | Default permission level for user-created dashboards |
+| `default_grid_columns` | `defaultGridColumns` | integer | `12` | Default number of grid columns for new dashboards |
+
+NOTE: The DB stores settings with snake_case keys, but the API response returns camelCase keys. The factory default for `defaultPermissionLevel` is `add_only` (Dashboard::PERMISSION_ADD_ONLY), NOT `full`. The API update endpoint accepts abbreviated camelCase parameter names: `defaultPermLevel`, `allowUserDash`, `allowMultiDash`, `defaultGridCols`.
 
 ## Requirements
 
@@ -32,23 +40,23 @@ Administrators MUST be able to retrieve all current admin settings.
 - THEN the system MUST return HTTP 200 with all settings at their default values:
   ```json
   {
-    "allow_user_dashboards": true,
-    "allow_multiple_dashboards": true,
-    "default_permission_level": "full",
-    "default_grid_columns": 12
+    "defaultPermissionLevel": "add_only",
+    "allowUserDashboards": true,
+    "allowMultipleDashboards": true,
+    "defaultGridColumns": 12
   }
   ```
 
 #### Scenario: Get settings after modification
-- GIVEN the admin has set `allow_user_dashboards` to `false`
+- GIVEN the admin has set `allowUserDashboards` to `false`
 - WHEN the admin sends GET /api/admin/settings
 - THEN the system MUST return the updated value:
   ```json
   {
-    "allow_user_dashboards": false,
-    "allow_multiple_dashboards": true,
-    "default_permission_level": "full",
-    "default_grid_columns": 12
+    "defaultPermissionLevel": "add_only",
+    "allowUserDashboards": false,
+    "allowMultipleDashboards": true,
+    "defaultGridColumns": 12
   }
   ```
 
@@ -59,9 +67,9 @@ Administrators MUST be able to retrieve all current admin settings.
 - AND admin settings MUST NOT be exposed to non-admin users
 
 #### Scenario: Settings used by non-admin endpoints
-- GIVEN the admin has set `allow_user_dashboards` to `false`
+- GIVEN the admin has set `allowUserDashboards` to `false`
 - WHEN user "alice" sends POST /api/dashboard (to create a dashboard)
-- THEN the system MUST internally check the `allow_user_dashboards` setting
+- THEN the system MUST internally check the `allowUserDashboards` setting via `PermissionService::canCreateDashboard()`
 - AND the non-admin user MUST NOT need to call GET /api/admin/settings to experience the effect
 
 ### REQ-ASET-002: Update Admin Settings
@@ -70,82 +78,86 @@ Administrators MUST be able to update individual or multiple admin settings.
 
 #### Scenario: Update a single boolean setting
 - GIVEN the admin wants to disable user dashboard creation
-- WHEN they send PUT /api/admin/settings with body `{"allow_user_dashboards": false}`
-- THEN the system MUST update the `allow_user_dashboards` setting to `false`
-- AND the response MUST return HTTP 200 with all current settings
+- WHEN they send PUT /api/admin/settings with body `{"allowUserDash": false}`
+- THEN the system MUST update the `allowUserDashboards` setting to `false`
+- AND the response MUST return HTTP 200 with `{"status": "ok"}`
+- NOTE: The API update endpoint accepts abbreviated camelCase parameter names (`defaultPermLevel`, `allowUserDash`, `allowMultiDash`, `defaultGridCols`), NOT the full response key names. The response returns `{"status": "ok"}`, NOT the full settings object.
 
 #### Scenario: Update multiple settings at once
 - GIVEN the admin wants to change several settings
 - WHEN they send PUT /api/admin/settings with body:
   ```json
   {
-    "allow_user_dashboards": true,
-    "allow_multiple_dashboards": false,
-    "default_grid_columns": 8
+    "allowUserDash": true,
+    "allowMultiDash": false,
+    "defaultGridCols": 8
   }
   ```
 - THEN the system MUST update all three specified settings
 - AND settings not included in the request MUST remain unchanged
 
 #### Scenario: Update with invalid permission level value
-- GIVEN the admin sends PUT /api/admin/settings with body `{"default_permission_level": "super_admin"}`
-- THEN the system MUST return HTTP 400 with a validation error
-- AND only `view_only`, `add_only`, and `full` MUST be accepted for this setting
+- GIVEN the admin sends PUT /api/admin/settings with body `{"defaultPermLevel": "super_admin"}`
+- THEN the system SHOULD return HTTP 400 with a validation error
+- AND only `view_only`, `add_only`, and `full` SHOULD be accepted for this setting
+- NOTE: Permission level validation is NOT currently implemented -- any string value is accepted
 
 #### Scenario: Update with invalid grid columns value
-- GIVEN the admin sends PUT /api/admin/settings with body `{"default_grid_columns": 0}`
-- THEN the system MUST return HTTP 400 with a validation error
-- AND `default_grid_columns` MUST be a positive integer between 1 and 24
+- GIVEN the admin sends PUT /api/admin/settings with body `{"defaultGridCols": 0}`
+- THEN the system SHOULD return HTTP 400 with a validation error
+- AND `defaultGridCols` SHOULD be a positive integer between 1 and 24
+- NOTE: Grid columns validation is NOT currently implemented -- any integer value is accepted
 
 #### Scenario: Update with invalid boolean value
-- GIVEN the admin sends PUT /api/admin/settings with body `{"allow_user_dashboards": "maybe"}`
-- THEN the system MUST return HTTP 400 with a validation error
-- AND boolean settings MUST only accept `true` or `false`
+- GIVEN the admin sends PUT /api/admin/settings with body `{"allowUserDash": "maybe"}`
+- THEN the system SHOULD return HTTP 400 with a validation error
+- AND boolean settings SHOULD only accept `true` or `false`
+- NOTE: Boolean validation is NOT currently implemented -- PHP type coercion handles the value
 
 #### Scenario: Non-admin cannot update settings
 - GIVEN a regular user "alice"
 - WHEN she sends PUT /api/admin/settings with any body
 - THEN the system MUST return HTTP 403
 - AND no settings MUST be modified
+- NOTE: Admin-only access is enforced because the AdminController does NOT have a `#[NoAdminRequired]` attribute
 
 #### Scenario: Update with unknown setting key
-- GIVEN the admin sends PUT /api/admin/settings with body `{"unknown_setting": "value"}`
-- THEN the system MUST ignore the unknown key
-- OR return HTTP 400 indicating the setting key is not recognized
+- GIVEN the admin sends PUT /api/admin/settings with body `{"unknownSetting": "value"}`
+- THEN the system MUST ignore the unknown key (unrecognized parameters are simply not matched to method arguments)
 - AND known settings MUST NOT be affected
 
 ### REQ-ASET-003: Allow User Dashboards Setting
 
-When `allow_user_dashboards` is false, non-admin users MUST NOT be able to create their own dashboards.
+When `allowUserDashboards` is false, non-admin users MUST NOT be able to create their own dashboards. This is enforced by `PermissionService::canCreateDashboard()`.
 
 #### Scenario: User dashboard creation blocked
-- GIVEN `allow_user_dashboards` is set to `false`
+- GIVEN `allowUserDashboards` is set to `false`
 - WHEN user "alice" sends POST /api/dashboard with body `{"name": "My Dashboard"}`
 - THEN the system MUST return HTTP 403 with a message indicating user dashboard creation is disabled
 - AND no dashboard MUST be created
 
 #### Scenario: User dashboard creation allowed
-- GIVEN `allow_user_dashboards` is set to `true` (default)
+- GIVEN `allowUserDashboards` is set to `true` (default)
 - WHEN user "alice" sends POST /api/dashboard with body `{"name": "My Dashboard"}`
 - THEN the system MUST allow the creation
 - AND the response MUST return HTTP 201
 
 #### Scenario: Admins can always create dashboards
-- GIVEN `allow_user_dashboards` is set to `false`
+- GIVEN `allowUserDashboards` is set to `false`
 - WHEN a Nextcloud admin sends POST /api/dashboard with body `{"name": "Admin Dashboard"}`
 - THEN the system MUST allow the creation
 - AND the admin setting MUST NOT restrict admin users
 
 #### Scenario: Existing user dashboards preserved when setting is disabled
 - GIVEN user "alice" has 3 dashboards
-- AND the admin sets `allow_user_dashboards` to `false`
+- AND the admin sets `allowUserDashboards` to `false`
 - WHEN alice views her dashboards via GET /api/dashboards
 - THEN all 3 existing dashboards MUST still be returned
 - AND alice MUST still be able to view, edit (per permission level), and delete her existing dashboards
 - AND alice MUST NOT be able to create new dashboards
 
 #### Scenario: Frontend hides create button when disabled
-- GIVEN `allow_user_dashboards` is set to `false`
+- GIVEN `allowUserDashboards` is set to `false`
 - WHEN user "alice" views the MyDash interface
 - THEN the "Create Dashboard" button MUST NOT be displayed
 - AND the UI SHOULD display a message such as "Dashboard creation is managed by your administrator"
@@ -155,21 +167,21 @@ When `allow_user_dashboards` is false, non-admin users MUST NOT be able to creat
 When `allow_multiple_dashboards` is false, users MUST be limited to one dashboard.
 
 #### Scenario: Second dashboard creation blocked
-- GIVEN `allow_multiple_dashboards` is set to `false`
+- GIVEN `allowMultipleDashboards` is set to `false`
 - AND user "alice" already has 1 dashboard
 - WHEN she sends POST /api/dashboard with body `{"name": "Second Dashboard"}`
 - THEN the system MUST return HTTP 403 with a message indicating multiple dashboards are not allowed
 - AND no dashboard MUST be created
 
 #### Scenario: First dashboard creation allowed
-- GIVEN `allow_multiple_dashboards` is set to `false`
+- GIVEN `allowMultipleDashboards` is set to `false`
 - AND user "bob" has no dashboards
 - WHEN he sends POST /api/dashboard with body `{"name": "My Dashboard"}`
 - THEN the system MUST allow the creation (this is his first dashboard)
 - AND the response MUST return HTTP 201
 
 #### Scenario: Multiple dashboards allowed (default)
-- GIVEN `allow_multiple_dashboards` is set to `true` (default)
+- GIVEN `allowMultipleDashboards` is set to `true` (default)
 - AND user "alice" already has 3 dashboards
 - WHEN she sends POST /api/dashboard with body `{"name": "Fourth Dashboard"}`
 - THEN the system MUST allow the creation
@@ -184,7 +196,7 @@ When `allow_multiple_dashboards` is false, users MUST be limited to one dashboar
 - AND alice MUST be able to delete dashboards to get down to 1
 
 #### Scenario: Template distribution overrides multiple dashboard restriction
-- GIVEN `allow_multiple_dashboards` is set to `false`
+- GIVEN `allowMultipleDashboards` is set to `false`
 - AND user "alice" has 1 dashboard
 - AND a new admin template targets alice's group
 - WHEN the template distribution triggers for alice
@@ -193,50 +205,51 @@ When `allow_multiple_dashboards` is false, users MUST be limited to one dashboar
 
 ### REQ-ASET-005: Default Permission Level Setting
 
-The `default_permission_level` setting MUST be applied to new user-created dashboards.
+The `defaultPermissionLevel` setting MUST be applied to new user-created dashboards. The factory default is `add_only` (Dashboard::PERMISSION_ADD_ONLY).
 
 #### Scenario: Default permission level applied to new dashboard
-- GIVEN `default_permission_level` is set to `add_only`
+- GIVEN `defaultPermissionLevel` is set to `add_only`
 - WHEN user "alice" sends POST /api/dashboard with body `{"name": "My Dashboard"}`
-- THEN the created dashboard MUST have `permission_level: "add_only"`
+- THEN the created dashboard MUST have `permissionLevel: "add_only"`
 
-#### Scenario: Default full permission (factory default)
-- GIVEN `default_permission_level` is at its factory default of `full`
+#### Scenario: Factory default permission (add_only)
+- GIVEN `defaultPermissionLevel` is at its factory default of `add_only`
 - WHEN user "alice" creates a new dashboard
-- THEN the dashboard MUST have `permission_level: "full"`
+- THEN the dashboard MUST have `permissionLevel: "add_only"`
+- NOTE: The factory default is `add_only` (Dashboard::PERMISSION_ADD_ONLY), NOT `full`
 
 #### Scenario: Default permission does not affect template copies
-- GIVEN `default_permission_level` is set to `view_only`
-- AND an admin template exists with `permission_level: "full"`
+- GIVEN `defaultPermissionLevel` is set to `view_only`
+- AND an admin template exists with `permissionLevel: "full"`
 - WHEN a user receives a copy of that template
-- THEN the copy MUST have `permission_level: "full"` (from the template)
+- THEN the copy MUST have `permissionLevel: "full"` (from the template)
 - AND the global default MUST NOT override the template's permission level
 
 #### Scenario: Admin can override default for individual templates
-- GIVEN `default_permission_level` is set to `add_only`
-- WHEN the admin creates a template with `permission_level: "full"`
-- THEN the template MUST have `permission_level: "full"`
+- GIVEN `defaultPermissionLevel` is set to `add_only`
+- WHEN the admin creates a template with `permissionLevel: "full"`
+- THEN the template MUST have `permissionLevel: "full"`
 - AND the global default MUST NOT constrain template configuration
 
 ### REQ-ASET-006: Default Grid Columns Setting
 
-The `default_grid_columns` setting MUST be applied to new dashboards when no explicit grid_columns is specified.
+The `defaultGridColumns` setting MUST be applied to new dashboards when no explicit gridColumns is specified.
 
 #### Scenario: Default grid columns applied
-- GIVEN `default_grid_columns` is set to `8`
+- GIVEN `defaultGridColumns` is set to `8`
 - WHEN user "alice" sends POST /api/dashboard with body `{"name": "My Dashboard"}`
-- THEN the created dashboard MUST have `grid_columns: 8`
+- THEN the created dashboard MUST have `gridColumns: 8`
 
 #### Scenario: Explicit grid columns overrides default
-- GIVEN `default_grid_columns` is set to `8`
-- WHEN user "alice" sends POST /api/dashboard with body `{"name": "My Dashboard", "grid_columns": 12}`
-- THEN the created dashboard MUST have `grid_columns: 12` (explicit value takes precedence)
+- GIVEN `defaultGridColumns` is set to `8`
+- WHEN user "alice" sends POST /api/dashboard with body `{"name": "My Dashboard", "gridColumns": 12}`
+- THEN the created dashboard MUST have `gridColumns: 12` (explicit value takes precedence)
 
 #### Scenario: Default grid columns for template copies
-- GIVEN `default_grid_columns` is set to `8`
-- AND an admin template exists with `grid_columns: 12`
+- GIVEN `defaultGridColumns` is set to `8`
+- AND an admin template exists with `gridColumns: 12`
 - WHEN a user receives a copy of that template
-- THEN the copy MUST have `grid_columns: 12` (from the template)
+- THEN the copy MUST have `gridColumns: 12` (from the template)
 - AND the global default MUST NOT override the template's grid configuration
 
 ### REQ-ASET-007: Settings Persistence
@@ -244,9 +257,9 @@ The `default_grid_columns` setting MUST be applied to new dashboards when no exp
 Admin settings MUST be persisted across server restarts and app updates.
 
 #### Scenario: Settings survive server restart
-- GIVEN the admin has configured `allow_user_dashboards: false`
+- GIVEN the admin has configured `allowUserDashboards: false`
 - WHEN the Nextcloud server is restarted
-- THEN GET /api/admin/settings MUST still return `allow_user_dashboards: false`
+- THEN GET /api/admin/settings MUST still return `allowUserDashboards: false`
 - AND the setting MUST NOT revert to its default value
 
 #### Scenario: Settings survive app update
@@ -260,10 +273,10 @@ Admin settings MUST be persisted across server restarts and app updates.
 - WHEN they send PUT /api/admin/settings with all default values:
   ```json
   {
-    "allow_user_dashboards": true,
-    "allow_multiple_dashboards": true,
-    "default_permission_level": "full",
-    "default_grid_columns": 12
+    "allowUserDash": true,
+    "allowMultiDash": true,
+    "defaultPermLevel": "add_only",
+    "defaultGridCols": 12
   }
   ```
 - THEN all settings MUST be reset to their factory defaults
@@ -303,7 +316,7 @@ The admin settings MUST be accessible via a Nextcloud admin panel page.
 
 ## Non-Functional Requirements
 
-- **Performance**: GET /api/admin/settings MUST return within 100ms. Settings lookups during user operations MUST be cached in memory (e.g., via IAppConfig or a short-lived cache) to avoid per-request database queries.
+- **Performance**: GET /api/admin/settings MUST return within 100ms. Settings lookups during user operations (e.g., `PermissionService::canCreateDashboard()`) query the `AdminSettingMapper` each time; caching is NOT currently implemented.
 - **Security**: All admin settings endpoints MUST require Nextcloud admin authentication. Settings MUST NOT be exposed to non-admin users in any way (not even setting keys).
 - **Data integrity**: Settings MUST survive server restarts and app updates. Missing settings MUST fall back to documented defaults without errors.
 - **Accessibility**: The admin settings form MUST have proper labels, be keyboard-navigable, and meet WCAG AA standards. Toggle states MUST be communicated to screen readers.

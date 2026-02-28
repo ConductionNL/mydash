@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # Permission Levels Specification
 
 ## Purpose
@@ -16,10 +20,10 @@ Permission levels control what users can do with their dashboards. When an admin
 
 ### REQ-PERM-001: View-Only Permission Level
 
-Dashboards with `permission_level: "view_only"` MUST restrict users to viewing only, with no editing capabilities.
+Dashboards with `permissionLevel: "view_only"` MUST restrict users to viewing only, with no editing capabilities. Note: The effective permission level is resolved by `PermissionService::getEffectivePermissionLevel()` which checks the source template's permission level if `basedOnTemplate` is set, falling back to the dashboard's own `permissionLevel`, then the admin default setting.
 
 #### Scenario: View-only user sees the dashboard
-- GIVEN user "alice" has a dashboard with `permission_level: "view_only"` and 5 widget placements
+- GIVEN user "alice" has a dashboard with effective `permissionLevel: "view_only"` and 5 widget placements
 - WHEN she views the dashboard
 - THEN all 5 widgets MUST be rendered with their content
 - AND the grid MUST be in view mode
@@ -60,10 +64,10 @@ Dashboards with `permission_level: "view_only"` MUST restrict users to viewing o
 
 ### REQ-PERM-002: Add-Only Permission Level
 
-Dashboards with `permission_level: "add_only"` MUST allow users to add and modify widgets but prevent removal of compulsory widgets.
+Dashboards with `permissionLevel: "add_only"` MUST allow users to add and modify widgets but prevent removal of compulsory widgets.
 
 #### Scenario: Add-only user can add widgets
-- GIVEN user "alice" has a dashboard with `permission_level: "add_only"`
+- GIVEN user "alice" has a dashboard with `permissionLevel: "add_only"`
 - WHEN she sends POST /api/dashboard/5/widgets with widget data
 - THEN the system MUST create the widget placement
 - AND the response MUST return HTTP 201
@@ -81,13 +85,13 @@ Dashboards with `permission_level: "add_only"` MUST allow users to add and modif
 - AND the new position MUST be persisted via the API
 
 #### Scenario: Add-only user can remove non-compulsory widgets
-- GIVEN user "alice" has an add-only dashboard with widget placement id 10 (`is_compulsory: false`)
+- GIVEN user "alice" has an add-only dashboard with widget placement id 10 (`isCompulsory: 0`)
 - WHEN she sends DELETE /api/widgets/10
 - THEN the system MUST delete the placement
 - AND the response MUST return HTTP 200
 
 #### Scenario: Add-only user cannot remove compulsory widgets
-- GIVEN user "alice" has an add-only dashboard with widget placement id 11 (`is_compulsory: true`)
+- GIVEN user "alice" has an add-only dashboard with widget placement id 11 (`isCompulsory: 1`)
 - WHEN she sends DELETE /api/widgets/11
 - THEN the system MUST return HTTP 403 with a message indicating compulsory widgets cannot be removed at this permission level
 - AND the widget placement MUST NOT be deleted
@@ -100,17 +104,17 @@ Dashboards with `permission_level: "add_only"` MUST allow users to add and modif
 - AND a lock icon or "Required" badge SHOULD be displayed on compulsory widgets
 
 #### Scenario: Add-only user can add conditional rules
-- GIVEN user "alice" has an add-only dashboard with widget placement id 10 (`is_compulsory: false`)
+- GIVEN user "alice" has an add-only dashboard with widget placement id 10 (`isCompulsory: 0`)
 - WHEN she sends POST /api/widgets/10/rules with a conditional rule
 - THEN the system MUST create the rule
 - AND the response MUST return HTTP 201
 
 ### REQ-PERM-003: Full Permission Level
 
-Dashboards with `permission_level: "full"` MUST allow users complete control over all aspects of the dashboard.
+Dashboards with `permissionLevel: "full"` MUST allow users complete control over all aspects of the dashboard.
 
 #### Scenario: Full permission user can remove compulsory widgets
-- GIVEN user "alice" has a full-permission dashboard with widget placement id 11 (`is_compulsory: true`)
+- GIVEN user "alice" has a full-permission dashboard with widget placement id 11 (`isCompulsory: 1`)
 - WHEN she sends DELETE /api/widgets/11
 - THEN the system MUST delete the placement
 - AND the response MUST return HTTP 200
@@ -118,7 +122,7 @@ Dashboards with `permission_level: "full"` MUST allow users complete control ove
 #### Scenario: Full permission is the default for user-created dashboards
 - GIVEN user "alice" creates a new dashboard via POST /api/dashboard
 - WHEN the dashboard is created
-- THEN `permission_level` MUST be set to "full"
+- THEN `permissionLevel` MUST be set to "full"
 - AND the user MUST have unrestricted editing capabilities
 
 #### Scenario: Full permission user sees all editing UI
@@ -133,17 +137,18 @@ Dashboards with `permission_level: "full"` MUST allow users complete control ove
 Admin templates MUST be able to mark specific widget placements as compulsory, and this flag MUST be inherited by user copies.
 
 #### Scenario: Compulsory flag inherited from template
-- GIVEN an admin template has widget placement with `is_compulsory: true` for widget "company_news"
+- GIVEN an admin template has widget placement with `isCompulsory: 1` for widget "company_news"
 - WHEN user "alice" receives a copy of this template
-- THEN alice's copy of the "company_news" placement MUST have `is_compulsory: true`
+- THEN alice's copy of the "company_news" placement MUST have `isCompulsory: 1`
 - AND the compulsory flag MUST persist on the user's copy
 
 #### Scenario: Users cannot change the compulsory flag
-- GIVEN widget placement id 10 with `is_compulsory: true` on alice's dashboard
-- WHEN she sends PUT /api/widgets/10 with body `{"is_compulsory": false}`
-- THEN the system MUST ignore the `is_compulsory` field in the update
+- GIVEN widget placement id 10 with `isCompulsory: 1` on alice's dashboard
+- WHEN she sends PUT /api/widgets/10 with body `{"isCompulsory": 0}`
+- THEN the system MUST ignore the `isCompulsory` field in the update
 - OR return HTTP 403 for that specific field
-- AND `is_compulsory` MUST remain true
+- AND `isCompulsory` MUST remain 1
+- NOTE: The current PlacementUpdater does not explicitly block `isCompulsory` changes -- this protection should be verified in the implementation
 
 #### Scenario: Compulsory widget visual indicator
 - GIVEN a dashboard with both compulsory and non-compulsory widgets
@@ -153,7 +158,7 @@ Admin templates MUST be able to mark specific widget placements as compulsory, a
 
 #### Scenario: Non-compulsory widgets on template-derived dashboards
 - GIVEN an admin template has 5 widgets: 3 compulsory and 2 non-compulsory
-- AND user "alice" receives a copy with `permission_level: "add_only"`
+- AND user "alice" receives a copy with `permissionLevel: "add_only"`
 - WHEN alice enters edit mode
 - THEN she MUST be able to remove the 2 non-compulsory widgets
 - AND she MUST NOT be able to remove the 3 compulsory widgets
@@ -163,35 +168,36 @@ Admin templates MUST be able to mark specific widget placements as compulsory, a
 Users MUST NOT be able to change the permission level on their own dashboards.
 
 #### Scenario: User tries to escalate permission level
-- GIVEN user "alice" has a dashboard with `permission_level: "add_only"` (inherited from template)
-- WHEN she sends PUT /api/dashboard/5 with body `{"permission_level": "full"}`
-- THEN the system MUST ignore the `permission_level` field
+- GIVEN user "alice" has a dashboard with `permissionLevel: "add_only"` (inherited from template)
+- WHEN she sends PUT /api/dashboard/5 with body `{"permissionLevel": "full"}`
+- THEN the system MUST ignore the `permissionLevel` field
 - OR return HTTP 403 for that specific field
-- AND the permission_level MUST remain "add_only"
+- AND the permissionLevel MUST remain "add_only"
+- NOTE: The current `DashboardService::applyDashboardUpdates()` does NOT handle `permissionLevel` in the update data, so this field is effectively ignored by omission
 
 #### Scenario: User tries to downgrade permission level
-- GIVEN user "alice" has a dashboard with `permission_level: "full"`
-- WHEN she sends PUT /api/dashboard/5 with body `{"permission_level": "view_only"}`
-- THEN the system MUST ignore the `permission_level` field
-- AND the permission_level MUST remain "full"
+- GIVEN user "alice" has a dashboard with `permissionLevel: "full"`
+- WHEN she sends PUT /api/dashboard/5 with body `{"permissionLevel": "view_only"}`
+- THEN the system MUST ignore the `permissionLevel` field
+- AND the permissionLevel MUST remain "full"
 
 ### REQ-PERM-006: Permission Enforcement on API Level
 
 Permission checks MUST be enforced at the API/service level, not just in the frontend UI.
 
 #### Scenario: API rejects widget addition on view-only dashboard
-- GIVEN dashboard id 5 has `permission_level: "view_only"`
+- GIVEN dashboard id 5 has `permissionLevel: "view_only"`
 - WHEN any HTTP client sends POST /api/dashboard/5/widgets
 - THEN the system MUST return HTTP 403 regardless of how the request was made (UI, curl, API client)
 
 #### Scenario: API rejects compulsory widget deletion on add-only dashboard
-- GIVEN dashboard id 5 has `permission_level: "add_only"`
-- AND widget placement id 11 has `is_compulsory: true`
+- GIVEN dashboard id 5 has `permissionLevel: "add_only"`
+- AND widget placement id 11 has `isCompulsory: 1`
 - WHEN any HTTP client sends DELETE /api/widgets/11
 - THEN the system MUST return HTTP 403
 
 #### Scenario: API allows all operations on full-permission dashboard
-- GIVEN dashboard id 5 has `permission_level: "full"`
+- GIVEN dashboard id 5 has `permissionLevel: "full"`
 - WHEN any valid widget/tile operation is sent
 - THEN the system MUST allow the operation (assuming proper ownership)
 

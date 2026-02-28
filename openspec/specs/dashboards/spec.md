@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # Dashboards Specification
 
 ## Purpose
@@ -13,9 +17,14 @@ Each dashboard record is stored in the `oc_mydash_dashboards` table with the fol
 - **name**: Human-readable dashboard name
 - **description**: Optional description of the dashboard purpose
 - **type**: Either `user` (personal) or `admin_template` (admin-managed template)
-- **active**: Boolean flag indicating if this is the user's currently active dashboard
-- **grid_columns**: Number of grid columns (default: 12)
-- **permission_level**: One of `view_only`, `add_only`, `full` (inherited from template or set by admin)
+- **basedOnTemplate**: Nullable integer foreign key to the source admin template dashboard ID (set when a user copy is created from a template)
+- **gridColumns**: Number of grid columns (default: 12)
+- **permissionLevel**: One of `view_only`, `add_only`, `full` (inherited from template or set by admin)
+- **targetGroups**: JSON string of group IDs (used for admin templates)
+- **isDefault**: SMALLINT (0/1) flag for admin templates indicating default distribution
+- **isActive**: SMALLINT (0/1) flag indicating if this is the user's currently active dashboard
+- **createdAt**: Timestamp string (Y-m-d H:i:s)
+- **updatedAt**: Timestamp string (Y-m-d H:i:s)
 
 ## Requirements
 
@@ -30,22 +39,22 @@ Users MUST be able to create new personal dashboards with a name, optional descr
   - A generated UUID
   - `userId` set to "alice"
   - `type` set to "user"
-  - `active` set to false
-  - `grid_columns` set to 12
-  - `permission_level` set to "full"
+  - `isActive` set to 1 (true) -- the newly created dashboard becomes active, and all other user dashboards are deactivated
+  - `gridColumns` set to 12
+  - `permissionLevel` set to "full"
 - AND the response MUST return HTTP 201 with the full dashboard object including the generated id and uuid
 
 #### Scenario: Create a dashboard with custom settings
 - GIVEN a logged-in Nextcloud user "bob"
 - WHEN he sends POST /api/dashboard with body `{"name": "Analytics", "description": "Data overview", "grid_columns": 6}`
 - THEN the system MUST create the dashboard with the specified name, description, and grid_columns
-- AND `grid_columns` MUST be set to 6
+- AND `gridColumns` MUST be set to 6
 
 #### Scenario: Create a dashboard with invalid grid columns
 - GIVEN a logged-in Nextcloud user "alice"
 - WHEN she sends POST /api/dashboard with body `{"name": "Test", "grid_columns": 0}`
 - THEN the system MUST return HTTP 400 with a validation error
-- AND `grid_columns` MUST only accept positive integers (minimum 1, maximum 24)
+- AND `gridColumns` MUST only accept positive integers (minimum 1, maximum 24)
 
 #### Scenario: Create a dashboard without a name
 - GIVEN a logged-in Nextcloud user "alice"
@@ -60,8 +69,8 @@ Users MUST be able to retrieve a list of all their dashboards.
 - GIVEN user "alice" has 3 dashboards: "Work" (active), "Personal", "Analytics"
 - WHEN she sends GET /api/dashboards
 - THEN the system MUST return HTTP 200 with an array containing all 3 dashboards
-- AND each dashboard object MUST include: id, uuid, name, description, type, active, grid_columns, permission_level
-- AND the active dashboard MUST have `active: true`
+- AND each dashboard object MUST include: id, uuid, name, description, type, basedOnTemplate, gridColumns, permissionLevel, targetGroups, isDefault, isActive, createdAt, updatedAt
+- AND the active dashboard MUST have `isActive: 1`
 
 #### Scenario: List dashboards for a user with no dashboards
 - GIVEN user "bob" has never created a dashboard and no template has been distributed to him
@@ -81,8 +90,10 @@ Users MUST be able to retrieve their currently active dashboard in a single requ
 #### Scenario: Get the active dashboard
 - GIVEN user "alice" has dashboard "Work" marked as active
 - WHEN she sends GET /api/dashboard
-- THEN the system MUST return HTTP 200 with the "Work" dashboard object
-- AND `active` MUST be true
+- THEN the system MUST return HTTP 200 with an object containing:
+  - `dashboard`: the "Work" dashboard object (with `isActive: 1`)
+  - `placements`: array of all widget placements on this dashboard
+  - `permissionLevel`: the effective permission level string
 
 #### Scenario: No active dashboard exists
 - GIVEN user "bob" has 2 dashboards but none is marked as active
@@ -115,16 +126,17 @@ Users MUST be able to update the name, description, and grid configuration of th
 - AND the dashboard MUST NOT be modified
 
 #### Scenario: Update grid columns on a dashboard with existing widgets
-- GIVEN user "alice" has dashboard id 5 with `grid_columns: 12` and 4 widget placements
-- WHEN she sends PUT /api/dashboard/5 with body `{"grid_columns": 6}`
-- THEN the system MUST update `grid_columns` to 6
+- GIVEN user "alice" has dashboard id 5 with `gridColumns: 12` and 4 widget placements
+- WHEN she sends PUT /api/dashboard/5 with body `{"gridColumns": 6}`
+- THEN the system MUST update `gridColumns` to 6
 - AND widget placements that exceed the new column count SHOULD be repositioned or flagged for re-layout
 
 #### Scenario: Update permission_level on a user dashboard
-- GIVEN user "alice" has a personal dashboard with `permission_level: full`
-- WHEN she sends PUT /api/dashboard/5 with body `{"permission_level": "view_only"}`
+- GIVEN user "alice" has a personal dashboard with `permissionLevel: full`
+- WHEN she sends PUT /api/dashboard/5 with body `{"permissionLevel": "view_only"}`
 - THEN the system MUST return HTTP 400 or ignore the field
-- AND users MUST NOT be able to change permission_level on their own dashboards (only inherited from templates or set by admin)
+- AND users MUST NOT be able to change permissionLevel on their own dashboards (only inherited from templates or set by admin)
+- NOTE: The current `applyDashboardUpdates()` implementation does NOT block `gridColumns` changes but also does NOT apply `permissionLevel` changes from user requests, since `permissionLevel` is not handled in the update method
 
 ### REQ-DASH-005: Delete Dashboard
 
@@ -164,8 +176,8 @@ Users MUST be able to set one of their dashboards as the active dashboard, ensur
 #### Scenario: Activate a dashboard
 - GIVEN user "alice" has dashboard "Work" (id 5, active) and "Personal" (id 6, inactive)
 - WHEN she sends POST /api/dashboard/6/activate
-- THEN dashboard 6 MUST have `active: true`
-- AND dashboard 5 MUST have `active: false`
+- THEN dashboard 6 MUST have `isActive: 1`
+- AND dashboard 5 MUST have `isActive: 0`
 - AND the response MUST return HTTP 200 with the newly activated dashboard
 
 #### Scenario: Activate an already active dashboard
@@ -182,8 +194,8 @@ Users MUST be able to set one of their dashboards as the active dashboard, ensur
 #### Scenario: Only one active dashboard per user
 - GIVEN user "alice" has 5 dashboards
 - WHEN she activates dashboard id 8
-- THEN exactly one dashboard (id 8) MUST have `active: true`
-- AND all other 4 dashboards MUST have `active: false`
+- THEN exactly one dashboard (id 8) MUST have `isActive: 1`
+- AND all other 4 dashboards MUST have `isActive: 0`
 - AND this invariant MUST be enforced at the database level or in the service layer before returning
 
 ### REQ-DASH-007: Dashboard Name Validation
