@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # Admin Templates Specification
 
 ## Purpose
@@ -7,11 +11,13 @@ Admin templates allow Nextcloud administrators to create pre-configured dashboar
 ## Data Model
 
 Admin templates are stored as dashboards in `oc_mydash_dashboards` with `type: "admin_template"`. Additional template-specific fields:
-- **target_groups**: JSON array of Nextcloud group IDs that should receive this template (e.g., `["marketing", "all-staff"]`)
-- **is_default**: Boolean flag -- if true, this template is distributed to all users regardless of group membership
-- **permission_level**: One of `view_only`, `add_only`, `full` -- inherited by user copies
+- **targetGroups**: JSON string of Nextcloud group IDs (e.g., `["marketing", "all-staff"]`), accessed via `getTargetGroupsArray()`/`setTargetGroupsArray()`
+- **isDefault**: SMALLINT (0/1) flag -- if 1 (true), this template is distributed to all users regardless of group membership
+- **permissionLevel**: One of `view_only`, `add_only`, `full` -- inherited by user copies
+- **userId**: Set to null for admin templates (they are not owned by a specific user)
+- **basedOnTemplate**: Not used for templates themselves; used on user copies to reference the template ID
 
-Templates own their widget placements (in `oc_mydash_widget_placements`) which serve as the blueprint for user copies. The template's placements include `is_compulsory` flags that are copied to user dashboards.
+Templates own their widget placements (in `oc_mydash_widget_placements`) which serve as the blueprint for user copies. The template's placements include `isCompulsory` flags that are copied to user dashboards. When a user copy is created, `TemplateService::createDashboardFromTemplate()` clones all placements from the template to the new user dashboard.
 
 ## Requirements
 
@@ -26,14 +32,14 @@ Nextcloud administrators MUST be able to create dashboard templates for distribu
   {
     "name": "Marketing Dashboard",
     "description": "Standard dashboard for the marketing team",
-    "target_groups": ["marketing", "communications"],
-    "is_default": false,
-    "permission_level": "add_only",
-    "grid_columns": 12
+    "targetGroups": ["marketing", "communications"],
+    "isDefault": false,
+    "permissionLevel": "add_only"
   }
   ```
 - THEN the system MUST create a dashboard with `type: "admin_template"`
-- AND `userId` MUST be set to the admin's user ID
+- AND `userId` MUST be set to null (admin templates are not owned by a specific user)
+- AND `gridColumns` MUST default to 12
 - AND the response MUST return HTTP 201 with the full template object
 
 #### Scenario: Create a default template for all users
@@ -42,12 +48,13 @@ Nextcloud administrators MUST be able to create dashboard templates for distribu
   ```json
   {
     "name": "Company Dashboard",
-    "is_default": true,
-    "permission_level": "view_only",
-    "target_groups": []
+    "isDefault": true,
+    "permissionLevel": "view_only",
+    "targetGroups": []
   }
   ```
-- THEN the system MUST create a template with `is_default: true`
+- THEN the system MUST create a template with `isDefault: 1`
+- AND any previously default template MUST have its `isDefault` set to 0
 - AND this template MUST be distributed to all users regardless of group membership
 
 #### Scenario: Non-admin user cannot create templates
@@ -58,7 +65,7 @@ Nextcloud administrators MUST be able to create dashboard templates for distribu
 
 #### Scenario: Create template with invalid permission level
 - GIVEN a Nextcloud admin user
-- WHEN they send POST /api/admin/templates with `permission_level: "super_admin"`
+- WHEN they send POST /api/admin/templates with `permissionLevel: "super_admin"`
 - THEN the system MUST return HTTP 400 with a validation error
 - AND only `view_only`, `add_only`, and `full` MUST be accepted
 
@@ -70,7 +77,7 @@ Administrators MUST be able to view all existing templates.
 - GIVEN 3 admin templates exist: "Marketing Dashboard", "Company Dashboard" (default), "Engineering Dashboard"
 - WHEN the admin sends GET /api/admin/templates
 - THEN the system MUST return HTTP 200 with an array of all 3 templates
-- AND each template MUST include: id, uuid, name, description, target_groups, is_default, permission_level, grid_columns
+- AND each template MUST include: id, uuid, name, description, targetGroups, isDefault, permissionLevel, gridColumns, type, basedOnTemplate, isActive, createdAt, updatedAt
 
 #### Scenario: Non-admin cannot list templates
 - GIVEN a regular user "alice"
@@ -89,16 +96,17 @@ Administrators MUST be able to modify template configuration and content.
 
 #### Scenario: Update template target groups
 - GIVEN template id 1 targets groups ["marketing"]
-- WHEN the admin sends PUT /api/admin/templates/1 with body `{"target_groups": ["marketing", "sales"]}`
-- THEN the system MUST update the target_groups
+- WHEN the admin sends PUT /api/admin/templates/1 with body `{"targetGroups": ["marketing", "sales"]}`
+- THEN the system MUST update the targetGroups
 - AND newly targeted users (in "sales") MUST receive the template on their next dashboard load
 - AND existing user copies for "marketing" users MUST NOT be affected
 
 #### Scenario: Update template permission level
-- GIVEN template id 1 has `permission_level: "add_only"`
-- WHEN the admin sends PUT /api/admin/templates/1 with body `{"permission_level": "full"}`
-- THEN the template's permission_level MUST be updated to "full"
+- GIVEN template id 1 has `permissionLevel: "add_only"`
+- WHEN the admin sends PUT /api/admin/templates/1 with body `{"permissionLevel": "full"}`
+- THEN the template's permissionLevel MUST be updated to "full"
 - AND existing user copies MUST NOT have their permission level changed retroactively
+- NOTE: However, `PermissionService::getEffectivePermissionLevel()` resolves permission from the source template at runtime via `basedOnTemplate`. So if a template's permissionLevel changes, existing user copies will inherit the NEW permission level because the resolution is dynamic.
 - AND only new copies created after this change MUST inherit "full"
 
 #### Scenario: Update template widget layout
@@ -109,9 +117,9 @@ Administrators MUST be able to modify template configuration and content.
 
 #### Scenario: Mark template as default
 - GIVEN template id 1 is not the default and template id 2 is the default
-- WHEN the admin sends PUT /api/admin/templates/1 with body `{"is_default": true}`
+- WHEN the admin sends PUT /api/admin/templates/1 with body `{"isDefault": true}`
 - THEN template 1 MUST become the default
-- AND template 2 MUST have `is_default` set to false (only one default template at a time)
+- AND template 2 MUST have `isDefault` set to 0 (false) -- enforced by `clearDefaultTemplates()` called before setting the new default
 
 #### Scenario: Non-admin cannot update templates
 - GIVEN template id 1 exists
@@ -146,13 +154,14 @@ Administrators MUST be able to delete templates.
 When a user accesses MyDash for the first time, the system MUST create personal copies of matching templates.
 
 #### Scenario: First-time user receives default template
-- GIVEN a default template "Company Dashboard" exists with `is_default: true` and 5 widget placements (3 compulsory)
+- GIVEN a default template "Company Dashboard" exists with `isDefault: true` and 5 widget placements (3 compulsory)
 - AND user "alice" has never opened MyDash
 - WHEN alice navigates to MyDash (triggers GET /api/dashboard or GET /api/dashboards)
 - THEN the system MUST create a personal dashboard for alice as a copy of the template
 - AND the copy MUST have `type: "user"` and `userId: "alice"`
-- AND the copy MUST inherit the template's permission_level
-- AND the copy MUST include all 5 widget placements with their positions, sizes, and is_compulsory flags
+- AND the copy MUST inherit the template's permissionLevel
+- AND the copy MUST include all 5 widget placements with their positions, sizes, and isCompulsory flags
+- AND `basedOnTemplate` on the copy MUST reference the template's ID
 - AND the copy MUST be set as alice's active dashboard
 
 #### Scenario: First-time user receives group-targeted template
@@ -161,7 +170,7 @@ When a user accesses MyDash for the first time, the system MUST create personal 
 - AND bob has never opened MyDash
 - WHEN bob navigates to MyDash
 - THEN the system MUST create a personal copy of "Marketing Dashboard" for bob
-- AND if a default template also exists, bob MUST receive both templates as separate dashboards
+- NOTE: The current `TemplateService::getApplicableTemplate()` returns only ONE template (the first matching group-targeted template takes priority over the default). Multiple template distribution is NOT currently implemented -- users receive at most one template copy on first access.
 
 #### Scenario: First-time user not in any target group
 - GIVEN template "Marketing Dashboard" targets groups ["marketing"]
@@ -181,15 +190,15 @@ When a user accesses MyDash for the first time, the system MUST create personal 
 - GIVEN templates "Company Dashboard" (default) and "Marketing Dashboard" (targets marketing group)
 - AND user "alice" is in the "marketing" group
 - WHEN alice navigates to MyDash for the first time
-- THEN alice MUST receive copies of both templates as separate dashboards
-- AND the default template copy MUST be set as alice's active dashboard
+- THEN alice MUST receive a copy of "Marketing Dashboard" (group-targeted template takes priority over default)
+- NOTE: The current implementation only distributes ONE template per first-access. Group-targeted templates are evaluated first; the default template is the fallback. Multi-template distribution is not yet implemented.
 
 ### REQ-TMPL-006: Template Copy Independence
 
 User copies of templates MUST be fully independent from the source template after creation.
 
 #### Scenario: User modifies their template copy
-- GIVEN user "alice" has a copy of "Marketing Dashboard" with `permission_level: "add_only"`
+- GIVEN user "alice" has a copy of "Marketing Dashboard" with `permissionLevel: "add_only"`
 - WHEN she adds a new widget to her copy
 - THEN the template MUST NOT be modified
 - AND other users' copies MUST NOT be affected
@@ -204,7 +213,7 @@ User copies of templates MUST be fully independent from the source template afte
 - GIVEN template "Marketing Dashboard" has been copied to user "alice"
 - WHEN the admin deletes the template
 - THEN alice's copy MUST continue to function normally
-- AND alice's dashboard MUST retain its permission_level and all placements
+- AND alice's dashboard MUST retain its permissionLevel and all placements
 
 ### REQ-TMPL-007: Template Widget Management
 
@@ -212,9 +221,9 @@ Administrators MUST be able to manage widget placements on templates using the s
 
 #### Scenario: Add widget to template
 - GIVEN template id 1 exists
-- WHEN the admin sends POST /api/dashboard/1/widgets with widget data including `is_compulsory: true`
+- WHEN the admin sends POST /api/dashboard/1/widgets with widget data including `isCompulsory: 1`
 - THEN the widget placement MUST be created on the template
-- AND `is_compulsory` MUST be set to true
+- AND `isCompulsory` MUST be set to 1
 
 #### Scenario: Remove widget from template
 - GIVEN template id 1 has widget placement id 20
@@ -233,21 +242,21 @@ Administrators MUST be able to manage widget placements on templates using the s
 The system MUST enforce that at most one template is marked as the default.
 
 #### Scenario: Set a template as default when no default exists
-- GIVEN no template has `is_default: true`
-- WHEN the admin creates or updates a template with `is_default: true`
+- GIVEN no template has `isDefault: true`
+- WHEN the admin creates or updates a template with `isDefault: true`
 - THEN that template MUST become the default
 - AND no other templates MUST be affected
 
 #### Scenario: Set a template as default when another is already default
-- GIVEN template "Company Dashboard" has `is_default: true`
+- GIVEN template "Company Dashboard" has `isDefault: true`
 - WHEN the admin sets template "New Dashboard" as the default
 - THEN "New Dashboard" MUST become the default
-- AND "Company Dashboard" MUST have `is_default` set to false
+- AND "Company Dashboard" MUST have `isDefault` set to 0 (false)
 
 #### Scenario: Remove default status from the only default template
-- GIVEN template "Company Dashboard" has `is_default: true`
+- GIVEN template "Company Dashboard" has `isDefault: true`
 - WHEN the admin sends PUT /api/admin/templates/1 with body `{"is_default": false}`
-- THEN the template MUST have `is_default` set to false
+- THEN the template MUST have `isDefault` set to 0 (false)
 - AND no template MUST be the default (this is allowed)
 
 ## Non-Functional Requirements

@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # Custom Tiles Specification
 
 ## Purpose
@@ -8,17 +12,26 @@ Custom tiles are user-created shortcut cards that provide quick access to Nextcl
 
 ### Tiles (oc_mydash_tiles)
 - **id**: Auto-increment integer primary key
-- **uuid**: Unique identifier (UUID v4)
-- **userId**: Nextcloud user ID of the tile creator
-- **title**: Display label for the tile
-- **icon**: Icon reference -- can be an emoji character, a CSS class name (e.g., `icon-folder`), or a URL to an image
-- **background_color**: Hex color for the tile background (e.g., `#3b82f6`)
-- **text_color**: Hex color for the tile text (e.g., `#ffffff`)
-- **link_type**: Either `app` (links to a Nextcloud app route) or `url` (links to an external URL)
-- **link_value**: The actual link target (e.g., `/apps/files` or `https://example.com`)
+- **userId**: Nextcloud user ID of the tile creator (STRING, NOT NULL)
+- **title**: Display label for the tile (STRING)
+- **icon**: Icon reference -- can be an emoji character, a CSS class name (e.g., `icon-folder`), or a URL to an image (STRING, up to 2000 chars for SVG paths)
+- **iconType**: Type of icon: `class`, `url`, `emoji`, or `svg` (STRING)
+- **backgroundColor**: Hex color for the tile background (e.g., `#3b82f6`) (STRING)
+- **textColor**: Hex color for the tile text (e.g., `#ffffff`) (STRING)
+- **linkType**: Either `app` (links to a Nextcloud app route) or `url` (links to an external URL) (STRING)
+- **linkValue**: The actual link target (e.g., `/apps/files` or `https://example.com`) (STRING)
+- **createdAt**: Timestamp string (Y-m-d H:i:s)
+- **updatedAt**: Timestamp string (Y-m-d H:i:s)
+
+NOTE: Tiles do NOT have a UUID field. They are identified by their auto-increment integer `id`.
 
 ### Tile Placements
-Tiles are placed on dashboards using the same `oc_mydash_widget_placements` table, but with `widget_id` set to null and the tile reference stored as part of the placement's metadata (tileType = 'custom', referencing the tile id).
+Tiles are placed on dashboards using the same `oc_mydash_widget_placements` table. The tile data is stored INLINE on the placement (not as a foreign key reference):
+- `widgetId` is set to `'tile-' + uniqid()` (NOT null -- the DB column is NOT NULL)
+- `tileType` is set to `'custom'`
+- `tileTitle`, `tileIcon`, `tileIconType`, `tileBackgroundColor`, `tileTextColor`, `tileLinkType`, `tileLinkValue` are copied from the tile data
+
+This means tile placements store a COPY of the tile configuration at creation time, NOT a reference to the `oc_mydash_tiles` record. Changes to a tile definition in `oc_mydash_tiles` do NOT automatically propagate to existing tile placements.
 
 ## Requirements
 
@@ -33,13 +46,14 @@ Users MUST be able to create reusable custom tile definitions.
   {
     "title": "My Files",
     "icon": "icon-folder",
-    "background_color": "#3b82f6",
-    "text_color": "#ffffff",
-    "link_type": "app",
-    "link_value": "/apps/files"
+    "iconType": "class",
+    "backgroundColor": "#3b82f6",
+    "textColor": "#ffffff",
+    "linkType": "app",
+    "linkValue": "/apps/files"
   }
   ```
-- THEN the system MUST create a tile with a generated UUID
+- THEN the system MUST create a tile with an auto-increment integer ID (no UUID)
 - AND `userId` MUST be set to "alice"
 - AND the response MUST return HTTP 201 with the full tile object
 
@@ -50,20 +64,21 @@ Users MUST be able to create reusable custom tile definitions.
   {
     "title": "Company Wiki",
     "icon": "https://wiki.example.com/favicon.ico",
-    "background_color": "#10b981",
-    "text_color": "#ffffff",
-    "link_type": "url",
-    "link_value": "https://wiki.example.com"
+    "iconType": "url",
+    "backgroundColor": "#10b981",
+    "textColor": "#ffffff",
+    "linkType": "url",
+    "linkValue": "https://wiki.example.com"
   }
   ```
-- THEN the system MUST create the tile with `link_type: "url"`
+- THEN the system MUST create the tile with `linkType: "url"`
 - AND the icon MUST be stored as a URL reference
 
 #### Scenario: Create a tile with an emoji icon
 - GIVEN a logged-in user "alice"
 - WHEN she sends POST /api/tiles with body:
   ```json
-  {"title": "Calendar", "icon": "\ud83d\udcc5", "link_type": "app", "link_value": "/apps/calendar"}
+  {"title": "Calendar", "icon": "\ud83d\udcc5", "iconType": "emoji", "linkType": "app", "linkValue": "/apps/calendar"}
   ```
 - THEN the system MUST store the emoji character as the icon value
 - AND the frontend MUST render the emoji directly as the tile icon
@@ -72,12 +87,14 @@ Users MUST be able to create reusable custom tile definitions.
 - GIVEN a logged-in user
 - WHEN they send POST /api/tiles with body `{"title": "Incomplete"}`
 - THEN the system MUST return HTTP 400 with validation errors for missing required fields
-- AND `link_type` and `link_value` MUST be required
+- AND `linkType` and `linkValue` MUST be required
+- NOTE: The current implementation does NOT validate required fields -- all tile fields have defaults (e.g., `linkType` defaults to `'url'`, `linkValue` defaults to `'#'`)
 
 #### Scenario: Create a tile with invalid link_type
 - GIVEN a logged-in user
-- WHEN they send POST /api/tiles with body `{"title": "Bad", "link_type": "ftp", "link_value": "ftp://server"}`
-- THEN the system MUST return HTTP 400 with an error indicating that `link_type` must be either "app" or "url"
+- WHEN they send POST /api/tiles with body `{"title": "Bad", "linkType": "ftp", "linkValue": "ftp://server"}`
+- THEN the system SHOULD return HTTP 400 with an error indicating that `linkType` must be either "app" or "url"
+- NOTE: Link type validation is NOT currently implemented -- any string value is accepted
 
 ### REQ-TILE-002: List User Tiles
 
@@ -87,7 +104,7 @@ Users MUST be able to retrieve all their custom tile definitions.
 - GIVEN user "alice" has 5 custom tiles
 - WHEN she sends GET /api/tiles
 - THEN the system MUST return HTTP 200 with an array of all 5 tiles
-- AND each tile MUST include: id, uuid, title, icon, background_color, text_color, link_type, link_value
+- AND each tile MUST include: id, userId, title, icon, iconType, backgroundColor, textColor, linkType, linkValue, createdAt, updatedAt
 
 #### Scenario: Tiles are user-scoped
 - GIVEN user "alice" has 5 tiles and user "bob" has 3 tiles
@@ -108,15 +125,15 @@ Users MUST be able to update the properties of their custom tiles.
 - GIVEN user "alice" has tile id 3 with title "My Files"
 - WHEN she sends PUT /api/tiles/3 with body:
   ```json
-  {"title": "Documents", "background_color": "#6366f1", "text_color": "#ffffff"}
+  {"title": "Documents", "backgroundColor": "#6366f1", "textColor": "#ffffff"}
   ```
 - THEN the system MUST update the title and colors
 - AND the response MUST return HTTP 200 with the updated tile object
 
 #### Scenario: Update tile link
-- GIVEN user "alice" has tile id 3 with `link_type: "app"` and `link_value: "/apps/files"`
-- WHEN she sends PUT /api/tiles/3 with body `{"link_type": "url", "link_value": "https://docs.example.com"}`
-- THEN the system MUST update both link_type and link_value
+- GIVEN user "alice" has tile id 3 with `linkType: "app"` and `linkValue: "/apps/files"`
+- WHEN she sends PUT /api/tiles/3 with body `{"linkType": "url", "linkValue": "https://docs.example.com"}`
+- THEN the system MUST update both linkType and linkValue
 - AND the tile MUST now link to the external URL
 
 #### Scenario: Update another user's tile
@@ -125,11 +142,12 @@ Users MUST be able to update the properties of their custom tiles.
 - THEN the system MUST return HTTP 403
 - AND the tile MUST NOT be modified
 
-#### Scenario: Update tile reflects on all placements
-- GIVEN tile id 3 is placed on 2 of alice's dashboards
-- WHEN she updates the tile's title from "My Files" to "Documents"
-- THEN both dashboard placements MUST display the updated title "Documents"
-- AND no placement records need to be modified (they reference the tile by id)
+#### Scenario: Update tile does NOT reflect on existing placements
+- GIVEN tile id 3 has been placed on 2 of alice's dashboards (tile data was copied inline to placements at creation time)
+- WHEN she updates the tile's title from "My Files" to "Documents" via PUT /api/tiles/3
+- THEN the tile definition in `oc_mydash_tiles` MUST be updated
+- BUT existing placements MUST NOT be affected (they store a copy of the tile data, not a reference)
+- NOTE: This is the current behavior due to the inline-copy tile placement model. Future versions may add tile-by-reference support.
 
 ### REQ-TILE-004: Delete Custom Tile
 
@@ -162,11 +180,13 @@ Users MUST be able to place a custom tile onto a dashboard with grid coordinates
 - GIVEN user "alice" has tile id 3 and dashboard id 5
 - WHEN she sends POST /api/dashboard/5/tile with body:
   ```json
-  {"tile_id": 3, "x": 0, "y": 0, "width": 2, "height": 2}
+  {"tileTitle": "My Files", "tileIcon": "icon-folder", "tileIconType": "class", "tileBackgroundColor": "#3b82f6", "tileTextColor": "#ffffff", "tileLinkType": "app", "tileLinkValue": "/apps/files", "gridX": 0, "gridY": 0, "gridWidth": 2, "gridHeight": 2}
   ```
-- THEN the system MUST create a widget placement record with tileType set to "custom"
-- AND `widget_id` MUST be null (this is a tile, not a Nextcloud widget)
+- THEN the system MUST create a widget placement record with `tileType` set to `"custom"`
+- AND `widgetId` MUST be set to `'tile-' + uniqid()` (NOT null -- the column is NOT NULL)
+- AND the tile data MUST be stored inline on the placement (tileTitle, tileIcon, etc.)
 - AND the tile MUST render at position (0, 0) with the specified size
+- NOTE: Tile placements do NOT reference the `oc_mydash_tiles` table by ID. The tile data is passed directly in the request and stored on the placement.
 - AND the response MUST return HTTP 201 with the placement object
 
 #### Scenario: Place the same tile on multiple dashboards
@@ -176,16 +196,12 @@ Users MUST be able to place a custom tile onto a dashboard with grid coordinates
 - THEN both dashboards MUST have independent placement records referencing tile 3
 - AND deleting the placement from dashboard 5 MUST NOT affect dashboard 6's placement
 
-#### Scenario: Place another user's tile
-- GIVEN tile id 3 belongs to user "alice"
-- WHEN user "bob" tries to place tile 3 on his dashboard
-- THEN the system MUST return HTTP 403
+#### Scenario: User cannot add tile to another user's dashboard
+- GIVEN user "bob" has dashboard id 7
+- WHEN user "alice" tries to POST /api/dashboard/7/tile with tile data
+- THEN the system MUST return HTTP 403 (via `PermissionService::canAddWidget()` ownership check)
 - AND the placement MUST NOT be created
-
-#### Scenario: Place a nonexistent tile
-- GIVEN tile id 999 does not exist
-- WHEN the user sends POST /api/dashboard/5/tile with `tile_id: 999`
-- THEN the system MUST return HTTP 404 with an error indicating the tile was not found
+- NOTE: Since tile data is passed inline (not by reference), there is no concept of "another user's tile" in the placement flow. The permission check is on dashboard ownership, not tile ownership.
 
 ### REQ-TILE-006: Tile Icon Rendering
 
@@ -214,26 +230,28 @@ The frontend MUST support three icon formats: emoji, CSS class, and URL.
 Tile colors MUST be validated to ensure proper display.
 
 #### Scenario: Valid hex colors accepted
-- GIVEN a tile creation request with `background_color: "#3b82f6"` and `text_color: "#ffffff"`
+- GIVEN a tile creation request with `backgroundColor: "#3b82f6"` and `textColor: "#ffffff"`
 - WHEN the tile is created
 - THEN the system MUST accept the colors without error
 
 #### Scenario: Invalid color format rejected
-- GIVEN a tile creation request with `background_color: "not-a-color"`
+- GIVEN a tile creation request with `backgroundColor: "not-a-color"`
 - WHEN the tile is created
 - THEN the system MUST return HTTP 400 with a validation error for the color field
 - AND only hex color values (3-digit or 6-digit with `#` prefix) MUST be accepted
+- NOTE: Color format validation is NOT currently implemented -- any string value is accepted for backgroundColor and textColor
 
 #### Scenario: Default colors when not specified
-- GIVEN a tile creation request without `background_color` or `text_color`
+- GIVEN a tile creation request without `backgroundColor` or `textColor`
 - WHEN the tile is created
 - THEN the system MUST apply default colors (e.g., Nextcloud primary color for background, white for text)
 - AND the tile MUST be visually readable with the defaults
+- NOTE: The current implementation uses empty string defaults for backgroundColor and textColor
 
 ## Non-Functional Requirements
 
 - **Performance**: GET /api/tiles MUST return within 300ms for users with up to 100 tiles.
-- **Data integrity**: Deleting a tile MUST cascade-delete all placements referencing it. The tile-placement relationship MUST be consistent.
+- **Data integrity**: Deleting a tile MUST cascade-delete all placements referencing it. NOTE: Since tile placements store inline copies (not foreign key references), cascade-delete must search for placements matching the tile data, not a foreign key. The tile-placement relationship MUST be consistent.
 - **Accessibility**: Tiles MUST be accessible as links with proper `aria-label` attributes derived from the title. Color combinations MUST meet WCAG AA contrast ratio (4.5:1 for normal text).
-- **Security**: External URL icons MUST be loaded with appropriate CSP headers. External link_values MUST be rendered with `rel="noopener noreferrer"`.
+- **Security**: External URL icons MUST be loaded with appropriate CSP headers. External linkValues MUST be rendered with `rel="noopener noreferrer"`.
 - **Localization**: Validation error messages MUST support English and Dutch. Tile titles are user-defined and not localized.

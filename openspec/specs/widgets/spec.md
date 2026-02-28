@@ -1,3 +1,7 @@
+---
+status: reviewed
+---
+
 # Widgets Specification
 
 ## Purpose
@@ -15,19 +19,24 @@ Widgets are discovered at runtime from Nextcloud's `IManager::getWidgets()`. Eac
 - **v2 support**: Whether it supports the v2 API with item loading
 
 ### Widget Placements (oc_mydash_widget_placements)
-- **id**: Auto-increment integer primary key
-- **dashboard_id**: Foreign key to oc_mydash_dashboards
-- **widget_id**: Reference to the Nextcloud widget id (or null for tiles)
-- **x**: Grid column position (0-based)
-- **y**: Grid row position (0-based)
-- **width**: Number of grid columns the widget spans
-- **height**: Number of grid rows the widget spans
-- **custom_title**: Optional override for the widget's default title
-- **show_title**: Boolean, whether to display the title bar
-- **visibility**: One of `visible`, `hidden`, `conditional`
-- **style_config**: JSON blob for custom styling (background color, border radius, etc.)
-- **sort_order**: Integer for ordering within the dashboard
-- **is_compulsory**: Boolean, whether the widget can be removed (set by admin templates)
+- **id**: Auto-increment integer primary key (BIGINT)
+- **dashboardId**: Foreign key to oc_mydash_dashboards (BIGINT)
+- **widgetId**: Reference to the Nextcloud widget id (STRING, NOT NULL; for tiles set to `'tile-' + uniqid()`)
+- **gridX**: Grid column position, 0-based (INTEGER, default 0)
+- **gridY**: Grid row position, 0-based (INTEGER, default 0)
+- **gridWidth**: Number of grid columns the widget spans (INTEGER, default 4)
+- **gridHeight**: Number of grid rows the widget spans (INTEGER, default 4)
+- **customTitle**: Optional override for the widget's default title (STRING, nullable)
+- **customIcon**: Optional custom icon override (TEXT, nullable)
+- **showTitle**: SMALLINT (0/1), whether to display the title bar (default 1)
+- **isVisible**: SMALLINT (0/1), whether the widget is visible (default 1). Conditional visibility is handled by evaluating ConditionalRule records at render time rather than via a string enum.
+- **styleConfig**: JSON blob for custom styling (TEXT, nullable)
+- **sortOrder**: Integer for ordering within the dashboard (default 0)
+- **isCompulsory**: SMALLINT (0/1), whether the widget can be removed (default 0, set by admin templates)
+- **tileType**: Nullable STRING -- set to `'custom'` for tile placements, null for regular widgets
+- **tileTitle**, **tileIcon**, **tileIconType**, **tileBackgroundColor**, **tileTextColor**, **tileLinkType**, **tileLinkValue**: Tile-specific fields stored directly on the placement (nullable STRING)
+- **createdAt**: Timestamp string (DATETIME)
+- **updatedAt**: Timestamp string (DATETIME)
 
 ## Requirements
 
@@ -81,33 +90,35 @@ The system MUST provide an API to fetch the content items for widgets that suppo
 Users MUST be able to place a discovered widget onto their dashboard with grid coordinates.
 
 #### Scenario: Add a widget to a dashboard
-- GIVEN user "alice" has dashboard id 5 with grid_columns 12
+- GIVEN user "alice" has dashboard id 5 with gridColumns 12
 - WHEN she sends POST /api/dashboard/5/widgets with body:
   ```json
-  {"widget_id": "weather_status", "x": 0, "y": 0, "width": 4, "height": 2}
+  {"widgetId": "weather_status", "gridX": 0, "gridY": 0, "gridWidth": 4, "gridHeight": 4}
   ```
 - THEN the system MUST create a widget placement with the specified coordinates
-- AND `custom_title` MUST default to null (use widget's own title)
-- AND `show_title` MUST default to true
-- AND `visibility` MUST default to "visible"
-- AND `is_compulsory` MUST default to false
-- AND `sort_order` MUST be auto-assigned as the next sequential value
+- AND `customTitle` MUST default to null (use widget's own title)
+- AND `showTitle` MUST default to 1 (true)
+- AND `isVisible` MUST default to 1 (true)
+- AND `isCompulsory` MUST default to 0 (false)
+- AND `sortOrder` MUST default to 0 (auto-assignment of sequential values is not currently implemented)
 - AND the response MUST return HTTP 201 with the full placement object
+- NOTE: Default `gridWidth` and `gridHeight` are both 4 in the code, not 2
 
 #### Scenario: Add a widget with custom title and styling
 - GIVEN user "alice" has dashboard id 5
 - WHEN she sends POST /api/dashboard/5/widgets with body:
   ```json
   {
-    "widget_id": "recommendations",
-    "x": 4, "y": 0, "width": 4, "height": 3,
-    "custom_title": "My Picks",
-    "show_title": true,
-    "style_config": {"background_color": "#f0f0f0", "border_radius": "8px"}
+    "widgetId": "recommendations",
+    "gridX": 4, "gridY": 0, "gridWidth": 4, "gridHeight": 3,
+    "customTitle": "My Picks",
+    "showTitle": 1,
+    "styleConfig": {"background_color": "#f0f0f0", "border_radius": "8px"}
   }
   ```
-- THEN the system MUST create the placement with the custom title and style_config
-- AND `style_config` MUST be stored as a JSON blob
+- THEN the system MUST create the placement with the custom title and styleConfig
+- AND `styleConfig` MUST be stored as a JSON blob
+- NOTE: The `addWidget` controller method only accepts `widgetId`, `gridX`, `gridY`, `gridWidth`, `gridHeight` parameters. Custom title and style config must be set via a subsequent PUT /api/widgets/{placementId} call.
 
 #### Scenario: Add widget to another user's dashboard
 - GIVEN user "alice" has dashboard id 5
@@ -115,14 +126,15 @@ Users MUST be able to place a discovered widget onto their dashboard with grid c
 - THEN the system MUST return HTTP 403
 
 #### Scenario: Add widget with invalid coordinates
-- GIVEN dashboard id 5 has grid_columns 12
-- WHEN the user sends POST /api/dashboard/5/widgets with `x: 10, width: 4` (exceeds column count)
-- THEN the system MUST return HTTP 400 with a validation error indicating the placement exceeds the grid bounds
-- AND `x + width` MUST NOT exceed `grid_columns`
+- GIVEN dashboard id 5 has gridColumns 12
+- WHEN the user sends POST /api/dashboard/5/widgets with `gridX: 10, gridWidth: 4` (exceeds column count)
+- THEN the system SHOULD return HTTP 400 with a validation error indicating the placement exceeds the grid bounds
+- AND `gridX + gridWidth` SHOULD NOT exceed `gridColumns`
+- NOTE: Grid bounds validation is NOT currently implemented in the backend -- GridStack on the frontend handles constraint enforcement
 
-#### Scenario: Add widget with non-existent widget_id
+#### Scenario: Add widget with non-existent widgetId
 - GIVEN widget "fake_widget" is not registered in Nextcloud
-- WHEN the user sends POST /api/dashboard/5/widgets with `widget_id: "fake_widget"`
+- WHEN the user sends POST /api/dashboard/5/widgets with `widgetId: "fake_widget"`
 - THEN the system MUST return HTTP 400 with an error indicating the widget was not found
 - OR the system MAY allow it (for forward compatibility if apps are temporarily disabled)
 
@@ -131,30 +143,30 @@ Users MUST be able to place a discovered widget onto their dashboard with grid c
 Users MUST be able to update a widget placement's position, size, title, visibility, and styling.
 
 #### Scenario: Update widget position and size
-- GIVEN widget placement id 10 on alice's dashboard at position (0, 0) with size 4x2
-- WHEN she sends PUT /api/widgets/10 with body `{"x": 4, "y": 2, "width": 6, "height": 3}`
+- GIVEN widget placement id 10 on alice's dashboard at position (0, 0) with size 4x4
+- WHEN she sends PUT /api/widgets/10 with body `{"gridX": 4, "gridY": 2, "gridWidth": 6, "gridHeight": 3}`
 - THEN the system MUST update the placement coordinates and size
 - AND return HTTP 200 with the updated placement object
 
 #### Scenario: Update custom title
-- GIVEN widget placement id 10 with custom_title null
-- WHEN the user sends PUT /api/widgets/10 with body `{"custom_title": "Weather Today"}`
-- THEN the system MUST update the custom_title
+- GIVEN widget placement id 10 with customTitle null
+- WHEN the user sends PUT /api/widgets/10 with body `{"customTitle": "Weather Today"}`
+- THEN the system MUST update the customTitle
 - AND the widget MUST display "Weather Today" instead of the default widget title
 
 #### Scenario: Toggle title visibility
-- GIVEN widget placement id 10 with show_title true
-- WHEN the user sends PUT /api/widgets/10 with body `{"show_title": false}`
-- THEN the system MUST update show_title to false
+- GIVEN widget placement id 10 with showTitle 1 (true)
+- WHEN the user sends PUT /api/widgets/10 with body `{"showTitle": 0}`
+- THEN the system MUST update showTitle to 0 (false)
 - AND the widget MUST render without a title bar
 
 #### Scenario: Update style configuration
-- GIVEN widget placement id 10 with empty style_config
+- GIVEN widget placement id 10 with empty styleConfig
 - WHEN the user sends PUT /api/widgets/10 with body:
   ```json
-  {"style_config": {"background_color": "#ffffff", "border_radius": "12px", "shadow": "none"}}
+  {"styleConfig": {"background_color": "#ffffff", "border_radius": "12px", "shadow": "none"}}
   ```
-- THEN the system MUST replace the entire style_config with the new JSON
+- THEN the system MUST replace the entire styleConfig with the new JSON
 - AND individual style properties from the previous config MUST NOT be merged (full replacement)
 
 #### Scenario: Update placement on another user's dashboard
@@ -174,13 +186,13 @@ Users MUST be able to remove widget placements from their dashboards.
 - AND the response MUST return HTTP 200
 
 #### Scenario: Remove a compulsory widget with full permission
-- GIVEN widget placement id 10 with `is_compulsory: true` on a dashboard with `permission_level: full`
+- GIVEN widget placement id 10 with `isCompulsory: 1` on a dashboard with `permissionLevel: full`
 - WHEN the user sends DELETE /api/widgets/10
 - THEN the system MUST allow the deletion
 - AND the placement MUST be removed
 
 #### Scenario: Remove a compulsory widget without full permission
-- GIVEN widget placement id 10 with `is_compulsory: true` on a dashboard with `permission_level: add_only`
+- GIVEN widget placement id 10 with `isCompulsory: 1` on a dashboard with `permissionLevel: add_only`
 - WHEN the user sends DELETE /api/widgets/10
 - THEN the system MUST return HTTP 403 with a message indicating compulsory widgets cannot be removed
 - AND the placement MUST NOT be deleted
@@ -192,39 +204,40 @@ Users MUST be able to remove widget placements from their dashboards.
 
 ### REQ-WDG-006: Widget Placement Visibility
 
-Widget placements MUST support three visibility states that control rendering behavior.
+Widget placements use an `isVisible` SMALLINT (0/1) flag plus optional ConditionalRule records to control rendering.
 
 #### Scenario: Visible widget always renders
-- GIVEN widget placement id 10 with `visibility: "visible"`
+- GIVEN widget placement id 10 with `isVisible: 1` and no conditional rules
 - WHEN the dashboard is rendered
-- THEN the widget MUST always be displayed regardless of any conditional rules
+- THEN the widget MUST always be displayed
 
 #### Scenario: Hidden widget never renders
-- GIVEN widget placement id 10 with `visibility: "hidden"`
+- GIVEN widget placement id 10 with `isVisible: 0`
 - WHEN the dashboard is rendered
 - THEN the widget MUST NOT be displayed
 - AND the grid cell MUST remain empty (no placeholder)
 
 #### Scenario: Conditional widget evaluated at render time
-- GIVEN widget placement id 10 with `visibility: "conditional"`
-- AND the placement has associated conditional rules
+- GIVEN widget placement id 10 with `isVisible: 1` and associated conditional rules exist
 - WHEN the dashboard is rendered
-- THEN the system MUST evaluate all conditional rules for this placement
-- AND the widget MUST be displayed only if the rules evaluate to show
+- THEN the ConditionalService MUST evaluate all conditional rules for this placement via VisibilityChecker
+- AND the widget MUST be displayed only if all rules evaluate to show
+- NOTE: There is no separate `visibility: "conditional"` string state. The presence of ConditionalRule records on a placement triggers conditional evaluation.
 
 ### REQ-WDG-007: Widget Sort Order
 
 Widget placements MUST maintain a sort order for consistent rendering and tab navigation.
 
 #### Scenario: Auto-assign sort order on creation
-- GIVEN dashboard id 5 has 3 existing placements with sort_order 1, 2, 3
+- GIVEN dashboard id 5 has 3 existing placements with sortOrder 1, 2, 3
 - WHEN a new widget is added to the dashboard
-- THEN the new placement MUST receive sort_order 4
+- THEN the new placement currently receives sortOrder 0 (default)
+- NOTE: Auto-incrementing sort order is NOT currently implemented. The sortOrder field defaults to 0 for all new placements.
 
 #### Scenario: Reorder widgets
-- GIVEN dashboard id 5 has placements with sort_order 1 (weather), 2 (notes), 3 (calendar)
+- GIVEN dashboard id 5 has placements with sortOrder 1 (weather), 2 (notes), 3 (calendar)
 - WHEN the user rearranges them so calendar is first
-- THEN sort_order MUST be updated to: calendar (1), weather (2), notes (3)
+- THEN sortOrder MUST be updated to: calendar (1), weather (2), notes (3)
 
 ### REQ-WDG-008: Batch Update Placements
 
