@@ -72,7 +72,7 @@ class PageController extends Controller
     private function loadWidgetScripts(): void
     {
         $dashboardManager = \OC::$server->get(
-            name: \OCP\Dashboard\IManager::class
+            \OCP\Dashboard\IManager::class
         );
         $widgets          = $dashboardManager->getWidgets();
 
