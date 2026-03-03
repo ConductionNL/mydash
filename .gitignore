@@ -25,7 +25,6 @@ Thumbs.db
 /composer.phar
 
 # Testing
-/phpunit.xml
 /coverage/
 /phpqa/
 
