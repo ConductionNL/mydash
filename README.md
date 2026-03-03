@@ -1,4 +1,20 @@
-# MyDash - Custom Dashboard Application for Nextcloud
+<p align="center">
+  <img src="img/app-store.svg" alt="MyDash logo" width="80" height="80">
+</p>
+
+<h1 align="center">MyDash</h1>
+
+<p align="center">
+  <strong>Customizable multi-dashboard for Nextcloud — create, configure, and switch between personal workspaces</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/ConductionNL/mydash/releases"><img src="https://img.shields.io/github/v/release/ConductionNL/mydash" alt="Latest release"></a>
+  <a href="https://github.com/ConductionNL/mydash/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="License"></a>
+  <a href="https://github.com/ConductionNL/mydash/actions"><img src="https://img.shields.io/github/actions/workflow/status/ConductionNL/mydash/code-quality.yml?label=quality" alt="Code quality"></a>
+</p>
+
+---
 
 MyDash is a flexible and customizable dashboard application for Nextcloud that allows users to create and manage multiple personalized dashboards with various Nextcloud widgets.
 
