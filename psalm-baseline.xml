@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<files psalm-version="5.26.1@d747f6500b38ac4f7dfc5edbcae6e4b637d7add0">
+  <file src="lib/Controller/PageController.php">
+    <UndefinedClass>
+      <code><![CDATA[\OC]]></code>
+    </UndefinedClass>
+  </file>
+  <file src="lib/Db/TileMapper.php">
+    <MissingTemplateParam>
+      <code><![CDATA[TileMapper]]></code>
+    </MissingTemplateParam>
+  </file>
+  <file src="lib/Service/AdminTemplateService.php">
+    <UndefinedClass>
+      <code><![CDATA[Uuid]]></code>
+    </UndefinedClass>
+  </file>
+  <file src="lib/Service/DashboardFactory.php">
+    <InvalidNamedArgument>
+      <code><![CDATA[value]]></code>
+      <code><![CDATA[value]]></code>
+    </InvalidNamedArgument>
+  </file>
+  <file src="lib/Service/TemplateService.php">
+    <UndefinedClass>
+      <code><![CDATA[Uuid]]></code>
+    </UndefinedClass>
+  </file>
+  <file src="lib/Service/UserAttributeResolver.php">
+    <InvalidNamedArgument>
+      <code><![CDATA[prefix]]></code>
+      <code><![CDATA[suffix]]></code>
+    </InvalidNamedArgument>
+    <UndefinedInterfaceMethod>
+      <code><![CDATA[getLanguage]]></code>
+    </UndefinedInterfaceMethod>
+  </file>
+</files>
