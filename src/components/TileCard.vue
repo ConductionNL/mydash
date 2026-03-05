@@ -14,7 +14,7 @@
 			}"
 			:target="isExternalLink ? '_blank' : '_self'"
 			rel="noopener noreferrer">
-			<svg 
+			<svg
 				v-if="tile.iconType === 'svg'"
 				class="tile-card__icon"
 				:style="{ fill: tile.textColor }"
@@ -86,17 +86,17 @@ export default {
 			if (!url) {
 				return '#'
 			}
-			
+
 			// If it starts with http:// or https://, it's an external URL.
 			if (url.startsWith('http://') || url.startsWith('https://')) {
 				return url
 			}
-			
+
 			// If it starts with /, it's a relative path (likely /apps/something).
 			if (url.startsWith('/')) {
 				return generateUrl(url)
 			}
-			
+
 			// Otherwise, assume it's an app name and generate the URL.
 			return generateUrl('/apps/' + url)
 		},
