@@ -3,24 +3,31 @@
 declare(strict_types=1);
 
 /**
+ * WidgetPlacement Entity
+ *
+ * Represents a widget placement on a dashboard.
+ *
+ * @category  Database
+ * @package   OCA\MyDash\Db
+ * @author    Conduction b.v. <info@conduction.nl>
+ * @copyright 2024 Conduction b.v.
+ * @license   https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12 EUPL-1.2
+ * @version   GIT:auto
+ * @link      https://conduction.nl
+ *
  * SPDX-FileCopyrightText: 2024 MyDash Contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 namespace OCA\MyDash\Db;
 
-use DateTime;
 use JsonSerializable;
 use OCP\AppFramework\Db\Entity;
 
 /**
- * WidgetPlacement Entity
+ * Widget placement entity for dashboard grid positioning.
  *
- * @category Database
- * @package  OCA\MyDash\Db
- * @author   Conduction <info@conduction.nl>
- * @license  AGPL-3.0-or-later
- * @link     https://github.com/ConductionNL/mydash
+ * @SuppressWarnings(PHPMD.TooManyFields)
  *
  * @method int getDashboardId()
  * @method void setDashboardId(int $dashboardId)
@@ -69,106 +76,264 @@ use OCP\AppFramework\Db\Entity;
  * @method string|null getUpdatedAt()
  * @method void setUpdatedAt(?string $updatedAt)
  */
-class WidgetPlacement extends Entity implements JsonSerializable {
-	protected int $dashboardId = 0;
-	protected string $widgetId = '';
-	protected int $gridX = 0;
-	protected int $gridY = 0;
-	protected int $gridWidth = 4;
-	protected int $gridHeight = 4;
-	protected int $isCompulsory = 0; // SMALLINT in DB (0/1).
-	protected int $isVisible = 1; // SMALLINT in DB (0/1).
-	protected ?string $styleConfig = null;
-	protected ?string $customTitle = null;
-	protected ?string $customIcon = null;
-	protected int $showTitle = 1; // SMALLINT in DB (0/1).
-	protected int $sortOrder = 0;
-	// Tile configuration fields.
-	protected ?string $tileType = null;
-	protected ?string $tileTitle = null;
-	protected ?string $tileIcon = null;
-	protected ?string $tileIconType = null;
-	protected ?string $tileBackgroundColor = null;
-	protected ?string $tileTextColor = null;
-	protected ?string $tileLinkType = null;
-	protected ?string $tileLinkValue = null;
-	protected ?string $createdAt = null; // Stored as string to avoid DateTime conversion issues.
-	protected ?string $updatedAt = null; // Stored as string to avoid DateTime conversion issues.
+class WidgetPlacement extends Entity implements JsonSerializable
+{
 
-	/**
-	 * Constructor
-	 *
-	 * Registers column types for proper ORM handling.
-	 * Note: Boolean columns are SMALLINT in DB (0/1).
-	 */
-	public function __construct() {
-		$this->addType('id', 'integer');
-		$this->addType('dashboardId', 'integer');
-		$this->addType('gridX', 'integer');
-		$this->addType('gridY', 'integer');
-		$this->addType('gridWidth', 'integer');
-		$this->addType('gridHeight', 'integer');
-		$this->addType('isCompulsory', 'integer'); // SMALLINT in DB (0/1).
-		$this->addType('isVisible', 'integer'); // SMALLINT in DB (0/1).
-		$this->addType('showTitle', 'integer'); // SMALLINT in DB (0/1).
-		$this->addType('sortOrder', 'integer');
-	}
+    /**
+     * The dashboard ID.
+     *
+     * @var integer
+     */
+    protected int $dashboardId = 0;
 
-	/**
-	 * Get style config as array
-	 */
-	public function getStyleConfigArray(): array {
-		if (empty($this->styleConfig)) {
-			return [];
-		}
-		$decoded = json_decode($this->styleConfig, true);
-		return is_array($decoded) ? $decoded : [];
-	}
+    /**
+     * The widget ID.
+     *
+     * @var string
+     */
+    protected string $widgetId = '';
 
-	/**
-	 * Set style config from array
-	 */
-	public function setStyleConfigArray(array $config): void {
-		$this->setStyleConfig(json_encode($config));
-	}
+    /**
+     * The grid X position.
+     *
+     * @var integer
+     */
+    protected int $gridX = 0;
 
-	/**
-	 * Serialize to JSON
-	 *
-	 * @return array The serialized widget placement.
-	 */
-	public function jsonSerialize(): array {
-		$data = [
-			'id' => $this->getId(),
-			'dashboardId' => $this->dashboardId,
-			'widgetId' => $this->widgetId,
-			'gridX' => $this->gridX,
-			'gridY' => $this->gridY,
-			'gridWidth' => $this->gridWidth,
-			'gridHeight' => $this->gridHeight,
-			'isCompulsory' => $this->isCompulsory,
-			'isVisible' => $this->isVisible,
-			'styleConfig' => $this->getStyleConfigArray(),
-			'customTitle' => $this->customTitle,
-			'customIcon' => $this->customIcon,
-			'showTitle' => $this->showTitle,
-			'sortOrder' => $this->sortOrder,
-			'createdAt' => $this->createdAt, // Already a string.
-			'updatedAt' => $this->updatedAt, // Already a string.
-		];
+    /**
+     * The grid Y position.
+     *
+     * @var integer
+     */
+    protected int $gridY = 0;
 
-		// Include tile configuration if this is a tile.
-		if ($this->tileType !== null) {
-			$data['tileType'] = $this->tileType;
-			$data['tileTitle'] = $this->tileTitle;
-			$data['tileIcon'] = $this->tileIcon;
-			$data['tileIconType'] = $this->tileIconType;
-			$data['tileBackgroundColor'] = $this->tileBackgroundColor;
-			$data['tileTextColor'] = $this->tileTextColor;
-			$data['tileLinkType'] = $this->tileLinkType;
-			$data['tileLinkValue'] = $this->tileLinkValue;
-		}
+    /**
+     * The grid width.
+     *
+     * @var integer
+     */
+    protected int $gridWidth = 4;
 
-		return $data;
-	}
-}
+    /**
+     * The grid height.
+     *
+     * @var integer
+     */
+    protected int $gridHeight = 4;
+
+    /**
+     * Whether the widget is compulsory (SMALLINT 0/1).
+     *
+     * @var integer
+     */
+    protected int $isCompulsory = 0;
+
+    /**
+     * Whether the widget is visible (SMALLINT 0/1).
+     *
+     * @var integer
+     */
+    protected int $isVisible = 1;
+
+    /**
+     * The style configuration JSON.
+     *
+     * @var string|null
+     */
+    protected ?string $styleConfig = null;
+
+    /**
+     * The custom title.
+     *
+     * @var string|null
+     */
+    protected ?string $customTitle = null;
+
+    /**
+     * The custom icon.
+     *
+     * @var string|null
+     */
+    protected ?string $customIcon = null;
+
+    /**
+     * Whether to show the title (SMALLINT 0/1).
+     *
+     * @var integer
+     */
+    protected int $showTitle = 1;
+
+    /**
+     * The sort order.
+     *
+     * @var integer
+     */
+    protected int $sortOrder = 0;
+
+    /**
+     * The tile type.
+     *
+     * @var string|null
+     */
+    protected ?string $tileType = null;
+
+    /**
+     * The tile title.
+     *
+     * @var string|null
+     */
+    protected ?string $tileTitle = null;
+
+    /**
+     * The tile icon.
+     *
+     * @var string|null
+     */
+    protected ?string $tileIcon = null;
+
+    /**
+     * The tile icon type.
+     *
+     * @var string|null
+     */
+    protected ?string $tileIconType = null;
+
+    /**
+     * The tile background color.
+     *
+     * @var string|null
+     */
+    protected ?string $tileBackgroundColor = null;
+
+    /**
+     * The tile text color.
+     *
+     * @var string|null
+     */
+    protected ?string $tileTextColor = null;
+
+    /**
+     * The tile link type.
+     *
+     * @var string|null
+     */
+    protected ?string $tileLinkType = null;
+
+    /**
+     * The tile link value.
+     *
+     * @var string|null
+     */
+    protected ?string $tileLinkValue = null;
+
+    /**
+     * The creation timestamp as string.
+     *
+     * @var string|null
+     */
+    protected ?string $createdAt = null;
+
+    /**
+     * The update timestamp as string.
+     *
+     * @var string|null
+     */
+    protected ?string $updatedAt = null;
+
+    /**
+     * Constructor
+     *
+     * Registers column types for proper ORM handling.
+     * Note: Boolean columns are SMALLINT in DB (0/1).
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        $this->addType(fieldName: 'id', type: 'integer');
+        $this->addType(fieldName: 'dashboardId', type: 'integer');
+        $this->addType(fieldName: 'gridX', type: 'integer');
+        $this->addType(fieldName: 'gridY', type: 'integer');
+        $this->addType(fieldName: 'gridWidth', type: 'integer');
+        $this->addType(fieldName: 'gridHeight', type: 'integer');
+        $this->addType(fieldName: 'isCompulsory', type: 'integer');
+        // SMALLINT in DB (0/1).
+        $this->addType(fieldName: 'isVisible', type: 'integer');
+        // SMALLINT in DB (0/1).
+        $this->addType(fieldName: 'showTitle', type: 'integer');
+        // SMALLINT in DB (0/1).
+        $this->addType(fieldName: 'sortOrder', type: 'integer');
+    }//end __construct()
+
+    /**
+     * Get style config as array.
+     *
+     * @return array The decoded style configuration.
+     */
+    public function getStyleConfigArray(): array
+    {
+        if (empty($this->styleConfig) === true) {
+            return [];
+        }
+
+        $decoded = json_decode(json: $this->styleConfig, associative: true);
+        if (is_array($decoded) === true) {
+            return $decoded;
+        }
+
+        return [];
+    }//end getStyleConfigArray()
+
+    /**
+     * Set style config from array.
+     *
+     * @param array $config The style configuration array.
+     *
+     * @return void
+     */
+    public function setStyleConfigArray(array $config): void
+    {
+        $this->setStyleConfig(styleConfig: json_encode(value: $config));
+    }//end setStyleConfigArray()
+
+    /**
+     * Serialize to JSON.
+     *
+     * @return array The serialized widget placement.
+     */
+    public function jsonSerialize(): array
+    {
+        $data = [
+            'id'           => $this->getId(),
+            'dashboardId'  => $this->dashboardId,
+            'widgetId'     => $this->widgetId,
+            'gridX'        => $this->gridX,
+            'gridY'        => $this->gridY,
+            'gridWidth'    => $this->gridWidth,
+            'gridHeight'   => $this->gridHeight,
+            'isCompulsory' => $this->isCompulsory,
+            'isVisible'    => $this->isVisible,
+            'styleConfig'  => $this->getStyleConfigArray(),
+            'customTitle'  => $this->customTitle,
+            'customIcon'   => $this->customIcon,
+            'showTitle'    => $this->showTitle,
+            'sortOrder'    => $this->sortOrder,
+            'createdAt'    => $this->createdAt,
+            'updatedAt'    => $this->updatedAt,
+        ];
+
+        // Include tile configuration if this is a tile.
+        if ($this->tileType !== null) {
+            $data['tileType']            = $this->tileType;
+            $data['tileTitle']           = $this->tileTitle;
+            $data['tileIcon']            = $this->tileIcon;
+            $data['tileIconType']        = $this->tileIconType;
+            $data['tileBackgroundColor'] = $this->tileBackgroundColor;
+            $data['tileTextColor']       = $this->tileTextColor;
+            $data['tileLinkType']        = $this->tileLinkType;
+            $data['tileLinkValue']       = $this->tileLinkValue;
+        }
+
+        return $data;
+    }//end jsonSerialize()
+}//end class

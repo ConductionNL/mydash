@@ -6,32 +6,64 @@
 <info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	  xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
 	<id>mydash</id>
-	<name>MyDash</name>
-	<summary>Enhanced dashboard with grid layout and admin controls</summary>
-	<description><![CDATA[MyDash - Your Customizable Dashboard
+	<name lang="en">MyDash</name>
+	<name lang="nl">MyDash</name>
+	<summary lang="en">Drag-and-drop dashboards with templates, tiles, and smart visibility</summary>
+	<summary lang="nl">Drag-and-drop dashboards met templates, tegels en slimme zichtbaarheid</summary>
+	<description lang="en"><![CDATA[MyDash supercharges the Nextcloud dashboard. Create personalized workspaces with drag-and-drop widgets, custom shortcut tiles, and smart visibility rules — then let admins roll out templates to entire teams.
 
-MyDash provides an enhanced dashboard experience for Nextcloud with:
-- Grid-based widget layout with drag-and-drop positioning
-- Widget resizing and custom styling (colors, borders, titles)
-- Multiple dashboards per user
-- Admin-controlled dashboard templates
-- Conditional widget visibility (by group, time, date)
-- Permission levels (view-only, add-only, full customization)
-- Full compatibility with existing Nextcloud widgets
+**Key Features**
 
-Administrators can create dashboard templates for user groups and mark certain widgets as compulsory.]]>
-	</description>
-	<version>1.0.1-unstable.3</version>
+- **Drag-and-drop grid layout** — Position and resize widgets freely on a flexible grid
+- **Multiple dashboards** — Create as many dashboards as you need and switch between them
+- **Custom tiles** — Add shortcut cards with icons, colors, and links to your most-used tools
+- **Admin templates** — Pre-configure dashboards and distribute them to user groups with one click
+- **Permission levels** — Choose view-only, add-only, or full customization per template
+- **Conditional visibility** — Show or hide widgets based on group membership, time of day, or date
+- **Widget styling** — Customize colors, borders, and titles for each individual widget
+- **Compulsory widgets** — Admins can pin important widgets that users cannot remove
+- **Full Nextcloud compatibility** — Works with every existing Nextcloud dashboard widget out of the box
+
+Perfect for organizations that want consistent, curated dashboards for their teams while still giving users freedom to personalize.
+
+Free and open source under the AGPL license.
+    ]]></description>
+	<description lang="nl"><![CDATA[MyDash geeft het Nextcloud-dashboard superkrachten. Maak persoonlijke werkruimtes met drag-and-drop widgets, eigen snelkoppelingstegels en slimme zichtbaarheidsregels — en laat beheerders templates uitrollen naar hele teams.
+
+**Belangrijkste functies**
+
+- **Drag-and-drop grid layout** — Positioneer en schaal widgets vrij op een flexibel raster
+- **Meerdere dashboards** — Maak zoveel dashboards als je nodig hebt en wissel ertussen
+- **Eigen tegels** — Voeg snelkoppelingskaarten toe met iconen, kleuren en links naar je meestgebruikte tools
+- **Beheerdertemplates** — Configureer dashboards vooraf en distribueer ze met een klik naar gebruikersgroepen
+- **Rechtenniveaus** — Kies tussen alleen bekijken, toevoegen, of volledige aanpassing per template
+- **Conditionele zichtbaarheid** — Toon of verberg widgets op basis van groepslidmaatschap, tijdstip of datum
+- **Widget-styling** — Pas kleuren, randen en titels aan voor elke individuele widget
+- **Verplichte widgets** — Beheerders kunnen belangrijke widgets vastzetten die gebruikers niet kunnen verwijderen
+- **Volledige Nextcloud-compatibiliteit** — Werkt direct met elke bestaande Nextcloud dashboard-widget
+
+Ideaal voor organisaties die consistente, samengestelde dashboards willen voor hun teams, terwijl gebruikers de vrijheid houden om te personaliseren.
+
+Vrij en open source onder de AGPL-licentie.
+    ]]></description>
+	<version>1.0.1-unstable.1</version>
 	<licence>agpl</licence>
 	<author mail="info@conduction.nl" homepage="https://www.conduction.nl/">Conduction</author>
 	<namespace>MyDash</namespace>
-
+	<documentation>
+		<user>https://github.com/ConductionNL/mydash</user>
+		<admin>https://github.com/ConductionNL/mydash</admin>
+		<developer>https://github.com/ConductionNL/mydash</developer>
+	</documentation>
 	<category>customization</category>
-
+	<category>organization</category>
+	<category>dashboard</category>
 	<website>https://github.com/ConductionNL/mydash</website>
+	<discussion>https://github.com/ConductionNL/mydash/discussions</discussion>
 	<bugs>https://github.com/ConductionNL/mydash/issues</bugs>
 	<repository>https://github.com/ConductionNL/mydash</repository>
 
+	<screenshot>https://raw.githubusercontent.com/ConductionNL/mydash/main/img/app-store.svg</screenshot>
 	<screenshot>https://raw.githubusercontent.com/ConductionNL/mydash/main/img/screenshot.png</screenshot>
 
 	<dependencies>
@@ -48,7 +80,7 @@ Administrators can create dashboard templates for user groups and mark certain w
 		<navigation>
 			<name>MyDash</name>
 			<route>mydash.page.index</route>
-			<icon>mydash.svg</icon>
+			<icon>app.svg</icon>
 			<order>-5</order>
 		</navigation>
 	</navigations>

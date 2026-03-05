@@ -17,6 +17,7 @@
 		"stylelint:fix": "stylelint src/**/*.vue src/**/*.scss src/**/*.css --fix"
 	},
 	"dependencies": {
+		"@conduction/nextcloud-vue": "^0.1.0-beta.1",
 		"@mdi/js": "^7.4.47",
 		"@nextcloud/axios": "^2.5.0",
 		"@nextcloud/dialogs": "^6.1.1",
@@ -48,6 +49,7 @@
 		"eslint-plugin-n": "^16.6.2",
 		"eslint-plugin-promise": "^6.1.1",
 		"eslint-plugin-vue": "^9.21.1",
+		"stylelint": "^15.11.0",
 		"typescript": "^5.4.0"
 	},
 	"browserslist": [
