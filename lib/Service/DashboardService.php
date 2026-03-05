@@ -187,10 +187,10 @@ class DashboardService
         }
 
         $this->dashboardMapper->setActive(
-            dashboardId: $dashboardId,
+            $dashboardId,
             userId: $userId
         );
-        $dashboard->setIsActive(isActive: true);
+        $dashboard->setIsActive(true);
 
         return $dashboard;
     }//end activateDashboard()
@@ -222,19 +222,76 @@ class DashboardService
         }
 
         if ($allowUserDashboards === true) {
-            $dashboard = $this->createDashboard(
+            $dashboard  = $this->createDashboard(
                 userId: $userId,
                 name: 'My Dashboard'
             );
+            $placements = $this->createDefaultPlacements(
+                dashboardId: $dashboard->getId()
+            );
             return [
                 'dashboard'       => $dashboard,
-                'placements'      => [],
+                'placements'      => $placements,
                 'permissionLevel' => Dashboard::PERMISSION_FULL,
             ];
         }
 
         return null;
     }//end tryCreateFromTemplate()
+
+    /**
+     * Create default widget placements for a new dashboard.
+     *
+     * Adds the same widgets shown on the standard Nextcloud dashboard:
+     * recommendations (recent files) and activity.
+     *
+     * @param int $dashboardId The dashboard ID.
+     *
+     * @return WidgetPlacement[] The created placements.
+     */
+    private function createDefaultPlacements(int $dashboardId): array
+    {
+        $now = (new DateTime())->format(format: 'Y-m-d H:i:s');
+
+        $defaults = [
+            [
+                'widgetId'   => 'recommendations',
+                'gridX'      => 0,
+                'gridY'      => 0,
+                'gridWidth'  => 6,
+                'gridHeight' => 5,
+                'sortOrder'  => 0,
+            ],
+            [
+                'widgetId'   => 'activity',
+                'gridX'      => 6,
+                'gridY'      => 0,
+                'gridWidth'  => 6,
+                'gridHeight' => 5,
+                'sortOrder'  => 1,
+            ],
+        ];
+
+        $placements = [];
+        foreach ($defaults as $config) {
+            $placement = new \OCA\MyDash\Db\WidgetPlacement();
+            $placement->setDashboardId($dashboardId);
+            $placement->setWidgetId($config['widgetId']);
+            $placement->setGridX($config['gridX']);
+            $placement->setGridY($config['gridY']);
+            $placement->setGridWidth($config['gridWidth']);
+            $placement->setGridHeight($config['gridHeight']);
+            $placement->setSortOrder($config['sortOrder']);
+            $placement->setShowTitle(1);
+            $placement->setIsVisible(1);
+            $placement->setCreatedAt($now);
+            $placement->setUpdatedAt($now);
+
+            $placements[] = $this->placementMapper->insert(entity: $placement);
+        }//end foreach
+
+        return $placements;
+    }//end createDefaultPlacements()
 
     /**
      * Apply updates to a dashboard entity.
@@ -249,23 +306,19 @@ class DashboardService
         array $data
     ): void {
         if (isset($data['name']) === true) {
-            $dashboard->setName(name: $data['name']);
+            $dashboard->setName($data['name']);
         }
 
         if (isset($data['description']) === true) {
-            $dashboard->setDescription(
-                description: $data['description']
-            );
+            $dashboard->setDescription($data['description']);
         }
 
         if (isset($data['gridColumns']) === true) {
-            $dashboard->setGridColumns(
-                gridColumns: $data['gridColumns']
-            );
+            $dashboard->setGridColumns($data['gridColumns']);
         }
 
         $dashboard->setUpdatedAt(
-            updatedAt: (new DateTime())->format(format: 'Y-m-d H:i:s')
+            (new DateTime())->format(format: 'Y-m-d H:i:s')
         );
 
         if (isset($data['placements']) === true

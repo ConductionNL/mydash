@@ -66,17 +66,17 @@ class PlacementService
     ): WidgetPlacement {
         $placement = new WidgetPlacement();
         $now       = (new DateTime())->format(format: 'Y-m-d H:i:s');
-        $placement->setDashboardId(dashboardId: $dashboardId);
-        $placement->setWidgetId(widgetId: $widgetId);
-        $placement->setGridX(gridX: $gridX);
-        $placement->setGridY(gridY: $gridY);
-        $placement->setGridWidth(gridWidth: $gridWidth);
-        $placement->setGridHeight(gridHeight: $gridHeight);
-        $placement->setIsCompulsory(isCompulsory: 0);
-        $placement->setIsVisible(isVisible: 1);
-        $placement->setShowTitle(showTitle: 1);
-        $placement->setCreatedAt(createdAt: $now);
-        $placement->setUpdatedAt(updatedAt: $now);
+        $placement->setDashboardId($dashboardId);
+        $placement->setWidgetId($widgetId);
+        $placement->setGridX($gridX);
+        $placement->setGridY($gridY);
+        $placement->setGridWidth($gridWidth);
+        $placement->setGridHeight($gridHeight);
+        $placement->setIsCompulsory(0);
+        $placement->setIsVisible(1);
+        $placement->setShowTitle(1);
+        $placement->setCreatedAt($now);
+        $placement->setUpdatedAt($now);
 
         return $this->placementMapper->insert(entity: $placement);
     }//end addWidget()
@@ -95,25 +95,25 @@ class PlacementService
     ): WidgetPlacement {
         $placement = new WidgetPlacement();
         $now       = (new DateTime())->format(format: 'Y-m-d H:i:s');
-        $placement->setDashboardId(dashboardId: $dashboardId);
-        $placement->setWidgetId(widgetId: 'tile-'.uniqid());
-        $placement->setGridX(gridX: $tileData['gridX'] ?? 0);
-        $placement->setGridY(gridY: $tileData['gridY'] ?? 0);
-        $placement->setGridWidth(gridWidth: $tileData['gridWidth'] ?? 2);
+        $placement->setDashboardId($dashboardId);
+        $placement->setWidgetId('tile-'.uniqid());
+        $placement->setGridX($tileData['gridX'] ?? 0);
+        $placement->setGridY($tileData['gridY'] ?? 0);
+        $placement->setGridWidth($tileData['gridWidth'] ?? 2);
         $placement->setGridHeight(
-            gridHeight: $tileData['gridHeight'] ?? 2
+            $tileData['gridHeight'] ?? 2
         );
-        $placement->setIsCompulsory(isCompulsory: 0);
-        $placement->setIsVisible(isVisible: 1);
-        $placement->setShowTitle(showTitle: 1);
+        $placement->setIsCompulsory(0);
+        $placement->setIsVisible(1);
+        $placement->setShowTitle(1);
 
         $this->tileUpdater->applyTileConfig(
             placement: $placement,
             tileData: $tileData
         );
 
-        $placement->setCreatedAt(createdAt: $now);
-        $placement->setUpdatedAt(updatedAt: $now);
+        $placement->setCreatedAt($now);
+        $placement->setUpdatedAt($now);
 
         return $this->placementMapper->insert(entity: $placement);
     }//end addTileFromArray()
@@ -146,7 +146,7 @@ class PlacementService
         );
 
         $placement->setUpdatedAt(
-            updatedAt: (new DateTime())->format(format: 'Y-m-d H:i:s')
+            (new DateTime())->format(format: 'Y-m-d H:i:s')
         );
 
         return $this->placementMapper->update(entity: $placement);

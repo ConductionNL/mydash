@@ -45,18 +45,16 @@ class DashboardFactory
     ): Dashboard {
         $now       = (new DateTime())->format(format: 'Y-m-d H:i:s');
         $dashboard = new Dashboard();
-        $dashboard->setUuid(uuid: $this->generateUuid());
-        $dashboard->setName(name: $name);
-        $dashboard->setDescription(description: $description);
-        $dashboard->setType(type: Dashboard::TYPE_USER);
-        $dashboard->setUserId(userId: $userId);
-        $dashboard->setGridColumns(gridColumns: 12);
-        $dashboard->setPermissionLevel(
-            permissionLevel: Dashboard::PERMISSION_FULL
-        );
-        $dashboard->setIsActive(isActive: 1);
-        $dashboard->setCreatedAt(createdAt: $now);
-        $dashboard->setUpdatedAt(updatedAt: $now);
+        $dashboard->setUuid($this->generateUuid());
+        $dashboard->setName($name);
+        $dashboard->setDescription($description);
+        $dashboard->setType(Dashboard::TYPE_USER);
+        $dashboard->setUserId($userId);
+        $dashboard->setGridColumns(12);
+        $dashboard->setPermissionLevel(Dashboard::PERMISSION_FULL);
+        $dashboard->setIsActive(1);
+        $dashboard->setCreatedAt($now);
+        $dashboard->setUpdatedAt($now);
 
         return $dashboard;
     }//end create()
@@ -69,8 +67,8 @@ class DashboardFactory
     private function generateUuid(): string
     {
         $data    = random_bytes(length: 16);
-        $data[6] = chr(value: ord(character: $data[6]) & 0x0f | 0x40);
-        $data[8] = chr(value: ord(character: $data[8]) & 0x3f | 0x80);
+        $data[6] = chr(codepoint: ord(character: $data[6]) & 0x0f | 0x40);
+        $data[8] = chr(codepoint: ord(character: $data[8]) & 0x3f | 0x80);
 
         return vsprintf(
             format: '%s%s-%s-%s-%s-%s%s%s',

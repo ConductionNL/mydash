@@ -125,12 +125,12 @@ class ConditionalService
     ): ConditionalRule {
         $rule = new ConditionalRule();
         $rule->setWidgetPlacementId(
-            widgetPlacementId: $placementId
+            $placementId
         );
-        $rule->setRuleType(ruleType: $ruleType);
-        $rule->setRuleConfigArray(config: $ruleConfig);
-        $rule->setIsInclude(isInclude: $isInclude);
-        $rule->setCreatedAt(createdAt: new DateTime());
+        $rule->setRuleType($ruleType);
+        $rule->setRuleConfigArray($ruleConfig);
+        $rule->setIsInclude($isInclude);
+        $rule->setCreatedAt(new DateTime());
 
         return $this->ruleMapper->insert(entity: $rule);
     }//end addRule()
@@ -148,15 +148,15 @@ class ConditionalService
         $rule = $this->ruleMapper->find(id: $ruleId);
 
         if (isset($data['ruleType']) === true) {
-            $rule->setRuleType(ruleType: $data['ruleType']);
+            $rule->setRuleType($data['ruleType']);
         }
 
         if (isset($data['ruleConfig']) === true) {
-            $rule->setRuleConfigArray(config: $data['ruleConfig']);
+            $rule->setRuleConfigArray($data['ruleConfig']);
         }
 
         if (isset($data['isInclude']) === true) {
-            $rule->setIsInclude(isInclude: $data['isInclude']);
+            $rule->setIsInclude($data['isInclude']);
         }
 
         return $this->ruleMapper->update(entity: $rule);

@@ -93,10 +93,10 @@ class DashboardResolver
 
         $dashboard = $userDashboards[0];
         $this->dashboardMapper->setActive(
-            dashboardId: $dashboard->getId(),
+            $dashboard->getId(),
             userId: $userId
         );
-        $dashboard->setIsActive(isActive: true);
+        $dashboard->setIsActive(true);
 
         $placements = $this->placementMapper->findByDashboardId(
             dashboardId: $dashboard->getId()
