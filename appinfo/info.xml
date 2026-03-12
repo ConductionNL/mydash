@@ -46,7 +46,7 @@ Ideaal voor organisaties die consistente, samengestelde dashboards willen voor h
 
 Vrij en open source onder de AGPL-licentie.
     ]]></description>
-	<version>1.0.3-unstable.3</version>
+	<version>1.0.3-unstable.4</version>
 	<licence>agpl</licence>
 	<author mail="info@conduction.nl" homepage="https://www.conduction.nl/">Conduction</author>
 	<namespace>MyDash</namespace>
