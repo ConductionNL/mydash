@@ -35,10 +35,10 @@ return [
 		['name' => 'tile_api#destroy', 'url' => '/api/tiles/{id}', 'verb' => 'DELETE'],
 
 		// Conditional rules endpoints
-		['name' => 'widget_api#getRules', 'url' => '/api/widgets/{placementId}/rules', 'verb' => 'GET'],
-		['name' => 'widget_api#addRule', 'url' => '/api/widgets/{placementId}/rules', 'verb' => 'POST'],
-		['name' => 'widget_api#updateRule', 'url' => '/api/rules/{ruleId}', 'verb' => 'PUT'],
-		['name' => 'widget_api#deleteRule', 'url' => '/api/rules/{ruleId}', 'verb' => 'DELETE'],
+		['name' => 'rule_api#getRules', 'url' => '/api/widgets/{placementId}/rules', 'verb' => 'GET'],
+		['name' => 'rule_api#addRule', 'url' => '/api/widgets/{placementId}/rules', 'verb' => 'POST'],
+		['name' => 'rule_api#updateRule', 'url' => '/api/rules/{ruleId}', 'verb' => 'PUT'],
+		['name' => 'rule_api#deleteRule', 'url' => '/api/rules/{ruleId}', 'verb' => 'DELETE'],
 
 		// Admin endpoints
 		['name' => 'admin#listTemplates', 'url' => '/api/admin/templates', 'verb' => 'GET'],

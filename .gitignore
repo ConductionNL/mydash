@@ -7,11 +7,9 @@ node_modules/
 vendor/
 
 # Build artifacts
-/js/*.js
-/js/*.js.map
-/js/*.mjs
-/js/*.mjs.map
-!/js/README.md
+/js/
+/docusaurus/build/
+/docusaurus/.docusaurus/
 
 # Development
 .DS_Store

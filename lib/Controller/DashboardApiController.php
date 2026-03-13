@@ -1,11 +1,23 @@
 <?php
 
-declare(strict_types=1);
-
 /**
+ * DashboardApiController
+ *
+ * Controller for dashboard API endpoints.
+ *
+ * @category  Controller
+ * @package   OCA\MyDash\Controller
+ * @author    Conduction b.v. <info@conduction.nl>
+ * @copyright 2024 Conduction b.v.
+ * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * @version   GIT:auto
+ * @link      https://conduction.nl
+ *
  * SPDX-FileCopyrightText: 2024 MyDash Contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
+
+declare(strict_types=1);
 
 namespace OCA\MyDash\Controller;
 
@@ -18,167 +30,319 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
 
-class DashboardApiController extends Controller {
+/**
+ * Controller for dashboard API endpoints.
+ */
+class DashboardApiController extends Controller
+{
+    /**
+     * Constructor
+     *
+     * @param IRequest          $request           The request.
+     * @param DashboardService  $dashboardService  The dashboard service.
+     * @param PermissionService $permissionService The permission service.
+     * @param string|null       $userId            The user ID.
+     */
+    public function __construct(
+        IRequest $request,
+        private readonly DashboardService $dashboardService,
+        private readonly PermissionService $permissionService,
+        private readonly ?string $userId,
+    ) {
+        parent::__construct(
+            appName: Application::APP_ID,
+            request: $request
+        );
+    }//end __construct()
 
-	public function __construct(
-		IRequest $request,
-		private readonly DashboardService $dashboardService,
-		private readonly PermissionService $permissionService,
-		private readonly ?string $userId,
-	) {
-		parent::__construct(Application::APP_ID, $request);
-	}
+    /**
+     * List all dashboards for the current user.
+     *
+     * @return JSONResponse The list of dashboards.
+     */
+    #[NoAdminRequired]
+    public function list(): JSONResponse
+    {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
 
-	/**
-	 * List all dashboards for the current user
-	 */
-	#[NoAdminRequired]
-	public function list(): JSONResponse {
-		if ($this->userId === null) {
-			return new JSONResponse(['error' => 'Not logged in'], Http::STATUS_UNAUTHORIZED);
-		}
+        $dashboards = $this->dashboardService->getUserDashboards(
+            userId: $this->userId
+        );
 
-		$dashboards = $this->dashboardService->getUserDashboards($this->userId);
+        return ResponseHelper::success(
+            data: ResponseHelper::serializeList(entities: $dashboards)
+        );
+    }//end list()
 
-		return new JSONResponse(array_map(fn($d) => $d->jsonSerialize(), $dashboards));
-	}
+    /**
+     * Get the user's active dashboard with placements.
+     *
+     * @return JSONResponse The active dashboard data.
+     */
+    #[NoAdminRequired]
+    public function getActive(): JSONResponse
+    {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
 
-	/**
-	 * Get the user's active dashboard with placements
-	 */
-	#[NoAdminRequired]
-	public function getActive(): JSONResponse {
-		if ($this->userId === null) {
-			return new JSONResponse(['error' => 'Not logged in'], Http::STATUS_UNAUTHORIZED);
-		}
+        $result = $this->dashboardService->getEffectiveDashboard(
+            userId: $this->userId
+        );
 
-		$result = $this->dashboardService->getEffectiveDashboard($this->userId);
+        if ($result === null) {
+            return ResponseHelper::success(
+                data: ['error' => 'No dashboard available'],
+                statusCode: Http::STATUS_NOT_FOUND
+            );
+        }
 
-		if ($result === null) {
-			return new JSONResponse(['error' => 'No dashboard available'], Http::STATUS_NOT_FOUND);
-		}
+        return ResponseHelper::success(
+            data: [
+                'dashboard'       => $result['dashboard']->jsonSerialize(),
+                'placements'      => ResponseHelper::serializeList(
+                    entities: $result['placements']
+                ),
+                'permissionLevel' => $result['permissionLevel'],
+            ]
+        );
+    }//end getActive()
 
-		return new JSONResponse([
-			'dashboard' => $result['dashboard']->jsonSerialize(),
-			'placements' => array_map(fn($p) => $p->jsonSerialize(), $result['placements']),
-			'permissionLevel' => $result['permissionLevel'],
-		]);
-	}
+    /**
+     * Create a new dashboard.
+     *
+     * @param mixed       $name        The dashboard name.
+     * @param string|null $description The description.
+     *
+     * @return JSONResponse The created dashboard.
+     */
+    #[NoAdminRequired]
+    public function create(
+        $name=null,
+        ?string $description=null
+    ): JSONResponse {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
 
-	/**
-	 * Create a new dashboard
-	 *
-	 * @param mixed       $name        The dashboard name (string or array from JSON body).
-	 * @param string|null $description The dashboard description.
-	 *
-	 * @return JSONResponse The JSON response with the created dashboard.
-	 */
-	#[NoAdminRequired]
-	public function create($name = null, ?string $description = null): JSONResponse {
-		if ($this->userId === null) {
-			return new JSONResponse(['error' => 'Not logged in'], Http::STATUS_UNAUTHORIZED);
-		}
+        $resolved = $this->resolveCreateParams(
+            name: $name,
+            description: $description
+        );
 
-		// Handle JSON body - Nextcloud sends JSON POST data as array.
-		if (is_array($name)) {
-			$data = $name;
-			$name = $data['name'] ?? 'My Dashboard';
-			$description = $data['description'] ?? null;
-		} elseif ($name === null) {
-			$name = 'My Dashboard';
-		}
+        $permError = $this->checkCreatePermissions(
+            userId: $this->userId
+        );
+        if ($permError !== null) {
+            return $permError;
+        }
 
-		if (!$this->permissionService->canCreateDashboard($this->userId)) {
-			return new JSONResponse(['error' => 'Dashboard creation not allowed'], Http::STATUS_FORBIDDEN);
-		}
+        try {
+            $dashboard = $this->dashboardService->createDashboard(
+                userId: $this->userId,
+                name: $resolved['name'],
+                description: $resolved['description']
+            );
 
-		// Check if user already has dashboards and multiple aren't allowed.
-		$existing = $this->dashboardService->getUserDashboards($this->userId);
-		if (!empty($existing) && !$this->permissionService->canHaveMultipleDashboards($this->userId)) {
-			return new JSONResponse(['error' => 'Multiple dashboards not allowed'], Http::STATUS_FORBIDDEN);
-		}
+            return ResponseHelper::success(
+                data: ['dashboard' => $dashboard->jsonSerialize()],
+                statusCode: Http::STATUS_CREATED
+            );
+        } catch (\Exception $e) {
+            return ResponseHelper::error(exception: $e);
+        }
+    }//end create()
 
-		try {
-			$dashboard = $this->dashboardService->createDashboard($this->userId, $name, $description);
+    /**
+     * Update a dashboard.
+     *
+     * @param int         $id          The dashboard ID.
+     * @param string|null $name        The name.
+     * @param string|null $description The description.
+     * @param array|null  $placements  The placements.
+     *
+     * @return JSONResponse The updated dashboard.
+     */
+    #[NoAdminRequired]
+    public function update(
+        int $id,
+        ?string $name=null,
+        ?string $description=null,
+        ?array $placements=null
+    ): JSONResponse {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
 
-			return new JSONResponse([
-				'dashboard' => $dashboard->jsonSerialize(),
-			], Http::STATUS_CREATED);
-		} catch (\Exception $e) {
-			return new JSONResponse(['error' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
-		}
-	}
+        if ($this->permissionService->canEditDashboard(
+            userId: $this->userId,
+            dashboardId: $id
+        ) === false
+        ) {
+            return ResponseHelper::forbidden();
+        }
 
-	/**
-	 * Update a dashboard
-	 */
-	#[NoAdminRequired]
-	public function update(int $id, ?string $name = null, ?string $description = null, ?array $placements = null): JSONResponse {
-		if ($this->userId === null) {
-			return new JSONResponse(['error' => 'Not logged in'], Http::STATUS_UNAUTHORIZED);
-		}
+        try {
+            $data = $this->buildUpdateData(
+                name: $name,
+                description: $description,
+                placements: $placements
+            );
 
-		if (!$this->permissionService->canEditDashboard($this->userId, $id)) {
-			return new JSONResponse(['error' => 'Access denied'], Http::STATUS_FORBIDDEN);
-		}
+            $dashboard = $this->dashboardService->updateDashboard(
+                dashboardId: $id,
+                userId: $this->userId,
+                data: $data
+            );
 
-		try {
-			$data = [];
-			if ($name !== null) {
-				$data['name'] = $name;
-			}
-			if ($description !== null) {
-				$data['description'] = $description;
-			}
-			if ($placements !== null) {
-				$data['placements'] = $placements;
-			}
+            return ResponseHelper::success(
+                data: ['dashboard' => $dashboard->jsonSerialize()]
+            );
+        } catch (\Exception $e) {
+            return ResponseHelper::error(exception: $e);
+        }//end try
+    }//end update()
 
-			$dashboard = $this->dashboardService->updateDashboard($id, $this->userId, $data);
+    /**
+     * Delete a dashboard.
+     *
+     * @param int $id The dashboard ID.
+     *
+     * @return JSONResponse The deletion confirmation.
+     */
+    #[NoAdminRequired]
+    public function delete(int $id): JSONResponse
+    {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
 
-			return new JSONResponse([
-				'dashboard' => $dashboard->jsonSerialize(),
-			]);
-		} catch (\Exception $e) {
-			return new JSONResponse(['error' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
-		}
-	}
+        try {
+            $this->dashboardService->deleteDashboard(
+                dashboardId: $id,
+                userId: $this->userId
+            );
 
-	/**
-	 * Delete a dashboard
-	 */
-	#[NoAdminRequired]
-	public function delete(int $id): JSONResponse {
-		if ($this->userId === null) {
-			return new JSONResponse(['error' => 'Not logged in'], Http::STATUS_UNAUTHORIZED);
-		}
+            return ResponseHelper::success(data: ['status' => 'ok']);
+        } catch (\Exception $e) {
+            return ResponseHelper::error(exception: $e);
+        }
+    }//end delete()
 
-		try {
-			$this->dashboardService->deleteDashboard($id, $this->userId);
+    /**
+     * Activate a dashboard.
+     *
+     * @param int $id The dashboard ID.
+     *
+     * @return JSONResponse The activated dashboard.
+     */
+    #[NoAdminRequired]
+    public function activate(int $id): JSONResponse
+    {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
 
-			return new JSONResponse(['status' => 'ok']);
-		} catch (\Exception $e) {
-			return new JSONResponse(['error' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
-		}
-	}
+        try {
+            $dashboard = $this->dashboardService->activateDashboard(
+                dashboardId: $id,
+                userId: $this->userId
+            );
 
-	/**
-	 * Activate a dashboard
-	 */
-	#[NoAdminRequired]
-	public function activate(int $id): JSONResponse {
-		if ($this->userId === null) {
-			return new JSONResponse(['error' => 'Not logged in'], Http::STATUS_UNAUTHORIZED);
-		}
+            return ResponseHelper::success(
+                data: ['dashboard' => $dashboard->jsonSerialize()]
+            );
+        } catch (\Exception $e) {
+            return ResponseHelper::error(exception: $e);
+        }
+    }//end activate()
 
-		try {
-			$dashboard = $this->dashboardService->activateDashboard($id, $this->userId);
+    /**
+     * Resolve create parameters from JSON body or individual params.
+     *
+     * @param mixed       $name        The name parameter.
+     * @param string|null $description The description parameter.
+     *
+     * @return array The resolved name and description.
+     */
+    private function resolveCreateParams(
+        $name,
+        ?string $description
+    ): array {
+        if (is_array($name) === true) {
+            return [
+                'name'        => $name['name'] ?? 'My Dashboard',
+                'description' => $name['description'] ?? null,
+            ];
+        }
 
-			return new JSONResponse([
-				'dashboard' => $dashboard->jsonSerialize(),
-			]);
-		} catch (\Exception $e) {
-			return new JSONResponse(['error' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
-		}
-	}
-}
+        return [
+            'name'        => $name ?? 'My Dashboard',
+            'description' => $description,
+        ];
+    }//end resolveCreateParams()
+
+    /**
+     * Check creation permissions and return error if denied.
+     *
+     * @param string $userId The user ID.
+     *
+     * @return JSONResponse|null Error response or null if allowed.
+     */
+    private function checkCreatePermissions(string $userId): ?JSONResponse
+    {
+        if ($this->permissionService->canCreateDashboard(
+            userId: $userId
+        ) === false
+        ) {
+            return ResponseHelper::forbidden(
+                message: 'Dashboard creation not allowed'
+            );
+        }
+
+        $existing = $this->dashboardService->getUserDashboards(
+            userId: $userId
+        );
+        if (empty($existing) === false
+            && $this->permissionService->canHaveMultipleDashboards(
+                userId: $userId
+            ) === false
+        ) {
+            return ResponseHelper::forbidden(
+                message: 'Multiple dashboards not allowed'
+            );
+        }
+
+        return null;
+    }//end checkCreatePermissions()
+
+    /**
+     * Build update data from nullable parameters.
+     *
+     * @param string|null $name        The name.
+     * @param string|null $description The description.
+     * @param array|null  $placements  The placements.
+     *
+     * @return array The non-null update data.
+     */
+    private function buildUpdateData(
+        ?string $name,
+        ?string $description,
+        ?array $placements
+    ): array {
+        $fields = [
+            'name'        => $name,
+            'description' => $description,
+            'placements'  => $placements,
+        ];
+
+        return array_filter(
+            array: $fields,
+            callback: function ($value) {
+                return $value !== null;
+            }
+        );
+    }//end buildUpdateData()
+}//end class

@@ -5,9 +5,10 @@
 
 <template>
 	<div class="mydash-admin">
-		<NcSettingsSection
+		<CnSettingsSection
 			:name="t('mydash', 'MyDash Settings')"
-			:description="t('mydash', 'Configure dashboard permissions and defaults')">
+			:description="t('mydash', 'Configure dashboard permissions and defaults')"
+			doc-url="https://mydash.app">
 			<!-- Global Settings -->
 			<div class="mydash-admin__section">
 				<h3>{{ t('mydash', 'Default settings') }}</h3>
@@ -102,7 +103,7 @@
 					{{ t('mydash', 'To make MyDash the default app for users, go to Settings > Administration > Theming and select MyDash as the default app.') }}
 				</p>
 			</div>
-		</NcSettingsSection>
+		</CnSettingsSection>
 
 		<!-- Template Editor Modal -->
 		<NcModal
@@ -162,8 +163,8 @@
 </template>
 
 <script>
+import { CnSettingsSection } from '@conduction/nextcloud-vue'
 import {
-	NcSettingsSection,
 	NcButton,
 	NcSelect,
 	NcSelectTags,
@@ -180,7 +181,7 @@ export default {
 	name: 'AdminSettings',
 
 	components: {
-		NcSettingsSection,
+		CnSettingsSection,
 		NcButton,
 		NcSelect,
 		NcSelectTags,

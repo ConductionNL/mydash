@@ -1,18 +1,29 @@
 <?php
 
-declare(strict_types=1);
-
 /**
+ * WidgetApiController
+ *
+ * Controller for managing dashboard widgets.
+ *
+ * @category  Controller
+ * @package   OCA\MyDash\Controller
+ * @author    Conduction b.v. <info@conduction.nl>
+ * @copyright 2024 Conduction b.v.
+ * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ * @version   GIT:auto
+ * @link      https://conduction.nl
+ *
  * SPDX-FileCopyrightText: 2024 MyDash Contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
+
+declare(strict_types=1);
 
 namespace OCA\MyDash\Controller;
 
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Service\WidgetService;
 use OCA\MyDash\Service\PermissionService;
-use OCA\MyDash\Service\ConditionalService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -20,347 +31,230 @@ use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
 
-class WidgetApiController extends Controller {
+/**
+ * Controller for managing dashboard widgets.
+ */
+class WidgetApiController extends Controller
+{
+    /**
+     * Constructor
+     *
+     * @param IRequest          $request           The request.
+     * @param WidgetService     $widgetService     The widget service.
+     * @param PermissionService $permissionService The permission service.
+     * @param string|null       $userId            The user ID.
+     */
+    public function __construct(
+        IRequest $request,
+        private readonly WidgetService $widgetService,
+        private readonly PermissionService $permissionService,
+        private readonly ?string $userId,
+    ) {
+        parent::__construct(
+            appName: Application::APP_ID,
+            request: $request
+        );
+    }//end __construct()
 
-	public function __construct(
-		IRequest $request,
-		private readonly WidgetService $widgetService,
-		private readonly PermissionService $permissionService,
-		private readonly ConditionalService $conditionalService,
-		private readonly ?string $userId,
-	) {
-		parent::__construct(Application::APP_ID, $request);
-	}
+    /**
+     * List all available Nextcloud widgets.
+     *
+     * @return JSONResponse The list of available widgets.
+     */
+    #[NoAdminRequired]
+    public function listAvailable(): JSONResponse
+    {
+        return ResponseHelper::success(
+            data: $this->widgetService->getAvailableWidgets()
+        );
+    }//end listAvailable()
 
-	/**
-	 * List all available Nextcloud widgets
-	 */
-	#[NoAdminRequired]
-	public function listAvailable(): JSONResponse {
-		$widgets = $this->widgetService->getAvailableWidgets();
+    /**
+     * Get widget items for specified widgets.
+     *
+     * @param array $widgets Array of widget IDs.
+     * @param int   $limit   Maximum items per widget.
+     *
+     * @return JSONResponse The widget items.
+     */
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
+    public function getItems(
+        array $widgets=[],
+        int $limit=7
+    ): JSONResponse {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
 
-		return new JSONResponse($widgets);
-	}
+        return ResponseHelper::success(
+            data: $this->widgetService->getWidgetItems(
+                userId: $this->userId,
+                widgetIds: $widgets,
+                limit: $limit
+            )
+        );
+    }//end getItems()
 
-	/**
-	 * Get widget items for specified widgets
-	 *
-	 * @param array $widgets Array of widget IDs.
-	 * @param int   $limit   Maximum number of items per widget.
-	 *
-	 * @return JSONResponse The widget items.
-	 */
-	#[NoAdminRequired]
-	#[NoCSRFRequired]
-	public function getItems(array $widgets = [], int $limit = 7): JSONResponse {
-		if ($this->userId === null) {
-			return new JSONResponse(['error' => 'Not logged in'], Http::STATUS_UNAUTHORIZED);
-		}
+    /**
+     * Add a widget to a dashboard.
+     *
+     * @param int    $dashboardId Dashboard ID.
+     * @param string $widgetId    Widget ID.
+     * @param int    $gridX       Grid X position.
+     * @param int    $gridY       Grid Y position.
+     * @param int    $gridWidth   Grid width.
+     * @param int    $gridHeight  Grid height.
+     *
+     * @return JSONResponse The created widget placement.
+     */
+    #[NoAdminRequired]
+    public function addWidget(
+        int $dashboardId,
+        string $widgetId,
+        int $gridX=0,
+        int $gridY=0,
+        int $gridWidth=4,
+        int $gridHeight=4
+    ): JSONResponse {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
 
-		$items = $this->widgetService->getWidgetItems($this->userId, $widgets, $limit);
+        if ($this->permissionService->canAddWidget(
+            userId: $this->userId,
+            dashboardId: $dashboardId
+        ) === false
+        ) {
+            return ResponseHelper::forbidden();
+        }
 
-		return new JSONResponse($items);
-	}
+        try {
+            $placement = $this->widgetService->addWidget(
+                dashboardId: $dashboardId,
+                widgetId: $widgetId,
+                gridX: $gridX,
+                gridY: $gridY,
+                gridWidth: $gridWidth,
+                gridHeight: $gridHeight
+            );
 
-	/**
-	 * Add a widget to a dashboard
-	 */
-	#[NoAdminRequired]
-	public function addWidget(
-		int $dashboardId,
-		string $widgetId,
-		int $gridX = 0,
-		int $gridY = 0,
-		int $gridWidth = 4,
-		int $gridHeight = 4
-	): JSONResponse {
-		if ($this->userId === null) {
-			return new JSONResponse(['error' => 'Not logged in'], Http::STATUS_UNAUTHORIZED);
-		}
+            return ResponseHelper::success(
+                data: $placement->jsonSerialize(),
+                statusCode: Http::STATUS_CREATED
+            );
+        } catch (\Exception $e) {
+            return ResponseHelper::error(exception: $e);
+        }
+    }//end addWidget()
 
-		if (!$this->permissionService->canAddWidget($this->userId, $dashboardId)) {
-			return new JSONResponse(['error' => 'Access denied'], Http::STATUS_FORBIDDEN);
-		}
+    /**
+     * Add a tile to a dashboard.
+     *
+     * @param int $dashboardId Dashboard ID.
+     *
+     * @return JSONResponse The created tile placement.
+     */
+    #[NoAdminRequired]
+    public function addTile(int $dashboardId): JSONResponse
+    {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
 
-		try {
-			$placement = $this->widgetService->addWidget(
-				$dashboardId,
-				$widgetId,
-				$gridX,
-				$gridY,
-				$gridWidth,
-				$gridHeight
-			);
+        if ($this->permissionService->canAddWidget(
+            userId: $this->userId,
+            dashboardId: $dashboardId
+        ) === false
+        ) {
+            return ResponseHelper::forbidden();
+        }
 
-			return new JSONResponse($placement->jsonSerialize(), Http::STATUS_CREATED);
-		} catch (\Exception $e) {
-			return new JSONResponse(['error' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
-		}
-	}
+        try {
+            $placement = $this->widgetService->addTileFromArray(
+                dashboardId: $dashboardId,
+                tileData: RequestDataExtractor::extractTileData(
+                    request: $this->request
+                )
+            );
 
-	/**
-	 * Add a tile to a dashboard
-	 *
-	 * @param int $dashboardId Dashboard ID.
-	 * @param string $title Tile title.
-	 * @param string $icon Tile icon (class, URL, emoji, or SVG path).
-	 * @param string $iconType Icon type (class, url, emoji, svg).
-	 * @param string $backgroundColor Background color hex code.
-	 * @param string $textColor Text color hex code.
-	 * @param string $linkType Link type (app or url).
-	 * @param string $linkValue Link value (app ID or URL).
-	 * @param int $gridX Grid X position.
-	 * @param int $gridY Grid Y position.
-	 * @param int $gridWidth Grid width.
-	 * @param int $gridHeight Grid height.
-	 * 
-	 * @return JSONResponse The created tile placement.
-	 */
-	#[NoAdminRequired]
-	public function addTile(
-		int $dashboardId,
-		string $title,
-		string $icon,
-		string $iconType,
-		string $backgroundColor = '#0082c9',
-		string $textColor = '#ffffff',
-		string $linkType = 'app',
-		string $linkValue = '',
-		int $gridX = 0,
-		int $gridY = 0,
-		int $gridWidth = 2,
-		int $gridHeight = 2
-	): JSONResponse {
-		if ($this->userId === null) {
-			return new JSONResponse(['error' => 'Not logged in'], Http::STATUS_UNAUTHORIZED);
-		}
+            return ResponseHelper::success(
+                data: $placement->jsonSerialize(),
+                statusCode: Http::STATUS_CREATED
+            );
+        } catch (\Exception $e) {
+            return ResponseHelper::error(exception: $e);
+        }//end try
+    }//end addTile()
 
-		if (!$this->permissionService->canAddWidget($this->userId, $dashboardId)) {
-			return new JSONResponse(['error' => 'Access denied'], Http::STATUS_FORBIDDEN);
-		}
+    /**
+     * Update a widget placement.
+     *
+     * @param int $placementId The placement ID.
+     *
+     * @return JSONResponse The updated widget placement.
+     */
+    #[NoAdminRequired]
+    public function updatePlacement(int $placementId): JSONResponse
+    {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
 
-		try {
-			$placement = $this->widgetService->addTile(
-				$dashboardId,
-				$title,
-				$icon,
-				$iconType,
-				$backgroundColor,
-				$textColor,
-				$linkType,
-				$linkValue,
-				$gridX,
-				$gridY,
-				$gridWidth,
-				$gridHeight
-			);
+        if ($this->permissionService->canStyleWidget(
+            userId: $this->userId,
+            placementId: $placementId
+        ) === false
+        ) {
+            return ResponseHelper::forbidden();
+        }
 
-			return new JSONResponse($placement->jsonSerialize(), Http::STATUS_CREATED);
-		} catch (\Exception $e) {
-			return new JSONResponse(['error' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
-		}
-	}
+        try {
+            $placement = $this->widgetService->updatePlacement(
+                placementId: $placementId,
+                data: RequestDataExtractor::extractPlacementData(
+                    request: $this->request
+                )
+            );
 
-	/**
-	 * Update a widget placement
-	 */
-	#[NoAdminRequired]
-	public function updatePlacement(
-		int $placementId,
-		?int $gridX = null,
-		?int $gridY = null,
-		?int $gridWidth = null,
-		?int $gridHeight = null,
-		?bool $isVisible = null,
-		?bool $showTitle = null,
-		?string $customTitle = null,
-		?string $customIcon = null,
-		?array $styleConfig = null,
-		?string $tileTitle = null,
-		?string $tileIcon = null,
-		?string $tileIconType = null,
-		?string $tileBackgroundColor = null,
-		?string $tileTextColor = null,
-		?string $tileLinkType = null,
-		?string $tileLinkValue = null
-	): JSONResponse {
-		if ($this->userId === null) {
-			return new JSONResponse(['error' => 'Not logged in'], Http::STATUS_UNAUTHORIZED);
-		}
+            return ResponseHelper::success(
+                data: $placement->jsonSerialize()
+            );
+        } catch (\Exception $e) {
+            return ResponseHelper::error(exception: $e);
+        }//end try
+    }//end updatePlacement()
 
-		if (!$this->permissionService->canStyleWidget($this->userId, $placementId)) {
-			return new JSONResponse(['error' => 'Access denied'], Http::STATUS_FORBIDDEN);
-		}
+    /**
+     * Remove a widget placement.
+     *
+     * @param int $placementId The placement ID.
+     *
+     * @return JSONResponse The removal confirmation.
+     */
+    #[NoAdminRequired]
+    public function removePlacement(int $placementId): JSONResponse
+    {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
 
-		try {
-			$data = [];
-			if ($gridX !== null) {
-				$data['gridX'] = $gridX;
-			}
-			if ($gridY !== null) {
-				$data['gridY'] = $gridY;
-			}
-			if ($gridWidth !== null) {
-				$data['gridWidth'] = $gridWidth;
-			}
-			if ($gridHeight !== null) {
-				$data['gridHeight'] = $gridHeight;
-			}
-			if ($isVisible !== null) {
-				$data['isVisible'] = $isVisible;
-			}
-			if ($showTitle !== null) {
-				$data['showTitle'] = $showTitle;
-			}
-			if ($customTitle !== null) {
-				$data['customTitle'] = $customTitle;
-			}
-			if ($customIcon !== null) {
-				$data['customIcon'] = $customIcon;
-			}
-			if ($styleConfig !== null) {
-				$data['styleConfig'] = $styleConfig;
-			}
-			// Tile configuration updates.
-			if ($tileTitle !== null) {
-				$data['tileTitle'] = $tileTitle;
-			}
-			if ($tileIcon !== null) {
-				$data['tileIcon'] = $tileIcon;
-			}
-			if ($tileIconType !== null) {
-				$data['tileIconType'] = $tileIconType;
-			}
-			if ($tileBackgroundColor !== null) {
-				$data['tileBackgroundColor'] = $tileBackgroundColor;
-			}
-			if ($tileTextColor !== null) {
-				$data['tileTextColor'] = $tileTextColor;
-			}
-			if ($tileLinkType !== null) {
-				$data['tileLinkType'] = $tileLinkType;
-			}
-			if ($tileLinkValue !== null) {
-				$data['tileLinkValue'] = $tileLinkValue;
-			}
+        if ($this->permissionService->canRemoveWidget(
+            userId: $this->userId,
+            placementId: $placementId
+        ) === false
+        ) {
+            return ResponseHelper::forbidden();
+        }
 
-			$placement = $this->widgetService->updatePlacement($placementId, $data);
+        try {
+            $this->widgetService->removePlacement(
+                placementId: $placementId
+            );
 
-			return new JSONResponse($placement->jsonSerialize());
-		} catch (\Exception $e) {
-			return new JSONResponse(['error' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
-		}
-	}
-
-	/**
-	 * Remove a widget placement
-	 */
-	#[NoAdminRequired]
-	public function removePlacement(int $placementId): JSONResponse {
-		if ($this->userId === null) {
-			return new JSONResponse(['error' => 'Not logged in'], Http::STATUS_UNAUTHORIZED);
-		}
-
-		if (!$this->permissionService->canRemoveWidget($this->userId, $placementId)) {
-			return new JSONResponse(['error' => 'Access denied'], Http::STATUS_FORBIDDEN);
-		}
-
-		try {
-			$this->widgetService->removePlacement($placementId);
-
-			return new JSONResponse(['status' => 'ok']);
-		} catch (\Exception $e) {
-			return new JSONResponse(['error' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
-		}
-	}
-
-	/**
-	 * Get conditional rules for a widget placement
-	 */
-	#[NoAdminRequired]
-	public function getRules(int $placementId): JSONResponse {
-		if ($this->userId === null) {
-			return new JSONResponse(['error' => 'Not logged in'], Http::STATUS_UNAUTHORIZED);
-		}
-
-		try {
-			$this->permissionService->verifyPlacementOwnership($this->userId, $placementId);
-			$rules = $this->conditionalService->getRules($placementId);
-
-			return new JSONResponse(array_map(fn($r) => $r->jsonSerialize(), $rules));
-		} catch (\Exception $e) {
-			return new JSONResponse(['error' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
-		}
-	}
-
-	/**
-	 * Add a conditional rule to a widget placement
-	 */
-	#[NoAdminRequired]
-	public function addRule(
-		int $placementId,
-		string $ruleType,
-		array $ruleConfig,
-		bool $isInclude = true
-	): JSONResponse {
-		if ($this->userId === null) {
-			return new JSONResponse(['error' => 'Not logged in'], Http::STATUS_UNAUTHORIZED);
-		}
-
-		try {
-			$this->permissionService->verifyPlacementOwnership($this->userId, $placementId);
-			$rule = $this->conditionalService->addRule($placementId, $ruleType, $ruleConfig, $isInclude);
-
-			return new JSONResponse($rule->jsonSerialize(), Http::STATUS_CREATED);
-		} catch (\Exception $e) {
-			return new JSONResponse(['error' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
-		}
-	}
-
-	/**
-	 * Update a conditional rule
-	 */
-	#[NoAdminRequired]
-	public function updateRule(int $ruleId, ?string $ruleType = null, ?array $ruleConfig = null, ?bool $isInclude = null): JSONResponse {
-		if ($this->userId === null) {
-			return new JSONResponse(['error' => 'Not logged in'], Http::STATUS_UNAUTHORIZED);
-		}
-
-		try {
-			$data = [];
-			if ($ruleType !== null) {
-				$data['ruleType'] = $ruleType;
-			}
-			if ($ruleConfig !== null) {
-				$data['ruleConfig'] = $ruleConfig;
-			}
-			if ($isInclude !== null) {
-				$data['isInclude'] = $isInclude;
-			}
-
-			$rule = $this->conditionalService->updateRule($ruleId, $data);
-
-			return new JSONResponse($rule->jsonSerialize());
-		} catch (\Exception $e) {
-			return new JSONResponse(['error' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
-		}
-	}
-
-	/**
-	 * Delete a conditional rule
-	 */
-	#[NoAdminRequired]
-	public function deleteRule(int $ruleId): JSONResponse {
-		if ($this->userId === null) {
-			return new JSONResponse(['error' => 'Not logged in'], Http::STATUS_UNAUTHORIZED);
-		}
-
-		try {
-			$this->conditionalService->deleteRule($ruleId);
-
-			return new JSONResponse(['status' => 'ok']);
-		} catch (\Exception $e) {
-			return new JSONResponse(['error' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
-		}
-	}
-}
+            return ResponseHelper::success(data: ['status' => 'ok']);
+        } catch (\Exception $e) {
+            return ResponseHelper::error(exception: $e);
+        }
+    }//end removePlacement()
+}//end class

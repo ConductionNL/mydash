@@ -55,23 +55,31 @@ class WidgetBridge {
 	 * Mount a legacy widget into a container element
 	 * @param {string} widgetId - The widget ID (appId)
 	 * @param {HTMLElement} container - The DOM element to mount into
+	 * @param {object} widgetData - The widget metadata (optional)
 	 */
-	mountWidget(widgetId, container) {
+	mountWidget(widgetId, container, widgetData = {}) {
+		console.log('[WidgetBridge] mountWidget called for:', widgetId)
+		console.log('[WidgetBridge] Available callbacks:', Array.from(this.widgetCallbacks.keys()))
+
 		const callback = this.widgetCallbacks.get(widgetId)
 
 		if (callback && typeof callback === 'function') {
 			try {
 				// Clear container first
 				container.innerHTML = ''
+				console.log('[WidgetBridge] Calling widget callback for:', widgetId)
 
-				// Call the widget's callback with the container
-				callback(container)
-				console.debug('MyDash: Mounted legacy widget:', widgetId)
+				// Call the widget's callback with the container and widget data
+				// Some widgets expect a second parameter with widget metadata
+				callback(container, { widget: widgetData })
+				console.log('[WidgetBridge] Mounted legacy widget:', widgetId)
+				console.log('[WidgetBridge] Container after mount:', container.innerHTML.substring(0, 200))
 			} catch (error) {
-				console.error('MyDash: Error mounting legacy widget:', widgetId, error)
+				console.error('[WidgetBridge] Error mounting legacy widget:', widgetId, error)
 			}
 		} else {
-			console.debug('MyDash: No callback found for widget:', widgetId)
+			console.warn('[WidgetBridge] No callback found for widget:', widgetId)
+			console.log('[WidgetBridge] Callback type:', typeof callback)
 		}
 	}
 
@@ -97,7 +105,7 @@ class WidgetBridge {
 	/**
 	 * Check if a widget has been registered via callback
 	 * @param {string} widgetId - The widget ID
-	 * @returns {boolean}
+	 * @return {boolean}
 	 */
 	hasWidgetCallback(widgetId) {
 		return this.widgetCallbacks.has(widgetId)
@@ -105,7 +113,7 @@ class WidgetBridge {
 
 	/**
 	 * Get all registered widget IDs
-	 * @returns {string[]}
+	 * @return {string[]}
 	 */
 	getRegisteredWidgetIds() {
 		return Array.from(this.widgetCallbacks.keys())
