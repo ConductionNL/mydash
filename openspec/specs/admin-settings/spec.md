@@ -321,3 +321,36 @@ The admin settings MUST be accessible via a Nextcloud admin panel page.
 - **Data integrity**: Settings MUST survive server restarts and app updates. Missing settings MUST fall back to documented defaults without errors.
 - **Accessibility**: The admin settings form MUST have proper labels, be keyboard-navigable, and meet WCAG AA standards. Toggle states MUST be communicated to screen readers.
 - **Localization**: All setting labels, descriptions, validation messages, and success/error notifications MUST support English and Dutch.
+
+### Current Implementation Status
+
+**Fully implemented:**
+- REQ-ASET-001 (Retrieve Admin Settings): `AdminSettingsService::getSettings()` in `lib/Service/AdminSettingsService.php` returns all 4 settings with documented defaults. `AdminController::getSettings()` in `lib/Controller/AdminController.php` exposes GET /api/admin/settings. Non-admin access is blocked because AdminController lacks `#[NoAdminRequired]`.
+- REQ-ASET-002 (Update Admin Settings): `AdminSettingsService::updateSettings()` accepts abbreviated camelCase params (`defaultPermLevel`, `allowUserDash`, `allowMultiDash`, `defaultGridCols`). `AdminController::updateSettings()` returns `{"status": "ok"}`.
+- REQ-ASET-003 (Allow User Dashboards): `PermissionService::canCreateDashboard()` in `lib/Service/PermissionService.php` checks `AdminSetting::KEY_ALLOW_USER_DASHBOARDS`. `DashboardApiController::checkCreatePermissions()` in `lib/Controller/DashboardApiController.php` returns 403 when disabled.
+- REQ-ASET-004 (Allow Multiple Dashboards): `PermissionService::canHaveMultipleDashboards()` checks the setting. `DashboardApiController::checkCreatePermissions()` counts existing dashboards and returns 403 if multiples are disallowed.
+- REQ-ASET-005 (Default Permission Level): `DashboardFactory::create()` in `lib/Service/DashboardFactory.php` hardcodes `PERMISSION_FULL` for user-created dashboards. The admin default setting is used as fallback by `PermissionService::getEffectivePermissionLevel()` and `DashboardResolver::getEffectivePermissionLevel()`.
+- REQ-ASET-007 (Settings Persistence): Settings are stored in `oc_mydash_admin_settings` table via `AdminSettingMapper`. Defaults are returned in-code when DB rows are absent.
+- REQ-ASET-008 (Admin Settings UI): `MyDashAdmin` in `lib/Settings/MyDashAdmin.php` implements `ISettings`, `MyDashAdminSection` in `lib/Settings/MyDashAdminSection.php` implements `IIconSection`. Frontend in `src/components/admin/AdminSettings.vue` renders toggles, dropdowns, and save logic.
+
+**Not yet implemented:**
+- REQ-ASET-002 validation: No server-side validation for permission level values (any string accepted), grid column range (any integer accepted), or boolean type coercion. Documented as NOTEs in the spec.
+- REQ-ASET-005 default grid columns: `DashboardFactory::create()` hardcodes `gridColumns: 12` and does NOT read the `defaultGridColumns` admin setting. The admin setting exists but is not applied when creating user dashboards.
+- REQ-ASET-003 frontend UX: The AdminSettings.vue does not show a "Dashboard creation is managed by your administrator" message to non-admin users. Admin-only enforcement relies on controller access control, but the user-facing frontend does not reflect this state.
+- REQ-ASET-008 localization: UI labels use `t('mydash', ...)` translation function but actual Dutch translations are not verified in l10n files.
+
+**Partial implementations:**
+- REQ-ASET-006 (Default Grid Columns): The setting can be stored and retrieved, but `DashboardFactory::create()` ignores it, hardcoding 12. Template copies correctly use the template's `gridColumns` via `TemplateService::buildDashboardFromTemplate()`.
+
+### Standards & References
+- Nextcloud Admin Settings API: `OCP\Settings\ISettings`, `OCP\Settings\IIconSection`
+- Nextcloud AppConfig pattern (though this app uses a custom DB table instead of `IAppConfig`)
+- WCAG 2.1 AA for the admin settings form (keyboard navigation, labels, focus indicators)
+- WAI-ARIA: Toggle states for checkbox switches communicated via `NcCheckboxRadioSwitch`
+
+### Specificity Assessment
+- The spec is highly specific and implementable as-is. API endpoints, parameter names, response formats, and defaults are clearly defined.
+- **Missing:** No explicit API error response schema for validation failures (what fields, what error codes).
+- **Missing:** No specification of how `defaultGridColumns` should be applied in `DashboardFactory::create()` -- the spec says it MUST be applied but the implementation hardcodes 12.
+- **Missing:** No rate limiting or caching strategy specified for settings lookups (each `canCreateDashboard` call queries the DB).
+- **Open question:** Should unknown setting keys in PUT requests return a warning or be silently ignored? Currently silently ignored.
