@@ -47,7 +47,7 @@ class PermissionService
     }//end __construct()
 
     /**
-     * Check if user can edit a dashboard.
+     * Check if user can edit a dashboard (widgets, tiles, layout).
      *
      * @param string $userId      The user ID.
      * @param int    $dashboardId The dashboard ID.
@@ -85,6 +85,37 @@ class PermissionService
             ]
         );
     }//end canEditDashboard()
+
+    /**
+     * Check if user can edit dashboard metadata (name, description).
+     *
+     * Per REQ-PERM-007, permission levels do NOT restrict editing of
+     * dashboard metadata. All users who own a dashboard can edit its
+     * name and description, regardless of permission level.
+     *
+     * @param string $userId      The user ID.
+     * @param int    $dashboardId The dashboard ID.
+     *
+     * @return bool Whether the user can edit the dashboard metadata.
+     */
+    public function canEditDashboardMetadata(
+        string $userId,
+        int $dashboardId
+    ): bool {
+        try {
+            $dashboard = $this->dashboardMapper->find(id: $dashboardId);
+        } catch (DoesNotExistException) {
+            return false;
+        }
+
+        // Admin templates can only be edited by admins.
+        if ($dashboard->getType() === Dashboard::TYPE_ADMIN_TEMPLATE) {
+            return false;
+        }
+
+        // User must own the dashboard.
+        return $dashboard->getUserId() === $userId;
+    }//end canEditDashboardMetadata()
 
     /**
      * Check if user can add widgets to a dashboard.

@@ -358,3 +358,43 @@ When a widget placement has multiple conditional rules, they MUST be combined us
 - **Data integrity**: Deleting a widget placement MUST cascade-delete all its conditional rules. Rules MUST NOT reference non-existent placements.
 - **Accessibility**: Conditional visibility MUST NOT affect the accessibility tree for visible widgets. Hidden widgets MUST be fully removed from the DOM, not just hidden via CSS.
 - **Localization**: Rule type labels and validation messages MUST support English and Dutch.
+
+### Current Implementation Status
+
+**Fully implemented:**
+- REQ-VIS-001 (Create Conditional Rule): `ConditionalService::addRule()` in `lib/Service/ConditionalService.php` creates rules with `ruleType`, `ruleConfig`, `isInclude`, and `createdAt`. `RuleApiController::addRule()` in `lib/Controller/RuleApiController.php` exposes POST /api/widgets/{placementId}/rules. Ownership verified via `PermissionService::verifyPlacementOwnership()`.
+- REQ-VIS-002 (List Conditional Rules): `ConditionalService::getRules()` returns rules by placement ID. `RuleApiController::getRules()` exposes GET /api/widgets/{placementId}/rules with ownership check.
+- REQ-VIS-003 (Update Conditional Rule): `ConditionalService::updateRule()` handles partial updates to `ruleType`, `ruleConfig`, and `isInclude`. `RuleApiController::updateRule()` exposes PUT /api/rules/{ruleId}.
+- REQ-VIS-004 (Delete Conditional Rule): `ConditionalService::deleteRule()` removes rules. `RuleApiController::deleteRule()` exposes DELETE /api/rules/{ruleId}. No automatic state changes to `isVisible`.
+- REQ-VIS-005 (Group-Based Rule Evaluation): `RuleEvaluatorService::evaluateGroupRule()` in `lib/Service/RuleEvaluatorService.php` uses `IGroupManager::getUserGroupIds()` and `array_intersect()` for group matching.
+- REQ-VIS-006 (Time-Based Rule Evaluation): `RuleEvaluatorService::evaluateTimeRule()` checks day-of-week filter and time range using simple string comparison (`$currentTime >= $startTime && $currentTime <= $endTime`). Uses `strtolower($now->format('D'))` for 3-letter day abbreviations.
+- REQ-VIS-007 (Date-Based Rule Evaluation): `RuleEvaluatorService::evaluateDateRule()` supports optional `startDate` and `endDate` with boundary-inclusive comparison using `<` and `>`.
+- REQ-VIS-008 (Attribute-Based Rule Evaluation): `RuleEvaluatorService::evaluateAttributeRule()` delegates to `UserAttributeResolver` in `lib/Service/UserAttributeResolver.php`. Supports attributes: `locale`, `email`, `displayName`, `quota`. Operators: `equals`, `not_equals`, `contains`, `starts_with`, `ends_with`. Returns false when attribute is null.
+- REQ-VIS-009 (Multiple Rule Combination): `VisibilityChecker::checkRules()` in `lib/Service/VisibilityChecker.php` separates include/exclude rules. Include uses OR logic (`passesIncludeRules` returns true if any match). Exclude uses AND logic (`passesExcludeRules` returns false if any match).
+- Visibility orchestration: `ConditionalService::isWidgetVisible()` checks `isVisible` flag first, then loads rules via `ConditionalRuleMapper::findByPlacementId()`, then delegates to `VisibilityChecker::checkRules()`.
+
+**Not yet implemented:**
+- REQ-VIS-001 ruleType validation: No server-side validation for ruleType values. Any string is accepted; unknown types evaluate to `false` via the `default => false` case in `evaluateRule()`.
+- REQ-VIS-003/004 ownership verification: `updateRule()` and `deleteRule()` in `RuleApiController` do NOT verify that the requesting user owns the placement's dashboard. Only `addRule()` and `getRules()` call `verifyPlacementOwnership()`.
+- REQ-VIS-006 midnight-spanning windows: Time comparison is simple string comparison. `startTime: "22:00", endTime: "06:00"` does NOT match `02:00`. Documented as a known limitation.
+- REQ-VIS-006 timezone support: No `timezone` field in ruleConfig. `new DateTime()` uses server default timezone.
+- Cascade delete on placement deletion: The `PlacementService::removePlacement()` method only deletes the placement itself; it does NOT explicitly cascade-delete conditional rules. This depends on database-level cascade constraints.
+- Frontend UI for conditional rules: No Vue component exists for creating or managing conditional rules. Rules can only be managed via the API.
+
+**Partial implementations:**
+- REQ-VIS-008 attribute support: The `UserAttributeResolver` maps `locale` to `getLanguage()`, but the spec uses `language` as the attribute name. The mapping may cause confusion (API says `language`, resolver expects `locale`).
+
+### Standards & References
+- Nextcloud Group API: `OCP\IGroupManager::getUserGroupIds()`
+- Nextcloud User API: `OCP\IUserManager::get()`, `IUser::getLanguage()`, `IUser::getEMailAddress()`
+- PHP DateTime: Server timezone via `new DateTime()` (no timezone parameter)
+- WCAG 2.1 AA: Hidden widgets must be removed from DOM, not just CSS-hidden
+- WAI-ARIA: No frontend implementation yet to assess
+
+### Specificity Assessment
+- The spec is very specific with clear rule evaluation semantics, data model, and API contracts.
+- **Missing:** No specification for cascade-deleting rules when a placement is deleted (only mentioned in non-functional requirements but no scenario).
+- **Missing:** No frontend UI spec for rule management (creating, editing, deleting rules via the dashboard interface).
+- **Missing:** The attribute name `language` in the spec vs `locale` in `UserAttributeResolver` is a naming inconsistency that needs resolution.
+- **Ambiguous:** REQ-VIS-003/004 say users MUST be able to update/delete rules on "their" placements, but the controller does not verify ownership for these operations. The spec should clarify whether ownership checks are required.
+- **Open question:** Should conditional visibility evaluation happen server-side (current) or be delegated to the frontend? The current approach sends all placements to the frontend and evaluates visibility server-side before returning.

@@ -255,3 +255,39 @@ Tile colors MUST be validated to ensure proper display.
 - **Accessibility**: Tiles MUST be accessible as links with proper `aria-label` attributes derived from the title. Color combinations MUST meet WCAG AA contrast ratio (4.5:1 for normal text).
 - **Security**: External URL icons MUST be loaded with appropriate CSP headers. External linkValues MUST be rendered with `rel="noopener noreferrer"`.
 - **Localization**: Validation error messages MUST support English and Dutch. Tile titles are user-defined and not localized.
+
+### Current Implementation Status
+
+**Fully implemented:**
+- REQ-TILE-001 (Create Custom Tile): `TileService::createTile()` in `lib/Service/TileService.php` creates tiles with all fields. Defaults: `iconType: 'class'`, `backgroundColor: '#0082c9'`, `textColor: '#ffffff'`, `linkType: 'url'`, `linkValue: '#'`. `TileApiController::create()` in `lib/Controller/TileApiController.php` exposes POST /api/tiles with `#[NoAdminRequired]`.
+- REQ-TILE-002 (List User Tiles): `TileService::getUserTiles()` calls `TileMapper::findByUserId()`. `TileApiController::index()` returns serialized array. User-scoped.
+- REQ-TILE-003 (Update Custom Tile): `TileService::updateTile()` uses `TileMapper::findByIdAndUser()` for ownership check, supports partial updates for all tile fields. `TileApiController::update()` exposes PUT /api/tiles/{id}.
+- REQ-TILE-004 (Delete Custom Tile): `TileService::deleteTile()` uses `findByIdAndUser()` for ownership check. `TileApiController::destroy()` exposes DELETE /api/tiles/{id}.
+- REQ-TILE-005 (Place Tile on Dashboard): `PlacementService::addTileFromArray()` in `lib/Service/PlacementService.php` creates placements with `widgetId: 'tile-' + uniqid()`, inline tile data via `TileUpdater::applyTileConfig()`. `WidgetApiController::addTile()` uses `RequestDataExtractor::extractTileData()` to parse request body. Permission checked via `canAddWidget()`.
+- REQ-TILE-006 (Tile Icon Rendering): `TileWidget.vue` in `src/components/TileWidget.vue` renders all icon types: SVG path (`iconType === 'svg'`), CSS class (`iconType === 'class'`), URL (`iconType === 'url'` with `<img>`), emoji (`iconType === 'emoji'`). `TileCard.vue` in `src/components/TileCard.vue` provides similar rendering for tile management.
+- Tile placement inline copy model: Tile data is stored directly on the placement (tileTitle, tileIcon, tileIconType, etc.), NOT as a foreign key reference.
+
+**Not yet implemented:**
+- REQ-TILE-001 validation: No required field validation (title, linkType, linkValue all have defaults). No linkType validation (any string accepted). Documented as NOTEs.
+- REQ-TILE-004 cascade-delete placements: `TileService::deleteTile()` only deletes the tile entity. It does NOT cascade-delete tile placements from dashboards. Since placements use inline copies (not foreign key references), there is no DB-level cascade. The spec mentions this should search for matching placements.
+- REQ-TILE-007 (Tile Color Validation): No hex color format validation. Any string accepted for `backgroundColor` and `textColor`. Empty string defaults used when not specified.
+- REQ-TILE-006 URL icon fallback: No fallback icon is displayed when a URL icon fails to load. The `<img>` tag has `alt="Icon"` but no `@error` handler.
+- REQ-TILE-003 update-placement propagation: Updating a tile definition does NOT update existing placements (by design -- inline copy model). No "sync" mechanism exists.
+
+**Partial implementations:**
+- REQ-TILE-005 grid defaults: Tile placements default to `gridWidth: 2, gridHeight: 2` (different from widget default of `gridWidth: 4, gridHeight: 4`).
+- REQ-TILE-006 external link attributes: `TileWidget.vue` correctly uses `rel="noopener noreferrer"` and `target="_blank"` for external URLs. `TileCard.vue` also uses `rel="noopener noreferrer"`.
+
+### Standards & References
+- Content Security Policy (CSP): External URL icons should comply with Nextcloud's CSP headers for image sources
+- WCAG 2.1 AA: Color contrast ratio 4.5:1 for tile text on background (not validated server-side)
+- WAI-ARIA: Tile links need proper `aria-label` attributes. `TileWidget.vue` edit button has `aria-label="Edit tile"`.
+- Nextcloud Router: `generateUrl()` used for internal app links in both `TileWidget.vue` and `TileCard.vue`
+
+### Specificity Assessment
+- The spec is specific about the data model, inline copy semantics, and icon rendering. API contracts are clear.
+- **Missing:** No specification for how `TileUpdater::applyTileConfig()` and `RequestDataExtractor::extractTileData()` work -- these are implementation details not covered in the spec.
+- **Missing:** No specification for the tile management UI (creating/editing tiles outside of dashboard placement). The `TileCard.vue` and `TileEditor.vue` components exist but are not described.
+- **Missing:** No specification for the relationship between the `oc_mydash_tiles` table and tile placements -- specifically how to cascade-delete placements when a tile is deleted (since there's no foreign key).
+- **Ambiguous:** REQ-TILE-005 shows tile data passed directly in the request body, but the spec also describes tiles being "first created as reusable entities, then placed." The placement flow bypasses the tiles table entirely. The spec should clarify whether placement requires a prior tile creation.
+- **Open question:** Should tile deletion cascade-delete placements that were created from that tile? There's no foreign key to track this relationship.

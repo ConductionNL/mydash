@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 return [
 	'routes' => [
+		// Metrics and health
+		['name' => 'metrics#index', 'url' => '/api/metrics', 'verb' => 'GET'],
+		['name' => 'health#index', 'url' => '/api/health', 'verb' => 'GET'],
+
 		// Main page
 		['name' => 'page#index', 'url' => '/', 'verb' => 'GET'],
 

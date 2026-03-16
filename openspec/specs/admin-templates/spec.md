@@ -266,3 +266,38 @@ The system MUST enforce that at most one template is marked as the default.
 - **Scalability**: Template distribution MUST work efficiently for organizations with 1000+ users. The system SHOULD NOT eagerly copy templates to all users; copies MUST be created on-demand at first access.
 - **Security**: Only Nextcloud admin users MUST be able to create, update, or delete templates. Group membership checks MUST use Nextcloud's `IGroupManager` API.
 - **Localization**: Admin template management UI labels and error messages MUST support English and Dutch.
+
+### Current Implementation Status
+
+**Fully implemented:**
+- REQ-TMPL-001 (Create Admin Template): `AdminTemplateService::createTemplate()` in `lib/Service/AdminTemplateService.php` creates dashboards with `type: "admin_template"`, `userId: null`, default `gridColumns: 12`. `AdminController::createTemplate()` in `lib/Controller/AdminController.php` exposes the endpoint. Default clearing via `clearDefaultTemplates()` is implemented.
+- REQ-TMPL-002 (List Admin Templates): `AdminTemplateService::listTemplates()` calls `DashboardMapper::findAdminTemplates()`. Returns all templates serialized. Admin-only enforcement via AdminController (no `#[NoAdminRequired]`).
+- REQ-TMPL-003 (Update Admin Template): `AdminTemplateService::updateTemplate()` with `applyTemplateUpdates()` handles name, description, targetGroups, permissionLevel, isDefault, gridColumns. Default-clearing logic is correctly applied when `isDefault: true`.
+- REQ-TMPL-004 (Delete Admin Template): `AdminTemplateService::deleteTemplate()` deletes placements first via `placementMapper->deleteByDashboardId()`, then deletes the template. User copies are unaffected.
+- REQ-TMPL-005 (Template Distribution): `TemplateService::getApplicableTemplate()` in `lib/Service/TemplateService.php` checks group membership via `IGroupManager::getUserGroupIds()`. Group-targeted templates are checked first, default template is fallback. `createDashboardFromTemplate()` copies all placements including `isCompulsory` flags. Called via `DashboardResolver::handleTemplateResult()` in `lib/Service/DashboardResolver.php`.
+- REQ-TMPL-006 (Template Copy Independence): Copies are independent -- `buildDashboardFromTemplate()` creates a new Dashboard entity, `copyTemplatePlacements()` creates new WidgetPlacement entities. `basedOnTemplate` is set for permission resolution only.
+- REQ-TMPL-007 (Template Widget Management): Templates share the same widget placement API as regular dashboards (same `oc_mydash_widget_placements` table).
+- REQ-TMPL-008 (Only One Default): `clearDefaultTemplates()` on DashboardMapper ensures single default.
+
+**Not yet implemented:**
+- REQ-TMPL-001 validation: No server-side validation for `permissionLevel` values (any string accepted). Spec says MUST return 400 for invalid values.
+- REQ-TMPL-002 widget_count: Template list response does NOT include a widget placement count per template. Spec says SHOULD include this.
+- REQ-TMPL-005 multi-template distribution: Only ONE template is distributed per first-access. The `getApplicableTemplate()` method returns the first match, not all matches.
+- REQ-TMPL-005 duplicate detection: No check for whether a user already has a copy of a given template. If a user already has a copy and accesses MyDash, `DashboardResolver::tryGetActiveDashboard()` will find their existing dashboard first, preventing duplication -- but this is implicit, not explicit.
+- Template management UI: `AdminSettings.vue` in `src/components/admin/AdminSettings.vue` provides template CRUD via a modal dialog. Group selection uses `NcSelectTags` but `availableGroups` is hardcoded to empty array (groups are NOT fetched from the server).
+
+**Partial implementations:**
+- REQ-TMPL-003 permission level retroactivity: The spec NOTE correctly documents that `PermissionService::getEffectivePermissionLevel()` dynamically resolves from the template, meaning changes DO propagate to existing copies at runtime. This contradicts the main requirement text. The spec already documents this conflict.
+
+### Standards & References
+- Nextcloud Group API: `OCP\IGroupManager::getUserGroupIds()`
+- Nextcloud User API: `OCP\IUserManager::get()`
+- WCAG 2.1 AA for the admin template management UI (modal dialogs, form fields)
+- WAI-ARIA: Modal dialog accessibility via `NcModal` component
+
+### Specificity Assessment
+- The spec is detailed and implementable. Template distribution logic, copy semantics, and default enforcement are well-specified.
+- **Missing:** No specification for fetching available Nextcloud groups in the admin UI (the `availableGroups` array is empty).
+- **Missing:** No API endpoint to get a single template's widget placements for the admin editor grid (GET /api/admin/templates/{id} exists but the spec doesn't describe the admin template editor grid UI).
+- **Ambiguous:** REQ-TMPL-003 says existing copies MUST NOT have permission changed retroactively, but the NOTE acknowledges the runtime resolution does exactly that. The spec should resolve this contradiction.
+- **Open question:** Should template distribution be re-triggered when targetGroups change? Currently, new group members get the template on next first-access, but there's no re-check for existing users who are already in a target group.
