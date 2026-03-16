@@ -224,3 +224,38 @@ Permission levels MUST NOT restrict editing of dashboard metadata (name, descrip
 - **Performance**: Permission level checks MUST add no more than 5ms overhead to any API request.
 - **Accessibility**: Permission-related UI states (disabled buttons, lock icons, required badges) MUST be communicated to screen readers via appropriate ARIA attributes.
 - **Localization**: Permission-related error messages and UI labels MUST support English and Dutch.
+
+### Current Implementation Status
+
+**Fully implemented:**
+- REQ-PERM-001 (View-Only Permission Level): `PermissionService::canAddWidget()` in `lib/Service/PermissionService.php` returns false for view_only. `canEditDashboard()` returns false for view_only. `canRemoveWidget()` returns false for view_only. `canStyleWidget()` returns false for view_only. All enforced in `WidgetApiController` (`addWidget`, `addTile`, `updatePlacement`, `removePlacement`).
+- REQ-PERM-002 (Add-Only Permission Level): `canRemoveWidget()` checks `placement->getIsCompulsory()` for add_only -- returns false if compulsory. `canAddWidget()` and `canStyleWidget()` allow add_only. All operations except compulsory widget removal are permitted.
+- REQ-PERM-003 (Full Permission Level): `canRemoveWidget()` returns true for full regardless of `isCompulsory`. All operations permitted. `DashboardFactory::create()` sets `permissionLevel: "full"` for user-created dashboards.
+- REQ-PERM-004 (Compulsory Widget Marking): `TemplateService::clonePlacement()` in `lib/Service/TemplateService.php` copies `isCompulsory` from template placements to user copies. `PlacementService::addWidget()` defaults `isCompulsory: 0` for user-added widgets.
+- REQ-PERM-005 (Permission Level Immutability): `DashboardService::applyDashboardUpdates()` does NOT handle `permissionLevel` in the update data, effectively ignoring it. `DashboardApiController::buildUpdateData()` only passes `name`, `description`, and `placements`.
+- REQ-PERM-006 (API-Level Enforcement): All permission checks happen in the controller layer before calling service methods. `WidgetApiController` checks `canAddWidget()`, `canStyleWidget()`, `canRemoveWidget()`. `DashboardApiController` checks `canEditDashboard()`, `canCreateDashboard()`, `canHaveMultipleDashboards()`.
+- REQ-PERM-007 (Dashboard Metadata Editing): `DashboardApiController::update()` checks `canEditDashboard()` which requires add_only or full. However, `DashboardApiController::delete()` does NOT check permission level -- only ownership -- so users can always delete their dashboards.
+- Effective permission resolution: `PermissionService::getEffectivePermissionLevel()` chains: check `basedOnTemplate` -> look up source template's permissionLevel -> fall back to dashboard's own level -> fall back to admin default setting. `DashboardResolver::getEffectivePermissionLevel()` has the same logic.
+
+**Not yet implemented:**
+- REQ-PERM-004 isCompulsory immutability: `PlacementUpdater` does NOT explicitly block `isCompulsory` changes from user updates. A user could potentially set `isCompulsory: 0` via the API. The spec notes this as needing verification.
+- REQ-PERM-004 visual indicator: No compulsory widget visual indicator (lock icon, "Required" badge) exists in the frontend. `WidgetWrapper.vue` has a `canRemove` computed property checking `!this.placement.isCompulsory` but no visual badge.
+- REQ-PERM-001 frontend UI hiding: No frontend logic hides the Edit button, Add widget button, or widget context menus based on permission level. The `WidgetWrapper.vue` shows edit actions based on `editMode` prop but does not check `permissionLevel`.
+- REQ-PERM-007 view-only metadata edit: The spec says view-only users CAN edit dashboard name/description, but `canEditDashboard()` returns false for view_only. This means view-only users currently CANNOT update dashboard metadata either, contradicting REQ-PERM-007.
+
+**Partial implementations:**
+- REQ-PERM-002 compulsory widget UI: `WidgetWrapper.vue` computes `canRemove` based on `isCompulsory` but does not display this state visually or use it to conditionally hide the remove button.
+
+### Standards & References
+- Nextcloud AppFramework: `OCP\AppFramework\Http\Attribute\NoAdminRequired` for non-admin access
+- HTTP 403 Forbidden: Used consistently for permission denials
+- WCAG 2.1 AA: Disabled states, lock icons, required badges must be communicated to screen readers
+- WAI-ARIA: `aria-disabled`, `aria-label` for permission-restricted UI elements
+
+### Specificity Assessment
+- The spec is very specific with clear permission matrices and enforcement scenarios. The three-tier permission model is well-defined.
+- **Bug found:** REQ-PERM-007 says view-only users CAN edit dashboard metadata (name, description), but `canEditDashboard()` returns false for view_only, blocking all dashboard updates. Either the spec or the implementation needs to change.
+- **Missing:** No specification for how the frontend should render permission-restricted states (disabled buttons vs hidden buttons vs lock icons).
+- **Missing:** No specification for protecting `isCompulsory` field from user modification via the API.
+- **Missing:** No specification for admin override of permission levels (admins should presumably bypass all permission checks).
+- **Open question:** Should view-only users be able to update dashboard metadata (name, description) or not? The spec says yes, but the implementation says no.

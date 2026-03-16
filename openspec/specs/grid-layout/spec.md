@@ -282,3 +282,40 @@ The grid MUST distinguish between tile placements and widget placements for rend
 - **Browser support**: The grid MUST function in all browsers supported by Nextcloud (Chrome, Firefox, Safari, Edge -- latest 2 versions).
 - **Debouncing**: Debouncing is NOT currently implemented in the DashboardGrid component. The `handleGridChange` method emits `update:placements` immediately on every GridStack change event. Debouncing SHOULD be added either in DashboardGrid or in the parent component to reduce API calls during rapid rearrangements.
 - **Accessibility**: Grid interactions MUST provide keyboard alternatives for all mouse-based operations. WCAG AA compliance is required.
+
+### Current Implementation Status
+
+**Fully implemented:**
+- REQ-GRID-001 (Grid Initialization): `DashboardGrid.vue` in `src/components/DashboardGrid.vue` initializes GridStack with `column: this.gridColumns`, `cellHeight: 80`, `margin: 12`, `float: true`, `animate: true`. `disableDrag` and `disableResize` are set based on `editMode` prop. Placements are rendered with `gs-x`, `gs-y`, `gs-w`, `gs-h`, `gs-min-w="2"`, `gs-min-h="2"` attributes.
+- REQ-GRID-002 (Drag to Reposition): Drag is enabled/disabled via `grid.enable()`/`grid.disable()` in the `editMode` watcher. GridStack handles collision resolution and pushing.
+- REQ-GRID-003 (Resize by Edge Dragging): Resize is enabled/disabled via `disableResize: !this.editMode`. Minimum size enforced by `gs-min-w="2"` and `gs-min-h="2"`.
+- REQ-GRID-004 (View Mode vs Edit Mode): `editMode` prop controls grid state. Watcher calls `grid.enable()`/`grid.disable()`. Default is `false` (view mode).
+- REQ-GRID-005 (Position Persistence): `handleGridChange()` listens to GridStack `change` event, maps updated positions to placements, and emits `update:placements` immediately (no debouncing). Parent component is responsible for API persistence.
+- REQ-GRID-006 (Widget Auto-Layout): `syncGridItems()` method adds new items via `grid.makeWidget()` and removes deleted items via `grid.removeWidget()`. Uses `$nextTick()` for DOM synchronization.
+- REQ-GRID-009 (Tile vs Widget Rendering): `isTilePlacement()` checks `placement.tileType === 'custom'`. Tiles render `TileWidget` component, regular widgets render `WidgetWrapper` component. `getTileData()` extracts inline tile data from placement fields.
+
+**Not yet implemented:**
+- REQ-GRID-005 save failure/retry: No retry logic exists in the frontend. The spec requires up to 3 automatic retries and a persistent error with manual retry button.
+- REQ-GRID-005 debouncing: No debounce on `handleGridChange`. Each GridStack change event immediately emits. The spec notes this as a known gap.
+- REQ-GRID-007 (Grid Responsiveness): No explicit responsive handling in `DashboardGrid.vue`. GridStack handles proportional column width natively based on container width, but no breakpoints or mobile-specific behavior is implemented.
+- REQ-GRID-008 (Grid Accessibility): No keyboard navigation between widgets (Tab order). No keyboard widget movement (Ctrl+Arrow). No screen reader announcements for widget positions and sizes. No `aria-label` or `role` attributes on grid items.
+- REQ-GRID-001 empty state: No empty state placeholder message ("Add widgets to get started") when no placements exist.
+
+**Partial implementations:**
+- REQ-GRID-004 edit button: The spec mentions "Edit" button changing to "Done" but this is handled by the parent component (not in DashboardGrid.vue itself). The grid component only receives the `editMode` prop.
+- REQ-GRID-004 view-only prevention: The spec says the "Edit" button MUST NOT display for view-only dashboards. This is handled by the parent component based on `permissionLevel`, not in the grid component.
+
+### Standards & References
+- GridStack 10.3.1: https://gridstackjs.com/ -- CSS grid-based layout library
+- WAI-ARIA Grid pattern: https://www.w3.org/WAI/ARIA/apg/patterns/grid/ -- for accessible grid interactions
+- WCAG 2.1 AA: Focus indicators, keyboard operability, screen reader compatibility
+- Nextcloud Vue components: `NcButton` used in parent components for edit/done toggle
+
+### Specificity Assessment
+- The spec is detailed for the core grid behavior (init, drag, resize, modes, persistence). GridStack configuration values are precisely specified.
+- **Missing:** No specification for mobile/touch behavior or responsive breakpoints.
+- **Missing:** No specification for the empty state UI when no placements exist.
+- **Missing:** No specification for how the parent component should handle the `update:placements` emit (debouncing, batching, error handling).
+- **Missing:** No specification for grid item z-index behavior during drag operations.
+- **Ambiguous:** REQ-GRID-006 says widgets MUST be placed at "the first available position" but with `float: true`, GridStack's auto-placement behavior differs from non-float mode. The spec should clarify expected placement algorithm.
+- **Open question:** Should debouncing be added to DashboardGrid or should the parent component handle coalescing API calls?

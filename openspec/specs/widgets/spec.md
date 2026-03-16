@@ -258,3 +258,42 @@ The system MUST support updating multiple widget placements in a single request 
 - **Data integrity**: Deleting a dashboard MUST cascade-delete all its widget placements. Deleting a widget placement MUST cascade-delete its conditional rules.
 - **Accessibility**: Widget placements MUST be navigable via keyboard in the grid. Each widget MUST have an accessible label derived from custom_title or the widget's default title.
 - **Localization**: Widget titles from Nextcloud are pre-localized. Custom titles and error messages MUST support English and Dutch.
+
+### Current Implementation Status
+
+**Fully implemented:**
+- REQ-WDG-001 (Discover Available Widgets): `WidgetService::getAvailableWidgets()` in `lib/Service/WidgetService.php` calls `IManager::getWidgets()`, formats each via `WidgetFormatter::format()` in `lib/Service/WidgetFormatter.php`, and sorts by order. `WidgetApiController::listAvailable()` in `lib/Controller/WidgetApiController.php` exposes GET /api/widgets with `#[NoAdminRequired]`.
+- REQ-WDG-002 (Fetch Widget Items): `WidgetService::getWidgetItems()` delegates to `WidgetItemLoader::loadItems()` in `lib/Service/WidgetItemLoader.php`. Supports both v1 and v2 widget APIs (`IAPIWidget`, `IAPIWidgetV2`). `WidgetApiController::getItems()` exposes GET /api/widgets/items with `#[NoAdminRequired]` and `#[NoCSRFRequired]`.
+- REQ-WDG-003 (Add Widget to Dashboard): `WidgetService::addWidget()` delegates to `PlacementService::addWidget()` in `lib/Service/PlacementService.php`. Defaults: `gridWidth: 4`, `gridHeight: 4`, `isCompulsory: 0`, `isVisible: 1`, `showTitle: 1`. `WidgetApiController::addWidget()` checks `canAddWidget()` permission. Returns HTTP 201.
+- REQ-WDG-004 (Update Widget Placement): `PlacementService::updatePlacement()` uses `PlacementUpdater::applyGridUpdates()` and `PlacementUpdater::applyDisplayUpdates()` in `lib/Service/PlacementUpdater.php`, plus `TileUpdater::applyTileUpdates()` in `lib/Service/TileUpdater.php`. `WidgetApiController::updatePlacement()` checks `canStyleWidget()` permission. Uses `RequestDataExtractor::extractPlacementData()` for request parsing.
+- REQ-WDG-005 (Remove Widget from Dashboard): `PlacementService::removePlacement()` deletes the placement. `WidgetApiController::removePlacement()` checks `canRemoveWidget()` which enforces compulsory widget protection based on permission level.
+- REQ-WDG-006 (Widget Placement Visibility): `isVisible` SMALLINT flag on `WidgetPlacement`. `ConditionalService::isWidgetVisible()` evaluates conditional rules when `isVisible: 1` and rules exist. No separate "conditional" string state.
+- REQ-WDG-007 (Widget Sort Order): `sortOrder` field exists on `WidgetPlacement` with default 0. Can be updated via placement update.
+- Tile placement support: `WidgetService::addTileFromArray()` delegates to `PlacementService::addTileFromArray()` for inline tile data placement.
+
+**Not yet implemented:**
+- REQ-WDG-003 grid bounds validation: No server-side validation that `gridX + gridWidth <= gridColumns`. GridStack handles this on the frontend only.
+- REQ-WDG-003 widgetId validation: No check that the `widgetId` references an actually registered Nextcloud widget. Any string is accepted.
+- REQ-WDG-003 custom title/styleConfig on creation: The `addWidget` controller method only accepts `widgetId`, `gridX`, `gridY`, `gridWidth`, `gridHeight`. Custom title and style config must be set via a subsequent PUT call. Documented as a NOTE.
+- REQ-WDG-005 cascade-delete conditional rules: `PlacementService::removePlacement()` only deletes the placement. Conditional rules for that placement are NOT explicitly deleted. Depends on DB cascade constraints.
+- REQ-WDG-007 auto-assign sort order: New placements always get `sortOrder: 0`. No auto-incrementing logic.
+- REQ-WDG-008 (Batch Update Placements): Batch position updates are handled via `DashboardService::applyDashboardUpdates()` which calls `placementMapper->updatePositions()` when `placements` array is in the dashboard update data. However, there is no dedicated batch endpoint. Updates go through PUT /api/dashboard/{id} with placements array in the body. No transaction rollback on partial failure.
+- Frontend widget rendering: `WidgetRenderer.vue` in `src/components/WidgetRenderer.vue` handles widget content rendering (not yet reviewed in detail). `WidgetWrapper.vue` provides the widget chrome (header, actions, footer). `WidgetPicker.vue` in `src/components/WidgetPicker.vue` provides widget selection UI.
+
+**Partial implementations:**
+- REQ-WDG-006 visibility filtering: The server-side `ConditionalService::isWidgetVisible()` is implemented but it's unclear whether the dashboard API response filters out invisible placements or sends all placements with visibility metadata for the frontend to handle.
+
+### Standards & References
+- Nextcloud Dashboard Widget API: `OCP\Dashboard\IManager::getWidgets()`, `OCP\Dashboard\IWidget`, `OCP\Dashboard\IAPIWidget` (v1), `OCP\Dashboard\IAPIWidgetV2` (v2)
+- Nextcloud Widget Item format: title, subtitle, link, iconUrl (from `IWidgetItem`)
+- WCAG 2.1 AA: Widget labels via `customTitle` or default widget title for screen readers
+- WAI-ARIA: Widget placements should have `role="article"` or similar landmark roles for keyboard navigation
+
+### Specificity Assessment
+- The spec is comprehensive for the widget lifecycle (discover, add, update, remove, visibility). Data model is precisely defined.
+- **Missing:** No specification for `WidgetFormatter::format()` output schema -- what fields does the formatted widget object contain beyond `id`, `title`, `icon_url`?
+- **Missing:** No specification for `RequestDataExtractor::extractPlacementData()` -- which fields can be updated via the placement update endpoint?
+- **Missing:** No specification for the `WidgetPicker.vue` UI component -- how does the user browse and select widgets to add?
+- **Missing:** No specification for `styleConfig` schema -- what style properties are supported (backgroundColor, borderRadius, padding, headerStyle, etc.)?
+- **Ambiguous:** REQ-WDG-008 says the system MUST support batch updates with transactional rollback, but the implementation uses individual placement updates via `updatePositions()` without explicit transactions.
+- **Open question:** Should the API validate `widgetId` against registered Nextcloud widgets, or allow arbitrary IDs for forward compatibility?
