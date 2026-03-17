@@ -106,14 +106,14 @@ class AdminSettingMapper extends QBMapper
     {
         try {
             $setting = $this->findByKey(key: $key);
-            $setting->setValueEncoded(value: $value);
-            $setting->setUpdatedAt(updatedAt: new DateTime());
+            $setting->setValueEncoded($value);
+            $setting->setUpdatedAt(new DateTime());
             return $this->update(entity: $setting);
         } catch (DoesNotExistException) {
             $setting = new AdminSetting();
-            $setting->setSettingKey(settingKey: $key);
-            $setting->setValueEncoded(value: $value);
-            $setting->setUpdatedAt(updatedAt: new DateTime());
+            $setting->setSettingKey($key);
+            $setting->setValueEncoded($value);
+            $setting->setUpdatedAt(new DateTime());
             return $this->insert(entity: $setting);
         }
     }//end setSetting()

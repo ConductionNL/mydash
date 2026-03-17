@@ -41,20 +41,20 @@ class PlacementUpdater
         array $data
     ): void {
         if (isset($data['gridX']) === true) {
-            $placement->setGridX(gridX: $data['gridX']);
+            $placement->setGridX($data['gridX']);
         }
 
         if (isset($data['gridY']) === true) {
-            $placement->setGridY(gridY: $data['gridY']);
+            $placement->setGridY($data['gridY']);
         }
 
         if (isset($data['gridWidth']) === true) {
-            $placement->setGridWidth(gridWidth: $data['gridWidth']);
+            $placement->setGridWidth($data['gridWidth']);
         }
 
         if (isset($data['gridHeight']) === true) {
             $placement->setGridHeight(
-                gridHeight: $data['gridHeight']
+                $data['gridHeight']
             );
         }
     }//end applyGridUpdates()
@@ -72,28 +72,28 @@ class PlacementUpdater
         array $data
     ): void {
         if (isset($data['isVisible']) === true) {
-            $placement->setIsVisible(isVisible: $data['isVisible']);
+            $placement->setIsVisible($data['isVisible']);
         }
 
         if (isset($data['showTitle']) === true) {
-            $placement->setShowTitle(showTitle: $data['showTitle']);
+            $placement->setShowTitle($data['showTitle']);
         }
 
         if (isset($data['customTitle']) === true) {
             $placement->setCustomTitle(
-                customTitle: $data['customTitle']
+                $data['customTitle']
             );
         }
 
         if (isset($data['customIcon']) === true) {
             $placement->setCustomIcon(
-                customIcon: $data['customIcon']
+                $data['customIcon']
             );
         }
 
         if (isset($data['styleConfig']) === true) {
             $placement->setStyleConfigArray(
-                config: $data['styleConfig']
+                $data['styleConfig']
             );
         }
     }//end applyDisplayUpdates()

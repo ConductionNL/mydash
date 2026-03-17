@@ -40,27 +40,27 @@ class TileUpdater
         WidgetPlacement $placement,
         array $tileData
     ): void {
-        $placement->setTileType(tileType: 'custom');
+        $placement->setTileType('custom');
         $placement->setTileTitle(
-            tileTitle: $tileData['title'] ?? 'New Tile'
+            $tileData['title'] ?? 'New Tile'
         );
         $placement->setTileIcon(
-            tileIcon: $tileData['icon'] ?? 'icon-link'
+            $tileData['icon'] ?? 'icon-link'
         );
         $placement->setTileIconType(
-            tileIconType: $tileData['iconType'] ?? 'class'
+            $tileData['iconType'] ?? 'class'
         );
         $placement->setTileBackgroundColor(
-            tileBackgroundColor: $tileData['bgColor'] ?? '#0082c9'
+            $tileData['bgColor'] ?? '#0082c9'
         );
         $placement->setTileTextColor(
-            tileTextColor: $tileData['txtColor'] ?? '#ffffff'
+            $tileData['txtColor'] ?? '#ffffff'
         );
         $placement->setTileLinkType(
-            tileLinkType: $tileData['linkType'] ?? 'app'
+            $tileData['linkType'] ?? 'app'
         );
         $placement->setTileLinkValue(
-            tileLinkValue: $tileData['linkVal'] ?? ''
+            $tileData['linkVal'] ?? ''
         );
     }//end applyTileConfig()
 
@@ -77,40 +77,40 @@ class TileUpdater
         array $data
     ): void {
         if (isset($data['tileTitle']) === true) {
-            $placement->setTileTitle(tileTitle: $data['tileTitle']);
+            $placement->setTileTitle($data['tileTitle']);
         }
 
         if (isset($data['tileIcon']) === true) {
-            $placement->setTileIcon(tileIcon: $data['tileIcon']);
+            $placement->setTileIcon($data['tileIcon']);
         }
 
         if (isset($data['tileIconType']) === true) {
             $placement->setTileIconType(
-                tileIconType: $data['tileIconType']
+                $data['tileIconType']
             );
         }
 
         if (isset($data['tileBackgroundColor']) === true) {
             $placement->setTileBackgroundColor(
-                tileBackgroundColor: $data['tileBackgroundColor']
+                $data['tileBackgroundColor']
             );
         }
 
         if (isset($data['tileTextColor']) === true) {
             $placement->setTileTextColor(
-                tileTextColor: $data['tileTextColor']
+                $data['tileTextColor']
             );
         }
 
         if (isset($data['tileLinkType']) === true) {
             $placement->setTileLinkType(
-                tileLinkType: $data['tileLinkType']
+                $data['tileLinkType']
             );
         }
 
         if (isset($data['tileLinkValue']) === true) {
             $placement->setTileLinkValue(
-                tileLinkValue: $data['tileLinkValue']
+                $data['tileLinkValue']
             );
         }
     }//end applyTileUpdates()

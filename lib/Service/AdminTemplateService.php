@@ -105,21 +105,21 @@ class AdminTemplateService
         }
 
         $template = new Dashboard();
-        $template->setUuid(uuid: Uuid::uuid4()->toString());
-        $template->setName(name: $name);
-        $template->setDescription(description: $description);
-        $template->setType(type: Dashboard::TYPE_ADMIN_TEMPLATE);
-        $template->setUserId(userId: null);
-        $template->setGridColumns(gridColumns: 12);
+        $template->setUuid(Uuid::uuid4()->toString());
+        $template->setName($name);
+        $template->setDescription($description);
+        $template->setType(Dashboard::TYPE_ADMIN_TEMPLATE);
+        $template->setUserId(null);
+        $template->setGridColumns(12);
         $template->setPermissionLevel(
-            permissionLevel: $permissionLevel
+            $permissionLevel
         );
         $template->setTargetGroupsArray(
-            groups: $targetGroups ?? []
+            $targetGroups ?? []
         );
-        $template->setIsDefault(isDefault: $isDefault);
-        $template->setCreatedAt(createdAt: new DateTime());
-        $template->setUpdatedAt(updatedAt: new DateTime());
+        $template->setIsDefault($isDefault);
+        $template->setCreatedAt(new DateTime());
+        $template->setUpdatedAt(new DateTime());
 
         return $this->dashboardMapper->insert(entity: $template);
     }//end createTemplate()
@@ -147,7 +147,7 @@ class AdminTemplateService
             data: $data
         );
 
-        $template->setUpdatedAt(updatedAt: new DateTime());
+        $template->setUpdatedAt(new DateTime());
 
         return $this->dashboardMapper->update(entity: $template);
     }//end updateTemplate()
@@ -189,24 +189,24 @@ class AdminTemplateService
         array $data
     ): void {
         if (isset($data['name']) === true) {
-            $template->setName(name: $data['name']);
+            $template->setName($data['name']);
         }
 
         if (isset($data['description']) === true) {
             $template->setDescription(
-                description: $data['description']
+                $data['description']
             );
         }
 
         if (isset($data['targetGroups']) === true) {
             $template->setTargetGroupsArray(
-                groups: $data['targetGroups']
+                $data['targetGroups']
             );
         }
 
         if (isset($data['permissionLevel']) === true) {
             $template->setPermissionLevel(
-                permissionLevel: $data['permissionLevel']
+                $data['permissionLevel']
             );
         }
 
@@ -216,13 +216,13 @@ class AdminTemplateService
             }
 
             $template->setIsDefault(
-                isDefault: $data['isDefault']
+                $data['isDefault']
             );
         }
 
         if (isset($data['gridColumns']) === true) {
             $template->setGridColumns(
-                gridColumns: $data['gridColumns']
+                $data['gridColumns']
             );
         }
     }//end applyTemplateUpdates()

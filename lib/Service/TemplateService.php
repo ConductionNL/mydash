@@ -140,25 +140,25 @@ class TemplateService
         Dashboard $template
     ): Dashboard {
         $dashboard = new Dashboard();
-        $dashboard->setUuid(uuid: Uuid::uuid4()->toString());
-        $dashboard->setName(name: $template->getName());
+        $dashboard->setUuid(Uuid::uuid4()->toString());
+        $dashboard->setName($template->getName());
         $dashboard->setDescription(
-            description: $template->getDescription()
+            $template->getDescription()
         );
-        $dashboard->setType(type: Dashboard::TYPE_USER);
-        $dashboard->setUserId(userId: $userId);
+        $dashboard->setType(Dashboard::TYPE_USER);
+        $dashboard->setUserId($userId);
         $dashboard->setBasedOnTemplate(
-            basedOnTemplate: $template->getId()
+            $template->getId()
         );
         $dashboard->setGridColumns(
-            gridColumns: $template->getGridColumns()
+            $template->getGridColumns()
         );
         $dashboard->setPermissionLevel(
-            permissionLevel: $template->getPermissionLevel()
+            $template->getPermissionLevel()
         );
-        $dashboard->setIsActive(isActive: true);
-        $dashboard->setCreatedAt(createdAt: new DateTime());
-        $dashboard->setUpdatedAt(updatedAt: new DateTime());
+        $dashboard->setIsActive(true);
+        $dashboard->setCreatedAt(new DateTime());
+        $dashboard->setUpdatedAt(new DateTime());
 
         return $dashboard;
     }//end buildDashboardFromTemplate()
@@ -201,28 +201,28 @@ class TemplateService
         int $dashboardId
     ): WidgetPlacement {
         $placement = new WidgetPlacement();
-        $placement->setDashboardId(dashboardId: $dashboardId);
-        $placement->setWidgetId(widgetId: $source->getWidgetId());
-        $placement->setGridX(gridX: $source->getGridX());
-        $placement->setGridY(gridY: $source->getGridY());
-        $placement->setGridWidth(gridWidth: $source->getGridWidth());
+        $placement->setDashboardId($dashboardId);
+        $placement->setWidgetId($source->getWidgetId());
+        $placement->setGridX($source->getGridX());
+        $placement->setGridY($source->getGridY());
+        $placement->setGridWidth($source->getGridWidth());
         $placement->setGridHeight(
-            gridHeight: $source->getGridHeight()
+            $source->getGridHeight()
         );
         $placement->setIsCompulsory(
-            isCompulsory: $source->getIsCompulsory()
+            $source->getIsCompulsory()
         );
-        $placement->setIsVisible(isVisible: $source->getIsVisible());
+        $placement->setIsVisible($source->getIsVisible());
         $placement->setStyleConfig(
-            styleConfig: $source->getStyleConfig()
+            $source->getStyleConfig()
         );
         $placement->setCustomTitle(
-            customTitle: $source->getCustomTitle()
+            $source->getCustomTitle()
         );
-        $placement->setShowTitle(showTitle: $source->getShowTitle());
-        $placement->setSortOrder(sortOrder: $source->getSortOrder());
-        $placement->setCreatedAt(createdAt: new DateTime());
-        $placement->setUpdatedAt(updatedAt: new DateTime());
+        $placement->setShowTitle($source->getShowTitle());
+        $placement->setSortOrder($source->getSortOrder());
+        $placement->setCreatedAt(new DateTime());
+        $placement->setUpdatedAt(new DateTime());
 
         return $placement;
     }//end clonePlacement()

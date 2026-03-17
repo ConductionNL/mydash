@@ -4,7 +4,8 @@ on:
   push:
     branches: [main, development, feature/**, bugfix/**, hotfix/**]
   pull_request:
-    branches: [main, development]
+    branches: [main, beta, development]
+  workflow_dispatch:
 
 jobs:
   quality:
