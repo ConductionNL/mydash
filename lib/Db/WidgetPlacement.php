@@ -250,19 +250,19 @@ class WidgetPlacement extends Entity implements JsonSerializable
      */
     public function __construct()
     {
-        $this->addType(fieldName: 'id', type: 'integer');
-        $this->addType(fieldName: 'dashboardId', type: 'integer');
-        $this->addType(fieldName: 'gridX', type: 'integer');
-        $this->addType(fieldName: 'gridY', type: 'integer');
-        $this->addType(fieldName: 'gridWidth', type: 'integer');
-        $this->addType(fieldName: 'gridHeight', type: 'integer');
-        $this->addType(fieldName: 'isCompulsory', type: 'integer');
+        $this->addType('id', 'integer');
+        $this->addType('dashboardId', 'integer');
+        $this->addType('gridX', 'integer');
+        $this->addType('gridY', 'integer');
+        $this->addType('gridWidth', 'integer');
+        $this->addType('gridHeight', 'integer');
+        $this->addType('isCompulsory', 'integer');
         // SMALLINT in DB (0/1).
-        $this->addType(fieldName: 'isVisible', type: 'integer');
+        $this->addType('isVisible', 'integer');
         // SMALLINT in DB (0/1).
-        $this->addType(fieldName: 'showTitle', type: 'integer');
+        $this->addType('showTitle', 'integer');
         // SMALLINT in DB (0/1).
-        $this->addType(fieldName: 'sortOrder', type: 'integer');
+        $this->addType('sortOrder', 'integer');
     }//end __construct()
 
     /**
@@ -276,7 +276,7 @@ class WidgetPlacement extends Entity implements JsonSerializable
             return [];
         }
 
-        $decoded = json_decode(json: $this->styleConfig, associative: true);
+        $decoded = json_decode($this->styleConfig, true);
         if (is_array($decoded) === true) {
             return $decoded;
         }
@@ -293,7 +293,7 @@ class WidgetPlacement extends Entity implements JsonSerializable
      */
     public function setStyleConfigArray(array $config): void
     {
-        $this->setStyleConfig(styleConfig: json_encode(value: $config));
+        $this->setStyleConfig(json_encode($config));
     }//end setStyleConfigArray()
 
     /**

@@ -354,7 +354,7 @@ export default {
 	font-size: 14px;
 	font-weight: 600;
 	margin: 0 0 16px;
-	color: var(--color-text-lighter);
+	color: var(--color-text-maxcontrast);
 	text-transform: uppercase;
 }
 
@@ -385,7 +385,7 @@ export default {
 .style-editor__unit {
 	width: 40px;
 	text-align: right;
-	color: var(--color-text-lighter);
+	color: var(--color-text-maxcontrast);
 }
 
 .style-editor__color-preview {

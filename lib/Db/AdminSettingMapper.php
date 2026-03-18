@@ -43,9 +43,9 @@ class AdminSettingMapper extends QBMapper
     public function __construct(IDBConnection $db)
     {
         parent::__construct(
-            db: $db,
-            tableName: 'mydash_admin_settings',
-            entityClass: AdminSetting::class
+            $db,
+            'mydash_admin_settings',
+            AdminSetting::class
         );
     }//end __construct()
 
@@ -61,16 +61,16 @@ class AdminSettingMapper extends QBMapper
     public function findByKey(string $key): AdminSetting
     {
         $qb = $this->db->getQueryBuilder();
-        $qb->select(selects: '*')
-            ->from(from: $this->getTableName())
+        $qb->select('*')
+            ->from($this->getTableName())
             ->where(
                 $qb->expr()->eq(
-                    x: 'setting_key',
-                    y: $qb->createNamedParameter(value: $key)
+                    'setting_key',
+                    $qb->createNamedParameter($key)
                 )
             );
 
-        return $this->findEntity(query: $qb);
+        return $this->findEntity($qb);
     }//end findByKey()
 
     /**
@@ -81,10 +81,10 @@ class AdminSettingMapper extends QBMapper
     public function getAllAsArray(): array
     {
         $qb = $this->db->getQueryBuilder();
-        $qb->select(selects: '*')
-            ->from(from: $this->getTableName());
+        $qb->select('*')
+            ->from($this->getTableName());
 
-        $entities = $this->findEntities(query: $qb);
+        $entities = $this->findEntities($qb);
         $result   = [];
 
         foreach ($entities as $entity) {
@@ -105,16 +105,16 @@ class AdminSettingMapper extends QBMapper
     public function setSetting(string $key, mixed $value): AdminSetting
     {
         try {
-            $setting = $this->findByKey(key: $key);
-            $setting->setValueEncoded(value: $value);
-            $setting->setUpdatedAt(updatedAt: new DateTime());
-            return $this->update(entity: $setting);
+            $setting = $this->findByKey($key);
+            $setting->setValueEncoded($value);
+            $setting->setUpdatedAt(new DateTime());
+            return $this->update($setting);
         } catch (DoesNotExistException) {
             $setting = new AdminSetting();
-            $setting->setSettingKey(settingKey: $key);
-            $setting->setValueEncoded(value: $value);
-            $setting->setUpdatedAt(updatedAt: new DateTime());
-            return $this->insert(entity: $setting);
+            $setting->setSettingKey($key);
+            $setting->setValueEncoded($value);
+            $setting->setUpdatedAt(new DateTime());
+            return $this->insert($setting);
         }
     }//end setSetting()
 
@@ -129,7 +129,7 @@ class AdminSettingMapper extends QBMapper
     public function getValue(string $key, mixed $default=null): mixed
     {
         try {
-            $setting = $this->findByKey(key: $key);
+            $setting = $this->findByKey($key);
             return $setting->getValueDecoded();
         } catch (DoesNotExistException) {
             return $default;

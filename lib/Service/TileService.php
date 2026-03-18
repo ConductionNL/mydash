@@ -46,7 +46,7 @@ class TileService
      */
     public function getUserTiles(string $userId): array
     {
-        return $this->tileMapper->findByUserId(userId: $userId);
+        return $this->tileMapper->findByUserId($userId);
     }//end getUserTiles()
 
     /**
@@ -73,21 +73,21 @@ class TileService
         string $linkType='url',
         string $linkValue='#'
     ): Tile {
-        $now = (new DateTime())->format(format: 'Y-m-d H:i:s');
+        $now = (new DateTime())->format('Y-m-d H:i:s');
 
         $tile = new Tile();
-        $tile->setUserId(userId: $userId);
-        $tile->setTitle(title: $title);
-        $tile->setIcon(icon: $icon);
-        $tile->setIconType(iconType: $iconType);
-        $tile->setBackgroundColor(backgroundColor: $backgroundColor);
-        $tile->setTextColor(textColor: $textColor);
-        $tile->setLinkType(linkType: $linkType);
-        $tile->setLinkValue(linkValue: $linkValue);
-        $tile->setCreatedAt(createdAt: $now);
-        $tile->setUpdatedAt(updatedAt: $now);
+        $tile->setUserId($userId);
+        $tile->setTitle($title);
+        $tile->setIcon($icon);
+        $tile->setIconType($iconType);
+        $tile->setBackgroundColor($backgroundColor);
+        $tile->setTextColor($textColor);
+        $tile->setLinkType($linkType);
+        $tile->setLinkValue($linkValue);
+        $tile->setCreatedAt($now);
+        $tile->setUpdatedAt($now);
 
-        return $this->tileMapper->insert(entity: $tile);
+        return $this->tileMapper->insert($tile);
     }//end createTile()
 
     /**
@@ -104,45 +104,45 @@ class TileService
     public function updateTile(int $id, string $userId, array $data): Tile
     {
         $tile = $this->tileMapper->findByIdAndUser(
-            id: $id,
-            userId: $userId
+            $id,
+            $userId
         );
 
         if (isset($data['title']) === true) {
-            $tile->setTitle(title: $data['title']);
+            $tile->setTitle($data['title']);
         }
 
         if (isset($data['icon']) === true) {
-            $tile->setIcon(icon: $data['icon']);
+            $tile->setIcon($data['icon']);
         }
 
         if (isset($data['iconType']) === true) {
-            $tile->setIconType(iconType: $data['iconType']);
+            $tile->setIconType($data['iconType']);
         }
 
         if (isset($data['backgroundColor']) === true) {
             $tile->setBackgroundColor(
-                backgroundColor: $data['backgroundColor']
+                $data['backgroundColor']
             );
         }
 
         if (isset($data['textColor']) === true) {
-            $tile->setTextColor(textColor: $data['textColor']);
+            $tile->setTextColor($data['textColor']);
         }
 
         if (isset($data['linkType']) === true) {
-            $tile->setLinkType(linkType: $data['linkType']);
+            $tile->setLinkType($data['linkType']);
         }
 
         if (isset($data['linkValue']) === true) {
-            $tile->setLinkValue(linkValue: $data['linkValue']);
+            $tile->setLinkValue($data['linkValue']);
         }
 
         $tile->setUpdatedAt(
-            updatedAt: (new DateTime())->format(format: 'Y-m-d H:i:s')
+            (new DateTime())->format('Y-m-d H:i:s')
         );
 
-        return $this->tileMapper->update(entity: $tile);
+        return $this->tileMapper->update($tile);
     }//end updateTile()
 
     /**
@@ -158,9 +158,9 @@ class TileService
     public function deleteTile(int $id, string $userId): void
     {
         $tile = $this->tileMapper->findByIdAndUser(
-            id: $id,
-            userId: $userId
+            $id,
+            $userId
         );
-        $this->tileMapper->delete(entity: $tile);
+        $this->tileMapper->delete($tile);
     }//end deleteTile()
 }//end class

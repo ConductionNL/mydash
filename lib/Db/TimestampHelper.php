@@ -52,7 +52,7 @@ class TimestampHelper
     public static function now(
         string $format=self::FORMAT_DB
     ): string {
-        return (new DateTime())->format(format: $format);
+        return (new DateTime())->format($format);
     }//end now()
 
     /**
@@ -73,6 +73,6 @@ class TimestampHelper
             return null;
         }
 
-        return $dateTime->format(format: $format);
+        return $dateTime->format($format);
     }//end format()
 }//end class

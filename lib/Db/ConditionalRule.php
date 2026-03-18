@@ -114,12 +114,12 @@ class ConditionalRule extends Entity implements JsonSerializable
      */
     public function __construct()
     {
-        $this->addType(fieldName: 'id', type: 'integer');
+        $this->addType('id', 'integer');
         $this->addType(
-            fieldName: 'widgetPlacementId',
-            type: 'integer'
+            'widgetPlacementId',
+            'integer'
         );
-        $this->addType(fieldName: 'isInclude', type: 'boolean');
+        $this->addType('isInclude', 'boolean');
     }//end __construct()
 
     /**
@@ -133,7 +133,7 @@ class ConditionalRule extends Entity implements JsonSerializable
             return [];
         }
 
-        $decoded = json_decode(json: $this->ruleConfig, associative: true);
+        $decoded = json_decode($this->ruleConfig, true);
         if (is_array($decoded) === true) {
             return $decoded;
         }
@@ -150,7 +150,7 @@ class ConditionalRule extends Entity implements JsonSerializable
      */
     public function setRuleConfigArray(array $config): void
     {
-        $this->setRuleConfig(ruleConfig: json_encode(value: $config));
+        $this->setRuleConfig(json_encode($config));
     }//end setRuleConfigArray()
 
     /**
@@ -162,7 +162,7 @@ class ConditionalRule extends Entity implements JsonSerializable
     {
         $createdAtValue = null;
         if ($this->createdAt !== null) {
-            $createdAtValue = $this->createdAt->format(format: 'c');
+            $createdAtValue = $this->createdAt->format('c');
         }
 
         return [

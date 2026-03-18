@@ -60,15 +60,15 @@ class DashboardResolver
     {
         try {
             $dashboard  = $this->dashboardMapper->findActiveByUserId(
-                userId: $userId
+                $userId
             );
             $placements = $this->placementMapper->findByDashboardId(
-                dashboardId: $dashboard->getId()
+                $dashboard->getId()
             );
 
             return $this->buildResult(
-                dashboard: $dashboard,
-                placements: $placements
+                $dashboard,
+                $placements
             );
         } catch (DoesNotExistException) {
             return null;
@@ -85,7 +85,7 @@ class DashboardResolver
     public function tryActivateExistingDashboard(string $userId): ?array
     {
         $userDashboards = $this->dashboardMapper->findByUserId(
-            userId: $userId
+            $userId
         );
         if (empty($userDashboards) === true) {
             return null;
@@ -93,18 +93,18 @@ class DashboardResolver
 
         $dashboard = $userDashboards[0];
         $this->dashboardMapper->setActive(
-            dashboardId: $dashboard->getId(),
-            userId: $userId
+            $dashboard->getId(),
+            $userId
         );
-        $dashboard->setIsActive(isActive: true);
+        $dashboard->setIsActive(true);
 
         $placements = $this->placementMapper->findByDashboardId(
-            dashboardId: $dashboard->getId()
+            $dashboard->getId()
         );
 
         return $this->buildResult(
-            dashboard: $dashboard,
-            placements: $placements
+            $dashboard,
+            $placements
         );
     }//end tryActivateExistingDashboard()
 
@@ -124,21 +124,21 @@ class DashboardResolver
     ): array {
         if ($allowUserDashboards === true) {
             $dashboard  = $this->templateService->createDashboardFromTemplate(
-                userId: $userId,
-                template: $template
+                $userId,
+                $template
             );
             $placements = $this->placementMapper->findByDashboardId(
-                dashboardId: $dashboard->getId()
+                $dashboard->getId()
             );
 
             return $this->buildResult(
-                dashboard: $dashboard,
-                placements: $placements
+                $dashboard,
+                $placements
             );
         }
 
         $placements = $this->placementMapper->findByDashboardId(
-            dashboardId: $template->getId()
+            $template->getId()
         );
         return [
             'dashboard'       => $template,
@@ -160,7 +160,7 @@ class DashboardResolver
         array $placements
     ): array {
         $permissionLevel = $this->getEffectivePermissionLevel(
-            dashboard: $dashboard
+            $dashboard
         );
 
         return [
@@ -183,7 +183,7 @@ class DashboardResolver
         if ($dashboard->getBasedOnTemplate() !== null) {
             try {
                 $template = $this->dashboardMapper->find(
-                    id: $dashboard->getBasedOnTemplate()
+                    $dashboard->getBasedOnTemplate()
                 );
                 return $template->getPermissionLevel();
             } catch (DoesNotExistException) {
@@ -197,8 +197,8 @@ class DashboardResolver
         }
 
         return $this->settingMapper->getValue(
-            key: AdminSetting::KEY_DEFAULT_PERMISSION_LEVEL,
-            default: Dashboard::PERMISSION_FULL
+            AdminSetting::KEY_DEFAULT_PERMISSION_LEVEL,
+            Dashboard::PERMISSION_FULL
         );
     }//end getEffectivePermissionLevel()
 }//end class

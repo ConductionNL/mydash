@@ -63,7 +63,7 @@ class DashboardService
      */
     public function getUserDashboards(string $userId): array
     {
-        return $this->dashboardMapper->findByUserId(userId: $userId);
+        return $this->dashboardMapper->findByUserId($userId);
     }//end getUserDashboards()
 
     /**
@@ -77,20 +77,20 @@ class DashboardService
     public function getEffectiveDashboard(string $userId): ?array
     {
         $result = $this->dashResolver->tryGetActiveDashboard(
-            userId: $userId
+            $userId
         );
         if ($result !== null) {
             return $result;
         }
 
         $result = $this->dashResolver->tryActivateExistingDashboard(
-            userId: $userId
+            $userId
         );
         if ($result !== null) {
             return $result;
         }
 
-        return $this->tryCreateFromTemplate(userId: $userId);
+        return $this->tryCreateFromTemplate($userId);
     }//end getEffectiveDashboard()
 
     /**
@@ -108,14 +108,14 @@ class DashboardService
         ?string $description=null
     ): Dashboard {
         $dashboard = $this->dashboardFactory->create(
-            userId: $userId,
-            name: $name,
-            description: $description
+            $userId,
+            $name,
+            $description
         );
 
-        $this->dashboardMapper->deactivateAllForUser(userId: $userId);
+        $this->dashboardMapper->deactivateAllForUser($userId);
 
-        return $this->dashboardMapper->insert(entity: $dashboard);
+        return $this->dashboardMapper->insert($dashboard);
     }//end createDashboard()
 
     /**
@@ -132,18 +132,18 @@ class DashboardService
         string $userId,
         array $data
     ): Dashboard {
-        $dashboard = $this->dashboardMapper->find(id: $dashboardId);
+        $dashboard = $this->dashboardMapper->find($dashboardId);
 
         if ($dashboard->getUserId() !== $userId) {
-            throw new Exception(message: 'Access denied');
+            throw new Exception('Access denied');
         }
 
         $this->applyDashboardUpdates(
-            dashboard: $dashboard,
-            data: $data
+            $dashboard,
+            $data
         );
 
-        return $this->dashboardMapper->update(entity: $dashboard);
+        return $this->dashboardMapper->update($dashboard);
     }//end updateDashboard()
 
     /**
@@ -156,16 +156,16 @@ class DashboardService
      */
     public function deleteDashboard(int $dashboardId, string $userId): void
     {
-        $dashboard = $this->dashboardMapper->find(id: $dashboardId);
+        $dashboard = $this->dashboardMapper->find($dashboardId);
 
         if ($dashboard->getUserId() !== $userId) {
-            throw new Exception(message: 'Access denied');
+            throw new Exception('Access denied');
         }
 
         $this->placementMapper->deleteByDashboardId(
-            dashboardId: $dashboardId
+            $dashboardId
         );
-        $this->dashboardMapper->delete(entity: $dashboard);
+        $this->dashboardMapper->delete($dashboard);
     }//end deleteDashboard()
 
     /**
@@ -180,17 +180,17 @@ class DashboardService
         int $dashboardId,
         string $userId
     ): Dashboard {
-        $dashboard = $this->dashboardMapper->find(id: $dashboardId);
+        $dashboard = $this->dashboardMapper->find($dashboardId);
 
         if ($dashboard->getUserId() !== $userId) {
-            throw new Exception(message: 'Access denied');
+            throw new Exception('Access denied');
         }
 
         $this->dashboardMapper->setActive(
-            dashboardId: $dashboardId,
-            userId: $userId
+            $dashboardId,
+            $userId
         );
-        $dashboard->setIsActive(isActive: true);
+        $dashboard->setIsActive(true);
 
         return $dashboard;
     }//end activateDashboard()
@@ -205,26 +205,26 @@ class DashboardService
     private function tryCreateFromTemplate(string $userId): ?array
     {
         $allowUserDashboards = $this->settingMapper->getValue(
-            key: AdminSetting::KEY_ALLOW_USER_DASHBOARDS,
-            default: true
+            AdminSetting::KEY_ALLOW_USER_DASHBOARDS,
+            true
         );
 
         $template = $this->templateService->getApplicableTemplate(
-            userId: $userId
+            $userId
         );
 
         if ($template !== null) {
             return $this->dashResolver->handleTemplateResult(
-                template: $template,
-                allowUserDashboards: $allowUserDashboards,
-                userId: $userId
+                $template,
+                $allowUserDashboards,
+                $userId
             );
         }
 
         if ($allowUserDashboards === true) {
             $dashboard = $this->createDashboard(
-                userId: $userId,
-                name: 'My Dashboard'
+                $userId,
+                'My Dashboard'
             );
             return [
                 'dashboard'       => $dashboard,
@@ -249,30 +249,30 @@ class DashboardService
         array $data
     ): void {
         if (isset($data['name']) === true) {
-            $dashboard->setName(name: $data['name']);
+            $dashboard->setName($data['name']);
         }
 
         if (isset($data['description']) === true) {
             $dashboard->setDescription(
-                description: $data['description']
+                $data['description']
             );
         }
 
         if (isset($data['gridColumns']) === true) {
             $dashboard->setGridColumns(
-                gridColumns: $data['gridColumns']
+                $data['gridColumns']
             );
         }
 
         $dashboard->setUpdatedAt(
-            updatedAt: (new DateTime())->format(format: 'Y-m-d H:i:s')
+            (new DateTime())->format('Y-m-d H:i:s')
         );
 
         if (isset($data['placements']) === true
             && is_array($data['placements']) === true
         ) {
             $this->placementMapper->updatePositions(
-                updates: $data['placements']
+                $data['placements']
             );
         }
     }//end applyDashboardUpdates()

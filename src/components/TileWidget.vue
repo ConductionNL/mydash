@@ -86,20 +86,6 @@ export default {
 			icon: this.tile?.icon?.substring(0, 30),
 			iconType: this.tile?.iconType,
 		}, null, 2))
-		console.log('[TileWidget] Full tile object keys:', this.tile ? Object.keys(this.tile) : 'tile is null')
-
-		// Add dynamic style to override nldesign's aggressive CSS.
-		const styleId = `tile-${this.tile.id}-style`
-		if (!document.getElementById(styleId)) {
-			const style = document.createElement('style')
-			style.id = styleId
-			style.textContent = `
-				.tile-widget[data-tile-id="${this.tile.id}"] .tile-widget__title {
-					color: ${this.tile.textColor || '#ffffff'} !important;
-				}
-			`
-			document.head.appendChild(style)
-		}
 	},
 }
 </script>
@@ -111,10 +97,9 @@ export default {
 	position: absolute;
 	top: 0;
 	left: 0;
-	border-radius: 0;
-	border: none;
+	border-radius: var(--border-radius-large);
 	overflow: hidden;
-	background-color: var(--tile-bg-color) !important;
+	background-color: var(--tile-bg-color);
 }
 
 .tile-widget__link {
@@ -125,19 +110,15 @@ export default {
 	height: 100%;
 	width: 100%;
 	text-decoration: none;
-	border-radius: 0;
 	padding: 20px;
 	gap: 12px;
-	transition: transform 0.2s ease, opacity 0.2s ease;
-	box-shadow: none;
-	background-color: var(--tile-bg-color) !important;
-	color: var(--tile-text-color) !important;
+	transition: opacity var(--animation-quick) ease;
+	background-color: var(--tile-bg-color);
+	color: var(--tile-text-color);
 }
 
 .tile-widget__link:hover {
-	transform: scale(1.02);
-	opacity: 0.95;
-	box-shadow: none;
+	opacity: 0.9;
 }
 
 .tile-widget__icon {
@@ -148,7 +129,6 @@ export default {
 	align-items: center;
 	justify-content: center;
 	flex-shrink: 0;
-	background: transparent !important;
 }
 
 /* Nextcloud icon classes need the icon class wrapper and white filter */
@@ -157,7 +137,6 @@ export default {
 	width: 64px;
 	height: 64px;
 	background-size: 64px;
-	background-color: transparent !important;
 	filter: brightness(0) invert(1);
 }
 
@@ -165,14 +144,10 @@ export default {
 	width: 100%;
 	height: 100%;
 	object-fit: contain;
-	filter: none;
-	background: transparent !important;
 }
 
 .tile-widget__emoji {
-	filter: none !important;
 	font-size: 64px;
-	background: transparent !important;
 }
 
 .tile-widget__title {
@@ -181,12 +156,7 @@ export default {
 	text-align: center;
 	word-break: break-word;
 	line-height: 1.3;
-	background: transparent !important;
-}
-
-/* Very specific selector to override nldesign CSS */
-.tile-widget .tile-widget__link .tile-widget__title {
-	color: var(--tile-text-color) !important;
+	color: var(--tile-text-color);
 }
 
 .tile-widget__edit {
@@ -197,17 +167,17 @@ export default {
 	height: 32px;
 	border: none;
 	border-radius: 50%;
-	background: rgba(0, 0, 0, 0.5) !important;
+	background: rgba(0, 0, 0, 0.5);
 	cursor: pointer;
 	z-index: 10;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	transition: background 0.2s ease;
+	transition: background var(--animation-quick) ease;
 }
 
 .tile-widget__edit:hover {
-	background: rgba(0, 0, 0, 0.7) !important;
+	background: rgba(0, 0, 0, 0.7);
 }
 
 .tile-widget__edit .icon-settings {

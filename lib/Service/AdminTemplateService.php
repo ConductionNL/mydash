@@ -66,14 +66,14 @@ class AdminTemplateService
      */
     public function getTemplateWithPlacements(int $id): array
     {
-        $template = $this->dashboardMapper->find(id: $id);
+        $template = $this->dashboardMapper->find($id);
 
         if ($template->getType() !== Dashboard::TYPE_ADMIN_TEMPLATE) {
-            throw new Exception(message: 'Not an admin template');
+            throw new Exception('Not an admin template');
         }
 
         $placements = $this->placementMapper->findByDashboardId(
-            dashboardId: $id
+            $id
         );
 
         return [
@@ -105,23 +105,23 @@ class AdminTemplateService
         }
 
         $template = new Dashboard();
-        $template->setUuid(uuid: Uuid::uuid4()->toString());
-        $template->setName(name: $name);
-        $template->setDescription(description: $description);
-        $template->setType(type: Dashboard::TYPE_ADMIN_TEMPLATE);
-        $template->setUserId(userId: null);
-        $template->setGridColumns(gridColumns: 12);
+        $template->setUuid(Uuid::uuid4()->toString());
+        $template->setName($name);
+        $template->setDescription($description);
+        $template->setType(Dashboard::TYPE_ADMIN_TEMPLATE);
+        $template->setUserId(null);
+        $template->setGridColumns(12);
         $template->setPermissionLevel(
-            permissionLevel: $permissionLevel
+            $permissionLevel
         );
         $template->setTargetGroupsArray(
-            groups: $targetGroups ?? []
+            $targetGroups ?? []
         );
-        $template->setIsDefault(isDefault: $isDefault);
-        $template->setCreatedAt(createdAt: new DateTime());
-        $template->setUpdatedAt(updatedAt: new DateTime());
+        $template->setIsDefault($isDefault);
+        $template->setCreatedAt(new DateTime());
+        $template->setUpdatedAt(new DateTime());
 
-        return $this->dashboardMapper->insert(entity: $template);
+        return $this->dashboardMapper->insert($template);
     }//end createTemplate()
 
     /**
@@ -136,20 +136,20 @@ class AdminTemplateService
      */
     public function updateTemplate(int $id, array $data): Dashboard
     {
-        $template = $this->dashboardMapper->find(id: $id);
+        $template = $this->dashboardMapper->find($id);
 
         if ($template->getType() !== Dashboard::TYPE_ADMIN_TEMPLATE) {
-            throw new Exception(message: 'Not an admin template');
+            throw new Exception('Not an admin template');
         }
 
         $this->applyTemplateUpdates(
-            template: $template,
-            data: $data
+            $template,
+            $data
         );
 
-        $template->setUpdatedAt(updatedAt: new DateTime());
+        $template->setUpdatedAt(new DateTime());
 
-        return $this->dashboardMapper->update(entity: $template);
+        return $this->dashboardMapper->update($template);
     }//end updateTemplate()
 
     /**
@@ -163,17 +163,17 @@ class AdminTemplateService
      */
     public function deleteTemplate(int $id): void
     {
-        $template = $this->dashboardMapper->find(id: $id);
+        $template = $this->dashboardMapper->find($id);
 
         if ($template->getType() !== Dashboard::TYPE_ADMIN_TEMPLATE) {
-            throw new Exception(message: 'Not an admin template');
+            throw new Exception('Not an admin template');
         }
 
         // Delete placements first.
-        $this->placementMapper->deleteByDashboardId(dashboardId: $id);
+        $this->placementMapper->deleteByDashboardId($id);
 
         // Delete template.
-        $this->dashboardMapper->delete(entity: $template);
+        $this->dashboardMapper->delete($template);
     }//end deleteTemplate()
 
     /**
@@ -189,24 +189,24 @@ class AdminTemplateService
         array $data
     ): void {
         if (isset($data['name']) === true) {
-            $template->setName(name: $data['name']);
+            $template->setName($data['name']);
         }
 
         if (isset($data['description']) === true) {
             $template->setDescription(
-                description: $data['description']
+                $data['description']
             );
         }
 
         if (isset($data['targetGroups']) === true) {
             $template->setTargetGroupsArray(
-                groups: $data['targetGroups']
+                $data['targetGroups']
             );
         }
 
         if (isset($data['permissionLevel']) === true) {
             $template->setPermissionLevel(
-                permissionLevel: $data['permissionLevel']
+                $data['permissionLevel']
             );
         }
 
@@ -216,13 +216,13 @@ class AdminTemplateService
             }
 
             $template->setIsDefault(
-                isDefault: $data['isDefault']
+                $data['isDefault']
             );
         }
 
         if (isset($data['gridColumns']) === true) {
             $template->setGridColumns(
-                gridColumns: $data['gridColumns']
+                $data['gridColumns']
             );
         }
     }//end applyTemplateUpdates()

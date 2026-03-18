@@ -62,7 +62,7 @@ class ConditionalService
         }
 
         $rules = $this->ruleMapper->findByPlacementId(
-            placementId: $placement->getId()
+            $placement->getId()
         );
 
         if (empty($rules) === true) {
@@ -70,8 +70,8 @@ class ConditionalService
         }
 
         return $this->visibilityChecker->checkRules(
-            rules: $rules,
-            userId: $userId
+            $rules,
+            $userId
         );
     }//end isWidgetVisible()
 
@@ -88,8 +88,8 @@ class ConditionalService
         string $userId
     ): bool {
         return $this->ruleEvaluator->evaluateRule(
-            rule: $rule,
-            userId: $userId
+            $rule,
+            $userId
         );
     }//end evaluateRule()
 
@@ -103,7 +103,7 @@ class ConditionalService
     public function getRules(int $placementId): array
     {
         return $this->ruleMapper->findByPlacementId(
-            placementId: $placementId
+            $placementId
         );
     }//end getRules()
 
@@ -125,14 +125,14 @@ class ConditionalService
     ): ConditionalRule {
         $rule = new ConditionalRule();
         $rule->setWidgetPlacementId(
-            widgetPlacementId: $placementId
+            $placementId
         );
-        $rule->setRuleType(ruleType: $ruleType);
-        $rule->setRuleConfigArray(config: $ruleConfig);
-        $rule->setIsInclude(isInclude: $isInclude);
-        $rule->setCreatedAt(createdAt: new DateTime());
+        $rule->setRuleType($ruleType);
+        $rule->setRuleConfigArray($ruleConfig);
+        $rule->setIsInclude($isInclude);
+        $rule->setCreatedAt(new DateTime());
 
-        return $this->ruleMapper->insert(entity: $rule);
+        return $this->ruleMapper->insert($rule);
     }//end addRule()
 
     /**
@@ -145,21 +145,21 @@ class ConditionalService
      */
     public function updateRule(int $ruleId, array $data): ConditionalRule
     {
-        $rule = $this->ruleMapper->find(id: $ruleId);
+        $rule = $this->ruleMapper->find($ruleId);
 
         if (isset($data['ruleType']) === true) {
-            $rule->setRuleType(ruleType: $data['ruleType']);
+            $rule->setRuleType($data['ruleType']);
         }
 
         if (isset($data['ruleConfig']) === true) {
-            $rule->setRuleConfigArray(config: $data['ruleConfig']);
+            $rule->setRuleConfigArray($data['ruleConfig']);
         }
 
         if (isset($data['isInclude']) === true) {
-            $rule->setIsInclude(isInclude: $data['isInclude']);
+            $rule->setIsInclude($data['isInclude']);
         }
 
-        return $this->ruleMapper->update(entity: $rule);
+        return $this->ruleMapper->update($rule);
     }//end updateRule()
 
     /**
@@ -171,7 +171,7 @@ class ConditionalService
      */
     public function deleteRule(int $ruleId): void
     {
-        $rule = $this->ruleMapper->find(id: $ruleId);
-        $this->ruleMapper->delete(entity: $rule);
+        $rule = $this->ruleMapper->find($ruleId);
+        $this->ruleMapper->delete($rule);
     }//end deleteRule()
 }//end class

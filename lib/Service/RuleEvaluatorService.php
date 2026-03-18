@@ -59,18 +59,18 @@ class RuleEvaluatorService
     ): bool {
         return match ($rule->getRuleType()) {
             ConditionalRule::TYPE_GROUP => $this->evaluateGroupRule(
-                rule: $rule,
-                userId: $userId
+                $rule,
+                $userId
             ),
             ConditionalRule::TYPE_TIME => $this->evaluateTimeRule(
-                rule: $rule
+                $rule
             ),
             ConditionalRule::TYPE_DATE => $this->evaluateDateRule(
-                rule: $rule
+                $rule
             ),
             ConditionalRule::TYPE_ATTRIBUTE => $this->evaluateAttributeRule(
-                rule: $rule,
-                userId: $userId
+                $rule,
+                $userId
             ),
             default => false,
         };
@@ -96,12 +96,12 @@ class RuleEvaluatorService
             return false;
         }
 
-        $user = $this->userManager->get(uid: $userId);
+        $user = $this->userManager->get($userId);
         if ($user === null) {
             return false;
         }
 
-        $userGroups = $this->groupManager->getUserGroupIds(user: $user);
+        $userGroups = $this->groupManager->getUserGroupIds($user);
 
         return empty(array_intersect($userGroups, $targetGroups)) === false;
     }//end evaluateGroupRule()
@@ -119,16 +119,16 @@ class RuleEvaluatorService
         $config = $rule->getRuleConfigArray();
 
         $now         = new DateTime();
-        $currentTime = $now->format(format: 'H:i');
-        $currentDay  = strtolower(string: $now->format(format: 'D'));
+        $currentTime = $now->format('H:i');
+        $currentDay  = strtolower($now->format('D'));
 
         // Check day of week.
         if (isset($config['days']) === true
             && is_array($config['days']) === true
         ) {
             if (in_array(
-                needle: $currentDay,
-                haystack: $config['days']
+                $currentDay,
+                $config['days']
             ) === false
             ) {
                 return false;
@@ -155,7 +155,7 @@ class RuleEvaluatorService
         $config = $rule->getRuleConfigArray();
 
         $now         = new DateTime();
-        $currentDate = $now->format(format: 'Y-m-d');
+        $currentDate = $now->format('Y-m-d');
 
         $startDate = $config['startDate'] ?? null;
         $endDate   = $config['endDate'] ?? null;
@@ -195,8 +195,8 @@ class RuleEvaluatorService
         }
 
         $userValue = $this->attrResolver->getUserAttributeValue(
-            userId: $userId,
-            attribute: $attribute
+            $userId,
+            $attribute
         );
 
         if ($userValue === null) {
@@ -204,9 +204,9 @@ class RuleEvaluatorService
         }
 
         return $this->attrResolver->evaluateOperator(
-            userValue: $userValue,
-            operator: $operator,
-            value: $value
+            $userValue,
+            $operator,
+            $value
         );
     }//end evaluateAttributeRule()
 }//end class
