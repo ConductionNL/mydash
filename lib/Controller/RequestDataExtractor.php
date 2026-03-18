@@ -21,6 +21,7 @@ declare(strict_types=1);
 
 namespace OCA\MyDash\Controller;
 
+use OCP\IL10N;
 use OCP\IRequest;
 
 /**
@@ -31,16 +32,21 @@ class RequestDataExtractor
     /**
      * Extract tile data from the request parameters.
      *
-     * @param IRequest $request The request.
+     * @param IRequest   $request The request.
+     * @param IL10N|null $l10n    The localization service.
      *
      * @return array The tile configuration data.
      */
-    public static function extractTileData(IRequest $request): array
-    {
+    public static function extractTileData(
+        IRequest $request,
+        ?IL10N $l10n=null
+    ): array {
+        $defaultTitle = $l10n !== null ? $l10n->t('New Tile') : 'New Tile';
+
         return [
             'title'    => $request->getParam(
                 key: 'title',
-                default: 'New Tile'
+                default: $defaultTitle
             ),
             'icon'     => $request->getParam(
                 key: 'icon',

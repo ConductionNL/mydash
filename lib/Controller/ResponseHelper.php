@@ -23,12 +23,44 @@ namespace OCA\MyDash\Controller;
 
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\IL10N;
 
 /**
  * Helper for building common JSON responses in controllers.
  */
 class ResponseHelper
 {
+    /** @var IL10N|null */
+    private static ?IL10N $l10n = null;
+
+    /**
+     * Set the IL10N instance for translating user-facing messages.
+     *
+     * @param IL10N $l10n The localization service.
+     *
+     * @return void
+     */
+    public static function setL10N(IL10N $l10n): void
+    {
+        self::$l10n = $l10n;
+    }//end setL10N()
+
+    /**
+     * Translate a string if the IL10N service is available.
+     *
+     * @param string $text The text to translate.
+     *
+     * @return string The translated text.
+     */
+    private static function t(string $text): string
+    {
+        if (self::$l10n !== null) {
+            return self::$l10n->t($text);
+        }
+
+        return $text;
+    }//end t()
+
     /**
      * Create an unauthorized response.
      *
@@ -37,7 +69,7 @@ class ResponseHelper
     public static function unauthorized(): JSONResponse
     {
         return new JSONResponse(
-            data: ['error' => 'Not logged in'],
+            data: ['error' => self::t('Not logged in')],
             statusCode: Http::STATUS_UNAUTHORIZED
         );
     }//end unauthorized()
@@ -45,15 +77,15 @@ class ResponseHelper
     /**
      * Create a forbidden response.
      *
-     * @param string $message The error message.
+     * @param string|null $message The error message.
      *
      * @return JSONResponse The forbidden response.
      */
     public static function forbidden(
-        string $message='Access denied'
+        ?string $message=null
     ): JSONResponse {
         return new JSONResponse(
-            data: ['error' => $message],
+            data: ['error' => $message ?? self::t('Access denied')],
             statusCode: Http::STATUS_FORBIDDEN
         );
     }//end forbidden()

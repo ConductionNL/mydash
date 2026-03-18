@@ -28,6 +28,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 
 /**
@@ -41,18 +42,22 @@ class RuleApiController extends Controller
      * @param IRequest           $request            The request.
      * @param ConditionalService $conditionalService The conditional service.
      * @param PermissionService  $permissionService  The permission service.
+     * @param IL10N              $l10n               The localization service.
      * @param string|null        $userId             The user ID.
      */
     public function __construct(
         IRequest $request,
         private readonly ConditionalService $conditionalService,
         private readonly PermissionService $permissionService,
+        private readonly IL10N $l10n,
         private readonly ?string $userId,
     ) {
         parent::__construct(
             appName: Application::APP_ID,
             request: $request
         );
+
+        ResponseHelper::setL10N($this->l10n);
     }//end __construct()
 
     /**

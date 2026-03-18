@@ -28,6 +28,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 
 /**
@@ -41,18 +42,22 @@ class DashboardApiController extends Controller
      * @param IRequest          $request           The request.
      * @param DashboardService  $dashboardService  The dashboard service.
      * @param PermissionService $permissionService The permission service.
+     * @param IL10N             $l10n              The localization service.
      * @param string|null       $userId            The user ID.
      */
     public function __construct(
         IRequest $request,
         private readonly DashboardService $dashboardService,
         private readonly PermissionService $permissionService,
+        private readonly IL10N $l10n,
         private readonly ?string $userId,
     ) {
         parent::__construct(
             appName: Application::APP_ID,
             request: $request
         );
+
+        ResponseHelper::setL10N($this->l10n);
     }//end __construct()
 
     /**
@@ -94,7 +99,7 @@ class DashboardApiController extends Controller
 
         if ($result === null) {
             return ResponseHelper::success(
-                data: ['error' => 'No dashboard available'],
+                data: ['error' => $this->l10n->t('No dashboard available')],
                 statusCode: Http::STATUS_NOT_FOUND
             );
         }
@@ -293,7 +298,7 @@ class DashboardApiController extends Controller
         }
 
         return [
-            'name'        => $name ?? 'My Dashboard',
+            'name'        => $name ?? $this->l10n->t('My Dashboard'),
             'description' => $description,
         ];
     }//end resolveCreateParams()
@@ -312,7 +317,7 @@ class DashboardApiController extends Controller
         ) === false
         ) {
             return ResponseHelper::forbidden(
-                message: 'Dashboard creation not allowed'
+                message: $this->l10n->t('Dashboard creation not allowed')
             );
         }
 
@@ -325,7 +330,7 @@ class DashboardApiController extends Controller
             ) === false
         ) {
             return ResponseHelper::forbidden(
-                message: 'Multiple dashboards not allowed'
+                message: $this->l10n->t('Multiple dashboards not allowed')
             );
         }
 

@@ -23,7 +23,7 @@
 			</svg>
 			<div v-else class="tile-card__icon">
 				<span v-if="tile.iconType === 'class'" :class="tile.icon" />
-				<img v-else-if="tile.iconType === 'url'" :src="tile.icon" alt="Icon">
+				<img v-else-if="tile.iconType === 'url'" :src="tile.icon" :alt="t('mydash', 'Icon')">
 				<span v-else class="tile-card__emoji">{{ tile.icon }}</span>
 			</div>
 			<div class="tile-card__title">

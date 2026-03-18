@@ -28,6 +28,7 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 
 /**
@@ -40,17 +41,21 @@ class TileApiController extends Controller
      *
      * @param IRequest    $request     The request.
      * @param TileService $tileService The tile service.
+     * @param IL10N       $l10n        The localization service.
      * @param string|null $userId      The user ID.
      */
     public function __construct(
         IRequest $request,
         private readonly TileService $tileService,
+        private readonly IL10N $l10n,
         private readonly ?string $userId,
     ) {
         parent::__construct(
             appName: Application::APP_ID,
             request: $request
         );
+
+        ResponseHelper::setL10N($this->l10n);
     }//end __construct()
 
     /**
@@ -104,7 +109,7 @@ class TileApiController extends Controller
         try {
             $tile = $this->tileService->createTile(
                 userId: $this->userId,
-                title: $title ?? 'New Tile',
+                title: $title ?? $this->l10n->t('New Tile'),
                 icon: $icon ?? 'icon-link',
                 iconType: $iconType ?? 'class',
                 backgroundColor: $backgroundColor ?? '#0082c9',
@@ -165,7 +170,7 @@ class TileApiController extends Controller
 
         if ($resolvedData['id'] === null) {
             return ResponseHelper::success(
-                data: ['error' => 'Missing tile ID'],
+                data: ['error' => $this->l10n->t('Missing tile ID')],
                 statusCode: Http::STATUS_BAD_REQUEST
             );
         }

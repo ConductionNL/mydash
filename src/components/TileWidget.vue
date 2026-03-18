@@ -15,7 +15,7 @@
 		<button
 			v-if="editMode"
 			class="tile-widget__edit"
-			aria-label="Edit tile"
+			:aria-label="t('mydash', 'Edit tile')"
 			@click.prevent="$emit('edit')">
 			<span class="icon-settings" />
 		</button>
@@ -36,7 +36,7 @@
 			<!-- Icon class or emoji or URL -->
 			<div v-else class="tile-widget__icon">
 				<span v-if="tile.iconType === 'class'" :class="['icon', tile.icon]" />
-				<img v-else-if="tile.iconType === 'url'" :src="tile.icon" alt="Icon">
+				<img v-else-if="tile.iconType === 'url'" :src="tile.icon" :alt="t('mydash', 'Icon')">
 				<span v-else-if="tile.iconType === 'emoji'" class="tile-widget__emoji">{{ tile.icon }}</span>
 			</div>
 			<div
