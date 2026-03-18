@@ -52,7 +52,7 @@ class ResponseHelper
      *
      * @return string The translated text.
      */
-    private static function t(string $text): string
+    private static function translate(string $text): string
     {
         if (self::$l10n !== null) {
             return self::$l10n->t($text);
@@ -69,7 +69,7 @@ class ResponseHelper
     public static function unauthorized(): JSONResponse
     {
         return new JSONResponse(
-            data: ['error' => self::t('Not logged in')],
+            data: ['error' => self::translate('Not logged in')],
             statusCode: Http::STATUS_UNAUTHORIZED
         );
     }//end unauthorized()
@@ -85,7 +85,7 @@ class ResponseHelper
         ?string $message=null
     ): JSONResponse {
         return new JSONResponse(
-            data: ['error' => $message ?? self::t('Access denied')],
+            data: ['error' => $message ?? self::translate('Access denied')],
             statusCode: Http::STATUS_FORBIDDEN
         );
     }//end forbidden()
