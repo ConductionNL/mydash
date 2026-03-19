@@ -116,6 +116,8 @@ class ConditionalService
      * @param bool   $isInclude   Whether this is an include rule.
      *
      * @return ConditionalRule The created rule.
+     *
+     * @SuppressWarnings(PHPMD.BooleanArgumentFlag) - isInclude is a rule include/exclude flag
      */
     public function addRule(
         int $placementId,

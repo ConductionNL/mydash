@@ -92,6 +92,8 @@ class AdminTemplateService
      * @param bool        $isDefault       Whether this is the default.
      *
      * @return Dashboard The created template.
+     *
+     * @SuppressWarnings(PHPMD.BooleanArgumentFlag) - isDefault is an admin template flag
      */
     public function createTemplate(
         string $name,
@@ -118,11 +120,11 @@ class AdminTemplateService
         $template->setTargetGroupsArray(
             $targetGroups ?? []
         );
+        $template->setIsDefault(0);
         if ($isDefault === true) {
             $template->setIsDefault(1);
-        } else {
-            $template->setIsDefault(0);
         }
+
         $template->setCreatedAt($now);
         $template->setUpdatedAt($now);
 
@@ -239,9 +241,10 @@ class AdminTemplateService
                 $this->dashboardMapper->clearDefaultTemplates();
             }
 
-            $template->setIsDefault(
-                $data['isDefault'] ? 1 : 0
-            );
+            $template->setIsDefault(0);
+            if ($data['isDefault'] === true) {
+                $template->setIsDefault(1);
+            }
         }
 
         if (isset($data['gridColumns']) === true) {

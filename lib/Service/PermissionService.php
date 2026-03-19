@@ -243,6 +243,8 @@ class PermissionService
      * @param string $userId The user ID.
      *
      * @return bool Whether the user can create dashboards.
+     *
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter) - userId reserved for future per-user permission logic
      */
     public function canCreateDashboard(string $userId): bool
     {
@@ -258,6 +260,8 @@ class PermissionService
      * @param string $userId The user ID.
      *
      * @return bool Whether the user can have multiple dashboards.
+     *
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter) - userId reserved for future per-user permission logic
      */
     public function canHaveMultipleDashboards(string $userId): bool
     {

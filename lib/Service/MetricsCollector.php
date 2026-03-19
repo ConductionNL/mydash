@@ -90,9 +90,9 @@ class MetricsCollector
 
         $lines[] = '# HELP mydash_info Application information';
         $lines[] = '# TYPE mydash_info gauge';
-        $lines[] = 'mydash_info{version="'.$appVersion
-            .'",php_version="'.$phpVersion
-            .'",nextcloud_version="'.$ncVersion.'"} 1';
+        $label   = 'version="'.$appVersion.'",php_version="'.$phpVersion.'"';
+        $label   = $label.',nextcloud_version="'.$ncVersion.'"';
+        $lines[] = 'mydash_info{'.$label.'} 1';
     }//end addInfoMetric()
 
     /**

@@ -201,6 +201,10 @@ class DashboardResolver
             Dashboard::PERMISSION_FULL
         );
 
-        return is_string($default) ? $default : Dashboard::PERMISSION_FULL;
+        if (is_string($default) === true) {
+            return $default;
+        }
+
+        return Dashboard::PERMISSION_FULL;
     }//end getEffectivePermissionLevel()
 }//end class

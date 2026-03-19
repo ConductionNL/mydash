@@ -33,6 +33,9 @@ use OCP\IRequest;
 
 /**
  * Controller for conditional rule API endpoints.
+ *
+ * @SuppressWarnings(PHPMD.StaticAccess)        - ResponseHelper uses static methods by design
+ * @SuppressWarnings(PHPMD.BooleanArgumentFlag) - boolean params used for rule include/exclude flags
  */
 class RuleApiController extends Controller
 {

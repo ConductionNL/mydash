@@ -33,6 +33,8 @@ use OCP\IRequest;
 
 /**
  * Controller for tile API endpoints.
+ *
+ * @SuppressWarnings(PHPMD.StaticAccess) - ResponseHelper uses static methods by design
  */
 class TileApiController extends Controller
 {

@@ -33,7 +33,7 @@ use OCP\IRequest;
 /**
  * Controller for admin dashboard template management.
  *
- * @SuppressWarnings(PHPMD.StaticAccess) - ResponseHelper uses static methods by design
+ * @SuppressWarnings(PHPMD.StaticAccess)        - ResponseHelper uses static methods by design
  * @SuppressWarnings(PHPMD.BooleanArgumentFlag) - boolean params used for admin template flags
  */
 class AdminController extends Controller

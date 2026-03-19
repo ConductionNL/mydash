@@ -59,6 +59,8 @@ class PlacementTableBuilder
      * @param mixed $table The table instance.
      *
      * @return void
+     *
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength) - migration column definitions are verbose by nature
      */
     private static function addColumns(mixed $table): void
     {

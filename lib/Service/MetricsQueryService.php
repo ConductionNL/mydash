@@ -61,17 +61,16 @@ class MetricsQueryService
 
         $counts = ['personal' => 0, 'template' => 0];
         foreach ($rows as $row) {
+            $type = 'personal';
             if ($row['type'] !== null && $row['type'] !== '') {
                 $type = $row['type'];
-            } else {
-                $type = 'personal';
             }
 
-            if (isset($counts[$type]) === true) {
-                $counts[$type] = $counts[$type] + (int) $row['cnt'];
-            } else {
-                $counts[$type] = (int) $row['cnt'];
+            if (isset($counts[$type]) === false) {
+                $counts[$type] = 0;
             }
+
+            $counts[$type] = $counts[$type] + (int) $row['cnt'];
         }
 
         return $counts;

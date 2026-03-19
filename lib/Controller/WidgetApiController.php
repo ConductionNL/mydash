@@ -34,6 +34,8 @@ use OCP\IRequest;
 
 /**
  * Controller for managing dashboard widgets.
+ *
+ * @SuppressWarnings(PHPMD.StaticAccess) - ResponseHelper and RequestDataExtractor use static methods by design
  */
 class WidgetApiController extends Controller
 {

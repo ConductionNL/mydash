@@ -32,8 +32,8 @@ class UserAttributeResolver
     /**
      * Constructor
      *
-     * @param IUserManager  $userManager The user manager interface.
-     * @param IL10NFactory  $l10nFactory The L10N factory for user language.
+     * @param IUserManager $userManager The user manager interface.
+     * @param IL10NFactory $l10nFactory The L10N factory for user language.
      */
     public function __construct(
         private readonly IUserManager $userManager,

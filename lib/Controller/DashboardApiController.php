@@ -32,6 +32,8 @@ use OCP\IRequest;
 
 /**
  * Controller for dashboard API endpoints.
+ *
+ * @SuppressWarnings(PHPMD.StaticAccess) - ResponseHelper uses static methods by design
  */
 class DashboardApiController extends Controller
 {

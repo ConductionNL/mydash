@@ -28,6 +28,8 @@ use OCP\IL10N;
 
 /**
  * Validates dashboard request parameters and permissions.
+ *
+ * @SuppressWarnings(PHPMD.StaticAccess) - ResponseHelper uses static methods by design
  */
 class DashboardRequestValidator
 {
@@ -60,13 +62,12 @@ class DashboardRequestValidator
      */
     public function checkUpdatePermissions(string $userId, int $dashboardId, ?array $placements): ?JSONResponse
     {
+        $allowed = $this->permissionService->canEditDashboard(
+            userId: $userId,
+            dashboardId: $dashboardId
+        );
         if ($placements === null) {
             $allowed = $this->permissionService->canEditDashboardMetadata(
-                userId: $userId,
-                dashboardId: $dashboardId
-            );
-        } else {
-            $allowed = $this->permissionService->canEditDashboard(
                 userId: $userId,
                 dashboardId: $dashboardId
             );
