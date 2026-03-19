@@ -29,7 +29,7 @@ use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IGroupManager;
 use OCP\IUserManager;
-use Ramsey\Uuid\Uuid;
+// Note: Ramsey\Uuid is not a direct dependency; using random_bytes-based UUID v4 generator.
 
 /**
  * Service for managing admin dashboard templates.
@@ -140,7 +140,8 @@ class TemplateService
         Dashboard $template
     ): Dashboard {
         $dashboard = new Dashboard();
-        $dashboard->setUuid(Uuid::uuid4()->toString());
+        $now       = (new DateTime())->format('Y-m-d H:i:s');
+        $dashboard->setUuid(self::generateUuid());
         $dashboard->setName($template->getName());
         $dashboard->setDescription(
             $template->getDescription()
@@ -156,9 +157,9 @@ class TemplateService
         $dashboard->setPermissionLevel(
             $template->getPermissionLevel()
         );
-        $dashboard->setIsActive(true);
-        $dashboard->setCreatedAt(new DateTime());
-        $dashboard->setUpdatedAt(new DateTime());
+        $dashboard->setIsActive(1);
+        $dashboard->setCreatedAt($now);
+        $dashboard->setUpdatedAt($now);
 
         return $dashboard;
     }//end buildDashboardFromTemplate()
@@ -187,6 +188,23 @@ class TemplateService
             $this->placementMapper->insert($placement);
         }
     }//end copyTemplatePlacements()
+
+    /**
+     * Generate a UUID v4 string.
+     *
+     * @return string The generated UUID.
+     */
+    private static function generateUuid(): string
+    {
+        $data    = random_bytes(16);
+        $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
+        $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+
+        return vsprintf(
+            '%s%s-%s-%s-%s-%s%s%s',
+            str_split(bin2hex($data), 4)
+        );
+    }//end generateUuid()
 
     /**
      * Clone a widget placement for a new dashboard.
@@ -221,8 +239,9 @@ class TemplateService
         );
         $placement->setShowTitle($source->getShowTitle());
         $placement->setSortOrder($source->getSortOrder());
-        $placement->setCreatedAt(new DateTime());
-        $placement->setUpdatedAt(new DateTime());
+        $now = (new DateTime())->format('Y-m-d H:i:s');
+        $placement->setCreatedAt($now);
+        $placement->setUpdatedAt($now);
 
         return $placement;
     }//end clonePlacement()

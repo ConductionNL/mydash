@@ -96,7 +96,7 @@ class DashboardResolver
             dashboardId: $dashboard->getId(),
             userId: $userId
         );
-        $dashboard->setIsActive(true);
+        $dashboard->setIsActive(1);
 
         $placements = $this->placementMapper->findByDashboardId(
             $dashboard->getId()
@@ -192,13 +192,15 @@ class DashboardResolver
         }
 
         $level = $dashboard->getPermissionLevel();
-        if ($level !== null) {
+        if (empty($level) === false) {
             return $level;
         }
 
-        return $this->settingMapper->getValue(
+        $default = $this->settingMapper->getValue(
             AdminSetting::KEY_DEFAULT_PERMISSION_LEVEL,
             Dashboard::PERMISSION_FULL
         );
+
+        return is_string($default) ? $default : Dashboard::PERMISSION_FULL;
     }//end getEffectivePermissionLevel()
 }//end class

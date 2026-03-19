@@ -107,6 +107,11 @@ class ResponseHelper
         \Exception $exception,
         int $statusCode=Http::STATUS_BAD_REQUEST
     ): JSONResponse {
+        /**
+         * Psalm type narrowing for Nextcloud JSONResponse constructor.
+         *
+         * @var int<100,599> $statusCode
+         */
         return new JSONResponse(
             data: ['error' => $exception->getMessage()],
             statusCode: $statusCode
@@ -116,8 +121,8 @@ class ResponseHelper
     /**
      * Create a success response.
      *
-     * @param array $data       The response data.
-     * @param int   $statusCode The HTTP status code.
+     * @param array<string, mixed> $data       The response data.
+     * @param int                  $statusCode The HTTP status code.
      *
      * @return JSONResponse The success response.
      */
@@ -125,6 +130,11 @@ class ResponseHelper
         array $data,
         int $statusCode=Http::STATUS_OK
     ): JSONResponse {
+        /**
+         * Psalm type narrowing for Nextcloud JSONResponse constructor.
+         *
+         * @var int<100,599> $statusCode
+         */
         return new JSONResponse(
             data: $data,
             statusCode: $statusCode

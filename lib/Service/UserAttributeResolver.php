@@ -22,6 +22,7 @@ declare(strict_types=1);
 namespace OCA\MyDash\Service;
 
 use OCP\IUserManager;
+use OCP\L10N\IFactory as IL10NFactory;
 
 /**
  * Service for resolving user attribute values and evaluating operators.
@@ -31,10 +32,12 @@ class UserAttributeResolver
     /**
      * Constructor
      *
-     * @param IUserManager $userManager The user manager interface.
+     * @param IUserManager  $userManager The user manager interface.
+     * @param IL10NFactory  $l10nFactory The L10N factory for user language.
      */
     public function __construct(
         private readonly IUserManager $userManager,
+        private readonly IL10NFactory $l10nFactory,
     ) {
     }//end __construct()
 
@@ -56,7 +59,7 @@ class UserAttributeResolver
         }
 
         return match ($attribute) {
-            'locale' => $user->getLanguage() ?? 'en',
+            'locale' => $this->l10nFactory->getUserLanguage($user),
             'email' => $user->getEMailAddress(),
             'displayName' => $user->getDisplayName(),
             'quota' => (string) $user->getQuota(),

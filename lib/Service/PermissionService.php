@@ -193,7 +193,7 @@ class PermissionService
 
         // Add only users can't remove compulsory widgets.
         if ($permissionLevel === Dashboard::PERMISSION_ADD_ONLY) {
-            return $placement->getIsCompulsory() === false;
+            return $placement->getIsCompulsory() === 0;
         }
 
         return false;

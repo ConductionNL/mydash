@@ -21,6 +21,7 @@ declare(strict_types=1);
 
 namespace OCA\MyDash\Db;
 
+use JsonSerializable;
 use OCP\AppFramework\Db\Entity;
 
 /**
@@ -31,9 +32,9 @@ class EntitySerializer
     /**
      * Serialize an array of entities to arrays.
      *
-     * @param Entity[] $entities The entities to serialize.
+     * @param array<Entity&JsonSerializable> $entities The entities to serialize.
      *
-     * @return array The serialized data.
+     * @return array<int, array<string, mixed>> The serialized data.
      */
     public function serializeList(array $entities): array
     {
@@ -48,11 +49,11 @@ class EntitySerializer
     /**
      * Serialize a single entity to array.
      *
-     * @param Entity $entity The entity to serialize.
+     * @param Entity&JsonSerializable $entity The entity to serialize.
      *
-     * @return array The serialized data.
+     * @return array<string, mixed> The serialized data.
      */
-    public function serialize(Entity $entity): array
+    public function serialize(Entity&JsonSerializable $entity): array
     {
         return $entity->jsonSerialize();
     }//end serialize()
@@ -60,12 +61,12 @@ class EntitySerializer
     /**
      * Extract specific fields from an entity's serialized form.
      *
-     * @param Entity $entity The entity.
-     * @param array  $fields The field names to extract.
+     * @param Entity&JsonSerializable $entity The entity.
+     * @param array<string>           $fields The field names to extract.
      *
-     * @return array The extracted fields.
+     * @return array<string, mixed> The extracted fields.
      */
-    public function extractFields(Entity $entity, array $fields): array
+    public function extractFields(Entity&JsonSerializable $entity, array $fields): array
     {
         $serialized = $entity->jsonSerialize();
         $result     = [];

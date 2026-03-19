@@ -23,7 +23,6 @@ namespace OCA\MyDash\Controller;
 
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Service\DashboardService;
-use OCA\MyDash\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -39,16 +38,16 @@ class DashboardApiController extends Controller
     /**
      * Constructor
      *
-     * @param IRequest          $request           The request.
-     * @param DashboardService  $dashboardService  The dashboard service.
-     * @param PermissionService $permissionService The permission service.
-     * @param IL10N             $l10n              The localization service.
-     * @param string|null       $userId            The user ID.
+     * @param IRequest                  $request          The request.
+     * @param DashboardService          $dashboardService The dashboard service.
+     * @param DashboardRequestValidator $validator        The request validator.
+     * @param IL10N                     $l10n             The localization service.
+     * @param string|null               $userId           The user ID.
      */
     public function __construct(
         IRequest $request,
         private readonly DashboardService $dashboardService,
-        private readonly PermissionService $permissionService,
+        private readonly DashboardRequestValidator $validator,
         private readonly IL10N $l10n,
         private readonly ?string $userId,
     ) {
@@ -132,12 +131,12 @@ class DashboardApiController extends Controller
             return ResponseHelper::unauthorized();
         }
 
-        $resolved = $this->resolveCreateParams(
+        $resolved = $this->validator->resolveCreateParams(
             name: $name,
             description: $description
         );
 
-        $permError = $this->checkCreatePermissions(
+        $permError = $this->validator->checkCreatePermissions(
             userId: $this->userId
         );
         if ($permError !== null) {
@@ -181,30 +180,17 @@ class DashboardApiController extends Controller
             return ResponseHelper::unauthorized();
         }
 
-        // REQ-PERM-007: Metadata-only updates (name, description) are allowed
-        // for all permission levels. Widget/tile/layout changes require
-        // add_only or full permission.
-        $isMetadataOnly = $placements === null;
-        if ($isMetadataOnly === true) {
-            if ($this->permissionService->canEditDashboardMetadata(
-                userId: $this->userId,
-                dashboardId: $id
-            ) === false
-            ) {
-                return ResponseHelper::forbidden();
-            }
-        } else {
-            if ($this->permissionService->canEditDashboard(
-                userId: $this->userId,
-                dashboardId: $id
-            ) === false
-            ) {
-                return ResponseHelper::forbidden();
-            }
+        $permError = $this->validator->checkUpdatePermissions(
+            userId: $this->userId,
+            dashboardId: $id,
+            placements: $placements
+        );
+        if ($permError !== null) {
+            return $permError;
         }
 
         try {
-            $data = $this->buildUpdateData(
+            $data = $this->validator->buildUpdateData(
                 name: $name,
                 description: $description,
                 placements: $placements
@@ -277,91 +263,4 @@ class DashboardApiController extends Controller
             return ResponseHelper::error(exception: $e);
         }
     }//end activate()
-
-    /**
-     * Resolve create parameters from JSON body or individual params.
-     *
-     * @param mixed       $name        The name parameter.
-     * @param string|null $description The description parameter.
-     *
-     * @return array The resolved name and description.
-     */
-    private function resolveCreateParams(
-        $name,
-        ?string $description
-    ): array {
-        if (is_array($name) === true) {
-            return [
-                'name'        => $name['name'] ?? 'My Dashboard',
-                'description' => $name['description'] ?? null,
-            ];
-        }
-
-        return [
-            'name'        => $name ?? $this->l10n->t('My Dashboard'),
-            'description' => $description,
-        ];
-    }//end resolveCreateParams()
-
-    /**
-     * Check creation permissions and return error if denied.
-     *
-     * @param string $userId The user ID.
-     *
-     * @return JSONResponse|null Error response or null if allowed.
-     */
-    private function checkCreatePermissions(string $userId): ?JSONResponse
-    {
-        if ($this->permissionService->canCreateDashboard(
-            userId: $userId
-        ) === false
-        ) {
-            return ResponseHelper::forbidden(
-                message: $this->l10n->t('Dashboard creation not allowed')
-            );
-        }
-
-        $existing = $this->dashboardService->getUserDashboards(
-            userId: $userId
-        );
-        if (empty($existing) === false
-            && $this->permissionService->canHaveMultipleDashboards(
-                userId: $userId
-            ) === false
-        ) {
-            return ResponseHelper::forbidden(
-                message: $this->l10n->t('Multiple dashboards not allowed')
-            );
-        }
-
-        return null;
-    }//end checkCreatePermissions()
-
-    /**
-     * Build update data from nullable parameters.
-     *
-     * @param string|null $name        The name.
-     * @param string|null $description The description.
-     * @param array|null  $placements  The placements.
-     *
-     * @return array The non-null update data.
-     */
-    private function buildUpdateData(
-        ?string $name,
-        ?string $description,
-        ?array $placements
-    ): array {
-        $fields = [
-            'name'        => $name,
-            'description' => $description,
-            'placements'  => $placements,
-        ];
-
-        return array_filter(
-            array: $fields,
-            callback: function ($value) {
-                return $value !== null;
-            }
-        );
-    }//end buildUpdateData()
 }//end class

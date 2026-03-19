@@ -26,6 +26,9 @@ use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 
+/**
+ * @SuppressWarnings(PHPMD.StaticAccess) - \OCP\Util::addStyle() is the Nextcloud API for CSS injection
+ */
 class Application extends App implements IBootstrap
 {
     public const APP_ID = 'mydash';
@@ -46,6 +49,8 @@ class Application extends App implements IBootstrap
      * @param IRegistrationContext $context The registration context.
      *
      * @return void
+     *
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter) - required by IBootstrap interface
      */
     public function register(IRegistrationContext $context): void
     {
@@ -58,6 +63,8 @@ class Application extends App implements IBootstrap
      * @param IBootContext $context The boot context.
      *
      * @return void
+     *
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter) - required by IBootstrap interface
      */
     public function boot(IBootContext $context): void
     {

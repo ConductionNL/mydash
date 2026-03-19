@@ -56,11 +56,11 @@ class RulesTableBuilder
     /**
      * Add columns to the conditional rules table.
      *
-     * @param \Doctrine\DBAL\Schema\Table $table The table instance.
+     * @param mixed $table The table instance.
      *
      * @return void
      */
-    private static function addColumns($table): void
+    private static function addColumns(mixed $table): void
     {
         $table->addColumn(
             name: 'id',
@@ -115,11 +115,11 @@ class RulesTableBuilder
     /**
      * Add indexes to the conditional rules table.
      *
-     * @param \Doctrine\DBAL\Schema\Table $table The table instance.
+     * @param mixed $table The table instance.
      *
      * @return void
      */
-    private static function addIndexes($table): void
+    private static function addIndexes(mixed $table): void
     {
         $table->setPrimaryKey(columnNames: ['id']);
         $table->addIndex(

@@ -57,7 +57,7 @@ class ConditionalService
         WidgetPlacement $placement,
         string $userId
     ): bool {
-        if ($placement->getIsVisible() === false) {
+        if ($placement->getIsVisible() === 0) {
             return false;
         }
 

@@ -26,7 +26,7 @@ use Exception;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
-use Ramsey\Uuid\Uuid;
+// Note: Ramsey\Uuid is not a direct dependency; using random_bytes-based UUID v4 generator.
 
 /**
  * Service for admin template CRUD operations.
@@ -104,8 +104,9 @@ class AdminTemplateService
             $this->dashboardMapper->clearDefaultTemplates();
         }
 
+        $now      = (new DateTime())->format('Y-m-d H:i:s');
         $template = new Dashboard();
-        $template->setUuid(Uuid::uuid4()->toString());
+        $template->setUuid(self::generateUuid());
         $template->setName($name);
         $template->setDescription($description);
         $template->setType(Dashboard::TYPE_ADMIN_TEMPLATE);
@@ -117,9 +118,13 @@ class AdminTemplateService
         $template->setTargetGroupsArray(
             $targetGroups ?? []
         );
-        $template->setIsDefault($isDefault);
-        $template->setCreatedAt(new DateTime());
-        $template->setUpdatedAt(new DateTime());
+        if ($isDefault === true) {
+            $template->setIsDefault(1);
+        } else {
+            $template->setIsDefault(0);
+        }
+        $template->setCreatedAt($now);
+        $template->setUpdatedAt($now);
 
         return $this->dashboardMapper->insert($template);
     }//end createTemplate()
@@ -147,7 +152,9 @@ class AdminTemplateService
             data: $data
         );
 
-        $template->setUpdatedAt(new DateTime());
+        $template->setUpdatedAt(
+            (new DateTime())->format('Y-m-d H:i:s')
+        );
 
         return $this->dashboardMapper->update($template);
     }//end updateTemplate()
@@ -175,6 +182,23 @@ class AdminTemplateService
         // Delete template.
         $this->dashboardMapper->delete($template);
     }//end deleteTemplate()
+
+    /**
+     * Generate a UUID v4 string.
+     *
+     * @return string The generated UUID.
+     */
+    private static function generateUuid(): string
+    {
+        $data    = random_bytes(16);
+        $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
+        $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+
+        return vsprintf(
+            '%s%s-%s-%s-%s-%s%s%s',
+            str_split(bin2hex($data), 4)
+        );
+    }//end generateUuid()
 
     /**
      * Apply update data to a template entity.
@@ -216,7 +240,7 @@ class AdminTemplateService
             }
 
             $template->setIsDefault(
-                $data['isDefault']
+                $data['isDefault'] ? 1 : 0
             );
         }
 

@@ -25,6 +25,13 @@ use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
+/**
+ * TileMapper
+ *
+ * Mapper for tile entities.
+ *
+ * @extends QBMapper<Tile>
+ */
 class TileMapper extends QBMapper
 {
     /**

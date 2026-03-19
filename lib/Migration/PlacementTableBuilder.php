@@ -56,11 +56,11 @@ class PlacementTableBuilder
     /**
      * Add columns to the widget placements table.
      *
-     * @param \Doctrine\DBAL\Schema\Table $table The table instance.
+     * @param mixed $table The table instance.
      *
      * @return void
      */
-    private static function addColumns($table): void
+    private static function addColumns(mixed $table): void
     {
         $table->addColumn(
             name: 'id',
@@ -188,11 +188,11 @@ class PlacementTableBuilder
     /**
      * Add indexes to the widget placements table.
      *
-     * @param \Doctrine\DBAL\Schema\Table $table The table instance.
+     * @param mixed $table The table instance.
      *
      * @return void
      */
-    private static function addIndexes($table): void
+    private static function addIndexes(mixed $table): void
     {
         $table->setPrimaryKey(columnNames: ['id']);
         $table->addIndex(
