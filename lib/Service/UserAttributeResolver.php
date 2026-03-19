@@ -87,11 +87,11 @@ class UserAttributeResolver
             ),
             'starts_with' => str_starts_with(
                 haystack: $userValue,
-                prefix: $value ?? ''
+                needle: $value ?? ''
             ),
             'ends_with' => str_ends_with(
                 haystack: $userValue,
-                suffix: $value ?? ''
+                needle: $value ?? ''
             ),
             default => false,
         };
