@@ -104,8 +104,8 @@ class TileService
     public function updateTile(int $id, string $userId, array $data): Tile
     {
         $tile = $this->tileMapper->findByIdAndUser(
-            $id,
-            $userId
+            id: $id,
+            userId: $userId
         );
 
         if (isset($data['title']) === true) {
@@ -158,8 +158,8 @@ class TileService
     public function deleteTile(int $id, string $userId): void
     {
         $tile = $this->tileMapper->findByIdAndUser(
-            $id,
-            $userId
+            id: $id,
+            userId: $userId
         );
         $this->tileMapper->delete($tile);
     }//end deleteTile()

@@ -108,8 +108,8 @@ class PlacementService
         $placement->setShowTitle(1);
 
         $this->tileUpdater->applyTileConfig(
-            $placement,
-            $tileData
+            placement: $placement,
+            tileData: $tileData
         );
 
         $placement->setCreatedAt($now);
@@ -133,16 +133,16 @@ class PlacementService
         $placement = $this->placementMapper->find($placementId);
 
         $this->placementUpdater->applyGridUpdates(
-            $placement,
-            $data
+            placement: $placement,
+            data: $data
         );
         $this->placementUpdater->applyDisplayUpdates(
-            $placement,
-            $data
+            placement: $placement,
+            data: $data
         );
         $this->tileUpdater->applyTileUpdates(
-            $placement,
-            $data
+            placement: $placement,
+            data: $data
         );
 
         $placement->setUpdatedAt(

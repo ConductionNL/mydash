@@ -30,7 +30,12 @@ use OCP\IL10N;
  */
 class ResponseHelper
 {
-    /** @var IL10N|null */
+
+    /**
+     * The localization service instance.
+     *
+     * @var IL10N|null
+     */
     private static ?IL10N $l10n = null;
 
     /**
@@ -59,7 +64,7 @@ class ResponseHelper
         }
 
         return $text;
-    }//end t()
+    }//end translate()
 
     /**
      * Create an unauthorized response.

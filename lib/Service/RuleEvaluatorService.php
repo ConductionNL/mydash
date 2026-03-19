@@ -59,18 +59,18 @@ class RuleEvaluatorService
     ): bool {
         return match ($rule->getRuleType()) {
             ConditionalRule::TYPE_GROUP => $this->evaluateGroupRule(
-                $rule,
-                $userId
+                rule: $rule,
+                userId: $userId
             ),
             ConditionalRule::TYPE_TIME => $this->evaluateTimeRule(
-                $rule
+                rule: $rule
             ),
             ConditionalRule::TYPE_DATE => $this->evaluateDateRule(
-                $rule
+                rule: $rule
             ),
             ConditionalRule::TYPE_ATTRIBUTE => $this->evaluateAttributeRule(
-                $rule,
-                $userId
+                rule: $rule,
+                userId: $userId
             ),
             default => false,
         };
@@ -195,8 +195,8 @@ class RuleEvaluatorService
         }
 
         $userValue = $this->attrResolver->getUserAttributeValue(
-            $userId,
-            $attribute
+            userId: $userId,
+            attribute: $attribute
         );
 
         if ($userValue === null) {
@@ -204,9 +204,9 @@ class RuleEvaluatorService
         }
 
         return $this->attrResolver->evaluateOperator(
-            $userValue,
-            $operator,
-            $value
+            userValue: $userValue,
+            operator: $operator,
+            value: $value
         );
     }//end evaluateAttributeRule()
 }//end class

@@ -108,9 +108,9 @@ class DashboardService
         ?string $description=null
     ): Dashboard {
         $dashboard = $this->dashboardFactory->create(
-            $userId,
-            $name,
-            $description
+            userId: $userId,
+            name: $name,
+            description: $description
         );
 
         $this->dashboardMapper->deactivateAllForUser($userId);
@@ -139,8 +139,8 @@ class DashboardService
         }
 
         $this->applyDashboardUpdates(
-            $dashboard,
-            $data
+            dashboard: $dashboard,
+            data: $data
         );
 
         return $this->dashboardMapper->update($dashboard);
@@ -187,8 +187,8 @@ class DashboardService
         }
 
         $this->dashboardMapper->setActive(
-            $dashboardId,
-            $userId
+            dashboardId: $dashboardId,
+            userId: $userId
         );
         $dashboard->setIsActive(true);
 
@@ -215,16 +215,16 @@ class DashboardService
 
         if ($template !== null) {
             return $this->dashResolver->handleTemplateResult(
-                $template,
-                $allowUserDashboards,
-                $userId
+                template: $template,
+                allowUserDashboards: $allowUserDashboards,
+                userId: $userId
             );
         }
 
         if ($allowUserDashboards === true) {
             $dashboard = $this->createDashboard(
-                $userId,
-                'My Dashboard'
+                userId: $userId,
+                name: 'My Dashboard'
             );
             return [
                 'dashboard'       => $dashboard,

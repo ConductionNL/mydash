@@ -67,8 +67,8 @@ class DashboardResolver
             );
 
             return $this->buildResult(
-                $dashboard,
-                $placements
+                dashboard: $dashboard,
+                placements: $placements
             );
         } catch (DoesNotExistException) {
             return null;
@@ -93,8 +93,8 @@ class DashboardResolver
 
         $dashboard = $userDashboards[0];
         $this->dashboardMapper->setActive(
-            $dashboard->getId(),
-            $userId
+            dashboardId: $dashboard->getId(),
+            userId: $userId
         );
         $dashboard->setIsActive(true);
 
@@ -103,8 +103,8 @@ class DashboardResolver
         );
 
         return $this->buildResult(
-            $dashboard,
-            $placements
+            dashboard: $dashboard,
+            placements: $placements
         );
     }//end tryActivateExistingDashboard()
 
@@ -124,16 +124,16 @@ class DashboardResolver
     ): array {
         if ($allowUserDashboards === true) {
             $dashboard  = $this->templateService->createDashboardFromTemplate(
-                $userId,
-                $template
+                userId: $userId,
+                template: $template
             );
             $placements = $this->placementMapper->findByDashboardId(
                 $dashboard->getId()
             );
 
             return $this->buildResult(
-                $dashboard,
-                $placements
+                dashboard: $dashboard,
+                placements: $placements
             );
         }
 

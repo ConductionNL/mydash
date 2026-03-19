@@ -143,8 +143,8 @@ class AdminTemplateService
         }
 
         $this->applyTemplateUpdates(
-            $template,
-            $data
+            template: $template,
+            data: $data
         );
 
         $template->setUpdatedAt(new DateTime());

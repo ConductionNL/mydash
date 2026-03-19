@@ -41,7 +41,11 @@ class RequestDataExtractor
         IRequest $request,
         ?IL10N $l10n=null
     ): array {
-        $defaultTitle = $l10n !== null ? $l10n->t('New Tile') : 'New Tile';
+        if ($l10n !== null) {
+            $defaultTitle = $l10n->t('New Tile');
+        } else {
+            $defaultTitle = 'New Tile';
+        }
 
         return [
             'title'    => $request->getParam(

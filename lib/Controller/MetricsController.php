@@ -67,7 +67,10 @@ class MetricsController extends Controller
 
         $appVersion = $this->config->getAppValue(Application::APP_ID, 'installed_version', '0.0.0');
         $phpVersion = PHP_VERSION;
-        $ncVersion  = $this->config->getSystemValueString('version', '0.0.0');
+        $ncVersion  = $this->config->getSystemValueString(
+            key: 'version',
+            default: '0.0.0'
+        );
 
         // Info gauge.
         $lines[] = '# HELP mydash_info Application information';
@@ -125,8 +128,17 @@ class MetricsController extends Controller
 
             $counts = [];
             foreach ($rows as $row) {
-                $type           = ($row['type'] !== null && $row['type'] !== '') ? $row['type'] : 'personal';
-                $counts[$type]  = (isset($counts[$type]) === true) ? $counts[$type] + (int) $row['cnt'] : (int) $row['cnt'];
+                if ($row['type'] !== null && $row['type'] !== '') {
+                    $type = $row['type'];
+                } else {
+                    $type = 'personal';
+                }
+
+                if (isset($counts[$type]) === true) {
+                    $counts[$type] = $counts[$type] + (int) $row['cnt'];
+                } else {
+                    $counts[$type] = (int) $row['cnt'];
+                }
             }
 
             // Ensure both types are reported.

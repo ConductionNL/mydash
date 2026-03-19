@@ -109,8 +109,8 @@ class TemplateService
     ): Dashboard {
         // Create user dashboard.
         $dashboard = $this->buildDashboardFromTemplate(
-            $userId,
-            $template
+            userId: $userId,
+            template: $template
         );
 
         // Deactivate other dashboards.
@@ -120,8 +120,8 @@ class TemplateService
 
         // Copy widget placements from template.
         $this->copyTemplatePlacements(
-            $template->getId(),
-            $dashboard->getId()
+            templateId: $template->getId(),
+            dashboardId: $dashboard->getId()
         );
 
         return $dashboard;
@@ -181,8 +181,8 @@ class TemplateService
 
         foreach ($templatePlacements as $templatePlacement) {
             $placement = $this->clonePlacement(
-                $templatePlacement,
-                $dashboardId
+                source: $templatePlacement,
+                dashboardId: $dashboardId
             );
             $this->placementMapper->insert($placement);
         }

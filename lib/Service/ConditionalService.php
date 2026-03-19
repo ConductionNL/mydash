@@ -70,8 +70,8 @@ class ConditionalService
         }
 
         return $this->visibilityChecker->checkRules(
-            $rules,
-            $userId
+            rules: $rules,
+            userId: $userId
         );
     }//end isWidgetVisible()
 
@@ -88,8 +88,8 @@ class ConditionalService
         string $userId
     ): bool {
         return $this->ruleEvaluator->evaluateRule(
-            $rule,
-            $userId
+            rule: $rule,
+            userId: $userId
         );
     }//end evaluateRule()
 
