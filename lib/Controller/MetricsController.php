@@ -80,16 +80,16 @@ class MetricsController extends Controller
         $lines[] = 'mydash_up 1';
 
         // Dashboards total by type.
-        $this->collectDashboardMetrics($lines);
+        $this->collectDashboardMetrics(lines: $lines);
 
         // Widgets total.
-        $widgetsTotal = $this->countTable('mydash_widget_placements');
+        $widgetsTotal = $this->countTable(table: 'mydash_widget_placements');
         $lines[]      = '# HELP mydash_widgets_total Total number of widget placements';
         $lines[]      = '# TYPE mydash_widgets_total gauge';
         $lines[]      = 'mydash_widgets_total '.$widgetsTotal;
 
         // Tiles total.
-        $tilesTotal = $this->countTable('mydash_tiles');
+        $tilesTotal = $this->countTable(table: 'mydash_tiles');
         $lines[]    = '# HELP mydash_tiles_total Total number of tiles';
         $lines[]    = '# TYPE mydash_tiles_total gauge';
         $lines[]    = 'mydash_tiles_total '.$tilesTotal;
@@ -125,8 +125,17 @@ class MetricsController extends Controller
 
             $counts = [];
             foreach ($rows as $row) {
-                $type           = ($row['type'] !== null && $row['type'] !== '') ? $row['type'] : 'personal';
-                $counts[$type]  = (isset($counts[$type]) === true) ? $counts[$type] + (int) $row['cnt'] : (int) $row['cnt'];
+                if ($row['type'] !== null && $row['type'] !== '') {
+                    $type = $row['type'];
+                } else {
+                    $type = 'personal';
+                }
+
+                if (isset($counts[$type]) === true) {
+                    $counts[$type] = $counts[$type] + (int) $row['cnt'];
+                } else {
+                    $counts[$type] = (int) $row['cnt'];
+                }
             }
 
             // Ensure both types are reported.
