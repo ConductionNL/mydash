@@ -29,7 +29,7 @@ const config = {
           path: './',
           sidebarPath: require.resolve('./sidebars.js'),
           editUrl:
-            'https://github.com/ConductionNL/mydash/tree/main/docusaurus/',
+            'https://github.com/ConductionNL/mydash/tree/main/docs/',
         },
         blog: false,
         theme: {

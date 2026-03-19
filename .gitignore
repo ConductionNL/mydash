@@ -8,8 +8,9 @@ vendor/
 
 # Build artifacts
 /js/
-/docusaurus/build/
-/docusaurus/.docusaurus/
+/docs/node_modules/
+/docs/build/
+/docs/.docusaurus/
 
 # Development
 .DS_Store
