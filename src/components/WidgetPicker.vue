@@ -285,7 +285,7 @@ export default {
 	background: var(--color-main-background);
 	border-left: 1px solid var(--color-border);
 	transform: translateX(100%);
-	transition: transform 0.2s ease;
+	transition: transform var(--animation-quick) ease;
 	z-index: 1000;
 	display: flex;
 	flex-direction: column;
@@ -300,7 +300,6 @@ export default {
 	align-items: center;
 	justify-content: space-between;
 	padding: 16px;
-	border-bottom: 1px solid var(--color-border);
 }
 
 .mydash-picker__title {
@@ -326,8 +325,8 @@ export default {
 	cursor: pointer;
 	font-size: 14px;
 	font-weight: 500;
-	color: var(--color-text-lighter);
-	transition: all 0.2s ease;
+	color: var(--color-text-maxcontrast);
+	transition: all var(--animation-quick) ease;
 	border-bottom: 2px solid transparent;
 }
 
@@ -343,7 +342,6 @@ export default {
 
 .mydash-picker__add-tile {
 	padding: 16px;
-	border-bottom: 1px solid var(--color-border);
 }
 
 .mydash-picker__content {
@@ -355,7 +353,6 @@ export default {
 
 .mydash-picker__search {
 	padding: 16px;
-	border-bottom: 1px solid var(--color-border);
 }
 
 .mydash-picker__list {
@@ -369,9 +366,9 @@ export default {
 	align-items: center;
 	gap: 12px;
 	padding: 12px;
-	border-radius: var(--border-radius);
+	border-radius: var(--border-radius-large);
 	cursor: pointer;
-	transition: background 0.1s ease;
+	transition: background var(--animation-quick) ease;
 }
 
 .mydash-picker__widget:hover {
@@ -401,13 +398,13 @@ export default {
 .mydash-picker__widget-badge {
 	display: block;
 	font-size: 12px;
-	color: var(--color-text-lighter);
+	color: var(--color-text-maxcontrast);
 }
 
 .mydash-picker__widget-add,
 .mydash-picker__widget-check {
 	flex-shrink: 0;
-	color: var(--color-text-lighter);
+	color: var(--color-text-maxcontrast);
 }
 
 .mydash-picker__widget-check {
@@ -428,15 +425,14 @@ export default {
 	justify-content: center;
 	gap: 6px;
 	padding: 12px;
-	border-radius: var(--border-radius);
+	border-radius: var(--border-radius-large);
 	cursor: pointer;
-	transition: transform 0.2s ease, opacity 0.2s ease;
+	transition: background var(--animation-quick) ease;
 	position: relative;
 }
 
 .tile-item:hover {
-	transform: scale(1.05);
-	opacity: 0.9;
+	background: var(--color-background-hover);
 }
 
 .tile-item__icon {
@@ -449,11 +445,6 @@ export default {
 	flex-shrink: 0;
 }
 
-.tile-item__icon.tile-item__emoji {
-	filter: none !important;
-}
-
-/* For class-based icons, invert to white */
 .tile-item__icon:not(.tile-item__emoji):not(svg) {
 	filter: brightness(0) invert(1);
 }
@@ -462,7 +453,6 @@ export default {
 	width: 100%;
 	height: 100%;
 	object-fit: contain;
-	filter: none;
 }
 
 .tile-item__title {
@@ -478,7 +468,7 @@ export default {
 	top: 4px;
 	right: 4px;
 	opacity: 0;
-	transition: opacity 0.2s ease;
+	transition: opacity var(--animation-quick) ease;
 }
 
 .tile-item:hover .tile-item__add {
@@ -491,9 +481,8 @@ export default {
 	justify-content: space-between;
 	gap: 12px;
 	padding: 12px;
-	border-radius: var(--border-radius);
-	transition: background 0.1s ease;
-	border-bottom: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large);
+	transition: background var(--animation-quick) ease;
 }
 
 .mydash-picker__dashboard:hover {
@@ -510,7 +499,7 @@ export default {
 
 .mydash-picker__dashboard-icon {
 	flex-shrink: 0;
-	color: var(--color-text-lighter);
+	color: var(--color-text-maxcontrast);
 }
 
 .mydash-picker__dashboard-info {
@@ -533,8 +522,8 @@ export default {
 	display: inline-block;
 	padding: 2px 8px;
 	background: var(--color-primary-element);
-	color: white;
-	border-radius: 12px;
+	color: var(--color-primary-element-text);
+	border-radius: var(--border-radius-pill);
 	font-size: 11px;
 	font-weight: 600;
 	width: fit-content;

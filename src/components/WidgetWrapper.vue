@@ -179,9 +179,6 @@ export default {
 	height: 100%;
 	display: flex;
 	flex-direction: column;
-	background: var(--color-main-background);
-	border-radius: 0;
-	border: 1px solid var(--color-border);
 	overflow: hidden;
 }
 
@@ -190,7 +187,6 @@ export default {
 	align-items: center;
 	justify-content: space-between;
 	padding: 12px 16px;
-	border-bottom: 1px solid var(--color-border);
 	flex-shrink: 0;
 }
 
@@ -232,7 +228,6 @@ export default {
 	display: flex;
 	justify-content: flex-end;
 	padding: 8px 16px;
-	border-top: 1px solid var(--color-border);
 	flex-shrink: 0;
 }
 </style>

@@ -5,6 +5,7 @@ on:
     branches: [main, development, feature/**, bugfix/**, hotfix/**]
   pull_request:
     branches: [main, beta, development]
+  workflow_dispatch:
 
 jobs:
   quality:
@@ -12,8 +13,8 @@ jobs:
     with:
       app-name: mydash
       php-version: "8.3"
-      enable-psalm: false
-      enable-phpstan: false
+      enable-psalm: true
+      enable-phpstan: true
       enable-phpmetrics: true
       enable-frontend: true
       enable-eslint: true

@@ -364,7 +364,7 @@ export default {
 }
 
 .mydash-admin__hint {
-	color: var(--color-text-lighter);
+	color: var(--color-text-maxcontrast);
 	margin-bottom: 16px;
 }
 
@@ -400,7 +400,7 @@ export default {
 }
 
 .mydash-admin__template-groups {
-	color: var(--color-text-lighter);
+	color: var(--color-text-maxcontrast);
 	font-size: 14px;
 }
 

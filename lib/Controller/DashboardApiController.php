@@ -176,12 +176,26 @@ class DashboardApiController extends Controller
             return ResponseHelper::unauthorized();
         }
 
-        if ($this->permissionService->canEditDashboard(
-            userId: $this->userId,
-            dashboardId: $id
-        ) === false
-        ) {
-            return ResponseHelper::forbidden();
+        // REQ-PERM-007: Metadata-only updates (name, description) are allowed
+        // for all permission levels. Widget/tile/layout changes require
+        // add_only or full permission.
+        $isMetadataOnly = $placements === null;
+        if ($isMetadataOnly === true) {
+            if ($this->permissionService->canEditDashboardMetadata(
+                userId: $this->userId,
+                dashboardId: $id
+            ) === false
+            ) {
+                return ResponseHelper::forbidden();
+            }
+        } else {
+            if ($this->permissionService->canEditDashboard(
+                userId: $this->userId,
+                dashboardId: $id
+            ) === false
+            ) {
+                return ResponseHelper::forbidden();
+            }
         }
 
         try {
