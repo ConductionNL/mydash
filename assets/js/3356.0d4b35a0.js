@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkmydash_docs=globalThis.webpackChunkmydash_docs||[]).push([[3356],{3356(s,a,c){c.d(a,{createInfoServices:()=>e.v});var e=c(2963);c(808)}}]);
