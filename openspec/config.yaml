@@ -48,3 +48,4 @@ rules:
     - Test permission levels (view_only, add_only, full)
     - Test template distribution to target groups
     - Test conditional visibility rules (group, time, date, attribute)
+    - Follow mandatory task categories from ADRs 005, 009, 010, 011
