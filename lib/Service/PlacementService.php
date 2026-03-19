@@ -65,7 +65,7 @@ class PlacementService
         int $gridHeight=4
     ): WidgetPlacement {
         $placement = new WidgetPlacement();
-        $now       = (new DateTime())->format('Y-m-d H:i:s');
+        $now       = (new DateTime())->format(format: 'Y-m-d H:i:s');
         $placement->setDashboardId($dashboardId);
         $placement->setWidgetId($widgetId);
         $placement->setGridX($gridX);
@@ -78,7 +78,7 @@ class PlacementService
         $placement->setCreatedAt($now);
         $placement->setUpdatedAt($now);
 
-        return $this->placementMapper->insert($placement);
+        return $this->placementMapper->insert(entity: $placement);
     }//end addWidget()
 
     /**
@@ -94,7 +94,7 @@ class PlacementService
         array $tileData
     ): WidgetPlacement {
         $placement = new WidgetPlacement();
-        $now       = (new DateTime())->format('Y-m-d H:i:s');
+        $now       = (new DateTime())->format(format: 'Y-m-d H:i:s');
         $placement->setDashboardId($dashboardId);
         $placement->setWidgetId('tile-'.uniqid());
         $placement->setGridX($tileData['gridX'] ?? 0);
@@ -115,7 +115,7 @@ class PlacementService
         $placement->setCreatedAt($now);
         $placement->setUpdatedAt($now);
 
-        return $this->placementMapper->insert($placement);
+        return $this->placementMapper->insert(entity: $placement);
     }//end addTileFromArray()
 
     /**
@@ -130,7 +130,7 @@ class PlacementService
         int $placementId,
         array $data
     ): WidgetPlacement {
-        $placement = $this->placementMapper->find($placementId);
+        $placement = $this->placementMapper->find(id: $placementId);
 
         $this->placementUpdater->applyGridUpdates(
             placement: $placement,
@@ -146,10 +146,10 @@ class PlacementService
         );
 
         $placement->setUpdatedAt(
-            (new DateTime())->format('Y-m-d H:i:s')
+            (new DateTime())->format(format: 'Y-m-d H:i:s')
         );
 
-        return $this->placementMapper->update($placement);
+        return $this->placementMapper->update(entity: $placement);
     }//end updatePlacement()
 
     /**
@@ -161,8 +161,8 @@ class PlacementService
      */
     public function removePlacement(int $placementId): void
     {
-        $placement = $this->placementMapper->find($placementId);
-        $this->placementMapper->delete($placement);
+        $placement = $this->placementMapper->find(id: $placementId);
+        $this->placementMapper->delete(entity: $placement);
     }//end removePlacement()
 
     /**
@@ -174,7 +174,7 @@ class PlacementService
      */
     public function getPlacement(int $placementId): WidgetPlacement
     {
-        return $this->placementMapper->find($placementId);
+        return $this->placementMapper->find(id: $placementId);
     }//end getPlacement()
 
     /**
@@ -187,7 +187,7 @@ class PlacementService
     public function getDashboardPlacements(int $dashboardId): array
     {
         return $this->placementMapper->findByDashboardId(
-            $dashboardId
+            dashboardId: $dashboardId
         );
     }//end getDashboardPlacements()
 }//end class

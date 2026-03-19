@@ -32,8 +32,6 @@ class MyDashAdmin implements ISettings
      * Get the admin settings form.
      *
      * @return TemplateResponse The template response.
-     *
-     * @SuppressWarnings(PHPMD.StaticAccess) - Util::addScript is the Nextcloud API
      */
     public function getForm(): TemplateResponse
     {

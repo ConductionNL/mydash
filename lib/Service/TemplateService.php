@@ -29,7 +29,7 @@ use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IGroupManager;
 use OCP\IUserManager;
-// Note: Ramsey\Uuid is not a direct dependency; using random_bytes-based UUID v4 generator.
+use Ramsey\Uuid\Uuid;
 
 /**
  * Service for managing admin dashboard templates.
@@ -64,12 +64,12 @@ class TemplateService
         $templates = $this->dashboardMapper->findAdminTemplates();
 
         // Get user object and their groups.
-        $user = $this->userManager->get($userId);
+        $user = $this->userManager->get(uid: $userId);
         if ($user === null) {
             return null;
         }
 
-        $userGroups = $this->groupManager->getUserGroupIds($user);
+        $userGroups = $this->groupManager->getUserGroupIds(user: $user);
 
         // Find template that matches user's groups.
         foreach ($templates as $template) {
@@ -114,9 +114,9 @@ class TemplateService
         );
 
         // Deactivate other dashboards.
-        $this->dashboardMapper->deactivateAllForUser($userId);
+        $this->dashboardMapper->deactivateAllForUser(userId: $userId);
 
-        $dashboard = $this->dashboardMapper->insert($dashboard);
+        $dashboard = $this->dashboardMapper->insert(entity: $dashboard);
 
         // Copy widget placements from template.
         $this->copyTemplatePlacements(
@@ -140,8 +140,7 @@ class TemplateService
         Dashboard $template
     ): Dashboard {
         $dashboard = new Dashboard();
-        $now       = (new DateTime())->format('Y-m-d H:i:s');
-        $dashboard->setUuid(self::generateUuid());
+        $dashboard->setUuid(Uuid::uuid4()->toString());
         $dashboard->setName($template->getName());
         $dashboard->setDescription(
             $template->getDescription()
@@ -157,9 +156,9 @@ class TemplateService
         $dashboard->setPermissionLevel(
             $template->getPermissionLevel()
         );
-        $dashboard->setIsActive(1);
-        $dashboard->setCreatedAt($now);
-        $dashboard->setUpdatedAt($now);
+        $dashboard->setIsActive(true);
+        $dashboard->setCreatedAt(new DateTime());
+        $dashboard->setUpdatedAt(new DateTime());
 
         return $dashboard;
     }//end buildDashboardFromTemplate()
@@ -177,7 +176,7 @@ class TemplateService
         int $dashboardId
     ): void {
         $templatePlacements = $this->placementMapper->findByDashboardId(
-            $templateId
+            dashboardId: $templateId
         );
 
         foreach ($templatePlacements as $templatePlacement) {
@@ -185,26 +184,9 @@ class TemplateService
                 source: $templatePlacement,
                 dashboardId: $dashboardId
             );
-            $this->placementMapper->insert($placement);
+            $this->placementMapper->insert(entity: $placement);
         }
     }//end copyTemplatePlacements()
-
-    /**
-     * Generate a UUID v4 string.
-     *
-     * @return string The generated UUID.
-     */
-    private static function generateUuid(): string
-    {
-        $data    = random_bytes(16);
-        $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
-        $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
-
-        return vsprintf(
-            '%s%s-%s-%s-%s-%s%s%s',
-            str_split(bin2hex($data), 4)
-        );
-    }//end generateUuid()
 
     /**
      * Clone a widget placement for a new dashboard.
@@ -239,9 +221,8 @@ class TemplateService
         );
         $placement->setShowTitle($source->getShowTitle());
         $placement->setSortOrder($source->getSortOrder());
-        $now = (new DateTime())->format('Y-m-d H:i:s');
-        $placement->setCreatedAt($now);
-        $placement->setUpdatedAt($now);
+        $placement->setCreatedAt(new DateTime());
+        $placement->setUpdatedAt(new DateTime());
 
         return $placement;
     }//end clonePlacement()

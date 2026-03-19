@@ -59,10 +59,6 @@
                 <referencedClass name="OCP\Http\Client\IClientService"/>
                 <referencedClass name="OCP\Notification\IManager"/>
                 <referencedClass name="OCP\Share\IManager"/>
-                <!-- Global OC class -->
-                <referencedClass name="OC"/>
-                <!-- Ramsey UUID library -->
-                <referencedClass name="Ramsey\Uuid\Uuid"/>
             </errorLevel>
         </UndefinedClass>
         <UndefinedMagicMethod errorLevel="suppress"/>
@@ -93,9 +89,6 @@
         <EmptyArrayAccess errorLevel="suppress"/>
         <ImplementedReturnTypeMismatch errorLevel="suppress"/>
         <InvalidMethodCall errorLevel="suppress"/>
-        <MissingTemplateParam errorLevel="suppress"/>
-        <UndefinedInterfaceMethod errorLevel="suppress"/>
-        <InvalidNamedArgument errorLevel="suppress"/>
     </issueHandlers>
     <extraFiles>
         <directory name="vendor/nextcloud/ocp" />

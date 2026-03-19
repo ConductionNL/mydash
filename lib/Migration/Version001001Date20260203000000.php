@@ -37,9 +37,6 @@ class Version001001Date20260203000000 extends SimpleMigrationStep
      * @param array   $options       The migration options.
      *
      * @return ISchemaWrapper|null The modified schema or null.
-     *
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter) - required by SimpleMigrationStep interface
-     * @SuppressWarnings(PHPMD.ExcessiveMethodLength) - migration column definitions are verbose by nature
      */
     public function changeSchema(
         IOutput $output,

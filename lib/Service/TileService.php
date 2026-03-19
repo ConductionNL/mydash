@@ -46,7 +46,7 @@ class TileService
      */
     public function getUserTiles(string $userId): array
     {
-        return $this->tileMapper->findByUserId($userId);
+        return $this->tileMapper->findByUserId(userId: $userId);
     }//end getUserTiles()
 
     /**
@@ -73,7 +73,7 @@ class TileService
         string $linkType='url',
         string $linkValue='#'
     ): Tile {
-        $now = (new DateTime())->format('Y-m-d H:i:s');
+        $now = (new DateTime())->format(format: 'Y-m-d H:i:s');
 
         $tile = new Tile();
         $tile->setUserId($userId);
@@ -87,7 +87,7 @@ class TileService
         $tile->setCreatedAt($now);
         $tile->setUpdatedAt($now);
 
-        return $this->tileMapper->insert($tile);
+        return $this->tileMapper->insert(entity: $tile);
     }//end createTile()
 
     /**
@@ -139,10 +139,10 @@ class TileService
         }
 
         $tile->setUpdatedAt(
-            (new DateTime())->format('Y-m-d H:i:s')
+            (new DateTime())->format(format: 'Y-m-d H:i:s')
         );
 
-        return $this->tileMapper->update($tile);
+        return $this->tileMapper->update(entity: $tile);
     }//end updateTile()
 
     /**
@@ -161,6 +161,6 @@ class TileService
             id: $id,
             userId: $userId
         );
-        $this->tileMapper->delete($tile);
+        $this->tileMapper->delete(entity: $tile);
     }//end deleteTile()
 }//end class

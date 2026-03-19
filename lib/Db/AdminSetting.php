@@ -96,7 +96,7 @@ class AdminSetting extends Entity implements JsonSerializable
      */
     public function __construct()
     {
-        $this->addType('id', 'integer');
+        $this->addType(fieldName: 'id', type: 'integer');
     }//end __construct()
 
     /**
@@ -110,7 +110,7 @@ class AdminSetting extends Entity implements JsonSerializable
             return null;
         }
 
-        $decoded = json_decode($this->settingValue, true);
+        $decoded = json_decode(json: $this->settingValue, associative: true);
         return $decoded;
     }//end getValueDecoded()
 
@@ -124,7 +124,7 @@ class AdminSetting extends Entity implements JsonSerializable
     public function setValueEncoded(mixed $value): void
     {
         $this->setSettingValue(
-            json_encode($value)
+            settingValue: json_encode(value: $value)
         );
     }//end setValueEncoded()
 
@@ -137,7 +137,7 @@ class AdminSetting extends Entity implements JsonSerializable
     {
         $updatedAtValue = null;
         if ($this->updatedAt !== null) {
-            $updatedAtValue = $this->updatedAt->format('c');
+            $updatedAtValue = $this->updatedAt->format(format: 'c');
         }
 
         return [

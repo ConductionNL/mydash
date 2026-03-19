@@ -96,12 +96,12 @@ class RuleEvaluatorService
             return false;
         }
 
-        $user = $this->userManager->get($userId);
+        $user = $this->userManager->get(uid: $userId);
         if ($user === null) {
             return false;
         }
 
-        $userGroups = $this->groupManager->getUserGroupIds($user);
+        $userGroups = $this->groupManager->getUserGroupIds(user: $user);
 
         return empty(array_intersect($userGroups, $targetGroups)) === false;
     }//end evaluateGroupRule()
@@ -119,16 +119,16 @@ class RuleEvaluatorService
         $config = $rule->getRuleConfigArray();
 
         $now         = new DateTime();
-        $currentTime = $now->format('H:i');
-        $currentDay  = strtolower($now->format('D'));
+        $currentTime = $now->format(format: 'H:i');
+        $currentDay  = strtolower(string: $now->format(format: 'D'));
 
         // Check day of week.
         if (isset($config['days']) === true
             && is_array($config['days']) === true
         ) {
             if (in_array(
-                $currentDay,
-                $config['days']
+                needle: $currentDay,
+                haystack: $config['days']
             ) === false
             ) {
                 return false;
@@ -155,7 +155,7 @@ class RuleEvaluatorService
         $config = $rule->getRuleConfigArray();
 
         $now         = new DateTime();
-        $currentDate = $now->format('Y-m-d');
+        $currentDate = $now->format(format: 'Y-m-d');
 
         $startDate = $config['startDate'] ?? null;
         $endDate   = $config['endDate'] ?? null;

@@ -26,11 +26,6 @@ use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 
-/**
- * Main application class for MyDash.
- *
- * @SuppressWarnings(PHPMD.StaticAccess) - \OCP\Util::addStyle() is the Nextcloud API for CSS injection
- */
 class Application extends App implements IBootstrap
 {
     public const APP_ID = 'mydash';
@@ -51,8 +46,6 @@ class Application extends App implements IBootstrap
      * @param IRegistrationContext $context The registration context.
      *
      * @return void
-     *
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter) - required by IBootstrap interface
      */
     public function register(IRegistrationContext $context): void
     {
@@ -65,12 +58,13 @@ class Application extends App implements IBootstrap
      * @param IBootContext $context The boot context.
      *
      * @return void
-     *
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter) - required by IBootstrap interface
      */
     public function boot(IBootContext $context): void
     {
         // App initialization after all apps are registered.
+        // Load custom header styling to override nldesign theme.
+        // This must be loaded here (not in PageController) to override theme CSS.
         \OCP\Util::addStyle(application: self::APP_ID, file: 'mydash');
+        \OCP\Util::addStyle(application: self::APP_ID, file: 'header-override');
     }//end boot()
 }//end class

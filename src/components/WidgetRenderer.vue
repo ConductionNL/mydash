@@ -131,8 +131,13 @@ export default {
 				itemsLength: items.length,
 				widgetItemsData: this.widgetItemsData,
 			})
-			// Transform items to NcDashboardWidget format.
+			// Pass through all original item fields and add NcDashboardWidgetItem
+			// prop aliases on top. This ensures custom widget fields are preserved
+			// while mapping standard Nextcloud API fields (title, subtitle, link,
+			// iconUrl, sinceId) to the prop names NcDashboardWidgetItem expects
+			// (mainText, subText, targetUrl, avatarUrl, id).
 			return items.map(item => ({
+				...item,
 				id: item.sinceId || item.id || String(Math.random()),
 				targetUrl: item.link || item.targetUrl || '',
 				avatarUrl: item.iconUrl || item.avatarUrl || '',
@@ -252,6 +257,8 @@ export default {
 					console.log('[WidgetRenderer] Detected as API widget')
 					// Load widget items from API (supports both v1 and v2).
 					await this.loadWidgetItems([this.widget.id])
+					// Explicitly sync local data from store after loading.
+					this.updateLocalWidgetItems()
 
 					// Set up auto-refresh if widget supports it.
 					if (this.widget.reloadInterval && this.widget.reloadInterval > 0) {

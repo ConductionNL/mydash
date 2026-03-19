@@ -51,13 +51,11 @@ class DashboardTableBuilder
     /**
      * Add columns to the dashboards table.
      *
-     * @param mixed $table The table instance.
+     * @param \Doctrine\DBAL\Schema\Table $table The table instance.
      *
      * @return void
-     *
-     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      */
-    private static function addColumns(mixed $table): void
+    private static function addColumns($table): void
     {
         $table->addColumn(
             name: 'id',
@@ -177,11 +175,11 @@ class DashboardTableBuilder
     /**
      * Add indexes to the dashboards table.
      *
-     * @param mixed $table The table instance.
+     * @param \Doctrine\DBAL\Schema\Table $table The table instance.
      *
      * @return void
      */
-    private static function addIndexes(mixed $table): void
+    private static function addIndexes($table): void
     {
         $table->setPrimaryKey(columnNames: ['id']);
         $table->addUniqueIndex(

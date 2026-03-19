@@ -43,7 +43,7 @@ class DashboardFactory
         string $name,
         ?string $description=null
     ): Dashboard {
-        $now       = (new DateTime())->format('Y-m-d H:i:s');
+        $now       = (new DateTime())->format(format: 'Y-m-d H:i:s');
         $dashboard = new Dashboard();
         $dashboard->setUuid($this->generateUuid());
         $dashboard->setName($name);
@@ -66,13 +66,13 @@ class DashboardFactory
      */
     private function generateUuid(): string
     {
-        $data    = random_bytes(16);
-        $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
-        $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+        $data    = random_bytes(length: 16);
+        $data[6] = chr(codepoint: ord(character: $data[6]) & 0x0f | 0x40);
+        $data[8] = chr(codepoint: ord(character: $data[8]) & 0x3f | 0x80);
 
         return vsprintf(
-            '%s%s-%s-%s-%s-%s%s%s',
-            str_split(bin2hex($data), 4)
+            format: '%s%s-%s-%s-%s-%s%s%s',
+            values: str_split(string: bin2hex(string: $data), length: 4)
         );
     }//end generateUuid()
 }//end class

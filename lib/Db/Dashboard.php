@@ -193,12 +193,12 @@ class Dashboard extends Entity implements JsonSerializable
      */
     public function __construct()
     {
-        $this->addType('id', 'integer');
-        $this->addType('basedOnTemplate', 'integer');
-        $this->addType('gridColumns', 'integer');
-        $this->addType('isDefault', 'integer');
+        $this->addType(fieldName: 'id', type: 'integer');
+        $this->addType(fieldName: 'basedOnTemplate', type: 'integer');
+        $this->addType(fieldName: 'gridColumns', type: 'integer');
+        $this->addType(fieldName: 'isDefault', type: 'integer');
         // SMALLINT in DB (0/1).
-        $this->addType('isActive', 'integer');
+        $this->addType(fieldName: 'isActive', type: 'integer');
         // SMALLINT in DB (0/1).
     }//end __construct()
 
@@ -213,7 +213,7 @@ class Dashboard extends Entity implements JsonSerializable
             return [];
         }
 
-        $decoded = json_decode($this->targetGroups, true);
+        $decoded = json_decode(json: $this->targetGroups, associative: true);
         if (is_array($decoded) === true) {
             return $decoded;
         }
@@ -230,7 +230,7 @@ class Dashboard extends Entity implements JsonSerializable
      */
     public function setTargetGroupsArray(array $groups): void
     {
-        $this->setTargetGroups(json_encode($groups));
+        $this->setTargetGroups(targetGroups: json_encode(value: $groups));
     }//end setTargetGroupsArray()
 
     /**

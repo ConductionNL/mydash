@@ -44,9 +44,9 @@ class DashboardMapper extends QBMapper
     public function __construct(IDBConnection $db)
     {
         parent::__construct(
-            $db,
-            'mydash_dashboards',
-            Dashboard::class
+            db: $db,
+            tableName: 'mydash_dashboards',
+            entityClass: Dashboard::class
         );
     }//end __construct()
 
@@ -62,19 +62,19 @@ class DashboardMapper extends QBMapper
     public function find(int $id): Dashboard
     {
         $qb = $this->db->getQueryBuilder();
-        $qb->select('*')
-            ->from($this->getTableName())
+        $qb->select(selects: '*')
+            ->from(from: $this->getTableName())
             ->where(
                 $qb->expr()->eq(
-                    'id',
-                    $qb->createNamedParameter(
-                        $id,
-                        IQueryBuilder::PARAM_INT
+                    x: 'id',
+                    y: $qb->createNamedParameter(
+                        value: $id,
+                        type: IQueryBuilder::PARAM_INT
                     )
                 )
             );
 
-        return $this->findEntity($qb);
+        return $this->findEntity(query: $qb);
     }//end find()
 
     /**
@@ -89,16 +89,16 @@ class DashboardMapper extends QBMapper
     public function findByUuid(string $uuid): Dashboard
     {
         $qb = $this->db->getQueryBuilder();
-        $qb->select('*')
-            ->from($this->getTableName())
+        $qb->select(selects: '*')
+            ->from(from: $this->getTableName())
             ->where(
                 $qb->expr()->eq(
-                    'uuid',
-                    $qb->createNamedParameter($uuid)
+                    x: 'uuid',
+                    y: $qb->createNamedParameter(value: $uuid)
                 )
             );
 
-        return $this->findEntity($qb);
+        return $this->findEntity(query: $qb);
     }//end findByUuid()
 
     /**
@@ -111,25 +111,25 @@ class DashboardMapper extends QBMapper
     public function findByUserId(string $userId): array
     {
         $qb = $this->db->getQueryBuilder();
-        $qb->select('*')
-            ->from($this->getTableName())
+        $qb->select(selects: '*')
+            ->from(from: $this->getTableName())
             ->where(
                 $qb->expr()->eq(
-                    'user_id',
-                    $qb->createNamedParameter($userId)
+                    x: 'user_id',
+                    y: $qb->createNamedParameter(value: $userId)
                 )
             )
             ->andWhere(
                 $qb->expr()->eq(
-                    'type',
-                    $qb->createNamedParameter(
-                        Dashboard::TYPE_USER
+                    x: 'type',
+                    y: $qb->createNamedParameter(
+                        value: Dashboard::TYPE_USER
                     )
                 )
             )
-            ->orderBy('created_at', 'ASC');
+            ->orderBy(sort: 'created_at', order: 'ASC');
 
-        return $this->findEntities($qb);
+        return $this->findEntities(query: $qb);
     }//end findByUserId()
 
     /**
@@ -144,33 +144,33 @@ class DashboardMapper extends QBMapper
     public function findActiveByUserId(string $userId): Dashboard
     {
         $qb = $this->db->getQueryBuilder();
-        $qb->select('*')
-            ->from($this->getTableName())
+        $qb->select(selects: '*')
+            ->from(from: $this->getTableName())
             ->where(
                 $qb->expr()->eq(
-                    'user_id',
-                    $qb->createNamedParameter($userId)
+                    x: 'user_id',
+                    y: $qb->createNamedParameter(value: $userId)
                 )
             )
             ->andWhere(
                 $qb->expr()->eq(
-                    'type',
-                    $qb->createNamedParameter(
-                        Dashboard::TYPE_USER
+                    x: 'type',
+                    y: $qb->createNamedParameter(
+                        value: Dashboard::TYPE_USER
                     )
                 )
             )
             ->andWhere(
                 $qb->expr()->eq(
-                    'is_active',
-                    $qb->createNamedParameter(
-                        1,
-                        IQueryBuilder::PARAM_INT
+                    x: 'is_active',
+                    y: $qb->createNamedParameter(
+                        value: 1,
+                        type: IQueryBuilder::PARAM_INT
                     )
                 )
             );
 
-        return $this->findEntity($qb);
+        return $this->findEntity(query: $qb);
     }//end findActiveByUserId()
 
     /**
@@ -181,19 +181,19 @@ class DashboardMapper extends QBMapper
     public function findAdminTemplates(): array
     {
         $qb = $this->db->getQueryBuilder();
-        $qb->select('*')
-            ->from($this->getTableName())
+        $qb->select(selects: '*')
+            ->from(from: $this->getTableName())
             ->where(
                 $qb->expr()->eq(
-                    'type',
-                    $qb->createNamedParameter(
-                        Dashboard::TYPE_ADMIN_TEMPLATE
+                    x: 'type',
+                    y: $qb->createNamedParameter(
+                        value: Dashboard::TYPE_ADMIN_TEMPLATE
                     )
                 )
             )
-            ->orderBy('name', 'ASC');
+            ->orderBy(sort: 'name', order: 'ASC');
 
-        return $this->findEntities($qb);
+        return $this->findEntities(query: $qb);
     }//end findAdminTemplates()
 
     /**
@@ -206,27 +206,27 @@ class DashboardMapper extends QBMapper
     public function findDefaultTemplate(): Dashboard
     {
         $qb = $this->db->getQueryBuilder();
-        $qb->select('*')
-            ->from($this->getTableName())
+        $qb->select(selects: '*')
+            ->from(from: $this->getTableName())
             ->where(
                 $qb->expr()->eq(
-                    'type',
-                    $qb->createNamedParameter(
-                        Dashboard::TYPE_ADMIN_TEMPLATE
+                    x: 'type',
+                    y: $qb->createNamedParameter(
+                        value: Dashboard::TYPE_ADMIN_TEMPLATE
                     )
                 )
             )
             ->andWhere(
                 $qb->expr()->eq(
-                    'is_default',
-                    $qb->createNamedParameter(
-                        1,
-                        IQueryBuilder::PARAM_INT
+                    x: 'is_default',
+                    y: $qb->createNamedParameter(
+                        value: 1,
+                        type: IQueryBuilder::PARAM_INT
                     )
                 )
             );
 
-        return $this->findEntity($qb);
+        return $this->findEntity(query: $qb);
     }//end findDefaultTemplate()
 
     /**
@@ -239,24 +239,24 @@ class DashboardMapper extends QBMapper
     public function deactivateAllForUser(string $userId): void
     {
         $qb = $this->db->getQueryBuilder();
-        $qb->update($this->getTableName())
+        $qb->update(update: $this->getTableName())
             ->set(
-                'is_active',
-                $qb->createNamedParameter(
-                    0,
-                    IQueryBuilder::PARAM_INT
+                key: 'is_active',
+                value: $qb->createNamedParameter(
+                    value: 0,
+                    type: IQueryBuilder::PARAM_INT
                 )
             )
             ->set(
-                'updated_at',
-                $qb->createNamedParameter(
-                    (new DateTime())->format('Y-m-d H:i:s')
+                key: 'updated_at',
+                value: $qb->createNamedParameter(
+                    value: (new DateTime())->format(format: 'Y-m-d H:i:s')
                 )
             )
             ->where(
                 $qb->expr()->eq(
-                    'user_id',
-                    $qb->createNamedParameter($userId)
+                    x: 'user_id',
+                    y: $qb->createNamedParameter(value: $userId)
                 )
             );
 
@@ -274,37 +274,37 @@ class DashboardMapper extends QBMapper
     public function setActive(int $dashboardId, string $userId): void
     {
         // First, deactivate all dashboards for the user.
-        $this->deactivateAllForUser($userId);
+        $this->deactivateAllForUser(userId: $userId);
 
         // Then activate the specified dashboard.
         $qb = $this->db->getQueryBuilder();
-        $qb->update($this->getTableName())
+        $qb->update(update: $this->getTableName())
             ->set(
-                'is_active',
-                $qb->createNamedParameter(
-                    1,
-                    IQueryBuilder::PARAM_INT
+                key: 'is_active',
+                value: $qb->createNamedParameter(
+                    value: 1,
+                    type: IQueryBuilder::PARAM_INT
                 )
             )
             ->set(
-                'updated_at',
-                $qb->createNamedParameter(
-                    (new DateTime())->format('Y-m-d H:i:s')
+                key: 'updated_at',
+                value: $qb->createNamedParameter(
+                    value: (new DateTime())->format(format: 'Y-m-d H:i:s')
                 )
             )
             ->where(
                 $qb->expr()->eq(
-                    'id',
-                    $qb->createNamedParameter(
-                        $dashboardId,
-                        IQueryBuilder::PARAM_INT
+                    x: 'id',
+                    y: $qb->createNamedParameter(
+                        value: $dashboardId,
+                        type: IQueryBuilder::PARAM_INT
                     )
                 )
             )
             ->andWhere(
                 $qb->expr()->eq(
-                    'user_id',
-                    $qb->createNamedParameter($userId)
+                    x: 'user_id',
+                    y: $qb->createNamedParameter(value: $userId)
                 )
             );
 
@@ -319,25 +319,25 @@ class DashboardMapper extends QBMapper
     public function clearDefaultTemplates(): void
     {
         $qb = $this->db->getQueryBuilder();
-        $qb->update($this->getTableName())
+        $qb->update(update: $this->getTableName())
             ->set(
-                'is_default',
-                $qb->createNamedParameter(
-                    0,
-                    IQueryBuilder::PARAM_INT
+                key: 'is_default',
+                value: $qb->createNamedParameter(
+                    value: 0,
+                    type: IQueryBuilder::PARAM_INT
                 )
             )
             ->set(
-                'updated_at',
-                $qb->createNamedParameter(
-                    (new DateTime())->format('Y-m-d H:i:s')
+                key: 'updated_at',
+                value: $qb->createNamedParameter(
+                    value: (new DateTime())->format(format: 'Y-m-d H:i:s')
                 )
             )
             ->where(
                 $qb->expr()->eq(
-                    'type',
-                    $qb->createNamedParameter(
-                        Dashboard::TYPE_ADMIN_TEMPLATE
+                    x: 'type',
+                    y: $qb->createNamedParameter(
+                        value: Dashboard::TYPE_ADMIN_TEMPLATE
                     )
                 )
             );

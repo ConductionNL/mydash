@@ -63,7 +63,7 @@ class DashboardService
      */
     public function getUserDashboards(string $userId): array
     {
-        return $this->dashboardMapper->findByUserId($userId);
+        return $this->dashboardMapper->findByUserId(userId: $userId);
     }//end getUserDashboards()
 
     /**
@@ -77,20 +77,20 @@ class DashboardService
     public function getEffectiveDashboard(string $userId): ?array
     {
         $result = $this->dashResolver->tryGetActiveDashboard(
-            $userId
+            userId: $userId
         );
         if ($result !== null) {
             return $result;
         }
 
         $result = $this->dashResolver->tryActivateExistingDashboard(
-            $userId
+            userId: $userId
         );
         if ($result !== null) {
             return $result;
         }
 
-        return $this->tryCreateFromTemplate($userId);
+        return $this->tryCreateFromTemplate(userId: $userId);
     }//end getEffectiveDashboard()
 
     /**
@@ -113,9 +113,9 @@ class DashboardService
             description: $description
         );
 
-        $this->dashboardMapper->deactivateAllForUser($userId);
+        $this->dashboardMapper->deactivateAllForUser(userId: $userId);
 
-        return $this->dashboardMapper->insert($dashboard);
+        return $this->dashboardMapper->insert(entity: $dashboard);
     }//end createDashboard()
 
     /**
@@ -132,10 +132,10 @@ class DashboardService
         string $userId,
         array $data
     ): Dashboard {
-        $dashboard = $this->dashboardMapper->find($dashboardId);
+        $dashboard = $this->dashboardMapper->find(id: $dashboardId);
 
         if ($dashboard->getUserId() !== $userId) {
-            throw new Exception('Access denied');
+            throw new Exception(message: 'Access denied');
         }
 
         $this->applyDashboardUpdates(
@@ -143,7 +143,7 @@ class DashboardService
             data: $data
         );
 
-        return $this->dashboardMapper->update($dashboard);
+        return $this->dashboardMapper->update(entity: $dashboard);
     }//end updateDashboard()
 
     /**
@@ -156,16 +156,16 @@ class DashboardService
      */
     public function deleteDashboard(int $dashboardId, string $userId): void
     {
-        $dashboard = $this->dashboardMapper->find($dashboardId);
+        $dashboard = $this->dashboardMapper->find(id: $dashboardId);
 
         if ($dashboard->getUserId() !== $userId) {
-            throw new Exception('Access denied');
+            throw new Exception(message: 'Access denied');
         }
 
         $this->placementMapper->deleteByDashboardId(
-            $dashboardId
+            dashboardId: $dashboardId
         );
-        $this->dashboardMapper->delete($dashboard);
+        $this->dashboardMapper->delete(entity: $dashboard);
     }//end deleteDashboard()
 
     /**
@@ -180,17 +180,17 @@ class DashboardService
         int $dashboardId,
         string $userId
     ): Dashboard {
-        $dashboard = $this->dashboardMapper->find($dashboardId);
+        $dashboard = $this->dashboardMapper->find(id: $dashboardId);
 
         if ($dashboard->getUserId() !== $userId) {
-            throw new Exception('Access denied');
+            throw new Exception(message: 'Access denied');
         }
 
         $this->dashboardMapper->setActive(
-            dashboardId: $dashboardId,
+            $dashboardId,
             userId: $userId
         );
-        $dashboard->setIsActive(1);
+        $dashboard->setIsActive(true);
 
         return $dashboard;
     }//end activateDashboard()
@@ -205,12 +205,12 @@ class DashboardService
     private function tryCreateFromTemplate(string $userId): ?array
     {
         $allowUserDashboards = $this->settingMapper->getValue(
-            AdminSetting::KEY_ALLOW_USER_DASHBOARDS,
-            true
+            key: AdminSetting::KEY_ALLOW_USER_DASHBOARDS,
+            default: true
         );
 
         $template = $this->templateService->getApplicableTemplate(
-            $userId
+            userId: $userId
         );
 
         if ($template !== null) {
@@ -222,19 +222,76 @@ class DashboardService
         }
 
         if ($allowUserDashboards === true) {
-            $dashboard = $this->createDashboard(
+            $dashboard  = $this->createDashboard(
                 userId: $userId,
                 name: 'My Dashboard'
             );
+            $placements = $this->createDefaultPlacements(
+                dashboardId: $dashboard->getId()
+            );
             return [
                 'dashboard'       => $dashboard,
-                'placements'      => [],
+                'placements'      => $placements,
                 'permissionLevel' => Dashboard::PERMISSION_FULL,
             ];
         }
 
         return null;
     }//end tryCreateFromTemplate()
+
+    /**
+     * Create default widget placements for a new dashboard.
+     *
+     * Adds the same widgets shown on the standard Nextcloud dashboard:
+     * recommendations (recent files) and activity.
+     *
+     * @param int $dashboardId The dashboard ID.
+     *
+     * @return WidgetPlacement[] The created placements.
+     */
+    private function createDefaultPlacements(int $dashboardId): array
+    {
+        $now = (new DateTime())->format(format: 'Y-m-d H:i:s');
+
+        $defaults = [
+            [
+                'widgetId'   => 'recommendations',
+                'gridX'      => 0,
+                'gridY'      => 0,
+                'gridWidth'  => 6,
+                'gridHeight' => 5,
+                'sortOrder'  => 0,
+            ],
+            [
+                'widgetId'   => 'activity',
+                'gridX'      => 6,
+                'gridY'      => 0,
+                'gridWidth'  => 6,
+                'gridHeight' => 5,
+                'sortOrder'  => 1,
+            ],
+        ];
+
+        $placements = [];
+        foreach ($defaults as $config) {
+            $placement = new \OCA\MyDash\Db\WidgetPlacement();
+            $placement->setDashboardId($dashboardId);
+            $placement->setWidgetId($config['widgetId']);
+            $placement->setGridX($config['gridX']);
+            $placement->setGridY($config['gridY']);
+            $placement->setGridWidth($config['gridWidth']);
+            $placement->setGridHeight($config['gridHeight']);
+            $placement->setSortOrder($config['sortOrder']);
+            $placement->setShowTitle(1);
+            $placement->setIsVisible(1);
+            $placement->setCreatedAt($now);
+            $placement->setUpdatedAt($now);
+
+            $placements[] = $this->placementMapper->insert(entity: $placement);
+        }//end foreach
+
+        return $placements;
+    }//end createDefaultPlacements()
 
     /**
      * Apply updates to a dashboard entity.
@@ -253,26 +310,22 @@ class DashboardService
         }
 
         if (isset($data['description']) === true) {
-            $dashboard->setDescription(
-                $data['description']
-            );
+            $dashboard->setDescription($data['description']);
         }
 
         if (isset($data['gridColumns']) === true) {
-            $dashboard->setGridColumns(
-                $data['gridColumns']
-            );
+            $dashboard->setGridColumns($data['gridColumns']);
         }
 
         $dashboard->setUpdatedAt(
-            (new DateTime())->format('Y-m-d H:i:s')
+            (new DateTime())->format(format: 'Y-m-d H:i:s')
         );
 
         if (isset($data['placements']) === true
             && is_array($data['placements']) === true
         ) {
             $this->placementMapper->updatePositions(
-                $data['placements']
+                updates: $data['placements']
             );
         }
     }//end applyDashboardUpdates()

@@ -23,42 +23,36 @@ namespace OCA\MyDash\Controller;
 
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Service\DashboardService;
+use OCA\MyDash\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
-use OCP\IL10N;
 use OCP\IRequest;
 
 /**
  * Controller for dashboard API endpoints.
- *
- * @SuppressWarnings(PHPMD.StaticAccess) - ResponseHelper uses static methods by design
  */
 class DashboardApiController extends Controller
 {
     /**
      * Constructor
      *
-     * @param IRequest                  $request          The request.
-     * @param DashboardService          $dashboardService The dashboard service.
-     * @param DashboardRequestValidator $validator        The request validator.
-     * @param IL10N                     $l10n             The localization service.
-     * @param string|null               $userId           The user ID.
+     * @param IRequest          $request           The request.
+     * @param DashboardService  $dashboardService  The dashboard service.
+     * @param PermissionService $permissionService The permission service.
+     * @param string|null       $userId            The user ID.
      */
     public function __construct(
         IRequest $request,
         private readonly DashboardService $dashboardService,
-        private readonly DashboardRequestValidator $validator,
-        private readonly IL10N $l10n,
+        private readonly PermissionService $permissionService,
         private readonly ?string $userId,
     ) {
         parent::__construct(
             appName: Application::APP_ID,
             request: $request
         );
-
-        ResponseHelper::setL10N($this->l10n);
     }//end __construct()
 
     /**
@@ -100,7 +94,7 @@ class DashboardApiController extends Controller
 
         if ($result === null) {
             return ResponseHelper::success(
-                data: ['error' => $this->l10n->t('No dashboard available')],
+                data: ['error' => 'No dashboard available'],
                 statusCode: Http::STATUS_NOT_FOUND
             );
         }
@@ -133,12 +127,12 @@ class DashboardApiController extends Controller
             return ResponseHelper::unauthorized();
         }
 
-        $resolved = $this->validator->resolveCreateParams(
+        $resolved = $this->resolveCreateParams(
             name: $name,
             description: $description
         );
 
-        $permError = $this->validator->checkCreatePermissions(
+        $permError = $this->checkCreatePermissions(
             userId: $this->userId
         );
         if ($permError !== null) {
@@ -182,17 +176,30 @@ class DashboardApiController extends Controller
             return ResponseHelper::unauthorized();
         }
 
-        $permError = $this->validator->checkUpdatePermissions(
-            userId: $this->userId,
-            dashboardId: $id,
-            placements: $placements
-        );
-        if ($permError !== null) {
-            return $permError;
+        // REQ-PERM-007: Metadata-only updates (name, description) are allowed
+        // for all permission levels. Widget/tile/layout changes require
+        // add_only or full permission.
+        $isMetadataOnly = $placements === null;
+        if ($isMetadataOnly === true) {
+            if ($this->permissionService->canEditDashboardMetadata(
+                userId: $this->userId,
+                dashboardId: $id
+            ) === false
+            ) {
+                return ResponseHelper::forbidden();
+            }
+        } else {
+            if ($this->permissionService->canEditDashboard(
+                userId: $this->userId,
+                dashboardId: $id
+            ) === false
+            ) {
+                return ResponseHelper::forbidden();
+            }
         }
 
         try {
-            $data = $this->validator->buildUpdateData(
+            $data = $this->buildUpdateData(
                 name: $name,
                 description: $description,
                 placements: $placements
@@ -265,4 +272,91 @@ class DashboardApiController extends Controller
             return ResponseHelper::error(exception: $e);
         }
     }//end activate()
+
+    /**
+     * Resolve create parameters from JSON body or individual params.
+     *
+     * @param mixed       $name        The name parameter.
+     * @param string|null $description The description parameter.
+     *
+     * @return array The resolved name and description.
+     */
+    private function resolveCreateParams(
+        $name,
+        ?string $description
+    ): array {
+        if (is_array($name) === true) {
+            return [
+                'name'        => $name['name'] ?? 'My Dashboard',
+                'description' => $name['description'] ?? null,
+            ];
+        }
+
+        return [
+            'name'        => $name ?? 'My Dashboard',
+            'description' => $description,
+        ];
+    }//end resolveCreateParams()
+
+    /**
+     * Check creation permissions and return error if denied.
+     *
+     * @param string $userId The user ID.
+     *
+     * @return JSONResponse|null Error response or null if allowed.
+     */
+    private function checkCreatePermissions(string $userId): ?JSONResponse
+    {
+        if ($this->permissionService->canCreateDashboard(
+            userId: $userId
+        ) === false
+        ) {
+            return ResponseHelper::forbidden(
+                message: 'Dashboard creation not allowed'
+            );
+        }
+
+        $existing = $this->dashboardService->getUserDashboards(
+            userId: $userId
+        );
+        if (empty($existing) === false
+            && $this->permissionService->canHaveMultipleDashboards(
+                userId: $userId
+            ) === false
+        ) {
+            return ResponseHelper::forbidden(
+                message: 'Multiple dashboards not allowed'
+            );
+        }
+
+        return null;
+    }//end checkCreatePermissions()
+
+    /**
+     * Build update data from nullable parameters.
+     *
+     * @param string|null $name        The name.
+     * @param string|null $description The description.
+     * @param array|null  $placements  The placements.
+     *
+     * @return array The non-null update data.
+     */
+    private function buildUpdateData(
+        ?string $name,
+        ?string $description,
+        ?array $placements
+    ): array {
+        $fields = [
+            'name'        => $name,
+            'description' => $description,
+            'placements'  => $placements,
+        ];
+
+        return array_filter(
+            array: $fields,
+            callback: function ($value) {
+                return $value !== null;
+            }
+        );
+    }//end buildUpdateData()
 }//end class

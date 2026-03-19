@@ -25,8 +25,6 @@ use OCP\DB\ISchemaWrapper;
 
 /**
  * Facade for building all database table schemas in migrations.
- *
- * @SuppressWarnings(PHPMD.StaticAccess) - delegates to static table builder classes by design
  */
 class MigrationTableBuilder
 {

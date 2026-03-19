@@ -4,17 +4,13 @@ parameters:
         - lib
     bootstrapFiles:
         - vendor/autoload.php
+    excludePaths:
+        - vendor
     scanDirectories:
         - vendor/nextcloud/ocp
     reportUnmatchedIgnoredErrors: false
     ignoreErrors:
-        # Nextcloud internal classes not available via OCP stubs
+        # Nextcloud internal classes that PHPStan might not recognize
         - '#Call to an undefined method OC::#'
         - '#Class OC not found#'
         - '#Access to static property \$server on an unknown class OC#'
-        - '#unknown class OC\\\\#'
-        - '#unknown class OCA\\\\DAV\\\\#'
-        - '#unknown class OC_App#'
-        - '#not found in catched class OC\\\\#'
-        - '#Caught class OC\\\\#'
-        - '#Class OCA\\\\DAV\\\\#'

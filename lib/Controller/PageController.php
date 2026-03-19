@@ -46,8 +46,6 @@ class PageController extends Controller
      * Render the main index page.
      *
      * @return TemplateResponse The template response.
-     *
-     * @SuppressWarnings(PHPMD.StaticAccess) - Util::addScript/addStyle is the Nextcloud API
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]

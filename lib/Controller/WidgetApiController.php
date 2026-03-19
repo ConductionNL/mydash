@@ -29,13 +29,10 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\JSONResponse;
-use OCP\IL10N;
 use OCP\IRequest;
 
 /**
  * Controller for managing dashboard widgets.
- *
- * @SuppressWarnings(PHPMD.StaticAccess) - ResponseHelper and RequestDataExtractor use static methods by design
  */
 class WidgetApiController extends Controller
 {
@@ -45,22 +42,18 @@ class WidgetApiController extends Controller
      * @param IRequest          $request           The request.
      * @param WidgetService     $widgetService     The widget service.
      * @param PermissionService $permissionService The permission service.
-     * @param IL10N             $l10n              The localization service.
      * @param string|null       $userId            The user ID.
      */
     public function __construct(
         IRequest $request,
         private readonly WidgetService $widgetService,
         private readonly PermissionService $permissionService,
-        private readonly IL10N $l10n,
         private readonly ?string $userId,
     ) {
         parent::__construct(
             appName: Application::APP_ID,
             request: $request
         );
-
-        ResponseHelper::setL10N($this->l10n);
     }//end __construct()
 
     /**
@@ -181,8 +174,7 @@ class WidgetApiController extends Controller
             $placement = $this->widgetService->addTileFromArray(
                 dashboardId: $dashboardId,
                 tileData: RequestDataExtractor::extractTileData(
-                    request: $this->request,
-                    l10n: $this->l10n
+                    request: $this->request
                 )
             );
 

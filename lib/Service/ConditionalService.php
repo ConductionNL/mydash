@@ -57,12 +57,12 @@ class ConditionalService
         WidgetPlacement $placement,
         string $userId
     ): bool {
-        if ($placement->getIsVisible() === 0) {
+        if ($placement->getIsVisible() === false) {
             return false;
         }
 
         $rules = $this->ruleMapper->findByPlacementId(
-            $placement->getId()
+            placementId: $placement->getId()
         );
 
         if (empty($rules) === true) {
@@ -103,7 +103,7 @@ class ConditionalService
     public function getRules(int $placementId): array
     {
         return $this->ruleMapper->findByPlacementId(
-            $placementId
+            placementId: $placementId
         );
     }//end getRules()
 
@@ -116,8 +116,6 @@ class ConditionalService
      * @param bool   $isInclude   Whether this is an include rule.
      *
      * @return ConditionalRule The created rule.
-     *
-     * @SuppressWarnings(PHPMD.BooleanArgumentFlag) - isInclude is a rule include/exclude flag
      */
     public function addRule(
         int $placementId,
@@ -134,7 +132,7 @@ class ConditionalService
         $rule->setIsInclude($isInclude);
         $rule->setCreatedAt(new DateTime());
 
-        return $this->ruleMapper->insert($rule);
+        return $this->ruleMapper->insert(entity: $rule);
     }//end addRule()
 
     /**
@@ -147,7 +145,7 @@ class ConditionalService
      */
     public function updateRule(int $ruleId, array $data): ConditionalRule
     {
-        $rule = $this->ruleMapper->find($ruleId);
+        $rule = $this->ruleMapper->find(id: $ruleId);
 
         if (isset($data['ruleType']) === true) {
             $rule->setRuleType($data['ruleType']);
@@ -161,7 +159,7 @@ class ConditionalService
             $rule->setIsInclude($data['isInclude']);
         }
 
-        return $this->ruleMapper->update($rule);
+        return $this->ruleMapper->update(entity: $rule);
     }//end updateRule()
 
     /**
@@ -173,7 +171,7 @@ class ConditionalService
      */
     public function deleteRule(int $ruleId): void
     {
-        $rule = $this->ruleMapper->find($ruleId);
-        $this->ruleMapper->delete($rule);
+        $rule = $this->ruleMapper->find(id: $ruleId);
+        $this->ruleMapper->delete(entity: $rule);
     }//end deleteRule()
 }//end class

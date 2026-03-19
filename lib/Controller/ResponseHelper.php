@@ -23,49 +23,12 @@ namespace OCA\MyDash\Controller;
 
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\JSONResponse;
-use OCP\IL10N;
 
 /**
  * Helper for building common JSON responses in controllers.
  */
 class ResponseHelper
 {
-
-    /**
-     * The localization service instance.
-     *
-     * @var IL10N|null
-     */
-    private static ?IL10N $l10n = null;
-
-    /**
-     * Set the IL10N instance for translating user-facing messages.
-     *
-     * @param IL10N $l10n The localization service.
-     *
-     * @return void
-     */
-    public static function setL10N(IL10N $l10n): void
-    {
-        self::$l10n = $l10n;
-    }//end setL10N()
-
-    /**
-     * Translate a string if the IL10N service is available.
-     *
-     * @param string $text The text to translate.
-     *
-     * @return string The translated text.
-     */
-    private static function translate(string $text): string
-    {
-        if (self::$l10n !== null) {
-            return self::$l10n->t($text);
-        }
-
-        return $text;
-    }//end translate()
-
     /**
      * Create an unauthorized response.
      *
@@ -74,7 +37,7 @@ class ResponseHelper
     public static function unauthorized(): JSONResponse
     {
         return new JSONResponse(
-            data: ['error' => self::translate('Not logged in')],
+            data: ['error' => 'Not logged in'],
             statusCode: Http::STATUS_UNAUTHORIZED
         );
     }//end unauthorized()
@@ -82,15 +45,15 @@ class ResponseHelper
     /**
      * Create a forbidden response.
      *
-     * @param string|null $message The error message.
+     * @param string $message The error message.
      *
      * @return JSONResponse The forbidden response.
      */
     public static function forbidden(
-        ?string $message=null
+        string $message='Access denied'
     ): JSONResponse {
         return new JSONResponse(
-            data: ['error' => $message ?? self::translate('Access denied')],
+            data: ['error' => $message],
             statusCode: Http::STATUS_FORBIDDEN
         );
     }//end forbidden()
@@ -107,11 +70,6 @@ class ResponseHelper
         \Exception $exception,
         int $statusCode=Http::STATUS_BAD_REQUEST
     ): JSONResponse {
-        /**
-         * Psalm type narrowing for Nextcloud JSONResponse constructor.
-         *
-         * @var int<100,599> $statusCode
-         */
         return new JSONResponse(
             data: ['error' => $exception->getMessage()],
             statusCode: $statusCode
@@ -121,8 +79,8 @@ class ResponseHelper
     /**
      * Create a success response.
      *
-     * @param array<string, mixed> $data       The response data.
-     * @param int                  $statusCode The HTTP status code.
+     * @param array $data       The response data.
+     * @param int   $statusCode The HTTP status code.
      *
      * @return JSONResponse The success response.
      */
@@ -130,11 +88,6 @@ class ResponseHelper
         array $data,
         int $statusCode=Http::STATUS_OK
     ): JSONResponse {
-        /**
-         * Psalm type narrowing for Nextcloud JSONResponse constructor.
-         *
-         * @var int<100,599> $statusCode
-         */
         return new JSONResponse(
             data: $data,
             statusCode: $statusCode

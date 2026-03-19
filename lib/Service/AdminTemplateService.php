@@ -26,7 +26,7 @@ use Exception;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
-// Note: Ramsey\Uuid is not a direct dependency; using random_bytes-based UUID v4 generator.
+use Ramsey\Uuid\Uuid;
 
 /**
  * Service for admin template CRUD operations.
@@ -66,14 +66,14 @@ class AdminTemplateService
      */
     public function getTemplateWithPlacements(int $id): array
     {
-        $template = $this->dashboardMapper->find($id);
+        $template = $this->dashboardMapper->find(id: $id);
 
         if ($template->getType() !== Dashboard::TYPE_ADMIN_TEMPLATE) {
-            throw new Exception('Not an admin template');
+            throw new Exception(message: 'Not an admin template');
         }
 
         $placements = $this->placementMapper->findByDashboardId(
-            $id
+            dashboardId: $id
         );
 
         return [
@@ -92,8 +92,6 @@ class AdminTemplateService
      * @param bool        $isDefault       Whether this is the default.
      *
      * @return Dashboard The created template.
-     *
-     * @SuppressWarnings(PHPMD.BooleanArgumentFlag) - isDefault is an admin template flag
      */
     public function createTemplate(
         string $name,
@@ -106,9 +104,8 @@ class AdminTemplateService
             $this->dashboardMapper->clearDefaultTemplates();
         }
 
-        $now      = (new DateTime())->format('Y-m-d H:i:s');
         $template = new Dashboard();
-        $template->setUuid(self::generateUuid());
+        $template->setUuid(Uuid::uuid4()->toString());
         $template->setName($name);
         $template->setDescription($description);
         $template->setType(Dashboard::TYPE_ADMIN_TEMPLATE);
@@ -120,15 +117,11 @@ class AdminTemplateService
         $template->setTargetGroupsArray(
             $targetGroups ?? []
         );
-        $template->setIsDefault(0);
-        if ($isDefault === true) {
-            $template->setIsDefault(1);
-        }
+        $template->setIsDefault($isDefault);
+        $template->setCreatedAt(new DateTime());
+        $template->setUpdatedAt(new DateTime());
 
-        $template->setCreatedAt($now);
-        $template->setUpdatedAt($now);
-
-        return $this->dashboardMapper->insert($template);
+        return $this->dashboardMapper->insert(entity: $template);
     }//end createTemplate()
 
     /**
@@ -143,10 +136,10 @@ class AdminTemplateService
      */
     public function updateTemplate(int $id, array $data): Dashboard
     {
-        $template = $this->dashboardMapper->find($id);
+        $template = $this->dashboardMapper->find(id: $id);
 
         if ($template->getType() !== Dashboard::TYPE_ADMIN_TEMPLATE) {
-            throw new Exception('Not an admin template');
+            throw new Exception(message: 'Not an admin template');
         }
 
         $this->applyTemplateUpdates(
@@ -154,11 +147,9 @@ class AdminTemplateService
             data: $data
         );
 
-        $template->setUpdatedAt(
-            (new DateTime())->format('Y-m-d H:i:s')
-        );
+        $template->setUpdatedAt(new DateTime());
 
-        return $this->dashboardMapper->update($template);
+        return $this->dashboardMapper->update(entity: $template);
     }//end updateTemplate()
 
     /**
@@ -172,35 +163,18 @@ class AdminTemplateService
      */
     public function deleteTemplate(int $id): void
     {
-        $template = $this->dashboardMapper->find($id);
+        $template = $this->dashboardMapper->find(id: $id);
 
         if ($template->getType() !== Dashboard::TYPE_ADMIN_TEMPLATE) {
-            throw new Exception('Not an admin template');
+            throw new Exception(message: 'Not an admin template');
         }
 
         // Delete placements first.
-        $this->placementMapper->deleteByDashboardId($id);
+        $this->placementMapper->deleteByDashboardId(dashboardId: $id);
 
         // Delete template.
-        $this->dashboardMapper->delete($template);
+        $this->dashboardMapper->delete(entity: $template);
     }//end deleteTemplate()
-
-    /**
-     * Generate a UUID v4 string.
-     *
-     * @return string The generated UUID.
-     */
-    private static function generateUuid(): string
-    {
-        $data    = random_bytes(16);
-        $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
-        $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
-
-        return vsprintf(
-            '%s%s-%s-%s-%s-%s%s%s',
-            str_split(bin2hex($data), 4)
-        );
-    }//end generateUuid()
 
     /**
      * Apply update data to a template entity.
@@ -241,10 +215,9 @@ class AdminTemplateService
                 $this->dashboardMapper->clearDefaultTemplates();
             }
 
-            $template->setIsDefault(0);
-            if ($data['isDefault'] === true) {
-                $template->setIsDefault(1);
-            }
+            $template->setIsDefault(
+                $data['isDefault']
+            );
         }
 
         if (isset($data['gridColumns']) === true) {
