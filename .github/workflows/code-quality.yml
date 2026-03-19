@@ -13,6 +13,8 @@ jobs:
     with:
       app-name: mydash
       php-version: "8.3"
+      enable-psalm: true
+      enable-phpstan: true
       enable-phpmetrics: true
       enable-frontend: true
       enable-eslint: true

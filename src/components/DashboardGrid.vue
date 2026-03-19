@@ -229,16 +229,11 @@ export default {
 }
 
 :deep(.grid-stack-item-content) {
-	background: var(--color-main-background);
-	border-radius: 0;
-	border: none;
-	box-shadow: none;
+	background: var(--color-main-background-blur);
+	backdrop-filter: var(--filter-background-blur);
+	-webkit-backdrop-filter: var(--filter-background-blur);
+	border-radius: var(--border-radius-large);
 	overflow: hidden;
-}
-
-/* Only widgets should have borders, not tiles */
-:deep(.grid-stack-item-content:has(.mydash-widget)) {
-	border: 1px solid var(--color-border);
 }
 
 :deep(.grid-stack-placeholder > .placeholder-content) {
