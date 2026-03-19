@@ -30,6 +30,9 @@ Thumbs.db
 /coverage/
 /phpqa/
 
+.phpunit.cache/
+phpmetrics/
+
 # Environment
 .env
 .env.local
