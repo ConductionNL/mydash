@@ -36,34 +36,44 @@ Users MUST be able to create new personal dashboards with a name, optional descr
 - GIVEN a logged-in Nextcloud user "alice"
 - WHEN she sends POST /api/dashboard with body `{"name": "My Work Dashboard"}`
 - THEN the system MUST create a new dashboard with:
-  - A generated UUID
+  - A generated UUID v4 (via custom `DashboardFactory::generateUuid()`)
   - `userId` set to "alice"
   - `type` set to "user"
-  - `isActive` set to 1 (true) -- the newly created dashboard becomes active, and all other user dashboards are deactivated
-  - `gridColumns` set to 12
-  - `permissionLevel` set to "full"
+  - `isActive` set to 1 (true) -- the newly created dashboard becomes active, and all other user dashboards are deactivated via `deactivateAllForUser()`
+  - `gridColumns` set to 12 (hardcoded in `DashboardFactory::create()`)
+  - `permissionLevel` set to "full" (hardcoded as `Dashboard::PERMISSION_FULL`)
 - AND the response MUST return HTTP 201 with the full dashboard object including the generated id and uuid
 
 #### Scenario: Create a dashboard with custom settings
 - GIVEN a logged-in Nextcloud user "bob"
-- WHEN he sends POST /api/dashboard with body `{"name": "Analytics", "description": "Data overview", "grid_columns": 6}`
-- THEN the system MUST create the dashboard with the specified name, description, and grid_columns
-- AND `gridColumns` MUST be set to 6
+- WHEN he sends POST /api/dashboard with body `{"name": "Analytics", "description": "Data overview"}`
+- THEN the system MUST create the dashboard with the specified name and description
+- AND `gridColumns` MUST be set to 12 (custom gridColumns is not exposed in the create endpoint)
 
 #### Scenario: Create a dashboard with invalid grid columns
 - GIVEN a logged-in Nextcloud user "alice"
 - WHEN she sends POST /api/dashboard with body `{"name": "Test", "grid_columns": 0}`
 - THEN the system MUST return HTTP 400 with a validation error
 - AND `gridColumns` MUST only accept positive integers (minimum 1, maximum 24)
+- NOTE: Grid column validation is NOT currently implemented
 
 #### Scenario: Create a dashboard without a name
 - GIVEN a logged-in Nextcloud user "alice"
 - WHEN she sends POST /api/dashboard with body `{}`
-- THEN the system MUST return HTTP 400 with a validation error indicating that "name" is required
+- THEN the system MUST create a dashboard with the default name "My Dashboard"
+- NOTE: The controller defaults name to "My Dashboard" if null. No validation error is returned.
+
+#### Scenario: Dashboard creation creates default placements
+- GIVEN user "alice" has no dashboards and no templates apply
+- WHEN she accesses MyDash for the first time (triggers `tryCreateFromTemplate()`)
+- THEN the system MUST create a "My Dashboard" with two default placements:
+  - "recommendations" widget at (0, 0) with size 6x5
+  - "activity" widget at (6, 0) with size 6x5
+- AND both placements MUST have `showTitle: 1`, `isVisible: 1`, and appropriate sortOrder values
 
 ### REQ-DASH-002: List User Dashboards
 
-Users MUST be able to retrieve a list of all their dashboards.
+Users MUST be able to retrieve a list of all their dashboards, scoped to their user ID.
 
 #### Scenario: List dashboards for a user with multiple dashboards
 - GIVEN user "alice" has 3 dashboards: "Work" (active), "Personal", "Analytics"
@@ -82,10 +92,11 @@ Users MUST be able to retrieve a list of all their dashboards.
 - WHEN "alice" sends GET /api/dashboards
 - THEN the response MUST contain only alice's 3 dashboards
 - AND bob's dashboard MUST NOT be included
+- AND admin templates (type: "admin_template") MUST NOT be included
 
 ### REQ-DASH-003: Get Active Dashboard
 
-Users MUST be able to retrieve their currently active dashboard in a single request.
+Users MUST be able to retrieve their currently active dashboard along with its placements and effective permission level in a single request.
 
 #### Scenario: Get the active dashboard
 - GIVEN user "alice" has dashboard "Work" marked as active
@@ -93,21 +104,37 @@ Users MUST be able to retrieve their currently active dashboard in a single requ
 - THEN the system MUST return HTTP 200 with an object containing:
   - `dashboard`: the "Work" dashboard object (with `isActive: 1`)
   - `placements`: array of all widget placements on this dashboard
-  - `permissionLevel`: the effective permission level string
+  - `permissionLevel`: the effective permission level string (resolved via `PermissionService::getEffectivePermissionLevel()`)
 
-#### Scenario: No active dashboard exists
+#### Scenario: No active dashboard exists but user has dashboards
 - GIVEN user "bob" has 2 dashboards but none is marked as active
 - WHEN he sends GET /api/dashboard
-- THEN the system MUST return HTTP 404
-- OR the system MUST return the most recently created dashboard as a fallback
+- THEN the system MUST activate the first existing dashboard via `DashboardResolver::tryActivateExistingDashboard()`
+- AND return that dashboard as the active one
 
 #### Scenario: First-time user triggers template distribution
 - GIVEN user "carol" has no dashboards
-- AND an admin template exists targeting carol's group with `is_default: true`
+- AND an admin template exists targeting carol's group
 - WHEN she sends GET /api/dashboard
-- THEN the system MUST create a personal copy of the matching template
+- THEN the system MUST create a personal copy of the matching template via `TemplateService::createDashboardFromTemplate()`
 - AND the copy MUST be set as her active dashboard
+- AND the response MUST return the newly created dashboard with its placements
+
+#### Scenario: First-time user with no template gets default dashboard
+- GIVEN user "dave" has no dashboards
+- AND no admin template matches dave's groups
+- AND `allowUserDashboards` is true
+- WHEN he sends GET /api/dashboard
+- THEN the system MUST create a default "My Dashboard" with recommendations and activity widgets
 - AND the response MUST return the newly created dashboard
+
+#### Scenario: First-time user with dashboards disabled and no template
+- GIVEN user "eve" has no dashboards
+- AND no admin template matches eve's groups
+- AND `allowUserDashboards` is false
+- WHEN she sends GET /api/dashboard
+- THEN the system MUST return null (no dashboard available)
+- AND the response MUST return HTTP 404 or an empty result
 
 ### REQ-DASH-004: Update Dashboard
 
@@ -117,12 +144,13 @@ Users MUST be able to update the name, description, and grid configuration of th
 - GIVEN user "alice" has dashboard with id 5
 - WHEN she sends PUT /api/dashboard/5 with body `{"name": "Updated Work", "description": "New desc"}`
 - THEN the system MUST update the name and description
+- AND set `updatedAt` to the current timestamp
 - AND return HTTP 200 with the updated dashboard object
 
 #### Scenario: Update another user's dashboard
 - GIVEN user "alice" has dashboard with id 5
 - WHEN user "bob" sends PUT /api/dashboard/5 with body `{"name": "Hacked"}`
-- THEN the system MUST return HTTP 403
+- THEN the system MUST return HTTP 403 (via ownership check)
 - AND the dashboard MUST NOT be modified
 
 #### Scenario: Update grid columns on a dashboard with existing widgets
@@ -130,32 +158,38 @@ Users MUST be able to update the name, description, and grid configuration of th
 - WHEN she sends PUT /api/dashboard/5 with body `{"gridColumns": 6}`
 - THEN the system MUST update `gridColumns` to 6
 - AND widget placements that exceed the new column count SHOULD be repositioned or flagged for re-layout
+- NOTE: Grid reflow is NOT currently implemented. Widgets exceeding the new column count remain at their positions.
 
 #### Scenario: Update permission_level on a user dashboard
 - GIVEN user "alice" has a personal dashboard with `permissionLevel: full`
 - WHEN she sends PUT /api/dashboard/5 with body `{"permissionLevel": "view_only"}`
-- THEN the system MUST return HTTP 400 or ignore the field
-- AND users MUST NOT be able to change permissionLevel on their own dashboards (only inherited from templates or set by admin)
-- NOTE: The current `applyDashboardUpdates()` implementation does NOT block `gridColumns` changes but also does NOT apply `permissionLevel` changes from user requests, since `permissionLevel` is not handled in the update method
+- THEN the system MUST ignore the `permissionLevel` field
+- AND the permissionLevel MUST remain "full"
+- NOTE: `applyDashboardUpdates()` does not handle `permissionLevel` -- it only processes `name`, `description`, `gridColumns`, and `placements`.
+
+#### Scenario: Batch update placement positions via dashboard update
+- GIVEN user "alice" has dashboard id 5 with 4 widget placements
+- WHEN she sends PUT /api/dashboard/5 with body containing a `placements` array of updated positions
+- THEN the system MUST update all placement positions via `placementMapper->updatePositions()`
+- AND this enables efficient grid saves after drag-and-drop rearrangement
 
 ### REQ-DASH-005: Delete Dashboard
 
-Users MUST be able to delete their own dashboards.
+Users MUST be able to delete their own dashboards with proper cascade deletion of associated data.
 
 #### Scenario: Delete a dashboard
 - GIVEN user "alice" has dashboard id 5 with 3 widget placements
 - WHEN she sends DELETE /api/dashboard/5
 - THEN the system MUST delete the dashboard
-- AND all associated widget placements MUST be cascade-deleted
-- AND all associated conditional rules MUST be cascade-deleted
+- AND all associated widget placements MUST be cascade-deleted via `placementMapper->deleteByDashboardId()`
 - AND the response MUST return HTTP 200
 
 #### Scenario: Delete the active dashboard
 - GIVEN user "alice" has dashboard id 5 marked as active and dashboard id 6 as inactive
 - WHEN she sends DELETE /api/dashboard/5
 - THEN the system MUST delete dashboard 5
-- AND the system SHOULD automatically activate dashboard 6 (the remaining dashboard)
-- OR the user MUST be left with no active dashboard
+- AND the system does NOT automatically activate dashboard 6
+- NOTE: Auto-activation after delete is NOT currently implemented. The user will have no active dashboard until the next GET /api/dashboard triggers `tryActivateExistingDashboard()`.
 
 #### Scenario: Delete another user's dashboard
 - GIVEN user "alice" has dashboard id 5
@@ -169,6 +203,12 @@ Users MUST be able to delete their own dashboards.
 - THEN the system MUST delete the dashboard
 - AND subsequent GET /api/dashboards MUST return an empty array
 
+#### Scenario: Delete does not check permission level
+- GIVEN user "alice" has a view-only dashboard id 5 (based on a template with `permissionLevel: "view_only"`)
+- WHEN she sends DELETE /api/dashboard/5
+- THEN the system MUST allow the deletion
+- AND users MUST always have the right to remove dashboards from their account regardless of permission level
+
 ### REQ-DASH-006: Activate Dashboard
 
 Users MUST be able to set one of their dashboards as the active dashboard, ensuring only one is active at a time.
@@ -177,7 +217,7 @@ Users MUST be able to set one of their dashboards as the active dashboard, ensur
 - GIVEN user "alice" has dashboard "Work" (id 5, active) and "Personal" (id 6, inactive)
 - WHEN she sends POST /api/dashboard/6/activate
 - THEN dashboard 6 MUST have `isActive: 1`
-- AND dashboard 5 MUST have `isActive: 0`
+- AND dashboard 5 MUST have `isActive: 0` (via `DashboardMapper::setActive()` which deactivates all others first)
 - AND the response MUST return HTTP 200 with the newly activated dashboard
 
 #### Scenario: Activate an already active dashboard
@@ -196,7 +236,6 @@ Users MUST be able to set one of their dashboards as the active dashboard, ensur
 - WHEN she activates dashboard id 8
 - THEN exactly one dashboard (id 8) MUST have `isActive: 1`
 - AND all other 4 dashboards MUST have `isActive: 0`
-- AND this invariant MUST be enforced at the database level or in the service layer before returning
 
 ### REQ-DASH-007: Dashboard Name Validation
 
@@ -207,12 +246,19 @@ Dashboard names MUST be validated for length and content.
 - WHEN they create a dashboard with a name exceeding 255 characters
 - THEN the system MUST return HTTP 400 with a validation error
 - AND dashboard names MUST be between 1 and 255 characters
+- NOTE: Name length validation is NOT currently implemented
 
 #### Scenario: Duplicate dashboard names allowed
 - GIVEN user "alice" already has a dashboard named "Work"
 - WHEN she creates another dashboard named "Work"
 - THEN the system MUST allow this (dashboard names are not unique per user)
 - AND the two dashboards MUST be distinguishable by their id and uuid
+
+#### Scenario: Empty name defaults to "My Dashboard"
+- GIVEN a logged-in user
+- WHEN they create a dashboard without providing a name
+- THEN the system MUST use the default name "My Dashboard"
+- AND the dashboard MUST be created successfully
 
 ### REQ-DASH-008: Dashboard Type Enforcement
 
@@ -221,7 +267,7 @@ The `type` field MUST distinguish between user-created dashboards and admin temp
 #### Scenario: Users cannot create admin_template type dashboards
 - GIVEN a non-admin user "alice"
 - WHEN she sends POST /api/dashboard with body `{"name": "Fake Template", "type": "admin_template"}`
-- THEN the system MUST either ignore the `type` field (defaulting to "user") or return HTTP 403
+- THEN the system MUST ignore the `type` field (defaulting to "user" via `DashboardFactory::create()`)
 - AND the created dashboard MUST have `type: user`
 
 #### Scenario: Admin creates a template dashboard
@@ -230,9 +276,57 @@ The `type` field MUST distinguish between user-created dashboards and admin temp
 - THEN the system MUST create a dashboard with `type: admin_template`
 - AND the template dashboard MUST NOT appear in regular users' GET /api/dashboards responses
 
+#### Scenario: Template-derived dashboards have type "user"
+- GIVEN an admin template "Company Dashboard" is distributed to user "alice"
+- WHEN the system creates a copy for alice via `TemplateService::createDashboardFromTemplate()`
+- THEN the copy MUST have `type: "user"` (NOT "admin_template")
+- AND `basedOnTemplate` MUST reference the source template's ID
+
+### REQ-DASH-009: Dashboard Resolution Chain
+
+The system MUST resolve the effective dashboard through a defined chain when GET /api/dashboard is called.
+
+#### Scenario: Active dashboard found immediately
+- GIVEN user "alice" has an active dashboard
+- WHEN GET /api/dashboard is called
+- THEN `DashboardResolver::tryGetActiveDashboard()` MUST find and return it immediately
+- AND no template distribution or default creation logic MUST be triggered
+
+#### Scenario: No active dashboard but existing dashboards
+- GIVEN user "alice" has dashboards but none is active
+- WHEN GET /api/dashboard is called
+- THEN `DashboardResolver::tryActivateExistingDashboard()` MUST activate the first found dashboard
+- AND return it as the active dashboard
+
+#### Scenario: No dashboards at all with template available
+- GIVEN user "alice" has no dashboards
+- AND a matching admin template exists
+- WHEN GET /api/dashboard is called
+- THEN `DashboardService::tryCreateFromTemplate()` MUST be called
+- AND a template copy MUST be created and set as active
+
+### REQ-DASH-010: Dashboard Serialization
+
+Dashboard objects MUST be consistently serialized across all API responses.
+
+#### Scenario: Dashboard object includes all fields
+- GIVEN a dashboard exists
+- WHEN it is returned via any API endpoint
+- THEN the serialized object MUST include all fields: id, uuid, userId, name, description, type, basedOnTemplate, gridColumns, permissionLevel, targetGroups, isDefault, isActive, createdAt, updatedAt
+
+#### Scenario: Null fields are included in serialization
+- GIVEN a dashboard with `description: null` and `basedOnTemplate: null`
+- WHEN the dashboard is serialized
+- THEN both `description` and `basedOnTemplate` MUST be present in the JSON with null values
+
+#### Scenario: Timestamp format consistency
+- GIVEN a dashboard with `createdAt` and `updatedAt` set
+- WHEN the dashboard is serialized
+- THEN timestamps MUST be in "Y-m-d H:i:s" format (e.g., "2026-03-20 14:30:00")
+
 ## Non-Functional Requirements
 
-- **Performance**: GET /api/dashboards MUST return within 500ms for users with up to 50 dashboards.
+- **Performance**: GET /api/dashboards MUST return within 500ms for users with up to 50 dashboards. GET /api/dashboard MUST return within 1 second including template distribution if needed.
 - **Data integrity**: The single-active-dashboard invariant MUST be enforced consistently, even under concurrent requests from the same user.
 - **Accessibility**: Dashboard management UI elements (create, edit, delete, activate) MUST be operable via keyboard and screen readers.
 - **Localization**: All error messages and validation messages MUST support English and Dutch.
@@ -240,36 +334,22 @@ The `type` field MUST distinguish between user-created dashboards and admin temp
 ### Current Implementation Status
 
 **Fully implemented:**
-- REQ-DASH-001 (Create Personal Dashboard): `DashboardService::createDashboard()` in `lib/Service/DashboardService.php` delegates to `DashboardFactory::create()` in `lib/Service/DashboardFactory.php` which sets UUID, type=user, isActive=1, gridColumns=12, permissionLevel=full. `deactivateAllForUser()` is called before insert. `DashboardApiController::create()` in `lib/Controller/DashboardApiController.php` exposes POST /api/dashboard with `#[NoAdminRequired]`.
-- REQ-DASH-002 (List User Dashboards): `DashboardService::getUserDashboards()` calls `DashboardMapper::findByUserId()`. `DashboardApiController::list()` returns serialized array. User-scoped by userId filter.
-- REQ-DASH-003 (Get Active Dashboard): `DashboardService::getEffectiveDashboard()` chains: `tryGetActiveDashboard()` -> `tryActivateExistingDashboard()` -> `tryCreateFromTemplate()` via `DashboardResolver` in `lib/Service/DashboardResolver.php`. Returns dashboard + placements + permissionLevel. First-time template distribution is triggered here.
-- REQ-DASH-004 (Update Dashboard): `DashboardService::updateDashboard()` verifies ownership, calls `applyDashboardUpdates()` which handles `name`, `description`, `gridColumns`, and `placements` (batch position updates). `DashboardApiController::update()` exposes PUT /api/dashboard/{id}.
-- REQ-DASH-005 (Delete Dashboard): `DashboardService::deleteDashboard()` verifies ownership, deletes placements via `placementMapper->deleteByDashboardId()`, then deletes dashboard. `DashboardApiController::delete()` exposes DELETE /api/dashboard/{id}.
-- REQ-DASH-006 (Activate Dashboard): `DashboardService::activateDashboard()` verifies ownership, calls `DashboardMapper::setActive()` which deactivates all others and activates the target. `DashboardApiController::activate()` exposes POST /api/dashboard/{id}/activate.
-- REQ-DASH-008 (Dashboard Type Enforcement): Admin templates are created only via `AdminController::createTemplate()` (admin-only). User dashboards always get `type: "user"` from `DashboardFactory`. Templates are filtered out of `findByUserId()` results.
+- REQ-DASH-001 (Create Personal Dashboard): `DashboardService::createDashboard()` delegates to `DashboardFactory::create()`. Default placements created via `createDefaultPlacements()` during first-time access.
+- REQ-DASH-002 (List User Dashboards): `DashboardService::getUserDashboards()` calls `DashboardMapper::findByUserId()`. User-scoped, templates filtered out.
+- REQ-DASH-003 (Get Active Dashboard): `DashboardService::getEffectiveDashboard()` chains `tryGetActiveDashboard` -> `tryActivateExistingDashboard` -> `tryCreateFromTemplate`.
+- REQ-DASH-004 (Update Dashboard): `DashboardService::updateDashboard()` with `applyDashboardUpdates()` handles name, description, gridColumns, placements.
+- REQ-DASH-005 (Delete Dashboard): `DashboardService::deleteDashboard()` deletes placements then dashboard.
+- REQ-DASH-006 (Activate Dashboard): `DashboardService::activateDashboard()` via `DashboardMapper::setActive()`.
+- REQ-DASH-008 (Dashboard Type Enforcement): Admin templates via `AdminController`, user dashboards via `DashboardFactory`.
+- REQ-DASH-009 (Dashboard Resolution Chain): Full chain implemented in `DashboardService::getEffectiveDashboard()`.
 
 **Not yet implemented:**
-- REQ-DASH-001 validation: No validation for `name` (required, length 1-255) or `gridColumns` (positive integer 1-24). The controller defaults name to "My Dashboard" if null. `gridColumns` is not exposed in the create endpoint params.
-- REQ-DASH-004 grid reflow: Updating `gridColumns` to a smaller value does NOT reposition widgets that exceed the new column count.
-- REQ-DASH-004 permissionLevel blocking: `applyDashboardUpdates()` does NOT handle `permissionLevel` in update data -- effectively ignored by omission, which is the desired behavior but not an explicit guard.
-- REQ-DASH-005 auto-activate after delete: Deleting the active dashboard does NOT automatically activate another dashboard.
-- REQ-DASH-007 name validation: No length check on dashboard names. No explicit 400 response for empty names.
-- REQ-DASH-005 cascade-delete conditional rules: `deleteDashboard()` deletes placements but does NOT explicitly cascade-delete conditional rules from those placements.
-
-**Partial implementations:**
-- REQ-DASH-003 no-dashboard fallback: When no active dashboard exists, `tryActivateExistingDashboard()` activates the first dashboard found. If no dashboards exist and `allowUserDashboards` is true, creates a default "My Dashboard". If false but a template exists, returns the template in view-only mode.
-- REQ-DASH-001 gridColumns from admin setting: `DashboardFactory::create()` hardcodes `gridColumns: 12` instead of reading `defaultGridColumns` from admin settings.
+- REQ-DASH-001/007 validation: No name or gridColumns validation.
+- REQ-DASH-004 grid reflow: Updating gridColumns does not reposition widgets.
+- REQ-DASH-005 auto-activate after delete: Not implemented.
+- REQ-DASH-005 cascade-delete conditional rules: Not explicitly handled.
 
 ### Standards & References
 - Nextcloud Controller patterns: `OCP\AppFramework\Controller`, `#[NoAdminRequired]` attribute
-- UUID generation: Custom UUID v4 implementation in `DashboardFactory::generateUuid()` (not using Ramsey/Uuid like AdminTemplateService)
+- UUID generation: Custom UUID v4 implementation in `DashboardFactory::generateUuid()`
 - WCAG 2.1 AA: Dashboard management UI elements should be keyboard-operable
-- WAI-ARIA: Dashboard switcher and create/edit/delete actions need proper ARIA roles
-
-### Specificity Assessment
-- The spec is well-defined with clear API contracts and scenarios. Covers CRUD, activation, type enforcement, and edge cases.
-- **Missing:** No specification for the `gridColumns` parameter in the create endpoint (it's not in the controller's method signature).
-- **Missing:** No specification for the `placements` batch update within `PUT /api/dashboard/{id}` -- the spec doesn't mention that dashboard updates can include placement position updates.
-- **Ambiguous:** REQ-DASH-003 "no active dashboard" scenario says the system MUST return 404 OR activate the most recently created dashboard -- the "OR" makes it unclear which is the required behavior. Current implementation activates the first found dashboard.
-- **Open question:** Should `DashboardFactory` use the admin `defaultGridColumns` setting or always use 12?
-- **Open question:** Should deleting the active dashboard auto-activate another, or leave the user with no active dashboard?
