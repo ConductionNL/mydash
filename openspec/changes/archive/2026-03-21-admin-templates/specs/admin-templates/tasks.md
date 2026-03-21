@@ -1,0 +1,34 @@
+# Admin Template Tasks
+
+- [x] **T01**: Define `Dashboard` entity with `type`, `targetGroups`, `isDefault`, `basedOnTemplate`, `permissionLevel` fields and JSON helpers — `lib/Db/Dashboard.php`
+- [x] **T02**: Define `WidgetPlacement` entity with `isCompulsory`, `isVisible`, grid position, style, tile inline fields — `lib/Db/WidgetPlacement.php`
+- [x] **T03**: Create `mydash_dashboards` database table with all admin-template columns (`type`, `target_groups`, `is_default`, `based_on_template`, `permission_level`) — `lib/Migration/DashboardTableBuilder.php`
+- [x] **T04**: Create `mydash_widget_placements` database table with `is_compulsory`, grid, style, and tile columns — `lib/Migration/PlacementTableBuilder.php`
+- [x] **T05**: Write initial migration applying both tables — `lib/Migration/Version001000Date20240101000000.php`
+- [x] **T06**: Implement `DashboardMapper::findAdminTemplates()` — query all rows with `type = 'admin_template'` ordered by name — `lib/Db/DashboardMapper.php`
+- [x] **T07**: Implement `DashboardMapper::findDefaultTemplate()` — query the single row with `type = 'admin_template'` AND `is_default = 1` — `lib/Db/DashboardMapper.php`
+- [x] **T08**: Implement `DashboardMapper::clearDefaultTemplates()` — bulk-update `is_default = 0` on all admin templates to enforce single-default invariant — `lib/Db/DashboardMapper.php`
+- [x] **T09**: Implement `DashboardMapper::deactivateAllForUser()` — bulk-update `is_active = 0` for all user dashboards before activating a new copy — `lib/Db/DashboardMapper.php`
+- [x] **T10**: Implement `DashboardMapper::setActive()` — deactivate all then activate the named dashboard for a user — `lib/Db/DashboardMapper.php`
+- [x] **T11**: Implement `WidgetPlacementMapper::findByDashboardId()` — fetch placements ordered by `sort_order, grid_y, grid_x` — `lib/Db/WidgetPlacementMapper.php`
+- [x] **T12**: Implement `WidgetPlacementMapper::deleteByDashboardId()` — cascade-delete placements when a template or dashboard is deleted — `lib/Db/WidgetPlacementMapper.php`
+- [x] **T13**: Implement `AdminTemplateService::createTemplate()` with `clearDefaultTemplates()` guard when `isDefault = true` — `lib/Service/AdminTemplateService.php`
+- [x] **T14**: Implement `AdminTemplateService::listTemplates()` delegating to `DashboardMapper::findAdminTemplates()` — `lib/Service/AdminTemplateService.php`
+- [x] **T15**: Implement `AdminTemplateService::getTemplateWithPlacements()` returning template entity and its placement array — `lib/Service/AdminTemplateService.php`
+- [x] **T16**: Implement `AdminTemplateService::updateTemplate()` with `applyTemplateUpdates()` and `clearDefaultTemplates()` guard on `isDefault` change — `lib/Service/AdminTemplateService.php`
+- [x] **T17**: Implement `AdminTemplateService::deleteTemplate()` — delete placements then template; guard against deleting non-template dashboards — `lib/Service/AdminTemplateService.php`
+- [x] **T18**: Implement `TemplateService::getApplicableTemplate()` using `IGroupManager::getUserGroupIds()` for group intersection; fall back to `findDefaultTemplate()` — `lib/Service/TemplateService.php`
+- [x] **T19**: Implement `TemplateService::createDashboardFromTemplate()` — build copy entity, deactivate existing dashboards, insert copy, copy all placements — `lib/Service/TemplateService.php`
+- [x] **T20**: Implement `TemplateService::clonePlacement()` — deep-copy all placement fields to a new entity with the target `dashboardId` — `lib/Service/TemplateService.php`
+- [x] **T21**: Implement `DashboardResolver::handleTemplateResult()` — if `allowUserDashboards`, create personal copy; otherwise serve template read-only with `view_only` override — `lib/Service/DashboardResolver.php`
+- [x] **T22**: Implement `DashboardResolver::getEffectivePermissionLevel()` — live-inherit from source template if `basedOnTemplate` is set; fall back to dashboard level then admin default — `lib/Service/DashboardResolver.php`
+- [x] **T23**: Implement `DashboardService::getEffectiveDashboard()` resolution chain: active → existing → template copy → empty — `lib/Service/DashboardService.php`
+- [x] **T24**: Implement `DashboardService::tryCreateFromTemplate()` — read `allow_user_dashboards` setting, call `getApplicableTemplate`, dispatch to `handleTemplateResult` or auto-create empty dashboard — `lib/Service/DashboardService.php`
+- [x] **T25**: Implement `DashboardFactory::create()` for plain user dashboards (not template-derived) — `lib/Service/DashboardFactory.php`
+- [x] **T26**: Implement `PermissionService` with `canEditDashboard`, `canAddWidget`, `canRemoveWidget` (compulsory guard for `add_only`), `canStyleWidget`, `canCreateDashboard`, `canHaveMultipleDashboards` — `lib/Service/PermissionService.php`
+- [x] **T27**: Implement `AdminController` with `listTemplates`, `getTemplate`, `createTemplate`, `updateTemplate`, `deleteTemplate`, `getSettings`, `updateSettings` actions — `lib/Controller/AdminController.php`
+- [x] **T28**: Register admin template REST routes (`GET/POST /api/admin/templates`, `GET/PUT/DELETE /api/admin/templates/{id}`) in routes file — `appinfo/routes.php`
+- [x] **T29**: Register admin settings routes (`GET/PUT /api/admin/settings`) in routes file — `appinfo/routes.php`
+- [x] **T30**: Register `MyDashAdmin` settings page and `MyDashAdminSection` so the admin UI appears in Nextcloud admin panel — `lib/Settings/MyDashAdmin.php`, `lib/Settings/MyDashAdminSection.php`
+- [x] **T31**: Implement `AdminSettingsService::getSettings()` and `updateSettings()` reading/writing from `AdminSettingMapper` with defaults — `lib/Service/AdminSettingsService.php`
+- [x] **T32**: Define `AdminSetting` entity with setting key constants (`default_permission_level`, `allow_user_dashboards`, `allow_multiple_dashboards`, `default_grid_columns`) and JSON encode/decode helpers — `lib/Db/AdminSetting.php`
