@@ -123,9 +123,7 @@ class AdminSetting extends Entity implements JsonSerializable
      */
     public function setValueEncoded(mixed $value): void
     {
-        $this->setSettingValue(
-            settingValue: json_encode(value: $value)
-        );
+        $this->setSettingValue(json_encode($value));
     }//end setValueEncoded()
 
     /**
