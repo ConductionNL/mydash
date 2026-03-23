@@ -293,7 +293,7 @@ class WidgetPlacement extends Entity implements JsonSerializable
      */
     public function setStyleConfigArray(array $config): void
     {
-        $this->setStyleConfig(styleConfig: json_encode(value: $config));
+        $this->setStyleConfig(json_encode($config));
     }//end setStyleConfigArray()
 
     /**

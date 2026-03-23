@@ -230,7 +230,7 @@ class Dashboard extends Entity implements JsonSerializable
      */
     public function setTargetGroupsArray(array $groups): void
     {
-        $this->setTargetGroups(targetGroups: json_encode(value: $groups));
+        $this->setTargetGroups(json_encode($groups));
     }//end setTargetGroupsArray()
 
     /**
