@@ -1,36 +1,43 @@
+# IDE
+/.idea/
+/*.iml
+*.Identifier
+.vscode/
+
 # Dependencies
-/node_modules/
-/node_modules/*
-node_modules/
 /vendor/
-/vendor/*
-vendor/
+/node_modules/
 
 # Build artifacts
 /js/
+
+# Documentation
 /docs/node_modules/
 /docs/build/
 /docs/.docusaurus/
+/docusaurus/node_modules/
+/docusaurus/build/
+/docusaurus/.docusaurus/
 
-# Development
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-*~
-.idea/
-.vscode/
-*.log
-
-# PHP
-/composer.phar
-
-# Testing
-/phpunit.xml
+# Testing & Quality
+/.php-cs-fixer.cache
+/tests/.phpunit.cache
+/.phpunit.cache/
+.phpunit.cache/
+.phpunit.result.cache
 /coverage/
+/coverage-frontend/
+/phpmetrics/
+/quality-reports/
 /phpqa/
 
-# Environment
-.env
-.env.local
-node_modules
+# Nextcloud
+/custom_apps/
+/config/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/worktrees/
