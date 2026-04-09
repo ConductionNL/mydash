@@ -11,6 +11,7 @@ vendor/
 /docs/node_modules/
 /docs/build/
 /docs/.docusaurus/
+/docusaurus/
 
 # Development
 .DS_Store
