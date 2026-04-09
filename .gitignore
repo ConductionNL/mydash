@@ -34,3 +34,7 @@ Thumbs.db
 .env
 .env.local
 node_modules
+
+# Test/build artifacts
+.phpunit.cache
+.phpunit.result.cache
