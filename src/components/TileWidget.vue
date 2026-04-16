@@ -15,7 +15,7 @@
 		<button
 			v-if="editMode"
 			class="tile-widget__edit"
-			aria-label="Edit tile"
+			:aria-label="t('mydash', 'Edit tile')"
 			@click.prevent="$emit('edit')">
 			<span class="icon-settings" />
 		</button>
