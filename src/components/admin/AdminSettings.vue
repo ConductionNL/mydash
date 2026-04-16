@@ -6,7 +6,7 @@
 <template>
 	<div class="mydash-admin">
 		<CnSettingsSection
-			:name="t('mydash', 'MyDash Settings')"
+			:name="t('mydash', 'MyDash settings')"
 			:description="t('mydash', 'Configure dashboard permissions and defaults')"
 			doc-url="https://mydash.app">
 			<!-- Global Settings -->
@@ -116,7 +116,7 @@
 
 				<div class="mydash-admin__field">
 					<label>{{ t('mydash', 'Template name') }}</label>
-					<NcTextField v-model="editingTemplate.name" :placeholder="t('mydash', 'My Template')" />
+					<NcTextField v-model="editingTemplate.name" :placeholder="t('mydash', 'My template')" />
 				</div>
 
 				<div class="mydash-admin__field">
