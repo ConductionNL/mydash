@@ -167,7 +167,7 @@
 </template>
 
 <script>
-import { NcButton, NcTextField, NcEmptyContent } from '@nextcloud/vue'
+import { NcButton, NcTextField, NcEmptyContent } from '@conduction/nextcloud-vue'
 import Close from 'vue-material-design-icons/Close.vue'
 import Magnify from 'vue-material-design-icons/Magnify.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'

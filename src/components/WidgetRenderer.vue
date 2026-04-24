@@ -50,7 +50,7 @@
 </template>
 
 <script>
-import { NcDashboardWidget, NcEmptyContent, NcLoadingIcon } from '@nextcloud/vue'
+import { NcDashboardWidget, NcEmptyContent, NcLoadingIcon } from '@conduction/nextcloud-vue'
 import AlertCircleOutline from 'vue-material-design-icons/AlertCircleOutline.vue'
 import { mapActions, storeToRefs } from 'pinia'
 import { useWidgetStore } from '../stores/widgets.js'
