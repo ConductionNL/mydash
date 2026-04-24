@@ -7,7 +7,7 @@
 	<div class="mydash-picker" :class="{ 'mydash-picker--open': open }">
 		<div class="mydash-picker__header">
 			<h2 class="mydash-picker__title">
-				{{ activeTab === 'widgets' ? t('mydash', 'Add to dashboard') : t('mydash', 'Manage Dashboards') }}
+				{{ activeTab === 'widgets' ? t('mydash', 'Add to dashboard') : t('mydash', 'Manage dashboards') }}
 			</h2>
 			<NcButton type="tertiary" @click="$emit('close')">
 				<template #icon>
@@ -44,7 +44,7 @@
 					<template #icon>
 						<Plus :size="20" />
 					</template>
-					{{ t('mydash', 'Create Tile') }}
+					{{ t('mydash', 'Create tile') }}
 				</NcButton>
 			</div>
 			<div class="mydash-picker__search">
@@ -102,7 +102,7 @@
 					<template #icon>
 						<Plus :size="20" />
 					</template>
-					{{ t('mydash', 'Create Dashboard') }}
+					{{ t('mydash', 'Create dashboard') }}
 				</NcButton>
 			</div>
 
