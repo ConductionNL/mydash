@@ -1,6 +1,11 @@
 /**
  * SPDX-FileCopyrightText: 2024 MyDash Contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
+ *
+ * @spec openspec/changes/retrofit-legacy-widget-bridge-2026-04-24/tasks.md#task-1
+ * @spec openspec/changes/retrofit-legacy-widget-bridge-2026-04-24/tasks.md#task-2
+ * @spec openspec/changes/retrofit-legacy-widget-bridge-2026-04-24/tasks.md#task-3
+ * @spec openspec/changes/retrofit-legacy-widget-bridge-2026-04-24/tasks.md#task-4
  */
 
 /**
@@ -18,6 +23,8 @@ class WidgetBridge {
 	/**
 	 * Intercept the global OCA.Dashboard.register calls
 	 * Legacy widgets call this to register their rendering callback
+	 *
+	 * @spec openspec/changes/retrofit-legacy-widget-bridge-2026-04-24/tasks.md#task-1
 	 */
 	interceptRegistration() {
 		// Ensure OCA and OCA.Dashboard exist
@@ -53,9 +60,12 @@ class WidgetBridge {
 
 	/**
 	 * Mount a legacy widget into a container element
+	 *
 	 * @param {string} widgetId - The widget ID (appId)
 	 * @param {HTMLElement} container - The DOM element to mount into
 	 * @param {object} widgetData - The widget metadata (optional)
+	 *
+	 * @spec openspec/changes/retrofit-legacy-widget-bridge-2026-04-24/tasks.md#task-2
 	 */
 	mountWidget(widgetId, container, widgetData = {}) {
 		console.log('[WidgetBridge] mountWidget called for:', widgetId)
@@ -85,8 +95,11 @@ class WidgetBridge {
 
 	/**
 	 * Mount a status widget into a container element
+	 *
 	 * @param {string} widgetId - The status widget ID
 	 * @param {HTMLElement} container - The DOM element to mount into
+	 *
+	 * @spec openspec/changes/retrofit-legacy-widget-bridge-2026-04-24/tasks.md#task-3
 	 */
 	mountStatusWidget(widgetId, container) {
 		const callback = this.statusCallbacks.get(widgetId)
@@ -104,8 +117,11 @@ class WidgetBridge {
 
 	/**
 	 * Check if a widget has been registered via callback
+	 *
 	 * @param {string} widgetId - The widget ID
 	 * @return {boolean}
+	 *
+	 * @spec openspec/changes/retrofit-legacy-widget-bridge-2026-04-24/tasks.md#task-4
 	 */
 	hasWidgetCallback(widgetId) {
 		return this.widgetCallbacks.has(widgetId)
@@ -113,7 +129,10 @@ class WidgetBridge {
 
 	/**
 	 * Get all registered widget IDs
+	 *
 	 * @return {string[]}
+	 *
+	 * @spec openspec/changes/retrofit-legacy-widget-bridge-2026-04-24/tasks.md#task-4
 	 */
 	getRegisteredWidgetIds() {
 		return Array.from(this.widgetCallbacks.keys())
