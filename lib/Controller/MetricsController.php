@@ -72,7 +72,14 @@ class MetricsController extends Controller
         // Info gauge.
         $lines[] = '# HELP mydash_info Application information';
         $lines[] = '# TYPE mydash_info gauge';
-        $lines[] = 'mydash_info{version="'.$appVersion.'",php_version="'.$phpVersion.'",nextcloud_version="'.$ncVersion.'"} 1';
+
+        $labels  = sprintf(
+            'version="%s",php_version="%s",nextcloud_version="%s"',
+            $appVersion,
+            $phpVersion,
+            $ncVersion
+        );
+        $lines[] = 'mydash_info{'.$labels.'} 1';
 
         // Up gauge.
         $lines[] = '# HELP mydash_up Whether the application is up';
@@ -83,13 +90,13 @@ class MetricsController extends Controller
         $this->collectDashboardMetrics(lines: $lines);
 
         // Widgets total.
-        $widgetsTotal = $this->countTable(table: 'mydash_widget_placements');
+        $widgetsTotal = $this->countTable(tableName: 'mydash_widget_placements');
         $lines[]      = '# HELP mydash_widgets_total Total number of widget placements';
         $lines[]      = '# TYPE mydash_widgets_total gauge';
         $lines[]      = 'mydash_widgets_total '.$widgetsTotal;
 
         // Tiles total.
-        $tilesTotal = $this->countTable(table: 'mydash_tiles');
+        $tilesTotal = $this->countTable(tableName: 'mydash_tiles');
         $lines[]    = '# HELP mydash_tiles_total Total number of tiles';
         $lines[]    = '# TYPE mydash_tiles_total gauge';
         $lines[]    = 'mydash_tiles_total '.$tilesTotal;
