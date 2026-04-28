@@ -28,7 +28,7 @@
 		"gridstack": "^10.3.1",
 		"pinia": "^2.1.7",
 		"vue": "^2.7.16",
-		"vue-loader": "^15.11.1",
+		"vue-loader": "^17.4.2",
 		"vue-material-design-icons": "^5.2.0",
 		"vue-router": "^3.6.5",
 		"vue-template-compiler": "^2.7.16"
@@ -41,7 +41,7 @@
 		"@nextcloud/browserslist-config": "^2.3.0",
 		"@nextcloud/eslint-config": "^8.4.1",
 		"@nextcloud/stylelint-config": "^2.4.0",
-		"@nextcloud/webpack-vue-config": "^5.5.0",
+		"@nextcloud/webpack-vue-config": "^7.0.2",
 		"@vue/tsconfig": "^0.5.1",
 		"eslint": "^8.56.0",
 		"eslint-import-resolver-alias": "^1.1.2",
