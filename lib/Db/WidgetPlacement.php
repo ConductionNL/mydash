@@ -293,6 +293,9 @@ class WidgetPlacement extends Entity implements JsonSerializable
      */
     public function setStyleConfigArray(array $config): void
     {
+        // Entity setters resolve via __call which uses $args[0]; named args
+        // would break the magic forwarding (see project memory).
+        // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
         $this->setStyleConfig(json_encode($config));
     }//end setStyleConfigArray()
 

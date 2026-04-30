@@ -27,6 +27,7 @@ use OCA\MyDash\Db\AdminSetting;
 use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
+use OCA\MyDash\Db\WidgetPlacement;
 use OCA\MyDash\Db\WidgetPlacementMapper;
 
 /**
@@ -274,7 +275,7 @@ class DashboardService
 
         $placements = [];
         foreach ($defaults as $config) {
-            $placement = new \OCA\MyDash\Db\WidgetPlacement();
+            $placement = new WidgetPlacement();
             $placement->setDashboardId($dashboardId);
             $placement->setWidgetId($config['widgetId']);
             $placement->setGridX($config['gridX']);
