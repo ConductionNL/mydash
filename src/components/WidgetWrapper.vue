@@ -19,7 +19,10 @@
 				</h3>
 			</div>
 			<div v-if="editMode" class="mydash-widget__actions">
-				<NcButton type="tertiary" @click="$emit('edit', placement)">
+				<NcButton
+					type="tertiary"
+					:aria-label="t('mydash', 'Edit widget')"
+					@click="$emit('edit', placement)">
 					<template #icon>
 						<Cog :size="20" />
 					</template>

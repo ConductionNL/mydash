@@ -7,10 +7,12 @@
 	<NcSelect
 		v-model="selectedDashboard"
 		:options="dashboardOptions"
+		:input-label="t('mydash', 'Active dashboard')"
 		:placeholder="t('mydash', 'Select dashboard')"
 		label="label"
 		track-by="id"
 		class="dashboard-switcher"
+		hide-label
 		@input="switchDashboard" />
 </template>
 

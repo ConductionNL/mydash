@@ -21,6 +21,7 @@ declare(strict_types=1);
 
 namespace OCA\MyDash\Service;
 
+use OCP\IConfig;
 use OCP\IUserManager;
 
 /**
@@ -32,9 +33,11 @@ class UserAttributeResolver
      * Constructor
      *
      * @param IUserManager $userManager The user manager interface.
+     * @param IConfig      $config      Config service for per-user prefs (e.g. language).
      */
     public function __construct(
         private readonly IUserManager $userManager,
+        private readonly IConfig $config,
     ) {
     }//end __construct()
 
@@ -56,7 +59,12 @@ class UserAttributeResolver
         }
 
         return match ($attribute) {
-            'locale' => $user->getLanguage() ?? 'en',
+            'locale' => $this->config->getUserValue(
+                userId: $userId,
+                appName: 'core',
+                key: 'lang',
+                default: 'en'
+            ),
             'email' => $user->getEMailAddress(),
             'displayName' => $user->getDisplayName(),
             'quota' => (string) $user->getQuota(),
