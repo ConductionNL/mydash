@@ -31,8 +31,10 @@ use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacement;
 use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\IUserManager;
+use Throwable;
 
 /**
  * Service for managing dashboards.
@@ -63,6 +65,13 @@ class DashboardService
     public const ERR_GROUP_MISMATCH = 'Dashboard does not belong to this group';
 
     /**
+     * Error message returned when the default-flip target is not found.
+     *
+     * @var string
+     */
+    public const ERR_DEFAULT_TARGET_NOT_IN_GROUP = 'Dashboard not found in group';
+
+    /**
      * Constructor
      *
      * @param DashboardMapper       $dashboardMapper  Dashboard mapper.
@@ -73,6 +82,9 @@ class DashboardService
      * @param DashboardResolver     $dashResolver     Dashboard resolver.
      * @param IGroupManager         $groupManager     Group manager.
      * @param IUserManager          $userManager      User manager.
+     * @param IDBConnection         $db               DB connection (for the
+     *                                                transactional default
+     *                                                flip — REQ-DASH-015).
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
@@ -83,6 +95,7 @@ class DashboardService
         private readonly DashboardResolver $dashResolver,
         private readonly IGroupManager $groupManager,
         private readonly IUserManager $userManager,
+        private readonly IDBConnection $db,
     ) {
     }//end __construct()
 
@@ -321,6 +334,10 @@ class DashboardService
             gridColumns: $gridColumns
         );
         $dashboard->setPermissionLevel(Dashboard::PERMISSION_VIEW_ONLY);
+        // REQ-DASH-016: new group-shared rows always start non-default.
+        // Promotion is only possible via the dedicated
+        // POST /api/dashboards/group/{groupId}/default endpoint.
+        $dashboard->setIsDefault(0);
 
         return $this->dashboardMapper->insert(entity: $dashboard);
     }//end createGroupShared()
@@ -357,6 +374,13 @@ class DashboardService
             groupId: $groupId,
             uuid: $uuid
         );
+
+        // REQ-DASH-017: PUT MUST NOT mutate `isDefault` regardless of
+        // payload contents. Drop the field defensively before applying
+        // updates — even though `applyDashboardUpdates` already ignores
+        // unknown keys, we strip it explicitly so the contract is
+        // visible at the service boundary.
+        unset($patch['isDefault']);
 
         $this->applyDashboardUpdates(
             dashboard: $dashboard,
@@ -412,6 +436,74 @@ class DashboardService
         );
         $this->dashboardMapper->delete(entity: $dashboard);
     }//end deleteGroupShared()
+
+    /**
+     * Promote a single group-shared dashboard to the group's default.
+     *
+     * Admin-only. Wraps both mapper writes — clear the existing default
+     * on every other dashboard in the group, then set the target to
+     * `is_default = 1` — in a single DB transaction so concurrent
+     * promotions cannot leave two rows with `is_default = 1` in the
+     * same group. REQ-DASH-015.
+     *
+     * Order of operations matters: we issue the SET first; if the
+     * target uuid does not belong to the group the row count is `0`
+     * and we throw {@see DoesNotExistException} (mapped to HTTP 404 by
+     * the controller). The transaction is then rolled back, leaving
+     * the previous default untouched.
+     *
+     * @param string $actorUserId The acting user ID (for the admin
+     *                            check).
+     * @param string $groupId     The group ID from the URL.
+     * @param string $uuid        The dashboard UUID from the URL.
+     *
+     * @return void
+     *
+     * @throws Exception              When the actor is not an admin.
+     * @throws DoesNotExistException  When the uuid does not belong to
+     *                                the given group.
+     */
+    public function setGroupDefault(
+        string $actorUserId,
+        string $groupId,
+        string $uuid
+    ): void {
+        if ($this->isAdmin(userId: $actorUserId) === false) {
+            throw new Exception(message: self::ERR_FORBIDDEN_NOT_ADMIN);
+        }
+
+        $this->db->beginTransaction();
+        try {
+            $affected = $this->dashboardMapper->setGroupDefaultUuid(
+                groupId: $groupId,
+                uuid: $uuid
+            );
+
+            if ($affected === 0) {
+                // The target uuid does not belong to this group — roll
+                // back so the existing default in the group is
+                // preserved. REQ-DASH-015 scenario "Default cannot be
+                // set across groups".
+                $this->db->rollBack();
+                throw new DoesNotExistException(
+                    msg: self::ERR_DEFAULT_TARGET_NOT_IN_GROUP
+                );
+            }
+
+            $this->dashboardMapper->clearGroupDefaults(
+                groupId: $groupId,
+                exceptUuid: $uuid
+            );
+
+            $this->db->commit();
+        } catch (DoesNotExistException $e) {
+            // Already rolled back above — re-throw for the controller.
+            throw $e;
+        } catch (Throwable $t) {
+            $this->db->rollBack();
+            throw $t;
+        }//end try
+    }//end setGroupDefault()
 
     /**
      * Get all dashboards visible to a user, source-tagged.

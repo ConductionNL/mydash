@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace OCA\MyDash\Controller;
 
+use InvalidArgumentException;
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Service\DashboardService;
 use OCA\MyDash\Service\PermissionService;
@@ -535,6 +536,71 @@ class DashboardApiController extends Controller
             return ResponseHelper::error(exception: $e);
         }//end try
     }//end deleteGroup()
+
+    /**
+     * Promote a single group-shared dashboard to the group's default.
+     *
+     * Admin-only — the route attribute is `#[NoAdminRequired]` so
+     * gate-route-auth passes; the in-body admin check is the actual
+     * authorization point (gate-semantic-auth). The body payload is
+     * `{"uuid": "..."}`. Returns 404 when the uuid does not belong to
+     * the given groupId. REQ-DASH-015.
+     *
+     * @param string      $groupId The group ID from the URL.
+     * @param string|null $uuid    The dashboard UUID from the body.
+     *
+     * @return JSONResponse The status payload.
+     */
+    #[NoAdminRequired]
+    public function setGroupDefault(
+        string $groupId,
+        ?string $uuid=null
+    ): JSONResponse {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
+
+        if ($this->dashboardService->isAdmin(
+            userId: $this->userId
+        ) === false
+        ) {
+            return ResponseHelper::forbidden(
+                message: DashboardService::ERR_FORBIDDEN_NOT_ADMIN
+            );
+        }
+
+        if ($uuid === null || $uuid === '') {
+            return ResponseHelper::error(
+                exception: new InvalidArgumentException(
+                    'Missing required field: uuid'
+                ),
+                statusCode: Http::STATUS_BAD_REQUEST
+            );
+        }
+
+        try {
+            $this->dashboardService->setGroupDefault(
+                actorUserId: $this->userId,
+                groupId: $groupId,
+                uuid: $uuid
+            );
+
+            return ResponseHelper::success(
+                data: [
+                    'status'  => 'ok',
+                    'groupId' => $groupId,
+                    'uuid'    => $uuid,
+                ]
+            );
+        } catch (DoesNotExistException $e) {
+            return new JSONResponse(
+                data: ['error' => $e->getMessage()],
+                statusCode: Http::STATUS_NOT_FOUND
+            );
+        } catch (\Exception $e) {
+            return ResponseHelper::error(exception: $e);
+        }//end try
+    }//end setGroupDefault()
 
     /**
      * Resolve create parameters from JSON body or individual params.

@@ -523,6 +523,124 @@ class DashboardMapper extends QBMapper
     }//end countByGroup()
 
     /**
+     * Clear default flag on every group-shared dashboard in a group.
+     *
+     * Issues `UPDATE oc_mydash_dashboards SET is_default = 0 WHERE
+     * type = 'group_shared' AND group_id = ? [AND uuid <> ?]`. Used by
+     * {@see \OCA\MyDash\Service\DashboardService::setGroupDefault()} as
+     * the first half of the transactional flip. REQ-DASH-015.
+     *
+     * @param string      $groupId    The group ID (real or
+     *                                {@see Dashboard::DEFAULT_GROUP_ID}).
+     * @param string|null $exceptUuid Optional uuid to leave untouched
+     *                                (avoids a no-op write on the row that
+     *                                will immediately be set to 1).
+     *
+     * @return int The number of rows affected.
+     */
+    public function clearGroupDefaults(
+        string $groupId,
+        ?string $exceptUuid=null
+    ): int {
+        $qb = $this->db->getQueryBuilder();
+        $qb->update(update: $this->getTableName())
+            ->set(
+                key: 'is_default',
+                value: $qb->createNamedParameter(
+                    value: 0,
+                    type: IQueryBuilder::PARAM_INT
+                )
+            )
+            ->set(
+                key: 'updated_at',
+                value: $qb->createNamedParameter(
+                    value: (new DateTime())->format(format: 'Y-m-d H:i:s')
+                )
+            )
+            ->where(
+                $qb->expr()->eq(
+                    x: 'type',
+                    y: $qb->createNamedParameter(
+                        value: Dashboard::TYPE_GROUP_SHARED
+                    )
+                )
+            )
+            ->andWhere(
+                $qb->expr()->eq(
+                    x: 'group_id',
+                    y: $qb->createNamedParameter(value: $groupId)
+                )
+            );
+
+        if ($exceptUuid !== null) {
+            $qb->andWhere(
+                $qb->expr()->neq(
+                    x: 'uuid',
+                    y: $qb->createNamedParameter(value: $exceptUuid)
+                )
+            );
+        }
+
+        return $qb->executeStatement();
+    }//end clearGroupDefaults()
+
+    /**
+     * Set the default flag on a single group-shared dashboard.
+     *
+     * Issues `UPDATE oc_mydash_dashboards SET is_default = 1 WHERE
+     * type = 'group_shared' AND group_id = ? AND uuid = ?`. Returns the
+     * row-count affected — `0` when the uuid does not belong to the
+     * given group (caller treats as 404). REQ-DASH-015.
+     *
+     * @param string $groupId The group ID from the URL.
+     * @param string $uuid    The dashboard UUID from the URL.
+     *
+     * @return int The number of rows affected (0 or 1).
+     */
+    public function setGroupDefaultUuid(
+        string $groupId,
+        string $uuid
+    ): int {
+        $qb = $this->db->getQueryBuilder();
+        $qb->update(update: $this->getTableName())
+            ->set(
+                key: 'is_default',
+                value: $qb->createNamedParameter(
+                    value: 1,
+                    type: IQueryBuilder::PARAM_INT
+                )
+            )
+            ->set(
+                key: 'updated_at',
+                value: $qb->createNamedParameter(
+                    value: (new DateTime())->format(format: 'Y-m-d H:i:s')
+                )
+            )
+            ->where(
+                $qb->expr()->eq(
+                    x: 'type',
+                    y: $qb->createNamedParameter(
+                        value: Dashboard::TYPE_GROUP_SHARED
+                    )
+                )
+            )
+            ->andWhere(
+                $qb->expr()->eq(
+                    x: 'group_id',
+                    y: $qb->createNamedParameter(value: $groupId)
+                )
+            )
+            ->andWhere(
+                $qb->expr()->eq(
+                    x: 'uuid',
+                    y: $qb->createNamedParameter(value: $uuid)
+                )
+            );
+
+        return $qb->executeStatement();
+    }//end setGroupDefaultUuid()
+
+    /**
      * Clear default flag on all admin templates.
      *
      * @return void
