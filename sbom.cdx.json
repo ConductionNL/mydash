@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:6cee276e-6aa3-49ab-95e4-1b2e58cb54db",
+  "serialNumber": "urn:uuid:6a47019d-05e0-4656-9e4c-99eb98525cc1",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-04-30T12:20:58Z",
+    "timestamp": "2026-04-30T12:42:56Z",
     "tools": [
       {
         "name": "composer",
@@ -82,10 +82,10 @@
       }
     ],
     "component": {
-      "bom-ref": "mydash/mydash-dev-feature/impl-group-routing",
+      "bom-ref": "mydash/mydash-dev-feature/impl-label-widget",
       "type": "application",
       "name": "mydash",
-      "version": "dev-feature/impl-group-routing",
+      "version": "dev-feature/impl-label-widget",
       "group": "mydash",
       "description": "Enhanced dashboard with grid layout and admin controls for Nextcloud",
       "author": "MyDash Contributors",
@@ -96,15 +96,15 @@
           }
         }
       ],
-      "purl": "pkg:composer/mydash/mydash@dev-feature/impl-group-routing",
+      "purl": "pkg:composer/mydash/mydash@dev-feature/impl-label-widget",
       "properties": [
         {
           "name": "cdx:composer:package:distReference",
-          "value": "fc7dc0e9ecf9f6ed041d085b82b639324fb8217b"
+          "value": "5f736240a18501518c9d444c8fa34f3c9d745503"
         },
         {
           "name": "cdx:composer:package:sourceReference",
-          "value": "fc7dc0e9ecf9f6ed041d085b82b639324fb8217b"
+          "value": "5f736240a18501518c9d444c8fa34f3c9d745503"
         },
         {
           "name": "cdx:composer:package:type",
@@ -7191,8 +7191,8 @@
     {
       "type": "library",
       "name": "dompurify",
-      "version": "3.3.3",
-      "bom-ref": "mydash@1.0.0|dompurify@3.3.3",
+      "version": "3.4.1",
+      "bom-ref": "mydash@1.0.0|dompurify@3.4.1",
       "author": "Dr.-Ing. Mario Heiderich, Cure53",
       "description": "DOMPurify is a DOM-only, super-fast, uber-tolerant XSS sanitizer for HTML, MathML and SVG. It's written in JavaScript and works in all modern browsers (Safari, Opera (15+), Internet Explorer (10+), Firefox and Chrome - as well as almost anything else using Blink or WebKit). DOMPurify is written by security people who have vast background in web attacks and XSS. Fear not.",
       "licenses": [
@@ -7200,7 +7200,7 @@
           "expression": "(MPL-2.0 OR Apache-2.0)"
         }
       ],
-      "purl": "pkg:npm/dompurify@3.3.3",
+      "purl": "pkg:npm/dompurify@3.4.1",
       "externalReferences": [
         {
           "url": "git://github.com/cure53/DOMPurify.git",
@@ -7218,12 +7218,12 @@
           "comment": "as detected from PackageJson property \"bugs.url\""
         },
         {
-          "url": "https://registry.npmjs.org/dompurify/-/dompurify-3.3.3.tgz",
+          "url": "https://registry.npmjs.org/dompurify/-/dompurify-3.4.1.tgz",
           "type": "distribution",
           "hashes": [
             {
               "alg": "SHA-512",
-              "content": "3a3ea9cc8dbe46a05f146faa39a38b6c55cb43dd004697061ba51e3cbf366c92ed76c6ba098243ee79a253c316f6740d3ad087577959fc1cead57d1061b05908"
+              "content": "25a85a9030088358323a6edd9605920e35789fb229d8f291e793484fa8eb31f2202c5816a3cd6f76bd7f406a96b45351a973fd515ef5a1578fb63a92d9e6e73f"
             }
           ],
           "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\""
@@ -17934,7 +17934,7 @@
       ]
     },
     {
-      "ref": "mydash/mydash-dev-feature/impl-group-routing",
+      "ref": "mydash/mydash-dev-feature/impl-label-widget",
       "dependsOn": [
         "ramsey/uuid-4.9.2.0"
       ]
