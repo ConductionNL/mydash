@@ -48,7 +48,7 @@
 				:grid-columns="activeDashboard.gridColumns"
 				@update:placements="updatePlacements"
 				@widget-remove="removeWidget"
-				@widget-edit="openStyleEditor"
+				@widget-edit="openWidgetEditModal"
 				@tile-edit="openTileEditorForEdit" />
 
 			<div v-else class="mydash-empty">
@@ -91,6 +91,14 @@
 			@update="updateWidgetStyle"
 			@delete="deleteWidget" />
 
+		<!-- Add / Edit widget modal (content-level) -->
+		<AddWidgetModal
+			:show="isWidgetModalOpen"
+			:widgets="availableWidgets"
+			:editing-widget="editingWidgetContent"
+			@close="closeWidgetModal"
+			@submit="handleWidgetModalSubmit" />
+
 		<!-- Tile editor modal -->
 		<TileEditor
 			:open="isTileEditorOpen"
@@ -117,6 +125,7 @@ import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOut
 import DashboardGrid from '../components/DashboardGrid.vue'
 import WidgetPicker from '../components/WidgetPicker.vue'
 import WidgetStyleEditor from '../components/WidgetStyleEditor.vue'
+import AddWidgetModal from '../components/Widgets/AddWidgetModal.vue'
 import TileEditor from '../components/TileEditor.vue'
 import DashboardSwitcher from '../components/DashboardSwitcher.vue'
 
@@ -139,6 +148,7 @@ export default {
 		DashboardGrid,
 		WidgetPicker,
 		WidgetStyleEditor,
+		AddWidgetModal,
 		TileEditor,
 		DashboardSwitcher,
 	},
@@ -150,6 +160,9 @@ export default {
 			editingPlacement: null,
 			isTileEditorOpen: false,
 			editingTile: null,
+			// Add/edit widget modal state
+			isWidgetModalOpen: false,
+			editingWidgetContent: null,
 		}
 	},
 	computed: {
@@ -231,6 +244,49 @@ export default {
 		async removeWidget(placementId) {
 			await this.removeWidgetFromDashboard(placementId)
 		},
+		/**
+		 * Open AddWidgetModal in edit mode for a placement that carries
+		 * widget content (styleConfig.type is set).
+		 * Falls through to the style editor for placements without content types.
+		 *
+		 * @param {object} placement the placement object to edit
+		 */
+		openWidgetEditModal(placement) {
+			const contentType = placement.styleConfig?.type
+			if (contentType) {
+				this.editingWidgetContent = {
+					type: contentType,
+					content: placement.styleConfig?.content || {},
+					placementId: placement.id,
+				}
+				this.isWidgetModalOpen = true
+			} else {
+				// No content type — fall through to the style editor.
+				this.openStyleEditor(placement)
+			}
+		},
+
+		closeWidgetModal() {
+			this.isWidgetModalOpen = false
+			this.editingWidgetContent = null
+		},
+
+		async handleWidgetModalSubmit(payload) {
+			if (this.editingWidgetContent?.placementId) {
+				// Edit mode: persist content back into styleConfig.
+				const existing = this.widgetPlacements.find(p => p.id === this.editingWidgetContent.placementId)
+				const updates = {
+					styleConfig: {
+						...(existing?.styleConfig || {}),
+						type: payload.type,
+						content: payload.content,
+					},
+				}
+				await this.updateWidgetPlacement(this.editingWidgetContent.placementId, updates)
+			}
+			this.closeWidgetModal()
+		},
+
 		openStyleEditor(placement) {
 			this.editingPlacement = placement
 			this.isStyleEditorOpen = true
