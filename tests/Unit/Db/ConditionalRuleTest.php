@@ -8,9 +8,6 @@
  * @author    Conduction b.v. <info@conduction.nl>
  * @copyright 2024 Conduction b.v.
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -145,7 +142,7 @@ class ConditionalRuleTest extends TestCase
 
     public function testJsonSerialize(): void
     {
-        $now = new DateTime();
+        $now = (new DateTime())->format('c');
         $this->rule->setWidgetPlacementId(10);
         $this->rule->setRuleType(ConditionalRule::TYPE_GROUP);
         $this->rule->setRuleConfigArray(['groups' => ['admin']]);
@@ -159,7 +156,7 @@ class ConditionalRuleTest extends TestCase
         $this->assertSame('group', $serialized['ruleType']);
         $this->assertSame(['groups' => ['admin']], $serialized['ruleConfig']);
         $this->assertTrue($serialized['isInclude']);
-        $this->assertSame($now->format('c'), $serialized['createdAt']);
+        $this->assertSame($now, $serialized['createdAt']);
         $this->assertArrayHasKey('id', $serialized);
     }
 

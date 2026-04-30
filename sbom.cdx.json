@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:5ee74da4-b04e-46fe-aed5-0e55fa312c8f",
+  "serialNumber": "urn:uuid:63778652-7d92-4d43-894d-552f1737e964",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-04-30T20:22:12Z",
+    "timestamp": "2026-04-30T21:15:36Z",
     "tools": [
       {
         "name": "composer",
@@ -82,10 +82,10 @@
       }
     ],
     "component": {
-      "bom-ref": "mydash/mydash-dev-feature/impl-fork-current-as-personal",
+      "bom-ref": "mydash/mydash-dev-feature/template-and-adr-cleanup",
       "type": "application",
       "name": "mydash",
-      "version": "dev-feature/impl-fork-current-as-personal",
+      "version": "dev-feature/template-and-adr-cleanup",
       "group": "mydash",
       "description": "Enhanced dashboard with grid layout and admin controls for Nextcloud",
       "author": "MyDash Contributors",
@@ -96,15 +96,15 @@
           }
         }
       ],
-      "purl": "pkg:composer/mydash/mydash@dev-feature/impl-fork-current-as-personal",
+      "purl": "pkg:composer/mydash/mydash@dev-feature/template-and-adr-cleanup",
       "properties": [
         {
           "name": "cdx:composer:package:distReference",
-          "value": "61bf45da1f763733e53dd02389928eb6d20f9813"
+          "value": "462587d3c7c5821c665e2956c06183e57fafbabc"
         },
         {
           "name": "cdx:composer:package:sourceReference",
-          "value": "61bf45da1f763733e53dd02389928eb6d20f9813"
+          "value": "462587d3c7c5821c665e2956c06183e57fafbabc"
         },
         {
           "name": "cdx:composer:package:type",
@@ -114,163 +114,6 @@
     }
   },
   "components": [
-    {
-      "bom-ref": "brick/math-0.13.1.0",
-      "type": "library",
-      "name": "math",
-      "version": "0.13.1",
-      "group": "brick",
-      "description": "Arbitrary-precision arithmetic library",
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ],
-      "purl": "pkg:composer/brick/math@0.13.1",
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://api.github.com/repos/brick/math/zipball/fc7ed316430118cc7836bf45faff18d5dfc8de04",
-          "comment": "dist reference: fc7ed316430118cc7836bf45faff18d5dfc8de04"
-        },
-        {
-          "type": "vcs",
-          "url": "https://github.com/brick/math.git",
-          "comment": "source reference: fc7ed316430118cc7836bf45faff18d5dfc8de04"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/brick/math/issues",
-          "comment": "as detected from Composer manifest 'support.issues'"
-        },
-        {
-          "type": "vcs",
-          "url": "https://github.com/brick/math/tree/0.13.1",
-          "comment": "as detected from Composer manifest 'support.source'"
-        }
-      ],
-      "properties": [
-        {
-          "name": "cdx:composer:package:distReference",
-          "value": "fc7ed316430118cc7836bf45faff18d5dfc8de04"
-        },
-        {
-          "name": "cdx:composer:package:sourceReference",
-          "value": "fc7ed316430118cc7836bf45faff18d5dfc8de04"
-        },
-        {
-          "name": "cdx:composer:package:type",
-          "value": "library"
-        }
-      ]
-    },
-    {
-      "bom-ref": "ramsey/collection-2.1.1.0",
-      "type": "library",
-      "name": "collection",
-      "version": "2.1.1",
-      "group": "ramsey",
-      "description": "A PHP library for representing and manipulating collections.",
-      "author": "Ben Ramsey",
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ],
-      "purl": "pkg:composer/ramsey/collection@2.1.1",
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://api.github.com/repos/ramsey/collection/zipball/344572933ad0181accbf4ba763e85a0306a8c5e2",
-          "comment": "dist reference: 344572933ad0181accbf4ba763e85a0306a8c5e2"
-        },
-        {
-          "type": "vcs",
-          "url": "https://github.com/ramsey/collection.git",
-          "comment": "source reference: 344572933ad0181accbf4ba763e85a0306a8c5e2"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/ramsey/collection/issues",
-          "comment": "as detected from Composer manifest 'support.issues'"
-        },
-        {
-          "type": "vcs",
-          "url": "https://github.com/ramsey/collection/tree/2.1.1",
-          "comment": "as detected from Composer manifest 'support.source'"
-        }
-      ],
-      "properties": [
-        {
-          "name": "cdx:composer:package:distReference",
-          "value": "344572933ad0181accbf4ba763e85a0306a8c5e2"
-        },
-        {
-          "name": "cdx:composer:package:sourceReference",
-          "value": "344572933ad0181accbf4ba763e85a0306a8c5e2"
-        },
-        {
-          "name": "cdx:composer:package:type",
-          "value": "library"
-        }
-      ]
-    },
-    {
-      "bom-ref": "ramsey/uuid-4.9.2.0",
-      "type": "library",
-      "name": "uuid",
-      "version": "4.9.2",
-      "group": "ramsey",
-      "description": "A PHP library for generating and working with universally unique identifiers (UUIDs).",
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ],
-      "purl": "pkg:composer/ramsey/uuid@4.9.2",
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://api.github.com/repos/ramsey/uuid/zipball/8429c78ca35a09f27565311b98101e2826affde0",
-          "comment": "dist reference: 8429c78ca35a09f27565311b98101e2826affde0"
-        },
-        {
-          "type": "vcs",
-          "url": "https://github.com/ramsey/uuid.git",
-          "comment": "source reference: 8429c78ca35a09f27565311b98101e2826affde0"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/ramsey/uuid/issues",
-          "comment": "as detected from Composer manifest 'support.issues'"
-        },
-        {
-          "type": "vcs",
-          "url": "https://github.com/ramsey/uuid/tree/4.9.2",
-          "comment": "as detected from Composer manifest 'support.source'"
-        }
-      ],
-      "properties": [
-        {
-          "name": "cdx:composer:package:distReference",
-          "value": "8429c78ca35a09f27565311b98101e2826affde0"
-        },
-        {
-          "name": "cdx:composer:package:sourceReference",
-          "value": "8429c78ca35a09f27565311b98101e2826affde0"
-        },
-        {
-          "name": "cdx:composer:package:type",
-          "value": "library"
-        }
-      ]
-    },
     {
       "type": "library",
       "name": "helper-string-parser",
@@ -17921,23 +17764,7 @@
   ],
   "dependencies": [
     {
-      "ref": "brick/math-0.13.1.0"
-    },
-    {
-      "ref": "ramsey/collection-2.1.1.0"
-    },
-    {
-      "ref": "ramsey/uuid-4.9.2.0",
-      "dependsOn": [
-        "brick/math-0.13.1.0",
-        "ramsey/collection-2.1.1.0"
-      ]
-    },
-    {
-      "ref": "mydash/mydash-dev-feature/impl-fork-current-as-personal",
-      "dependsOn": [
-        "ramsey/uuid-4.9.2.0"
-      ]
+      "ref": "mydash/mydash-dev-feature/template-and-adr-cleanup"
     }
   ]
 }

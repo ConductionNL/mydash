@@ -8,9 +8,6 @@
  * @author    Conduction b.v. <info@conduction.nl>
  * @copyright 2024 Conduction b.v.
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -109,6 +106,28 @@ class DashboardFactoryTest extends TestCase
         );
 
         $this->assertSame(Dashboard::PERMISSION_FULL, $dashboard->getPermissionLevel());
+    }
+
+    public function testCreateRespectsExplicitPermissionLevel(): void
+    {
+        $dashboard = $this->factory->create(
+            userId: 'alice',
+            name: 'Test',
+            permissionLevel: Dashboard::PERMISSION_ADD_ONLY
+        );
+
+        $this->assertSame(Dashboard::PERMISSION_ADD_ONLY, $dashboard->getPermissionLevel());
+    }
+
+    public function testCreateRespectsExplicitGridColumns(): void
+    {
+        $dashboard = $this->factory->create(
+            userId: 'alice',
+            name: 'Test',
+            gridColumns: 6
+        );
+
+        $this->assertSame(6, $dashboard->getGridColumns());
     }
 
     public function testCreateSetsIsActive(): void

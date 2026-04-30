@@ -8,9 +8,6 @@
  * @author    Conduction b.v. <info@conduction.nl>
  * @copyright 2024 Conduction b.v.
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -97,7 +94,7 @@ class AdminSettingTest extends TestCase
 
     public function testJsonSerialize(): void
     {
-        $now = new DateTime();
+        $now = (new DateTime())->format('c');
         $this->setting->setSettingKey('allow_user_dashboards');
         $this->setting->setValueEncoded(true);
         $this->setting->setUpdatedAt($now);
@@ -107,7 +104,7 @@ class AdminSettingTest extends TestCase
         $this->assertIsArray($serialized);
         $this->assertSame('allow_user_dashboards', $serialized['key']);
         $this->assertTrue($serialized['value']);
-        $this->assertSame($now->format('c'), $serialized['updatedAt']);
+        $this->assertSame($now, $serialized['updatedAt']);
         $this->assertArrayHasKey('id', $serialized);
     }
 

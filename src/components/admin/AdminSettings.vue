@@ -14,9 +14,9 @@
 				<h3>{{ t('mydash', 'Default settings') }}</h3>
 
 				<div class="mydash-admin__field">
-					<label>{{ t('mydash', 'Default permission level') }}</label>
 					<NcSelect
 						v-model="settings.defaultPermissionLevel"
+						:input-label="t('mydash', 'Default permission level')"
 						:options="permissionOptions"
 						label="label"
 						track-by="id"
@@ -37,9 +37,9 @@
 				</NcCheckboxRadioSwitch>
 
 				<div class="mydash-admin__field">
-					<label>{{ t('mydash', 'Default grid columns') }}</label>
 					<NcSelect
 						v-model="settings.defaultGridColumns"
+						:input-label="t('mydash', 'Default grid columns')"
 						:options="gridColumnOptions"
 						:clearable="false"
 						@input="saveSettings" />
@@ -134,9 +134,9 @@
 				</div>
 
 				<div class="mydash-admin__field">
-					<label>{{ t('mydash', 'Permission level') }}</label>
 					<NcSelect
 						v-model="editingTemplate.permissionLevel"
+						:input-label="t('mydash', 'Permission level')"
 						:options="permissionOptions"
 						label="label"
 						track-by="id"
@@ -172,7 +172,7 @@ import {
 	NcCheckboxRadioSwitch,
 	NcEmptyContent,
 	NcModal,
-} from '@nextcloud/vue'
+} from '@conduction/nextcloud-vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
 import { api } from '../../services/api.js'
