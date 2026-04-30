@@ -75,5 +75,23 @@ return [
 
 		// Resource uploads (admin-only base64 mini file API)
 		['name' => 'resource#upload', 'url' => '/api/resources', 'verb' => 'POST'],
+
+		// Resource listing — REQ-RES-007. Logged-in user only (no admin
+		// gate); the listed names are already referenced from rendered
+		// dashboards so admin gating would lock dashboards out of their
+		// own assets. Registered under the standard `routes` array
+		// alongside the existing POST upload (mydash currently has no
+		// OCS infrastructure — using a plain web route keeps the read
+		// surface consistent with the upload surface).
+		['name' => 'resource_serve#listResources', 'url' => '/api/resources', 'verb' => 'GET'],
+
+		// Public resource serving — REQ-RES-006. NON-OCS plain web
+		// route returning a StreamResponse with extension-derived
+		// Content-Type and a one-year immutable cache header. The
+		// `[^/]+` requirement on {filename} blocks path traversal at
+		// the routing layer (the controller also re-checks for
+		// defence in depth).
+		['name' => 'resource_serve#getResource', 'url' => '/resource/{filename}', 'verb' => 'GET',
+		 'requirements' => ['filename' => '[^/]+']],
 	],
 ];
