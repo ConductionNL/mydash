@@ -155,6 +155,19 @@
         "Video": "Video",
         "Wallet": "Wallet",
         "Widget": "Widget",
-        "Widgets": "Widgets"
+        "Widgets": "Widgets",
+        "No image": "No image",
+        "Image failed to load": "Image failed to load",
+        "Upload Image": "Upload Image",
+        "Or enter Image URL": "Or enter Image URL",
+        "Alt Text": "Alt Text",
+        "Link (optional)": "Link (optional)",
+        "Fit": "Fit",
+        "Cover": "Cover",
+        "Contain": "Contain",
+        "Fill": "Fill",
+        "None": "None",
+        "Failed to upload image": "Failed to upload image",
+        "Image URL is required": "Image URL is required"
     }
 }

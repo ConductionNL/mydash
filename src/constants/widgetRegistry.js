@@ -7,6 +7,8 @@ import TextDisplayWidget from '../components/Widgets/Renderers/TextDisplayWidget
 import TextDisplayForm from '../components/Widgets/Forms/TextDisplayForm.vue'
 import LabelWidget from '../components/Widgets/Renderers/LabelWidget.vue'
 import LabelForm from '../components/Widgets/Forms/LabelForm.vue'
+import ImageWidget from '../components/Widgets/Renderers/ImageWidget.vue'
+import ImageForm from '../components/Widgets/Forms/ImageForm.vue'
 
 /**
  * Localised label helper. `t` is provided as a Nextcloud global at runtime;
@@ -67,6 +69,18 @@ export const widgetRegistry = {
 			backgroundColor: '',
 			fontWeight: 'bold',
 			textAlign: 'center',
+		},
+	},
+	image: {
+		type: 'image',
+		label: tt('Image'),
+		component: ImageWidget,
+		form: ImageForm,
+		defaults: {
+			url: '',
+			alt: '',
+			link: '',
+			fit: 'cover',
 		},
 	},
 }
