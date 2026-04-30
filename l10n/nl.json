@@ -185,6 +185,19 @@
         "Access denied": "Toegang geweigerd",
         "Invalid shareType": "Ongeldig deeltype",
         "shareWith is required": "shareWith is verplicht",
-        "Invalid permissionLevel": "Ongeldig rechtenniveau"
+        "Invalid permissionLevel": "Ongeldig rechtenniveau",
+        "Link Button": "Linkknop",
+        "Action Type": "Actietype",
+        "External Link": "Externe link",
+        "Internal Function": "Interne functie",
+        "Create File": "Bestand aanmaken",
+        "Upload Icon (optional)": "Pictogram uploaden (optioneel)",
+        "Create Document": "Document aanmaken",
+        "File Name": "Bestandsnaam",
+        "Enter filename": "Voer bestandsnaam in",
+        "Create": "Aanmaken",
+        "Creating…": "Aanmaken…",
+        "Failed to create document": "Document aanmaken mislukt",
+        "Please enter a file name": "Voer een bestandsnaam in"
     }
 }

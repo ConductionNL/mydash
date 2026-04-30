@@ -11,6 +11,8 @@ import ImageWidget from '../components/Widgets/Renderers/ImageWidget.vue'
 import ImageForm from '../components/Widgets/Forms/ImageForm.vue'
 import NcDashboardWidget from '../components/Widgets/Renderers/NcDashboardWidget.vue'
 import NcDashboardForm from '../components/Widgets/Forms/NcDashboardForm.vue'
+import LinkButtonWidget from '../components/Widgets/Renderers/LinkButtonWidget.vue'
+import LinkButtonForm from '../components/Widgets/Forms/LinkButtonForm.vue'
 
 /**
  * Localised label helper. `t` is provided as a Nextcloud global at runtime;
@@ -93,6 +95,20 @@ export const widgetRegistry = {
 		defaults: {
 			widgetId: '',
 			displayMode: 'vertical',
+		},
+	},
+	link: {
+		type: 'link',
+		label: tt('Link Button'),
+		component: LinkButtonWidget,
+		form: LinkButtonForm,
+		defaults: {
+			label: '',
+			url: '',
+			icon: '',
+			actionType: 'external',
+			backgroundColor: '',
+			textColor: '',
 		},
 	},
 }

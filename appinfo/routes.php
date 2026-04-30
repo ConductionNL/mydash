@@ -97,6 +97,11 @@ return [
 		// Resource uploads (admin-only base64 mini file API)
 		['name' => 'resource#upload', 'url' => '/api/resources', 'verb' => 'POST'],
 
+		// File creation endpoint (REQ-LBN-004). Non-admin; strict server-side
+		// validation via FileService (filename regex, dir traversal, extension
+		// allow-list). See lib/Controller/FileController.php.
+		['name' => 'file#createFile', 'url' => '/api/files/create', 'verb' => 'POST'],
+
 		// Resource listing — REQ-RES-007. Logged-in user only (no admin
 		// gate); the listed names are already referenced from rendered
 		// dashboards so admin gating would lock dashboards out of their

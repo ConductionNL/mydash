@@ -170,7 +170,20 @@ OC.L10N.register(
     "Widget style" : "Widget style",
     "Widget title" : "Widget title",
     "Widgets" : "Widgets",
-    "https://example.com or /apps/files" : "https://example.com or /apps/files"
+    "https://example.com or /apps/files" : "https://example.com or /apps/files",
+    "Link Button" : "Link Button",
+    "Action Type" : "Action Type",
+    "External Link" : "External Link",
+    "Internal Function" : "Internal Function",
+    "Create File" : "Create File",
+    "Upload Icon (optional)" : "Upload Icon (optional)",
+    "Create Document" : "Create Document",
+    "File Name" : "File Name",
+    "Enter filename" : "Enter filename",
+    "Create" : "Create",
+    "Creating…" : "Creating…",
+    "Failed to create document" : "Failed to create document",
+    "Please enter a file name" : "Please enter a file name"
 },
 "nplurals=2; plural=(n != 1);"
 );
