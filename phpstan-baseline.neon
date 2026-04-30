@@ -1,0 +1,81 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Parameter \\#1 \\$createdAt of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setCreatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
+			count: 1
+			path: lib/Service/AdminTemplateService.php
+
+		-
+			message: "#^Parameter \\#1 \\$isDefault of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setIsDefault\\(\\) expects int, bool given\\.$#"
+			count: 1
+			path: lib/Service/AdminTemplateService.php
+
+		-
+			message: "#^Parameter \\#1 \\$updatedAt of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setUpdatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
+			count: 2
+			path: lib/Service/AdminTemplateService.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between int and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Service/ConditionalService.php
+
+		-
+			message: "#^Parameter \\#1 \\$isActive of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setIsActive\\(\\) expects int, true given\\.$#"
+			count: 1
+			path: lib/Service/DashboardResolver.php
+
+		-
+			message: "#^Property OCA\\\\MyDash\\\\Service\\\\DashboardResolver\\:\\:\\$settingMapper is never read, only written\\.$#"
+			count: 1
+			path: lib/Service/DashboardResolver.php
+
+		-
+			message: "#^Unreachable statement \\- code above always terminates\\.$#"
+			count: 1
+			path: lib/Service/DashboardResolver.php
+
+		-
+			message: "#^Method OCA\\\\MyDash\\\\Service\\\\DashboardService\\:\\:createDefaultPlacements\\(\\) has invalid return type OCA\\\\MyDash\\\\Service\\\\WidgetPlacement\\.$#"
+			count: 1
+			path: lib/Service/DashboardService.php
+
+		-
+			message: "#^Method OCA\\\\MyDash\\\\Service\\\\DashboardService\\:\\:createDefaultPlacements\\(\\) should return array\\<OCA\\\\MyDash\\\\Service\\\\WidgetPlacement\\> but returns array\\<int, OCA\\\\MyDash\\\\Db\\\\WidgetPlacement\\>\\.$#"
+			count: 1
+			path: lib/Service/DashboardService.php
+
+		-
+			message: "#^Parameter \\#1 \\$isActive of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setIsActive\\(\\) expects int, true given\\.$#"
+			count: 1
+			path: lib/Service/DashboardService.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between int and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Service/PermissionService.php
+
+		-
+			message: "#^Parameter \\#1 \\$createdAt of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setCreatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
+			count: 1
+			path: lib/Service/TemplateService.php
+
+		-
+			message: "#^Parameter \\#1 \\$createdAt of method OCA\\\\MyDash\\\\Db\\\\WidgetPlacement\\:\\:setCreatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
+			count: 1
+			path: lib/Service/TemplateService.php
+
+		-
+			message: "#^Parameter \\#1 \\$isActive of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setIsActive\\(\\) expects int, true given\\.$#"
+			count: 1
+			path: lib/Service/TemplateService.php
+
+		-
+			message: "#^Parameter \\#1 \\$updatedAt of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setUpdatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
+			count: 1
+			path: lib/Service/TemplateService.php
+
+		-
+			message: "#^Parameter \\#1 \\$updatedAt of method OCA\\\\MyDash\\\\Db\\\\WidgetPlacement\\:\\:setUpdatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
+			count: 1
+			path: lib/Service/TemplateService.php
