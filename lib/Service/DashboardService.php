@@ -3,7 +3,8 @@
 /**
  * DashboardService
  *
- * Service for managing dashboards.
+ * Service for managing dashboards (personal, group-shared, and the
+ * visible-to-user resolution endpoint).
  *
  * @category  Service
  * @package   OCA\MyDash\Service
@@ -29,12 +30,38 @@ use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacement;
 use OCA\MyDash\Db\WidgetPlacementMapper;
+use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IGroupManager;
+use OCP\IUserManager;
 
 /**
  * Service for managing dashboards.
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class DashboardService
 {
+    /**
+     * HTTP-like error message for non-admin attempting an admin-only mutation.
+     *
+     * @var string
+     */
+    public const ERR_FORBIDDEN_NOT_ADMIN = 'Forbidden: admin only';
+
+    /**
+     * Error message returned by the last-in-group delete guard.
+     *
+     * @var string
+     */
+    public const ERR_LAST_IN_GROUP = 'Cannot delete the only dashboard in the group';
+
+    /**
+     * Error message returned when the path-group does not match the record.
+     *
+     * @var string
+     */
+    public const ERR_GROUP_MISMATCH = 'Dashboard does not belong to this group';
+
     /**
      * Constructor
      *
@@ -44,6 +71,8 @@ class DashboardService
      * @param TemplateService       $templateService  Template service.
      * @param DashboardFactory      $dashboardFactory Dashboard factory.
      * @param DashboardResolver     $dashResolver     Dashboard resolver.
+     * @param IGroupManager         $groupManager     Group manager.
+     * @param IUserManager          $userManager      User manager.
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
@@ -52,15 +81,21 @@ class DashboardService
         private readonly TemplateService $templateService,
         private readonly DashboardFactory $dashboardFactory,
         private readonly DashboardResolver $dashResolver,
+        private readonly IGroupManager $groupManager,
+        private readonly IUserManager $userManager,
     ) {
     }//end __construct()
 
     /**
      * Get all dashboards for a user.
      *
+     * Returns only personal `user`-type dashboards owned by the caller —
+     * group-shared dashboards never appear here (REQ-DASH-014, see
+     * `getVisibleToUser` for the unioned endpoint).
+     *
      * @param string $userId The user ID.
      *
-     * @return Dashboard[] The list of dashboards.
+     * @return Dashboard[] The list of personal dashboards.
      */
     public function getUserDashboards(string $userId): array
     {
@@ -195,6 +230,230 @@ class DashboardService
 
         return $dashboard;
     }//end activateDashboard()
+
+    /**
+     * List the group-shared dashboards in a single group.
+     *
+     * Any logged-in user may list — REQ-DASH-014.
+     *
+     * @param string $groupId The group ID.
+     *
+     * @return Dashboard[] The group-shared dashboards in the group.
+     */
+    public function listGroupDashboards(string $groupId): array
+    {
+        return $this->dashboardMapper->findByGroup(groupId: $groupId);
+    }//end listGroupDashboards()
+
+    /**
+     * Find a single group-shared dashboard, validating the path-group.
+     *
+     * Returns the dashboard only when its `groupId` matches the path
+     * parameter — otherwise the caller treats it as a 404.
+     * REQ-DASH-014 (group-id mismatch returns 404).
+     *
+     * @param string $groupId The group ID from the URL.
+     * @param string $uuid    The dashboard UUID from the URL.
+     *
+     * @return Dashboard The dashboard.
+     *
+     * @throws DoesNotExistException When no dashboard with that UUID
+     *                               exists, or when its `groupId` does
+     *                               not match the path parameter, or
+     *                               when its type is not group_shared.
+     */
+    public function findGroupDashboard(
+        string $groupId,
+        string $uuid
+    ): Dashboard {
+        $dashboard = $this->dashboardMapper->findByUuid(uuid: $uuid);
+
+        if ($dashboard->getType() !== Dashboard::TYPE_GROUP_SHARED) {
+            throw new DoesNotExistException(
+                msg: self::ERR_GROUP_MISMATCH
+            );
+        }
+
+        if ($dashboard->getGroupId() !== $groupId) {
+            throw new DoesNotExistException(
+                msg: self::ERR_GROUP_MISMATCH
+            );
+        }
+
+        return $dashboard;
+    }//end findGroupDashboard()
+
+    /**
+     * Create a new group-shared dashboard.
+     *
+     * Admin-only — caller MUST have validated the actor with
+     * {@see DashboardService::isAdmin()}. The route attribute alone is
+     * not enough (per Hydra semantic-auth gate).
+     *
+     * @param string      $actorUserId The acting user ID (for the admin
+     *                                 check).
+     * @param string      $groupId     The group ID.
+     * @param string      $name        The dashboard name.
+     * @param string|null $description The dashboard description.
+     * @param int         $gridColumns The grid column count.
+     *
+     * @return Dashboard The created group-shared dashboard.
+     *
+     * @throws Exception When the actor is not an administrator.
+     */
+    public function createGroupShared(
+        string $actorUserId,
+        string $groupId,
+        string $name,
+        ?string $description=null,
+        int $gridColumns=12
+    ): Dashboard {
+        if ($this->isAdmin(userId: $actorUserId) === false) {
+            throw new Exception(message: self::ERR_FORBIDDEN_NOT_ADMIN);
+        }
+
+        $dashboard = $this->dashboardFactory->create(
+            userId: null,
+            name: $name,
+            description: $description,
+            type: Dashboard::TYPE_GROUP_SHARED,
+            groupId: $groupId,
+            gridColumns: $gridColumns
+        );
+        $dashboard->setPermissionLevel(Dashboard::PERMISSION_VIEW_ONLY);
+
+        return $this->dashboardMapper->insert(entity: $dashboard);
+    }//end createGroupShared()
+
+    /**
+     * Update a group-shared dashboard.
+     *
+     * Admin-only. The path's `groupId` must match the record's `groupId`
+     * — otherwise `DoesNotExistException` (treated as 404 by caller).
+     * The `userId` field is intentionally never patched (REQ-DASH-014).
+     *
+     * @param string $actorUserId The acting user ID (for the admin check).
+     * @param string $groupId     The group ID from the URL.
+     * @param string $uuid        The dashboard UUID from the URL.
+     * @param array  $patch       The patch data (name, description,
+     *                            gridColumns, placements supported).
+     *
+     * @return Dashboard The updated dashboard.
+     *
+     * @throws Exception When the actor is not an administrator.
+     * @throws DoesNotExistException On 404.
+     */
+    public function updateGroupShared(
+        string $actorUserId,
+        string $groupId,
+        string $uuid,
+        array $patch
+    ): Dashboard {
+        if ($this->isAdmin(userId: $actorUserId) === false) {
+            throw new Exception(message: self::ERR_FORBIDDEN_NOT_ADMIN);
+        }
+
+        $dashboard = $this->findGroupDashboard(
+            groupId: $groupId,
+            uuid: $uuid
+        );
+
+        $this->applyDashboardUpdates(
+            dashboard: $dashboard,
+            data: $patch
+        );
+
+        return $this->dashboardMapper->update(entity: $dashboard);
+    }//end updateGroupShared()
+
+    /**
+     * Delete a group-shared dashboard.
+     *
+     * Admin-only. The last-in-group guard returns an `Exception` (the
+     * controller maps to HTTP 400) when removing the row would leave
+     * the group with zero group-shared dashboards. The `default` group
+     * is exempt from the guard. REQ-DASH-014.
+     *
+     * @param string $actorUserId The acting user ID.
+     * @param string $groupId     The group ID from the URL.
+     * @param string $uuid        The dashboard UUID from the URL.
+     *
+     * @return void
+     *
+     * @throws Exception When the actor is not admin, or the
+     *                   last-in-group guard rejects the delete.
+     * @throws DoesNotExistException On 404.
+     */
+    public function deleteGroupShared(
+        string $actorUserId,
+        string $groupId,
+        string $uuid
+    ): void {
+        if ($this->isAdmin(userId: $actorUserId) === false) {
+            throw new Exception(message: self::ERR_FORBIDDEN_NOT_ADMIN);
+        }
+
+        $dashboard = $this->findGroupDashboard(
+            groupId: $groupId,
+            uuid: $uuid
+        );
+
+        if ($groupId !== Dashboard::DEFAULT_GROUP_ID) {
+            $count = $this->dashboardMapper->countByGroup(
+                groupId: $groupId
+            );
+            if ($count <= 1) {
+                throw new Exception(message: self::ERR_LAST_IN_GROUP);
+            }
+        }
+
+        $this->placementMapper->deleteByDashboardId(
+            dashboardId: $dashboard->getId()
+        );
+        $this->dashboardMapper->delete(entity: $dashboard);
+    }//end deleteGroupShared()
+
+    /**
+     * Get all dashboards visible to a user, source-tagged.
+     *
+     * Wires `IGroupManager::getUserGroupIds()` into the mapper's union
+     * query and returns the deduplicated list with `source` set per row.
+     * REQ-DASH-013.
+     *
+     * @param string $userId The user ID.
+     *
+     * @return array<int, array{dashboard: Dashboard, source: string}>
+     *   List of {dashboard, source} pairs.
+     */
+    public function getVisibleToUser(string $userId): array
+    {
+        $user = $this->userManager->get(uid: $userId);
+        if ($user === null) {
+            return [];
+        }
+
+        $userGroupIds = $this->groupManager->getUserGroupIds(user: $user);
+
+        return $this->dashboardMapper->findVisibleToUser(
+            userId: $userId,
+            userGroupIds: $userGroupIds
+        );
+    }//end getVisibleToUser()
+
+    /**
+     * Check whether the given user is a Nextcloud administrator.
+     *
+     * Wraps `IGroupManager::isAdmin()` so callers don't have to import
+     * the interface and so tests can stub one method.
+     *
+     * @param string $userId The user ID.
+     *
+     * @return bool Whether the user is an admin.
+     */
+    public function isAdmin(string $userId): bool
+    {
+        return $this->groupManager->isAdmin(userId: $userId);
+    }//end isAdmin()
 
     /**
      * Try to create a dashboard from a template or empty.

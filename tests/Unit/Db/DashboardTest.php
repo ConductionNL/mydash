@@ -240,8 +240,33 @@ class DashboardTest extends TestCase
     {
         $this->assertSame('admin_template', Dashboard::TYPE_ADMIN_TEMPLATE);
         $this->assertSame('user', Dashboard::TYPE_USER);
+        $this->assertSame('group_shared', Dashboard::TYPE_GROUP_SHARED);
+        $this->assertSame('default', Dashboard::DEFAULT_GROUP_ID);
+        $this->assertSame('user', Dashboard::SOURCE_USER);
+        $this->assertSame('group', Dashboard::SOURCE_GROUP);
+        $this->assertSame('default', Dashboard::SOURCE_DEFAULT);
         $this->assertSame('view_only', Dashboard::PERMISSION_VIEW_ONLY);
         $this->assertSame('add_only', Dashboard::PERMISSION_ADD_ONLY);
         $this->assertSame('full', Dashboard::PERMISSION_FULL);
+    }
+
+    public function testSetAndGetGroupId(): void
+    {
+        $this->dashboard->setGroupId('marketing');
+        $this->assertSame('marketing', $this->dashboard->getGroupId());
+
+        $this->dashboard->setGroupId(null);
+        $this->assertNull($this->dashboard->getGroupId());
+    }
+
+    public function testJsonSerializeIncludesGroupId(): void
+    {
+        $serialized = $this->dashboard->jsonSerialize();
+        $this->assertArrayHasKey('groupId', $serialized);
+        $this->assertNull($serialized['groupId']);
+
+        $this->dashboard->setGroupId('engineering');
+        $serialized = $this->dashboard->jsonSerialize();
+        $this->assertSame('engineering', $serialized['groupId']);
     }
 }
