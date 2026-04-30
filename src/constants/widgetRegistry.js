@@ -9,6 +9,8 @@ import LabelWidget from '../components/Widgets/Renderers/LabelWidget.vue'
 import LabelForm from '../components/Widgets/Forms/LabelForm.vue'
 import ImageWidget from '../components/Widgets/Renderers/ImageWidget.vue'
 import ImageForm from '../components/Widgets/Forms/ImageForm.vue'
+import NcDashboardWidget from '../components/Widgets/Renderers/NcDashboardWidget.vue'
+import NcDashboardForm from '../components/Widgets/Forms/NcDashboardForm.vue'
 
 /**
  * Localised label helper. `t` is provided as a Nextcloud global at runtime;
@@ -81,6 +83,16 @@ export const widgetRegistry = {
 			alt: '',
 			link: '',
 			fit: 'cover',
+		},
+	},
+	'nc-widget': {
+		type: 'nc-widget',
+		label: tt('Nextcloud Widget'),
+		component: NcDashboardWidget,
+		form: NcDashboardForm,
+		defaults: {
+			widgetId: '',
+			displayMode: 'vertical',
 		},
 	},
 }
