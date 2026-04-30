@@ -2,14 +2,14 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:b08b9ab1-75b0-4b81-af4e-5882a337df20",
+  "serialNumber": "urn:uuid:388a0eb0-b171-4af8-ad2a-9b3607de7672",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-03-19T17:50:04Z",
+    "timestamp": "2026-04-30T11:58:37Z",
     "tools": [
       {
         "name": "composer",
-        "version": "2.9.5"
+        "version": "2.9.7"
       },
       {
         "vendor": "cyclonedx",
@@ -82,10 +82,10 @@
       }
     ],
     "component": {
-      "bom-ref": "mydash/mydash-dev-fix/ci-quality-checks",
+      "bom-ref": "mydash/mydash-dev-chore/fix-phpstan-ocp-autoload",
       "type": "application",
       "name": "mydash",
-      "version": "dev-fix/ci-quality-checks",
+      "version": "dev-chore/fix-phpstan-ocp-autoload",
       "group": "mydash",
       "description": "Enhanced dashboard with grid layout and admin controls for Nextcloud",
       "author": "MyDash Contributors",
@@ -96,15 +96,15 @@
           }
         }
       ],
-      "purl": "pkg:composer/mydash/mydash@dev-fix/ci-quality-checks",
+      "purl": "pkg:composer/mydash/mydash@dev-chore/fix-phpstan-ocp-autoload",
       "properties": [
         {
           "name": "cdx:composer:package:distReference",
-          "value": "2dc7b3f49dc378ebd0a263b89036d790fbf63eec"
+          "value": "ba8a0759c1cbb204e95d28999d3ab6df45f8bff0"
         },
         {
           "name": "cdx:composer:package:sourceReference",
-          "value": "2dc7b3f49dc378ebd0a263b89036d790fbf63eec"
+          "value": "ba8a0759c1cbb204e95d28999d3ab6df45f8bff0"
         },
         {
           "name": "cdx:composer:package:type",
@@ -17993,7 +17993,7 @@
       ]
     },
     {
-      "ref": "mydash/mydash-dev-fix/ci-quality-checks",
+      "ref": "mydash/mydash-dev-chore/fix-phpstan-ocp-autoload",
       "dependsOn": [
         "ramsey/uuid-4.9.2.0"
       ]
