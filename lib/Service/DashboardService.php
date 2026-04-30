@@ -229,7 +229,7 @@ class DashboardService
             $dashboardId,
             userId: $userId
         );
-        $dashboard->setIsActive(true);
+        $dashboard->setIsActive(1);
 
         return $dashboard;
     }//end activateDashboard()

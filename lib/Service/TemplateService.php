@@ -156,7 +156,7 @@ class TemplateService
         $dashboard->setPermissionLevel(
             $template->getPermissionLevel()
         );
-        $dashboard->setIsActive(true);
+        $dashboard->setIsActive(1);
         $dashboard->setCreatedAt($now);
         $dashboard->setUpdatedAt($now);
 

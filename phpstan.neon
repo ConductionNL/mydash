@@ -6,11 +6,38 @@ parameters:
         - vendor/autoload.php
     excludePaths:
         - vendor
+    # nextcloud/ocp ships stubs without an autoload section, so list the
+    # namespace roots explicitly. Keep both OCP (public API) and NCU
+    # (unstable internal API) reachable for symbol resolution.
     scanDirectories:
-        - vendor/nextcloud/ocp
+        - vendor/nextcloud/ocp/OCP
+        - vendor/nextcloud/ocp/NCU
     reportUnmatchedIgnoredErrors: false
     ignoreErrors:
         # Nextcloud internal classes that PHPStan might not recognize
         - '#Call to an undefined method OC::#'
         - '#Class OC not found#'
         - '#Access to static property \$server on an unknown class OC#'
+        # Doctrine\DBAL\Schema\Table is provided by Nextcloud server's
+        # 3rdparty bundle, not by our app's vendor/. Migration table
+        # builders type-hint the class but PHPStan cannot resolve it
+        # locally; they are exercised at runtime under Nextcloud.
+        -
+            message: '#unknown class Doctrine\\DBAL\\Schema\\Table#'
+            path: lib/Migration/*
+        -
+            message: '#has invalid type Doctrine\\DBAL\\Schema\\Table#'
+            path: lib/Migration/*
+        # JSONResponse uses a strict status-code union; a plain int parameter
+        # widens that. Both call sites already constrain via Http::STATUS_*
+        # defaults at the public boundary, so the runtime behaviour is sound.
+        -
+            message: '#Parameter \$statusCode of class OCP\\AppFramework\\Http\\JSONResponse constructor#'
+            path: lib/Controller/ResponseHelper.php
+        # Entity types implement JsonSerializable on the concrete subclass;
+        # the OCP stub for Entity does not declare jsonSerialize() so PHPStan
+        # cannot statically prove the call. The only callers wrap entities
+        # that always define it.
+        -
+            message: '#Call to an undefined method OCP\\AppFramework\\Db\\Entity::jsonSerialize\(\)#'
+            path: lib/Db/EntitySerializer.php

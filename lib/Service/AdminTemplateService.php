@@ -117,7 +117,7 @@ class AdminTemplateService
         $template->setTargetGroupsArray(
             $targetGroups ?? []
         );
-        $template->setIsDefault($isDefault);
+        $template->setIsDefault((int) $isDefault);
         $template->setCreatedAt($now);
         $template->setUpdatedAt($now);
 
