@@ -42,7 +42,9 @@
 				<div class="style-editor__row">
 					<label class="style-editor__label">{{ t('mydash', 'Color') }}</label>
 					<NcColorPicker v-model="localStyle.backgroundColor">
-						<NcButton type="secondary">
+						<NcButton
+							type="secondary"
+							:aria-label="t('mydash', 'Pick background color')">
 							<template #icon>
 								<div
 									class="style-editor__color-preview"
@@ -63,7 +65,8 @@
 				<NcSelect
 					v-model="selectedIcon"
 					:options="iconOptions"
-					:label="t('mydash', 'Icon')"
+					:input-label="t('mydash', 'Icon')"
+					label="label"
 					label-outside>
 					<template #selected-option="{ label }">
 						<div class="icon-option">

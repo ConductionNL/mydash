@@ -111,6 +111,28 @@ class DashboardFactoryTest extends TestCase
         $this->assertSame(Dashboard::PERMISSION_FULL, $dashboard->getPermissionLevel());
     }
 
+    public function testCreateRespectsExplicitPermissionLevel(): void
+    {
+        $dashboard = $this->factory->create(
+            userId: 'alice',
+            name: 'Test',
+            permissionLevel: Dashboard::PERMISSION_ADD_ONLY
+        );
+
+        $this->assertSame(Dashboard::PERMISSION_ADD_ONLY, $dashboard->getPermissionLevel());
+    }
+
+    public function testCreateRespectsExplicitGridColumns(): void
+    {
+        $dashboard = $this->factory->create(
+            userId: 'alice',
+            name: 'Test',
+            gridColumns: 6
+        );
+
+        $this->assertSame(6, $dashboard->getGridColumns());
+    }
+
     public function testCreateSetsIsActive(): void
     {
         $dashboard = $this->factory->create(

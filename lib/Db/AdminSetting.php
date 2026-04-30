@@ -21,7 +21,6 @@ declare(strict_types=1);
 
 namespace OCA\MyDash\Db;
 
-use DateTime;
 use JsonSerializable;
 use OCP\AppFramework\Db\Entity;
 
@@ -32,8 +31,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setSettingKey(string $settingKey)
  * @method string|null getSettingValue()
  * @method void setSettingValue(?string $settingValue)
- * @method DateTime getUpdatedAt()
- * @method void setUpdatedAt(DateTime $updatedAt)
+ * @method string|null getUpdatedAt()
+ * @method void setUpdatedAt(?string $updatedAt)
  */
 class AdminSetting extends Entity implements JsonSerializable
 {
@@ -89,11 +88,11 @@ class AdminSetting extends Entity implements JsonSerializable
     protected ?string $settingValue = null;
 
     /**
-     * The update timestamp.
+     * The update timestamp (ISO-8601 / 'c' format).
      *
-     * @var DateTime|null
+     * @var string|null
      */
-    protected ?DateTime $updatedAt = null;
+    protected ?string $updatedAt = null;
 
     /**
      * Constructor
@@ -145,16 +144,11 @@ class AdminSetting extends Entity implements JsonSerializable
      */
     public function jsonSerialize(): array
     {
-        $updatedAtValue = null;
-        if ($this->updatedAt !== null) {
-            $updatedAtValue = $this->updatedAt->format(format: 'c');
-        }
-
         return [
             'id'        => $this->getId(),
             'key'       => $this->settingKey,
             'value'     => $this->getValueDecoded(),
-            'updatedAt' => $updatedAtValue,
+            'updatedAt' => $this->updatedAt,
         ];
     }//end jsonSerialize()
 }//end class

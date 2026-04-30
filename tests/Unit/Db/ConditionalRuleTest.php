@@ -145,7 +145,7 @@ class ConditionalRuleTest extends TestCase
 
     public function testJsonSerialize(): void
     {
-        $now = new DateTime();
+        $now = (new DateTime())->format('c');
         $this->rule->setWidgetPlacementId(10);
         $this->rule->setRuleType(ConditionalRule::TYPE_GROUP);
         $this->rule->setRuleConfigArray(['groups' => ['admin']]);
@@ -159,7 +159,7 @@ class ConditionalRuleTest extends TestCase
         $this->assertSame('group', $serialized['ruleType']);
         $this->assertSame(['groups' => ['admin']], $serialized['ruleConfig']);
         $this->assertTrue($serialized['isInclude']);
-        $this->assertSame($now->format('c'), $serialized['createdAt']);
+        $this->assertSame($now, $serialized['createdAt']);
         $this->assertArrayHasKey('id', $serialized);
     }
 
