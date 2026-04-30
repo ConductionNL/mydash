@@ -53,9 +53,9 @@ class MetricsCollector
     {
         $lines = [];
 
-        $this->addInfoMetric($lines);
-        $this->addUpMetric($lines);
-        $this->addDashboardMetrics($lines);
+        $this->addInfoMetric(lines: $lines);
+        $this->addUpMetric(lines: $lines);
+        $this->addDashboardMetrics(lines: $lines);
         $this->addCountMetric(
             lines: $lines,
             tableName: 'mydash_widget_placements',

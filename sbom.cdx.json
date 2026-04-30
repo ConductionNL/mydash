@@ -2,14 +2,14 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:117ff329-a669-4a1b-95f3-e29189292066",
+  "serialNumber": "urn:uuid:5ee74da4-b04e-46fe-aed5-0e55fa312c8f",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-03-16T22:40:12Z",
+    "timestamp": "2026-04-30T20:22:12Z",
     "tools": [
       {
         "name": "composer",
-        "version": "2.9.3"
+        "version": "2.9.7"
       },
       {
         "vendor": "cyclonedx",
@@ -82,10 +82,10 @@
       }
     ],
     "component": {
-      "bom-ref": "mydash/mydash-dev-feature/spec-enrichment-and-metrics",
+      "bom-ref": "mydash/mydash-dev-feature/impl-fork-current-as-personal",
       "type": "application",
       "name": "mydash",
-      "version": "dev-feature/spec-enrichment-and-metrics",
+      "version": "dev-feature/impl-fork-current-as-personal",
       "group": "mydash",
       "description": "Enhanced dashboard with grid layout and admin controls for Nextcloud",
       "author": "MyDash Contributors",
@@ -96,15 +96,15 @@
           }
         }
       ],
-      "purl": "pkg:composer/mydash/mydash@dev-feature/spec-enrichment-and-metrics",
+      "purl": "pkg:composer/mydash/mydash@dev-feature/impl-fork-current-as-personal",
       "properties": [
         {
           "name": "cdx:composer:package:distReference",
-          "value": "3ae802263854e44a45a394136fff2be3ac70b878"
+          "value": "61bf45da1f763733e53dd02389928eb6d20f9813"
         },
         {
           "name": "cdx:composer:package:sourceReference",
-          "value": "3ae802263854e44a45a394136fff2be3ac70b878"
+          "value": "61bf45da1f763733e53dd02389928eb6d20f9813"
         },
         {
           "name": "cdx:composer:package:type",
@@ -114,6 +114,163 @@
     }
   },
   "components": [
+    {
+      "bom-ref": "brick/math-0.13.1.0",
+      "type": "library",
+      "name": "math",
+      "version": "0.13.1",
+      "group": "brick",
+      "description": "Arbitrary-precision arithmetic library",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:composer/brick/math@0.13.1",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://api.github.com/repos/brick/math/zipball/fc7ed316430118cc7836bf45faff18d5dfc8de04",
+          "comment": "dist reference: fc7ed316430118cc7836bf45faff18d5dfc8de04"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/brick/math.git",
+          "comment": "source reference: fc7ed316430118cc7836bf45faff18d5dfc8de04"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/brick/math/issues",
+          "comment": "as detected from Composer manifest 'support.issues'"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/brick/math/tree/0.13.1",
+          "comment": "as detected from Composer manifest 'support.source'"
+        }
+      ],
+      "properties": [
+        {
+          "name": "cdx:composer:package:distReference",
+          "value": "fc7ed316430118cc7836bf45faff18d5dfc8de04"
+        },
+        {
+          "name": "cdx:composer:package:sourceReference",
+          "value": "fc7ed316430118cc7836bf45faff18d5dfc8de04"
+        },
+        {
+          "name": "cdx:composer:package:type",
+          "value": "library"
+        }
+      ]
+    },
+    {
+      "bom-ref": "ramsey/collection-2.1.1.0",
+      "type": "library",
+      "name": "collection",
+      "version": "2.1.1",
+      "group": "ramsey",
+      "description": "A PHP library for representing and manipulating collections.",
+      "author": "Ben Ramsey",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:composer/ramsey/collection@2.1.1",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://api.github.com/repos/ramsey/collection/zipball/344572933ad0181accbf4ba763e85a0306a8c5e2",
+          "comment": "dist reference: 344572933ad0181accbf4ba763e85a0306a8c5e2"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/ramsey/collection.git",
+          "comment": "source reference: 344572933ad0181accbf4ba763e85a0306a8c5e2"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/ramsey/collection/issues",
+          "comment": "as detected from Composer manifest 'support.issues'"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/ramsey/collection/tree/2.1.1",
+          "comment": "as detected from Composer manifest 'support.source'"
+        }
+      ],
+      "properties": [
+        {
+          "name": "cdx:composer:package:distReference",
+          "value": "344572933ad0181accbf4ba763e85a0306a8c5e2"
+        },
+        {
+          "name": "cdx:composer:package:sourceReference",
+          "value": "344572933ad0181accbf4ba763e85a0306a8c5e2"
+        },
+        {
+          "name": "cdx:composer:package:type",
+          "value": "library"
+        }
+      ]
+    },
+    {
+      "bom-ref": "ramsey/uuid-4.9.2.0",
+      "type": "library",
+      "name": "uuid",
+      "version": "4.9.2",
+      "group": "ramsey",
+      "description": "A PHP library for generating and working with universally unique identifiers (UUIDs).",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:composer/ramsey/uuid@4.9.2",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://api.github.com/repos/ramsey/uuid/zipball/8429c78ca35a09f27565311b98101e2826affde0",
+          "comment": "dist reference: 8429c78ca35a09f27565311b98101e2826affde0"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/ramsey/uuid.git",
+          "comment": "source reference: 8429c78ca35a09f27565311b98101e2826affde0"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/ramsey/uuid/issues",
+          "comment": "as detected from Composer manifest 'support.issues'"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/ramsey/uuid/tree/4.9.2",
+          "comment": "as detected from Composer manifest 'support.source'"
+        }
+      ],
+      "properties": [
+        {
+          "name": "cdx:composer:package:distReference",
+          "value": "8429c78ca35a09f27565311b98101e2826affde0"
+        },
+        {
+          "name": "cdx:composer:package:sourceReference",
+          "value": "8429c78ca35a09f27565311b98101e2826affde0"
+        },
+        {
+          "name": "cdx:composer:package:type",
+          "value": "library"
+        }
+      ]
+    },
     {
       "type": "library",
       "name": "helper-string-parser",
@@ -1320,59 +1477,6 @@
           "name": "cdx:npm:package:path",
           "value": "node_modules/@nextcloud/axios"
         }
-      ],
-      "components": [
-        {
-          "type": "library",
-          "name": "router",
-          "group": "@nextcloud",
-          "version": "3.1.0",
-          "bom-ref": "mydash@1.0.0|@nextcloud/axios@2.5.2|@nextcloud/router@3.1.0",
-          "author": "Nextcloud GmbH and Nextcloud contributors",
-          "description": "Utils for generating Nextcloud URLs",
-          "licenses": [
-            {
-              "license": {
-                "id": "GPL-3.0-or-later"
-              }
-            }
-          ],
-          "purl": "pkg:npm/%40nextcloud/router@3.1.0",
-          "externalReferences": [
-            {
-              "url": "git+https://github.com/nextcloud-libraries/nextcloud-router.git",
-              "type": "vcs",
-              "comment": "as detected from PackageJson property \"repository.url\""
-            },
-            {
-              "url": "https://github.com/nextcloud-libraries/nextcloud-router#readme",
-              "type": "website",
-              "comment": "as detected from PackageJson property \"homepage\""
-            },
-            {
-              "url": "https://github.com/nextcloud-libraries/nextcloud-router/issues",
-              "type": "issue-tracker",
-              "comment": "as detected from PackageJson property \"bugs.url\""
-            },
-            {
-              "url": "https://registry.npmjs.org/@nextcloud/router/-/router-3.1.0.tgz",
-              "type": "distribution",
-              "hashes": [
-                {
-                  "alg": "SHA-512",
-                  "content": "7b876421ac514b0759265645a67f71d37420067fd26b684dd61a7f040efe01bcf292648094ab967dd997f23ffc7b0acba50c18999476dc864ef57c29257ab653"
-                }
-              ],
-              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\""
-            }
-          ],
-          "properties": [
-            {
-              "name": "cdx:npm:package:path",
-              "value": "node_modules/@nextcloud/axios/node_modules/@nextcloud/router"
-            }
-          ]
-        }
       ]
     },
     {
@@ -1630,57 +1734,6 @@
               "value": "node_modules/@nextcloud/dialogs/node_modules/@nextcloud/initial-state"
             }
           ]
-        },
-        {
-          "type": "library",
-          "name": "router",
-          "group": "@nextcloud",
-          "version": "3.1.0",
-          "bom-ref": "mydash@1.0.0|@nextcloud/dialogs@6.4.2|@nextcloud/router@3.1.0",
-          "author": "Nextcloud GmbH and Nextcloud contributors",
-          "description": "Utils for generating Nextcloud URLs",
-          "licenses": [
-            {
-              "license": {
-                "id": "GPL-3.0-or-later"
-              }
-            }
-          ],
-          "purl": "pkg:npm/%40nextcloud/router@3.1.0",
-          "externalReferences": [
-            {
-              "url": "git+https://github.com/nextcloud-libraries/nextcloud-router.git",
-              "type": "vcs",
-              "comment": "as detected from PackageJson property \"repository.url\""
-            },
-            {
-              "url": "https://github.com/nextcloud-libraries/nextcloud-router#readme",
-              "type": "website",
-              "comment": "as detected from PackageJson property \"homepage\""
-            },
-            {
-              "url": "https://github.com/nextcloud-libraries/nextcloud-router/issues",
-              "type": "issue-tracker",
-              "comment": "as detected from PackageJson property \"bugs.url\""
-            },
-            {
-              "url": "https://registry.npmjs.org/@nextcloud/router/-/router-3.1.0.tgz",
-              "type": "distribution",
-              "hashes": [
-                {
-                  "alg": "SHA-512",
-                  "content": "7b876421ac514b0759265645a67f71d37420067fd26b684dd61a7f040efe01bcf292648094ab967dd997f23ffc7b0acba50c18999476dc864ef57c29257ab653"
-                }
-              ],
-              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\""
-            }
-          ],
-          "properties": [
-            {
-              "name": "cdx:npm:package:path",
-              "value": "node_modules/@nextcloud/dialogs/node_modules/@nextcloud/router"
-            }
-          ]
         }
       ]
     },
@@ -1836,59 +1889,6 @@
           "name": "cdx:npm:package:path",
           "value": "node_modules/@nextcloud/files"
         }
-      ],
-      "components": [
-        {
-          "type": "library",
-          "name": "router",
-          "group": "@nextcloud",
-          "version": "3.1.0",
-          "bom-ref": "mydash@1.0.0|@nextcloud/files@3.12.2|@nextcloud/router@3.1.0",
-          "author": "Nextcloud GmbH and Nextcloud contributors",
-          "description": "Utils for generating Nextcloud URLs",
-          "licenses": [
-            {
-              "license": {
-                "id": "GPL-3.0-or-later"
-              }
-            }
-          ],
-          "purl": "pkg:npm/%40nextcloud/router@3.1.0",
-          "externalReferences": [
-            {
-              "url": "git+https://github.com/nextcloud-libraries/nextcloud-router.git",
-              "type": "vcs",
-              "comment": "as detected from PackageJson property \"repository.url\""
-            },
-            {
-              "url": "https://github.com/nextcloud-libraries/nextcloud-router#readme",
-              "type": "website",
-              "comment": "as detected from PackageJson property \"homepage\""
-            },
-            {
-              "url": "https://github.com/nextcloud-libraries/nextcloud-router/issues",
-              "type": "issue-tracker",
-              "comment": "as detected from PackageJson property \"bugs.url\""
-            },
-            {
-              "url": "https://registry.npmjs.org/@nextcloud/router/-/router-3.1.0.tgz",
-              "type": "distribution",
-              "hashes": [
-                {
-                  "alg": "SHA-512",
-                  "content": "7b876421ac514b0759265645a67f71d37420067fd26b684dd61a7f040efe01bcf292648094ab967dd997f23ffc7b0acba50c18999476dc864ef57c29257ab653"
-                }
-              ],
-              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\""
-            }
-          ],
-          "properties": [
-            {
-              "name": "cdx:npm:package:path",
-              "value": "node_modules/@nextcloud/files/node_modules/@nextcloud/router"
-            }
-          ]
-        }
       ]
     },
     {
@@ -1990,59 +1990,6 @@
         {
           "name": "cdx:npm:package:path",
           "value": "node_modules/@nextcloud/l10n"
-        }
-      ],
-      "components": [
-        {
-          "type": "library",
-          "name": "router",
-          "group": "@nextcloud",
-          "version": "3.1.0",
-          "bom-ref": "mydash@1.0.0|@nextcloud/l10n@3.4.1|@nextcloud/router@3.1.0",
-          "author": "Nextcloud GmbH and Nextcloud contributors",
-          "description": "Utils for generating Nextcloud URLs",
-          "licenses": [
-            {
-              "license": {
-                "id": "GPL-3.0-or-later"
-              }
-            }
-          ],
-          "purl": "pkg:npm/%40nextcloud/router@3.1.0",
-          "externalReferences": [
-            {
-              "url": "git+https://github.com/nextcloud-libraries/nextcloud-router.git",
-              "type": "vcs",
-              "comment": "as detected from PackageJson property \"repository.url\""
-            },
-            {
-              "url": "https://github.com/nextcloud-libraries/nextcloud-router#readme",
-              "type": "website",
-              "comment": "as detected from PackageJson property \"homepage\""
-            },
-            {
-              "url": "https://github.com/nextcloud-libraries/nextcloud-router/issues",
-              "type": "issue-tracker",
-              "comment": "as detected from PackageJson property \"bugs.url\""
-            },
-            {
-              "url": "https://registry.npmjs.org/@nextcloud/router/-/router-3.1.0.tgz",
-              "type": "distribution",
-              "hashes": [
-                {
-                  "alg": "SHA-512",
-                  "content": "7b876421ac514b0759265645a67f71d37420067fd26b684dd61a7f040efe01bcf292648094ab967dd997f23ffc7b0acba50c18999476dc864ef57c29257ab653"
-                }
-              ],
-              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\""
-            }
-          ],
-          "properties": [
-            {
-              "name": "cdx:npm:package:path",
-              "value": "node_modules/@nextcloud/l10n/node_modules/@nextcloud/router"
-            }
-          ]
         }
       ]
     },
@@ -2152,9 +2099,10 @@
       "type": "library",
       "name": "router",
       "group": "@nextcloud",
-      "version": "2.2.1",
-      "bom-ref": "mydash@1.0.0|@nextcloud/router@2.2.1",
-      "author": "Christoph Wurst",
+      "version": "3.1.0",
+      "bom-ref": "mydash@1.0.0|@nextcloud/router@3.1.0",
+      "author": "Nextcloud GmbH and Nextcloud contributors",
+      "description": "Utils for generating Nextcloud URLs",
       "licenses": [
         {
           "license": {
@@ -2162,30 +2110,30 @@
           }
         }
       ],
-      "purl": "pkg:npm/%40nextcloud/router@2.2.1",
+      "purl": "pkg:npm/%40nextcloud/router@3.1.0",
       "externalReferences": [
         {
-          "url": "git+https://github.com/nextcloud/nextcloud-router.git",
+          "url": "git+https://github.com/nextcloud-libraries/nextcloud-router.git",
           "type": "vcs",
           "comment": "as detected from PackageJson property \"repository.url\""
         },
         {
-          "url": "https://github.com/nextcloud/nextcloud-router#readme",
+          "url": "https://github.com/nextcloud-libraries/nextcloud-router#readme",
           "type": "website",
           "comment": "as detected from PackageJson property \"homepage\""
         },
         {
-          "url": "https://github.com/nextcloud/nextcloud-router/issues",
+          "url": "https://github.com/nextcloud-libraries/nextcloud-router/issues",
           "type": "issue-tracker",
           "comment": "as detected from PackageJson property \"bugs.url\""
         },
         {
-          "url": "https://registry.npmjs.org/@nextcloud/router/-/router-2.2.1.tgz",
+          "url": "https://registry.npmjs.org/@nextcloud/router/-/router-3.1.0.tgz",
           "type": "distribution",
           "hashes": [
             {
               "alg": "SHA-512",
-              "content": "65173f588d116a4b0424ccf4f07ffa2e298874ffb5035c531d3842604821b3b56000a369e7dd7bbd3d8e292a46d1c3116c8c24d289e0155b79141e6a8f2fe216"
+              "content": "7b876421ac514b0759265645a67f71d37420067fd26b684dd61a7f040efe01bcf292648094ab967dd997f23ffc7b0acba50c18999476dc864ef57c29257ab653"
             }
           ],
           "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\""
@@ -2442,57 +2390,6 @@
       "components": [
         {
           "type": "library",
-          "name": "router",
-          "group": "@nextcloud",
-          "version": "3.1.0",
-          "bom-ref": "mydash@1.0.0|@nextcloud/vue@8.36.0|@nextcloud/router@3.1.0",
-          "author": "Nextcloud GmbH and Nextcloud contributors",
-          "description": "Utils for generating Nextcloud URLs",
-          "licenses": [
-            {
-              "license": {
-                "id": "GPL-3.0-or-later"
-              }
-            }
-          ],
-          "purl": "pkg:npm/%40nextcloud/router@3.1.0",
-          "externalReferences": [
-            {
-              "url": "git+https://github.com/nextcloud-libraries/nextcloud-router.git",
-              "type": "vcs",
-              "comment": "as detected from PackageJson property \"repository.url\""
-            },
-            {
-              "url": "https://github.com/nextcloud-libraries/nextcloud-router#readme",
-              "type": "website",
-              "comment": "as detected from PackageJson property \"homepage\""
-            },
-            {
-              "url": "https://github.com/nextcloud-libraries/nextcloud-router/issues",
-              "type": "issue-tracker",
-              "comment": "as detected from PackageJson property \"bugs.url\""
-            },
-            {
-              "url": "https://registry.npmjs.org/@nextcloud/router/-/router-3.1.0.tgz",
-              "type": "distribution",
-              "hashes": [
-                {
-                  "alg": "SHA-512",
-                  "content": "7b876421ac514b0759265645a67f71d37420067fd26b684dd61a7f040efe01bcf292648094ab967dd997f23ffc7b0acba50c18999476dc864ef57c29257ab653"
-                }
-              ],
-              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\""
-            }
-          ],
-          "properties": [
-            {
-              "name": "cdx:npm:package:path",
-              "value": "node_modules/@nextcloud/vue/node_modules/@nextcloud/router"
-            }
-          ]
-        },
-        {
-          "type": "library",
           "name": "p-queue",
           "version": "8.1.1",
           "bom-ref": "mydash@1.0.0|@nextcloud/vue@8.36.0|p-queue@8.1.1",
@@ -2589,65 +2486,6 @@
               "value": "node_modules/@nextcloud/vue/node_modules/p-timeout"
             }
           ]
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "parseargs",
-      "group": "@pkgjs",
-      "version": "0.11.0",
-      "bom-ref": "mydash@1.0.0|@pkgjs/parseargs@0.11.0",
-      "description": "Polyfill of future proposal for `util.parseArgs()`",
-      "scope": "optional",
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ],
-      "purl": "pkg:npm/%40pkgjs/parseargs@0.11.0",
-      "externalReferences": [
-        {
-          "url": "git+ssh://git@github.com/pkgjs/parseargs.git",
-          "type": "vcs",
-          "comment": "as detected from PackageJson property \"repository.url\""
-        },
-        {
-          "url": "https://github.com/pkgjs/parseargs#readme",
-          "type": "website",
-          "comment": "as detected from PackageJson property \"homepage\""
-        },
-        {
-          "url": "https://github.com/pkgjs/parseargs/issues",
-          "type": "issue-tracker",
-          "comment": "as detected from PackageJson property \"bugs.url\""
-        },
-        {
-          "url": "https://registry.npmjs.org/@pkgjs/parseargs/-/parseargs-0.11.0.tgz",
-          "type": "distribution",
-          "hashes": [
-            {
-              "alg": "SHA-512",
-              "content": "fb55648dd0f44012cfa1d1ab2547aa6ab1fc54022f40e0c86f087d5e93f94b28ac7fb628420b0928f345a2aa8b425bbe550fed552b21311ea5a0f327f14f9d3e"
-            }
-          ],
-          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\""
-        }
-      ],
-      "properties": [
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        },
-        {
-          "name": "cdx:npm:package:extraneous",
-          "value": "true"
-        },
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/@pkgjs/parseargs"
         }
       ]
     },
@@ -7353,8 +7191,8 @@
     {
       "type": "library",
       "name": "dompurify",
-      "version": "3.3.3",
-      "bom-ref": "mydash@1.0.0|dompurify@3.3.3",
+      "version": "3.4.1",
+      "bom-ref": "mydash@1.0.0|dompurify@3.4.1",
       "author": "Dr.-Ing. Mario Heiderich, Cure53",
       "description": "DOMPurify is a DOM-only, super-fast, uber-tolerant XSS sanitizer for HTML, MathML and SVG. It's written in JavaScript and works in all modern browsers (Safari, Opera (15+), Internet Explorer (10+), Firefox and Chrome - as well as almost anything else using Blink or WebKit). DOMPurify is written by security people who have vast background in web attacks and XSS. Fear not.",
       "licenses": [
@@ -7362,7 +7200,7 @@
           "expression": "(MPL-2.0 OR Apache-2.0)"
         }
       ],
-      "purl": "pkg:npm/dompurify@3.3.3",
+      "purl": "pkg:npm/dompurify@3.4.1",
       "externalReferences": [
         {
           "url": "git://github.com/cure53/DOMPurify.git",
@@ -7380,12 +7218,12 @@
           "comment": "as detected from PackageJson property \"bugs.url\""
         },
         {
-          "url": "https://registry.npmjs.org/dompurify/-/dompurify-3.3.3.tgz",
+          "url": "https://registry.npmjs.org/dompurify/-/dompurify-3.4.1.tgz",
           "type": "distribution",
           "hashes": [
             {
               "alg": "SHA-512",
-              "content": "3a3ea9cc8dbe46a05f146faa39a38b6c55cb43dd004697061ba51e3cbf366c92ed76c6ba098243ee79a253c316f6740d3ad087577959fc1cead57d1061b05908"
+              "content": "25a85a9030088358323a6edd9605920e35789fb229d8f291e793484fa8eb31f2202c5816a3cd6f76bd7f406a96b45351a973fd515ef5a1578fb63a92d9e6e73f"
             }
           ],
           "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\""
@@ -13668,8 +13506,8 @@
     {
       "type": "library",
       "name": "postcss",
-      "version": "8.5.6",
-      "bom-ref": "mydash@1.0.0|postcss@8.5.6",
+      "version": "8.5.12",
+      "bom-ref": "mydash@1.0.0|postcss@8.5.12",
       "author": "Andrey Sitnik",
       "description": "Tool for transforming styles with JS plugins",
       "licenses": [
@@ -13679,7 +13517,7 @@
           }
         }
       ],
-      "purl": "pkg:npm/postcss@8.5.6",
+      "purl": "pkg:npm/postcss@8.5.12",
       "externalReferences": [
         {
           "url": "git+https://github.com/postcss/postcss.git",
@@ -13697,12 +13535,12 @@
           "comment": "as detected from PackageJson property \"bugs.url\""
         },
         {
-          "url": "https://registry.npmjs.org/postcss/-/postcss-8.5.6.tgz",
+          "url": "https://registry.npmjs.org/postcss/-/postcss-8.5.12.tgz",
           "type": "distribution",
           "hashes": [
             {
               "alg": "SHA-512",
-              "content": "dd86e2d6d02ec003fdb34af5510d89e27e58d06d396c99295083b4fdb23d321c260fbd12e5a4d66d7181c311eb7a54fe5ccd64e9d334a64f92c0d9294d137b3e"
+              "content": "5badadfd27baac0d00cf70df08bd00a89c17b8ac0179883a9ce6888333fec59ecde4114223b0d88b5aaceb2814613eabbdf8bab7d93ae5430b242f8f1d9a4300"
             }
           ],
           "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\""
@@ -18083,7 +17921,23 @@
   ],
   "dependencies": [
     {
-      "ref": "mydash/mydash-dev-feature/spec-enrichment-and-metrics"
+      "ref": "brick/math-0.13.1.0"
+    },
+    {
+      "ref": "ramsey/collection-2.1.1.0"
+    },
+    {
+      "ref": "ramsey/uuid-4.9.2.0",
+      "dependsOn": [
+        "brick/math-0.13.1.0",
+        "ramsey/collection-2.1.1.0"
+      ]
+    },
+    {
+      "ref": "mydash/mydash-dev-feature/impl-fork-current-as-personal",
+      "dependsOn": [
+        "ramsey/uuid-4.9.2.0"
+      ]
     }
   ]
 }

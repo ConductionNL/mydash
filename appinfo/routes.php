@@ -18,11 +18,50 @@ return [
 
 		// User dashboard endpoints
 		['name' => 'dashboard_api#list', 'url' => '/api/dashboards', 'verb' => 'GET'],
+		['name' => 'dashboard_api#visible', 'url' => '/api/dashboards/visible', 'verb' => 'GET'],
+		// REQ-DASH-019: persist active-dashboard preference. Registered BEFORE
+		// the group-scoped routes that share the /api/dashboards/ prefix so the
+		// router matches the literal 'active' segment before any {groupId} wildcard.
+		['name' => 'dashboard_api#setActiveDashboard', 'url' => '/api/dashboards/active', 'verb' => 'POST'],
+		// REQ-DASH-020..022: fork a visible dashboard as a personal copy.
+		// Registered BEFORE the group-scoped {groupId} wildcard routes to
+		// prevent the literal 'fork' suffix being consumed by any wildcard.
+		['name' => 'dashboard_api#fork', 'url' => '/api/dashboards/{uuid}/fork', 'verb' => 'POST',
+		 'requirements' => ['uuid' => '[A-Za-z0-9\-]+']],
 		['name' => 'dashboard_api#getActive', 'url' => '/api/dashboard', 'verb' => 'GET'],
 		['name' => 'dashboard_api#create', 'url' => '/api/dashboard', 'verb' => 'POST'],
 		['name' => 'dashboard_api#update', 'url' => '/api/dashboard/{id}', 'verb' => 'PUT'],
 		['name' => 'dashboard_api#delete', 'url' => '/api/dashboard/{id}', 'verb' => 'DELETE'],
 		['name' => 'dashboard_api#activate', 'url' => '/api/dashboard/{id}/activate', 'verb' => 'POST'],
+
+		// Group-shared dashboard endpoints (REQ-DASH-014). The groupId
+		// path parameter accepts any valid Nextcloud group ID plus the
+		// reserved 'default' sentinel (REQ-DASH-012).
+		['name' => 'dashboard_api#listGroup', 'url' => '/api/dashboards/group/{groupId}', 'verb' => 'GET',
+		 'requirements' => ['groupId' => '[^/]+']],
+		['name' => 'dashboard_api#createGroup', 'url' => '/api/dashboards/group/{groupId}', 'verb' => 'POST',
+		 'requirements' => ['groupId' => '[^/]+']],
+		['name' => 'dashboard_api#getGroup', 'url' => '/api/dashboards/group/{groupId}/{uuid}', 'verb' => 'GET',
+		 'requirements' => ['groupId' => '[^/]+', 'uuid' => '[A-Za-z0-9\-]+']],
+		['name' => 'dashboard_api#updateGroup', 'url' => '/api/dashboards/group/{groupId}/{uuid}', 'verb' => 'PUT',
+		 'requirements' => ['groupId' => '[^/]+', 'uuid' => '[A-Za-z0-9\-]+']],
+		['name' => 'dashboard_api#deleteGroup', 'url' => '/api/dashboards/group/{groupId}/{uuid}', 'verb' => 'DELETE',
+		 'requirements' => ['groupId' => '[^/]+', 'uuid' => '[A-Za-z0-9\-]+']],
+		// Default-flip endpoint (REQ-DASH-015). Body: {"uuid": "..."}.
+		['name' => 'dashboard_api#setGroupDefault', 'url' => '/api/dashboards/group/{groupId}/default', 'verb' => 'POST',
+		 'requirements' => ['groupId' => '[^/]+']],
+
+		// Dashboard sharing endpoints (REQ-SHARE-001..010).
+		// Per-row operations.
+		['name' => 'dashboard_share_api#index', 'url' => '/api/dashboard/{id}/shares', 'verb' => 'GET'],
+		['name' => 'dashboard_share_api#create', 'url' => '/api/dashboard/{id}/shares', 'verb' => 'POST'],
+		['name' => 'dashboard_share_api#destroy', 'url' => '/api/dashboard/share/{shareId}', 'verb' => 'DELETE'],
+		// Bulk replace — REQ-SHARE-009.
+		['name' => 'dashboard_share_api#replace', 'url' => '/api/dashboard/{id}/shares', 'verb' => 'PUT'],
+		// Revoke all for recipient — REQ-SHARE-010.
+		['name' => 'dashboard_share_api#revokeForRecipient',
+		 'url' => '/api/sharees/{shareType}/{shareWith}', 'verb' => 'DELETE',
+		 'requirements' => ['shareType' => '[^/]+', 'shareWith' => '[^/]+']],
 
 		// Widget endpoints
 		['name' => 'widget_api#listAvailable', 'url' => '/api/widgets', 'verb' => 'GET'],
@@ -52,5 +91,33 @@ return [
 		['name' => 'admin#deleteTemplate', 'url' => '/api/admin/templates/{id}', 'verb' => 'DELETE'],
 		['name' => 'admin#getSettings', 'url' => '/api/admin/settings', 'verb' => 'GET'],
 		['name' => 'admin#updateSettings', 'url' => '/api/admin/settings', 'verb' => 'PUT'],
+		['name' => 'admin#listGroups', 'url' => '/api/admin/groups', 'verb' => 'GET'],
+		['name' => 'admin#updateGroupOrder', 'url' => '/api/admin/groups', 'verb' => 'POST'],
+
+		// Resource uploads (admin-only base64 mini file API)
+		['name' => 'resource#upload', 'url' => '/api/resources', 'verb' => 'POST'],
+
+		// File creation endpoint (REQ-LBN-004). Non-admin; strict server-side
+		// validation via FileService (filename regex, dir traversal, extension
+		// allow-list). See lib/Controller/FileController.php.
+		['name' => 'file#createFile', 'url' => '/api/files/create', 'verb' => 'POST'],
+
+		// Resource listing — REQ-RES-007. Logged-in user only (no admin
+		// gate); the listed names are already referenced from rendered
+		// dashboards so admin gating would lock dashboards out of their
+		// own assets. Registered under the standard `routes` array
+		// alongside the existing POST upload (mydash currently has no
+		// OCS infrastructure — using a plain web route keeps the read
+		// surface consistent with the upload surface).
+		['name' => 'resource_serve#listResources', 'url' => '/api/resources', 'verb' => 'GET'],
+
+		// Public resource serving — REQ-RES-006. NON-OCS plain web
+		// route returning a StreamResponse with extension-derived
+		// Content-Type and a one-year immutable cache header. The
+		// `[^/]+` requirement on {filename} blocks path traversal at
+		// the routing layer (the controller also re-checks for
+		// defence in depth).
+		['name' => 'resource_serve#getResource', 'url' => '/resource/{filename}', 'verb' => 'GET',
+		 'requirements' => ['filename' => '[^/]+']],
 	],
 ];

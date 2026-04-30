@@ -9,7 +9,8 @@
 		}
 	],
 	"require": {
-		"php": "^8.1"
+		"php": "^8.1",
+		"ramsey/uuid": "^4.9"
 	},
 	"require-dev": {
 		"cyclonedx/cyclonedx-php-composer": "^6.2",

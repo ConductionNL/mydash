@@ -40,4 +40,9 @@ module.exports = defineConfig([{
 		'no-console': 'off',
 		'no-debugger': 'off',
 	},
+}, {
+	files: ['src/**/*.test.js', 'src/**/*.spec.js', 'src/__tests__/**/*.js'],
+	rules: {
+		'n/no-unpublished-import': 'off',
+	},
 }])

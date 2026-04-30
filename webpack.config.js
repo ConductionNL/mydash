@@ -32,7 +32,14 @@ webpackConfig.resolve = {
 		'vue$': path.resolve(__dirname, 'node_modules/vue'),
 		'pinia$': path.resolve(__dirname, 'node_modules/pinia'),
 		'@nextcloud/vue$': path.resolve(__dirname, 'node_modules/@nextcloud/vue'),
+		'@nextcloud/dialogs$': path.resolve(__dirname, 'node_modules/@nextcloud/dialogs'),
 	},
+	// Ensure webpack resolves dependencies from the app's node_modules first,
+	// preventing Vue 3 packages from nextcloud-vue/node_modules leaking in.
+	modules: [
+		path.resolve(__dirname, 'node_modules'),
+		'node_modules',
+	],
 }
 
 module.exports = webpackConfig

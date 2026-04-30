@@ -33,6 +33,7 @@ rules:
     - Consider permission level impact (view_only, add_only, full)
     - Consider template inheritance when modifying dashboard behavior
     - Consider conditional visibility rule evaluation
+    - "ADR-011: Before implementing ANY utility (validation, formatting, parsing), search OpenRegister lib/Formats/, lib/Service/, and lib/Handler/ for existing implementations. Common duplications: BSN validation (BsnFormat.php), date formatting, slug generation, UUID handling. If found, reuse via DI or document why duplication is necessary."
   specs:
     - Define permission requirements for each feature (which levels can use it)
     - Include grid layout considerations (position, size constraints)
@@ -48,3 +49,4 @@ rules:
     - Test permission levels (view_only, add_only, full)
     - Test template distribution to target groups
     - Test conditional visibility rules (group, time, date, attribute)
+    - Follow mandatory task categories from ADRs 005, 009, 010, 011

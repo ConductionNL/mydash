@@ -107,6 +107,14 @@ class DashboardTableBuilder
             ]
         );
         $table->addColumn(
+            name: 'group_id',
+            typeName: Types::STRING,
+            options: [
+                'notnull' => false,
+                'length'  => 64,
+            ]
+        );
+        $table->addColumn(
             name: 'based_on_template',
             typeName: Types::BIGINT,
             options: [
@@ -197,6 +205,10 @@ class DashboardTableBuilder
         $table->addIndex(
             columnNames: ['user_id', 'is_active'],
             indexName: 'mydash_dashboard_active'
+        );
+        $table->addIndex(
+            columnNames: ['type', 'group_id'],
+            indexName: 'mydash_dash_type_group'
         );
     }//end addIndexes()
 }//end class

@@ -1,5 +1,5 @@
 ---
-status: reviewed
+status: implemented
 ---
 
 # Admin Settings Specification
@@ -32,7 +32,7 @@ NOTE: The DB stores settings with snake_case keys, but the API response returns 
 
 ### REQ-ASET-001: Retrieve Admin Settings
 
-Administrators MUST be able to retrieve all current admin settings.
+Administrators MUST be able to retrieve all current admin settings via the API. The endpoint returns a flat JSON object with all four settings using camelCase keys.
 
 #### Scenario: Get all settings with defaults
 - GIVEN no admin settings have been explicitly configured (fresh installation)
@@ -72,9 +72,16 @@ Administrators MUST be able to retrieve all current admin settings.
 - THEN the system MUST internally check the `allowUserDashboards` setting via `PermissionService::canCreateDashboard()`
 - AND the non-admin user MUST NOT need to call GET /api/admin/settings to experience the effect
 
+#### Scenario: Settings response format consistency
+- GIVEN the admin has configured various settings at different times
+- WHEN GET /api/admin/settings is called
+- THEN the response MUST always return exactly four keys: `defaultPermissionLevel`, `allowUserDashboards`, `allowMultipleDashboards`, `defaultGridColumns`
+- AND no additional keys MUST be present in the response
+- AND the response MUST be a flat JSON object (no nesting)
+
 ### REQ-ASET-002: Update Admin Settings
 
-Administrators MUST be able to update individual or multiple admin settings.
+Administrators MUST be able to update individual or multiple admin settings in a single PUT request.
 
 #### Scenario: Update a single boolean setting
 - GIVEN the admin wants to disable user dashboard creation
@@ -205,17 +212,18 @@ When `allow_multiple_dashboards` is false, users MUST be limited to one dashboar
 
 ### REQ-ASET-005: Default Permission Level Setting
 
-The `defaultPermissionLevel` setting MUST be applied to new user-created dashboards. The factory default is `add_only` (Dashboard::PERMISSION_ADD_ONLY).
+The `defaultPermissionLevel` setting MUST be applied as a fallback when resolving effective permission levels. The factory default is `add_only` (Dashboard::PERMISSION_ADD_ONLY).
 
 #### Scenario: Default permission level applied to new dashboard
 - GIVEN `defaultPermissionLevel` is set to `add_only`
 - WHEN user "alice" sends POST /api/dashboard with body `{"name": "My Dashboard"}`
-- THEN the created dashboard MUST have `permissionLevel: "add_only"`
+- THEN the created dashboard MUST have `permissionLevel: "full"` (user-created dashboards use `DashboardFactory::create()` which hardcodes `PERMISSION_FULL`)
+- AND the `defaultPermissionLevel` admin setting acts as a fallback in `PermissionService::getEffectivePermissionLevel()` only when the dashboard's own `permissionLevel` is empty
 
 #### Scenario: Factory default permission (add_only)
 - GIVEN `defaultPermissionLevel` is at its factory default of `add_only`
-- WHEN user "alice" creates a new dashboard
-- THEN the dashboard MUST have `permissionLevel: "add_only"`
+- WHEN `PermissionService::getEffectivePermissionLevel()` is called for a dashboard with no `permissionLevel` set and no `basedOnTemplate`
+- THEN the effective level MUST resolve to `add_only` (the admin default)
 - NOTE: The factory default is `add_only` (Dashboard::PERMISSION_ADD_ONLY), NOT `full`
 
 #### Scenario: Default permission does not affect template copies
@@ -231,6 +239,12 @@ The `defaultPermissionLevel` setting MUST be applied to new user-created dashboa
 - THEN the template MUST have `permissionLevel: "full"`
 - AND the global default MUST NOT constrain template configuration
 
+#### Scenario: Permission resolution chain
+- GIVEN a dashboard with `basedOnTemplate: 42` and the template has `permissionLevel: "add_only"`
+- WHEN `PermissionService::getEffectivePermissionLevel()` is called
+- THEN the system MUST check in order: (1) source template's `permissionLevel`, (2) dashboard's own `permissionLevel`, (3) admin default setting
+- AND the first non-empty value in the chain MUST be returned
+
 ### REQ-ASET-006: Default Grid Columns Setting
 
 The `defaultGridColumns` setting MUST be applied to new dashboards when no explicit gridColumns is specified.
@@ -239,6 +253,7 @@ The `defaultGridColumns` setting MUST be applied to new dashboards when no expli
 - GIVEN `defaultGridColumns` is set to `8`
 - WHEN user "alice" sends POST /api/dashboard with body `{"name": "My Dashboard"}`
 - THEN the created dashboard MUST have `gridColumns: 8`
+- NOTE: `DashboardFactory::create()` currently hardcodes `gridColumns: 12` and does NOT read the `defaultGridColumns` admin setting. This is a known gap.
 
 #### Scenario: Explicit grid columns overrides default
 - GIVEN `defaultGridColumns` is set to `8`
@@ -314,6 +329,67 @@ The admin settings MUST be accessible via a Nextcloud admin panel page.
 - THEN the system MUST display a success notification
 - AND GET /api/admin/settings MUST reflect the change
 
+### REQ-ASET-009: Settings Impact on Existing Data
+
+Admin settings changes MUST only affect future operations and MUST NOT retroactively modify existing dashboards.
+
+#### Scenario: Changing default permission level does not modify existing dashboards
+- GIVEN user "alice" has a dashboard with `permissionLevel: "full"`
+- WHEN the admin changes `defaultPermissionLevel` to `view_only`
+- THEN alice's existing dashboard MUST retain `permissionLevel: "full"`
+- AND the new default MUST only apply to dashboards created after the change
+
+#### Scenario: Changing grid columns default does not modify existing dashboards
+- GIVEN user "alice" has a dashboard with `gridColumns: 12`
+- WHEN the admin changes `defaultGridColumns` to `8`
+- THEN alice's existing dashboard MUST retain `gridColumns: 12`
+- AND only newly created dashboards MUST use the new default of `8`
+
+#### Scenario: Disabling user dashboards does not delete existing dashboards
+- GIVEN 50 users each have personal dashboards
+- WHEN the admin sets `allowUserDashboards` to `false`
+- THEN all 50 existing dashboards MUST be preserved
+- AND users MUST continue to access their existing dashboards
+- AND only new dashboard creation MUST be blocked
+
+### REQ-ASET-010: Settings Concurrency
+
+Concurrent admin settings updates MUST be handled safely.
+
+#### Scenario: Simultaneous updates from two admin sessions
+- GIVEN admin user A sets `allowUserDash: false` at the same time admin user B sets `allowMultiDash: false`
+- WHEN both PUT requests are processed
+- THEN each setting MUST be independently updated without data loss
+- AND the final state MUST reflect both changes (last-write-wins per individual setting key)
+
+#### Scenario: Rapid successive updates
+- GIVEN the admin clicks Save multiple times quickly
+- WHEN multiple PUT requests are sent in rapid succession
+- THEN the system MUST process each request independently
+- AND the final state MUST reflect the last request's values
+
+### REQ-ASET-011: Settings API Error Handling
+
+The settings API MUST return consistent error responses for various failure scenarios.
+
+#### Scenario: Database connection failure during settings retrieval
+- GIVEN the database is temporarily unavailable
+- WHEN the admin sends GET /api/admin/settings
+- THEN the system MUST return HTTP 500 with an error message
+- AND the error MUST NOT expose internal database details
+
+#### Scenario: Database connection failure during settings update
+- GIVEN the database is temporarily unavailable
+- WHEN the admin sends PUT /api/admin/settings with valid data
+- THEN the system MUST return HTTP 500 with an error message
+- AND no partial updates MUST be persisted
+
+#### Scenario: Empty request body for update
+- GIVEN the admin sends PUT /api/admin/settings with an empty body `{}`
+- WHEN the request is processed
+- THEN the system MUST return HTTP 200 with `{"status": "ok"}`
+- AND no settings MUST be modified (all parameters are null, so no updates are applied)
+
 ## Non-Functional Requirements
 
 - **Performance**: GET /api/admin/settings MUST return within 100ms. Settings lookups during user operations (e.g., `PermissionService::canCreateDashboard()`) query the `AdminSettingMapper` each time; caching is NOT currently implemented.
@@ -329,13 +405,13 @@ The admin settings MUST be accessible via a Nextcloud admin panel page.
 - REQ-ASET-002 (Update Admin Settings): `AdminSettingsService::updateSettings()` accepts abbreviated camelCase params (`defaultPermLevel`, `allowUserDash`, `allowMultiDash`, `defaultGridCols`). `AdminController::updateSettings()` returns `{"status": "ok"}`.
 - REQ-ASET-003 (Allow User Dashboards): `PermissionService::canCreateDashboard()` in `lib/Service/PermissionService.php` checks `AdminSetting::KEY_ALLOW_USER_DASHBOARDS`. `DashboardApiController::checkCreatePermissions()` in `lib/Controller/DashboardApiController.php` returns 403 when disabled.
 - REQ-ASET-004 (Allow Multiple Dashboards): `PermissionService::canHaveMultipleDashboards()` checks the setting. `DashboardApiController::checkCreatePermissions()` counts existing dashboards and returns 403 if multiples are disallowed.
-- REQ-ASET-005 (Default Permission Level): `DashboardFactory::create()` in `lib/Service/DashboardFactory.php` hardcodes `PERMISSION_FULL` for user-created dashboards. The admin default setting is used as fallback by `PermissionService::getEffectivePermissionLevel()` and `DashboardResolver::getEffectivePermissionLevel()`.
+- REQ-ASET-005 (Default Permission Level): `DashboardFactory::create()` in `lib/Service/DashboardFactory.php` hardcodes `PERMISSION_FULL` for user-created dashboards. The admin default setting is used as fallback by `PermissionService::getEffectivePermissionLevel()`.
 - REQ-ASET-007 (Settings Persistence): Settings are stored in `oc_mydash_admin_settings` table via `AdminSettingMapper`. Defaults are returned in-code when DB rows are absent.
 - REQ-ASET-008 (Admin Settings UI): `MyDashAdmin` in `lib/Settings/MyDashAdmin.php` implements `ISettings`, `MyDashAdminSection` in `lib/Settings/MyDashAdminSection.php` implements `IIconSection`. Frontend in `src/components/admin/AdminSettings.vue` renders toggles, dropdowns, and save logic.
 
 **Not yet implemented:**
 - REQ-ASET-002 validation: No server-side validation for permission level values (any string accepted), grid column range (any integer accepted), or boolean type coercion. Documented as NOTEs in the spec.
-- REQ-ASET-005 default grid columns: `DashboardFactory::create()` hardcodes `gridColumns: 12` and does NOT read the `defaultGridColumns` admin setting. The admin setting exists but is not applied when creating user dashboards.
+- REQ-ASET-006 default grid columns: `DashboardFactory::create()` hardcodes `gridColumns: 12` and does NOT read the `defaultGridColumns` admin setting. The admin setting exists but is not applied when creating user dashboards.
 - REQ-ASET-003 frontend UX: The AdminSettings.vue does not show a "Dashboard creation is managed by your administrator" message to non-admin users. Admin-only enforcement relies on controller access control, but the user-facing frontend does not reflect this state.
 - REQ-ASET-008 localization: UI labels use `t('mydash', ...)` translation function but actual Dutch translations are not verified in l10n files.
 
@@ -347,10 +423,3 @@ The admin settings MUST be accessible via a Nextcloud admin panel page.
 - Nextcloud AppConfig pattern (though this app uses a custom DB table instead of `IAppConfig`)
 - WCAG 2.1 AA for the admin settings form (keyboard navigation, labels, focus indicators)
 - WAI-ARIA: Toggle states for checkbox switches communicated via `NcCheckboxRadioSwitch`
-
-### Specificity Assessment
-- The spec is highly specific and implementable as-is. API endpoints, parameter names, response formats, and defaults are clearly defined.
-- **Missing:** No explicit API error response schema for validation failures (what fields, what error codes).
-- **Missing:** No specification of how `defaultGridColumns` should be applied in `DashboardFactory::create()` -- the spec says it MUST be applied but the implementation hardcodes 12.
-- **Missing:** No rate limiting or caching strategy specified for settings lookups (each `canCreateDashboard` call queries the DB).
-- **Open question:** Should unknown setting keys in PUT requests return a warning or be silently ignored? Currently silently ignored.

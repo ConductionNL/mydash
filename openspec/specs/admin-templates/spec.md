@@ -1,5 +1,5 @@
 ---
-status: reviewed
+status: implemented
 ---
 
 # Admin Templates Specification
@@ -23,7 +23,7 @@ Templates own their widget placements (in `oc_mydash_widget_placements`) which s
 
 ### REQ-TMPL-001: Create Admin Template
 
-Nextcloud administrators MUST be able to create dashboard templates for distribution.
+Nextcloud administrators MUST be able to create dashboard templates for distribution to users.
 
 #### Scenario: Create a template targeting specific groups
 - GIVEN a Nextcloud admin user
@@ -54,7 +54,7 @@ Nextcloud administrators MUST be able to create dashboard templates for distribu
   }
   ```
 - THEN the system MUST create a template with `isDefault: 1`
-- AND any previously default template MUST have its `isDefault` set to 0
+- AND any previously default template MUST have its `isDefault` set to 0 via `clearDefaultTemplates()`
 - AND this template MUST be distributed to all users regardless of group membership
 
 #### Scenario: Non-admin user cannot create templates
@@ -68,10 +68,17 @@ Nextcloud administrators MUST be able to create dashboard templates for distribu
 - WHEN they send POST /api/admin/templates with `permissionLevel: "super_admin"`
 - THEN the system MUST return HTTP 400 with a validation error
 - AND only `view_only`, `add_only`, and `full` MUST be accepted
+- NOTE: Permission level validation is NOT currently implemented -- any string is accepted
+
+#### Scenario: Create template with UUID generation
+- GIVEN a Nextcloud admin user
+- WHEN they create a new template
+- THEN the system MUST assign a UUID v4 via `Ramsey\Uuid\Uuid::uuid4()` (unlike user dashboards which use a custom UUID generator in `DashboardFactory`)
+- AND the UUID MUST be unique across all dashboards
 
 ### REQ-TMPL-002: List Admin Templates
 
-Administrators MUST be able to view all existing templates.
+Administrators MUST be able to view all existing templates with their configuration.
 
 #### Scenario: List all templates
 - GIVEN 3 admin templates exist: "Marketing Dashboard", "Company Dashboard" (default), "Engineering Dashboard"
@@ -89,10 +96,22 @@ Administrators MUST be able to view all existing templates.
 - WHEN the admin sends GET /api/admin/templates
 - THEN the template object SHOULD include a widget_count field showing 6
 - AND this helps admins understand the template's complexity at a glance
+- NOTE: Widget count is NOT currently included in the list response
+
+#### Scenario: Empty template list
+- GIVEN no admin templates have been created
+- WHEN the admin sends GET /api/admin/templates
+- THEN the system MUST return HTTP 200 with an empty array
+
+#### Scenario: Templates filtered from user dashboard list
+- GIVEN 3 admin templates and 2 user dashboards exist
+- WHEN user "alice" sends GET /api/dashboards
+- THEN the response MUST contain only her user dashboards
+- AND admin templates MUST NOT appear in the user's dashboard list
 
 ### REQ-TMPL-003: Update Admin Template
 
-Administrators MUST be able to modify template configuration and content.
+Administrators MUST be able to modify template configuration including name, description, target groups, permission level, and grid columns.
 
 #### Scenario: Update template target groups
 - GIVEN template id 1 targets groups ["marketing"]
@@ -105,15 +124,14 @@ Administrators MUST be able to modify template configuration and content.
 - GIVEN template id 1 has `permissionLevel: "add_only"`
 - WHEN the admin sends PUT /api/admin/templates/1 with body `{"permissionLevel": "full"}`
 - THEN the template's permissionLevel MUST be updated to "full"
-- AND existing user copies MUST NOT have their permission level changed retroactively
-- NOTE: However, `PermissionService::getEffectivePermissionLevel()` resolves permission from the source template at runtime via `basedOnTemplate`. So if a template's permissionLevel changes, existing user copies will inherit the NEW permission level because the resolution is dynamic.
-- AND only new copies created after this change MUST inherit "full"
+- AND existing user copies MUST inherit the new permission level at runtime because `PermissionService::getEffectivePermissionLevel()` dynamically resolves from the source template via `basedOnTemplate`
+- NOTE: This means permission level changes DO propagate to existing copies. The resolution chain is: template's level -> dashboard's own level -> admin default.
 
 #### Scenario: Update template widget layout
 - GIVEN template id 1 has 4 widget placements
 - WHEN the admin adds a new widget to the template and repositions existing ones
 - THEN the template's placements MUST be updated
-- AND existing user copies MUST NOT be affected (they are independent after creation)
+- AND existing user copies MUST NOT be affected (placement copies are independent after creation)
 
 #### Scenario: Mark template as default
 - GIVEN template id 1 is not the default and template id 2 is the default
@@ -128,13 +146,13 @@ Administrators MUST be able to modify template configuration and content.
 
 ### REQ-TMPL-004: Delete Admin Template
 
-Administrators MUST be able to delete templates.
+Administrators MUST be able to delete templates, with proper cleanup of associated widget placements.
 
 #### Scenario: Delete a template with no user copies
 - GIVEN template id 1 has no user copies
 - WHEN the admin sends DELETE /api/admin/templates/1
 - THEN the system MUST delete the template
-- AND all template widget placements MUST be cascade-deleted
+- AND all template widget placements MUST be cascade-deleted via `placementMapper->deleteByDashboardId()`
 - AND the response MUST return HTTP 200
 
 #### Scenario: Delete a template with existing user copies
@@ -142,21 +160,34 @@ Administrators MUST be able to delete templates.
 - WHEN the admin sends DELETE /api/admin/templates/1
 - THEN the system MUST delete the template
 - AND existing user copies MUST NOT be affected (they are independent dashboards)
-- AND no new copies of this template MUST be created going forward
+- AND user copies with `basedOnTemplate: 1` will fall back to their own `permissionLevel` or admin default since the template no longer exists (caught by `DoesNotExistException` in `getEffectivePermissionLevel()`)
 
 #### Scenario: Non-admin cannot delete templates
 - GIVEN template id 1 exists
 - WHEN regular user "alice" sends DELETE /api/admin/templates/1
 - THEN the system MUST return HTTP 403
 
+#### Scenario: Delete non-template dashboard via template endpoint
+- GIVEN dashboard id 5 is a user dashboard (type: "user"), not an admin template
+- WHEN the admin sends DELETE /api/admin/templates/5
+- THEN the system MUST throw an exception indicating "Not an admin template"
+- AND the dashboard MUST NOT be deleted
+
+#### Scenario: Delete the default template
+- GIVEN template id 1 is the default template (`isDefault: true`)
+- WHEN the admin deletes template id 1
+- THEN the system MUST delete the template
+- AND no template MUST be the default afterward (this is allowed)
+- AND new users without a group-targeted template will get no template on first access
+
 ### REQ-TMPL-005: Template Distribution on First Access
 
-When a user accesses MyDash for the first time, the system MUST create personal copies of matching templates.
+When a user accesses MyDash for the first time, the system MUST create personal copies of matching templates via the `DashboardResolver` chain.
 
 #### Scenario: First-time user receives default template
 - GIVEN a default template "Company Dashboard" exists with `isDefault: true` and 5 widget placements (3 compulsory)
 - AND user "alice" has never opened MyDash
-- WHEN alice navigates to MyDash (triggers GET /api/dashboard or GET /api/dashboards)
+- WHEN alice navigates to MyDash (triggers GET /api/dashboard)
 - THEN the system MUST create a personal dashboard for alice as a copy of the template
 - AND the copy MUST have `type: "user"` and `userId: "alice"`
 - AND the copy MUST inherit the template's permissionLevel
@@ -170,7 +201,7 @@ When a user accesses MyDash for the first time, the system MUST create personal 
 - AND bob has never opened MyDash
 - WHEN bob navigates to MyDash
 - THEN the system MUST create a personal copy of "Marketing Dashboard" for bob
-- NOTE: The current `TemplateService::getApplicableTemplate()` returns only ONE template (the first matching group-targeted template takes priority over the default). Multiple template distribution is NOT currently implemented -- users receive at most one template copy on first access.
+- NOTE: `TemplateService::getApplicableTemplate()` returns only ONE template (the first matching group-targeted template takes priority over the default). Multiple template distribution is NOT implemented.
 
 #### Scenario: First-time user not in any target group
 - GIVEN template "Marketing Dashboard" targets groups ["marketing"]
@@ -178,24 +209,24 @@ When a user accesses MyDash for the first time, the system MUST create personal 
 - AND user "carol" is only in the "engineering" group
 - WHEN carol navigates to MyDash
 - THEN the system MUST NOT create any dashboard for carol from the marketing template
-- AND carol MUST see an empty dashboard list
+- AND if `allowUserDashboards` is true, the system MUST create a default "My Dashboard" with recommendations and activity widgets
 
 #### Scenario: Template already distributed to user
 - GIVEN user "alice" already has a personal copy of template "Company Dashboard"
 - WHEN alice navigates to MyDash again
 - THEN the system MUST NOT create a duplicate copy
-- AND the system MUST detect that alice already has a copy of this template
+- AND `DashboardResolver::tryGetActiveDashboard()` MUST find her existing dashboard first
 
 #### Scenario: Multiple templates match the user
 - GIVEN templates "Company Dashboard" (default) and "Marketing Dashboard" (targets marketing group)
 - AND user "alice" is in the "marketing" group
 - WHEN alice navigates to MyDash for the first time
 - THEN alice MUST receive a copy of "Marketing Dashboard" (group-targeted template takes priority over default)
-- NOTE: The current implementation only distributes ONE template per first-access. Group-targeted templates are evaluated first; the default template is the fallback. Multi-template distribution is not yet implemented.
+- NOTE: Only ONE template per first-access. Group-targeted templates are evaluated first; the default template is the fallback.
 
 ### REQ-TMPL-006: Template Copy Independence
 
-User copies of templates MUST be fully independent from the source template after creation.
+User copies of templates MUST be fully independent from the source template after creation, with the exception of permission level resolution.
 
 #### Scenario: User modifies their template copy
 - GIVEN user "alice" has a copy of "Marketing Dashboard" with `permissionLevel: "add_only"`
@@ -213,7 +244,8 @@ User copies of templates MUST be fully independent from the source template afte
 - GIVEN template "Marketing Dashboard" has been copied to user "alice"
 - WHEN the admin deletes the template
 - THEN alice's copy MUST continue to function normally
-- AND alice's dashboard MUST retain its permissionLevel and all placements
+- AND alice's dashboard MUST retain all placements
+- AND permission resolution MUST fall back to the dashboard's own `permissionLevel` (template lookup caught by `DoesNotExistException`)
 
 ### REQ-TMPL-007: Template Widget Management
 
@@ -237,9 +269,15 @@ Administrators MUST be able to manage widget placements on templates using the s
 - THEN the positions MUST be saved as the template's widget placements
 - AND new user copies MUST receive these exact positions
 
+#### Scenario: Template placements include tile data
+- GIVEN the admin adds a tile placement to template id 1 with inline tile data (tileTitle, tileIcon, etc.)
+- WHEN the template is distributed to users
+- THEN the tile placement MUST be cloned with all inline tile data via `clonePlacement()`
+- AND the user copy MUST render the tile identically to the template
+
 ### REQ-TMPL-008: Only One Default Template
 
-The system MUST enforce that at most one template is marked as the default.
+The system MUST enforce that at most one template is marked as the default at any time.
 
 #### Scenario: Set a template as default when no default exists
 - GIVEN no template has `isDefault: true`
@@ -252,12 +290,77 @@ The system MUST enforce that at most one template is marked as the default.
 - WHEN the admin sets template "New Dashboard" as the default
 - THEN "New Dashboard" MUST become the default
 - AND "Company Dashboard" MUST have `isDefault` set to 0 (false)
+- AND `clearDefaultTemplates()` MUST be called before setting the new default
 
 #### Scenario: Remove default status from the only default template
 - GIVEN template "Company Dashboard" has `isDefault: true`
-- WHEN the admin sends PUT /api/admin/templates/1 with body `{"is_default": false}`
+- WHEN the admin sends PUT /api/admin/templates/1 with body `{"isDefault": false}`
 - THEN the template MUST have `isDefault` set to 0 (false)
 - AND no template MUST be the default (this is allowed)
+
+### REQ-TMPL-009: Get Template with Placements
+
+Administrators MUST be able to retrieve a specific template along with all its widget placements for editing.
+
+#### Scenario: Get template with its placements
+- GIVEN template id 1 has 6 widget placements
+- WHEN the admin sends GET /api/admin/templates/1
+- THEN the system MUST return the template object and an array of its 6 placements
+- AND the response MUST include both the template entity and its placements as separate keys
+
+#### Scenario: Get non-template dashboard via template endpoint
+- GIVEN dashboard id 5 is a user dashboard (type: "user")
+- WHEN the admin sends GET /api/admin/templates/5
+- THEN the system MUST throw an exception indicating "Not an admin template"
+
+#### Scenario: Get template with no placements
+- GIVEN template id 2 exists but has no widget placements
+- WHEN the admin sends GET /api/admin/templates/2
+- THEN the system MUST return the template object with an empty placements array
+
+### REQ-TMPL-010: Template Group Resolution
+
+Template distribution MUST use Nextcloud's `IGroupManager` API to resolve user group memberships accurately.
+
+#### Scenario: User added to a target group after template creation
+- GIVEN template "Marketing Dashboard" targets groups ["marketing"]
+- AND user "alice" was not in the "marketing" group when the template was created
+- AND alice is later added to the "marketing" group
+- WHEN alice opens MyDash for the first time
+- THEN the system MUST distribute the "Marketing Dashboard" template to alice
+- AND group membership MUST be checked at access time, not at template creation time
+
+#### Scenario: User removed from a target group after receiving template
+- GIVEN user "alice" received a copy of "Marketing Dashboard" while in the "marketing" group
+- AND alice is later removed from the "marketing" group
+- WHEN alice continues to use MyDash
+- THEN alice's copy MUST continue to function normally
+- AND the copy MUST NOT be deleted or revoked
+
+#### Scenario: Template targets non-existent group
+- GIVEN template "Test Dashboard" targets groups ["nonexistent-group"]
+- WHEN any user opens MyDash
+- THEN the template MUST NOT match any user (no user is in a non-existent group)
+- AND the system MUST NOT throw errors during group resolution
+
+### REQ-TMPL-011: Template Administration UI
+
+The admin settings page MUST provide a UI for managing templates.
+
+#### Scenario: Template list in admin settings
+- GIVEN the admin opens the MyDash admin settings page
+- THEN a template management section MUST be displayed
+- AND all existing templates MUST be listed with their name, target groups, and default status
+
+#### Scenario: Create template via admin UI
+- GIVEN the admin clicks "Create Template" in the admin settings
+- THEN a modal dialog MUST appear with fields for name, description, target groups, permission level, and default status
+- AND the admin MUST be able to save the new template
+
+#### Scenario: Group selection in template editor
+- GIVEN the admin opens the template editor
+- THEN a group selector MUST allow selecting from available Nextcloud groups
+- NOTE: The current implementation uses `NcSelectTags` but `availableGroups` is hardcoded to an empty array. Groups are NOT fetched from the server.
 
 ## Non-Functional Requirements
 
@@ -270,34 +373,24 @@ The system MUST enforce that at most one template is marked as the default.
 ### Current Implementation Status
 
 **Fully implemented:**
-- REQ-TMPL-001 (Create Admin Template): `AdminTemplateService::createTemplate()` in `lib/Service/AdminTemplateService.php` creates dashboards with `type: "admin_template"`, `userId: null`, default `gridColumns: 12`. `AdminController::createTemplate()` in `lib/Controller/AdminController.php` exposes the endpoint. Default clearing via `clearDefaultTemplates()` is implemented.
-- REQ-TMPL-002 (List Admin Templates): `AdminTemplateService::listTemplates()` calls `DashboardMapper::findAdminTemplates()`. Returns all templates serialized. Admin-only enforcement via AdminController (no `#[NoAdminRequired]`).
-- REQ-TMPL-003 (Update Admin Template): `AdminTemplateService::updateTemplate()` with `applyTemplateUpdates()` handles name, description, targetGroups, permissionLevel, isDefault, gridColumns. Default-clearing logic is correctly applied when `isDefault: true`.
-- REQ-TMPL-004 (Delete Admin Template): `AdminTemplateService::deleteTemplate()` deletes placements first via `placementMapper->deleteByDashboardId()`, then deletes the template. User copies are unaffected.
-- REQ-TMPL-005 (Template Distribution): `TemplateService::getApplicableTemplate()` in `lib/Service/TemplateService.php` checks group membership via `IGroupManager::getUserGroupIds()`. Group-targeted templates are checked first, default template is fallback. `createDashboardFromTemplate()` copies all placements including `isCompulsory` flags. Called via `DashboardResolver::handleTemplateResult()` in `lib/Service/DashboardResolver.php`.
-- REQ-TMPL-006 (Template Copy Independence): Copies are independent -- `buildDashboardFromTemplate()` creates a new Dashboard entity, `copyTemplatePlacements()` creates new WidgetPlacement entities. `basedOnTemplate` is set for permission resolution only.
-- REQ-TMPL-007 (Template Widget Management): Templates share the same widget placement API as regular dashboards (same `oc_mydash_widget_placements` table).
+- REQ-TMPL-001 (Create Admin Template): `AdminTemplateService::createTemplate()` in `lib/Service/AdminTemplateService.php` creates dashboards with `type: "admin_template"`, `userId: null`, default `gridColumns: 12`. Default clearing via `clearDefaultTemplates()` is implemented.
+- REQ-TMPL-002 (List Admin Templates): `AdminTemplateService::listTemplates()` calls `DashboardMapper::findAdminTemplates()`.
+- REQ-TMPL-003 (Update Admin Template): `AdminTemplateService::updateTemplate()` with `applyTemplateUpdates()` handles name, description, targetGroups, permissionLevel, isDefault, gridColumns.
+- REQ-TMPL-004 (Delete Admin Template): `AdminTemplateService::deleteTemplate()` deletes placements first via `placementMapper->deleteByDashboardId()`, then deletes the template.
+- REQ-TMPL-005 (Template Distribution): `TemplateService::getApplicableTemplate()` checks group membership via `IGroupManager::getUserGroupIds()`. `createDashboardFromTemplate()` copies all placements including `isCompulsory` flags.
+- REQ-TMPL-006 (Template Copy Independence): Copies are independent -- `buildDashboardFromTemplate()` creates a new Dashboard entity, `copyTemplatePlacements()` creates new WidgetPlacement entities.
+- REQ-TMPL-007 (Template Widget Management): Templates share the same widget placement API as regular dashboards.
 - REQ-TMPL-008 (Only One Default): `clearDefaultTemplates()` on DashboardMapper ensures single default.
+- REQ-TMPL-009 (Get Template with Placements): `AdminTemplateService::getTemplateWithPlacements()` returns template + placements.
 
 **Not yet implemented:**
-- REQ-TMPL-001 validation: No server-side validation for `permissionLevel` values (any string accepted). Spec says MUST return 400 for invalid values.
-- REQ-TMPL-002 widget_count: Template list response does NOT include a widget placement count per template. Spec says SHOULD include this.
-- REQ-TMPL-005 multi-template distribution: Only ONE template is distributed per first-access. The `getApplicableTemplate()` method returns the first match, not all matches.
-- REQ-TMPL-005 duplicate detection: No check for whether a user already has a copy of a given template. If a user already has a copy and accesses MyDash, `DashboardResolver::tryGetActiveDashboard()` will find their existing dashboard first, preventing duplication -- but this is implicit, not explicit.
-- Template management UI: `AdminSettings.vue` in `src/components/admin/AdminSettings.vue` provides template CRUD via a modal dialog. Group selection uses `NcSelectTags` but `availableGroups` is hardcoded to empty array (groups are NOT fetched from the server).
-
-**Partial implementations:**
-- REQ-TMPL-003 permission level retroactivity: The spec NOTE correctly documents that `PermissionService::getEffectivePermissionLevel()` dynamically resolves from the template, meaning changes DO propagate to existing copies at runtime. This contradicts the main requirement text. The spec already documents this conflict.
+- REQ-TMPL-001 validation: No server-side validation for `permissionLevel` values.
+- REQ-TMPL-002 widget_count: Template list response does NOT include a widget placement count.
+- REQ-TMPL-005 multi-template distribution: Only ONE template is distributed per first-access.
+- REQ-TMPL-011 group fetching: `AdminSettings.vue` group selector has `availableGroups` hardcoded to empty array.
 
 ### Standards & References
 - Nextcloud Group API: `OCP\IGroupManager::getUserGroupIds()`
 - Nextcloud User API: `OCP\IUserManager::get()`
 - WCAG 2.1 AA for the admin template management UI (modal dialogs, form fields)
 - WAI-ARIA: Modal dialog accessibility via `NcModal` component
-
-### Specificity Assessment
-- The spec is detailed and implementable. Template distribution logic, copy semantics, and default enforcement are well-specified.
-- **Missing:** No specification for fetching available Nextcloud groups in the admin UI (the `availableGroups` array is empty).
-- **Missing:** No API endpoint to get a single template's widget placements for the admin editor grid (GET /api/admin/templates/{id} exists but the spec doesn't describe the admin template editor grid UI).
-- **Ambiguous:** REQ-TMPL-003 says existing copies MUST NOT have permission changed retroactively, but the NOTE acknowledges the runtime resolution does exactly that. The spec should resolve this contradiction.
-- **Open question:** Should template distribution be re-triggered when targetGroups change? Currently, new group members get the template on next first-access, but there's no re-check for existing users who are already in a target group.

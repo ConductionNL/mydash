@@ -150,7 +150,10 @@ class ConditionalRule extends Entity implements JsonSerializable
      */
     public function setRuleConfigArray(array $config): void
     {
-        $this->setRuleConfig(ruleConfig: json_encode(value: $config));
+        // Entity setters resolve via __call which uses $args[0]; named args
+        // would break the magic forwarding (see project memory).
+        // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
+        $this->setRuleConfig(json_encode($config));
     }//end setRuleConfigArray()
 
     /**

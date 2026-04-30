@@ -10,7 +10,7 @@
  * @category Test
  * @package  OCA\MyDash\Tests
  *
- * @author    Conduction Development Team <dev@conductio.nl>
+ * @author    Conduction Development Team <info@conduction.nl>
  * @copyright 2024 Conduction B.V.
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  *
@@ -31,6 +31,21 @@ require_once __DIR__ . '/../vendor/autoload.php';
 // the full environment (including \OC::$server) is available.
 if (file_exists(__DIR__ . '/../../../lib/base.php')) {
     require_once __DIR__ . '/../../../lib/base.php';
+} elseif (is_dir(__DIR__ . '/../vendor/nextcloud/ocp/OCP')) {
+    // Outside the container we register the OCP stubs from
+    // vendor/nextcloud/ocp so unit tests that mock OCP interfaces
+    // (e.g. IInitialState) can still run. These are signature-only
+    // stubs and are sufficient for PHPUnit's createMock().
+    $ocpLoader = new \Composer\Autoload\ClassLoader();
+    $ocpLoader->addPsr4('OCP\\', __DIR__ . '/../vendor/nextcloud/ocp/OCP/');
+    $ocpLoader->register();
+
+    // The OCP IDBConnection / IQueryBuilder stubs reference Doctrine
+    // DBAL classes that are not in our composer.json (Nextcloud
+    // provides them at runtime). Load minimal placeholder classes so
+    // PHPUnit's automatic mock generator can introspect IDBConnection
+    // for the REQ-DASH-015 tests.
+    require_once __DIR__ . '/Stubs/DoctrineStubs.php';
 }
 
 // Register Test\ namespace for NC test classes.

@@ -67,6 +67,14 @@ class AdminSetting extends Entity implements JsonSerializable
     public const KEY_DEFAULT_GRID_COLUMNS = 'default_grid_columns';
 
     /**
+     * Setting key for the ordered list of "active" Nextcloud group IDs that
+     * MyDash treats as in scope for workspace routing (REQ-ASET-012).
+     *
+     * @var string
+     */
+    public const KEY_GROUP_ORDER = 'group_order';
+
+    /**
      * The setting key.
      *
      * @var string
@@ -123,9 +131,11 @@ class AdminSetting extends Entity implements JsonSerializable
      */
     public function setValueEncoded(mixed $value): void
     {
-        $this->setSettingValue(
-            settingValue: json_encode(value: $value)
-        );
+        // Entity setters resolve via __call which forwards $args[0]; named
+        // parameters MUST NOT be used here (Entity __call would receive
+        // $args = ['paramName' => $value] and use the wrong key).
+        // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
+        $this->setSettingValue(json_encode($value));
     }//end setValueEncoded()
 
     /**

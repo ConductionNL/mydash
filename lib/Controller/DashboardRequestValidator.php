@@ -28,8 +28,6 @@ use OCP\IL10N;
 
 /**
  * Validates dashboard request parameters and permissions.
- *
- * @SuppressWarnings(PHPMD.StaticAccess) - ResponseHelper uses static methods by design
  */
 class DashboardRequestValidator
 {
@@ -59,6 +57,8 @@ class DashboardRequestValidator
      * @param array|null $placements  The placements (null = metadata-only).
      *
      * @return JSONResponse|null Error response or null if allowed.
+     *
+     * @SuppressWarnings(PHPMD.StaticAccess) — ResponseHelper uses static methods by design
      */
     public function checkUpdatePermissions(string $userId, int $dashboardId, ?array $placements): ?JSONResponse
     {
@@ -111,6 +111,8 @@ class DashboardRequestValidator
      * @param string $userId The user ID.
      *
      * @return JSONResponse|null Error response or null if allowed.
+     *
+     * @SuppressWarnings(PHPMD.StaticAccess) — ResponseHelper uses static methods by design
      */
     public function checkCreatePermissions(string $userId): ?JSONResponse
     {

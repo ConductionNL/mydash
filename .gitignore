@@ -8,8 +8,10 @@ vendor/
 
 # Build artifacts
 /js/
-/docusaurus/build/
-/docusaurus/.docusaurus/
+/docs/node_modules/
+/docs/build/
+/docs/.docusaurus/
+/docusaurus/
 
 # Development
 .DS_Store
@@ -29,7 +31,14 @@ Thumbs.db
 /coverage/
 /phpqa/
 
+.phpunit.cache/
+phpmetrics/
+
 # Environment
 .env
 .env.local
 node_modules
+
+# Test/build artifacts
+.phpunit.cache
+.phpunit.result.cache
