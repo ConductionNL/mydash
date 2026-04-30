@@ -31,11 +31,13 @@ use OCA\MyDash\Service\DashboardResolver;
 use OCA\MyDash\Service\DashboardService;
 use OCA\MyDash\Service\TemplateService;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\IUserManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use RuntimeException;
 
 /**
@@ -61,6 +63,10 @@ class DashboardServiceDefaultFlagTest extends TestCase
     private $userManager;
     /** @var IDBConnection&MockObject */
     private $db;
+    /** @var IConfig&MockObject */
+    private $config;
+    /** @var LoggerInterface&MockObject */
+    private $logger;
 
     private DashboardService $service;
 
@@ -75,6 +81,8 @@ class DashboardServiceDefaultFlagTest extends TestCase
         $this->groupManager     = $this->createMock(IGroupManager::class);
         $this->userManager      = $this->createMock(IUserManager::class);
         $this->db               = $this->createMock(IDBConnection::class);
+        $this->config           = $this->createMock(IConfig::class);
+        $this->logger           = $this->createMock(LoggerInterface::class);
 
         $this->service = new DashboardService(
             dashboardMapper: $this->dashboardMapper,
@@ -86,6 +94,8 @@ class DashboardServiceDefaultFlagTest extends TestCase
             groupManager: $this->groupManager,
             userManager: $this->userManager,
             db: $this->db,
+            config: $this->config,
+            logger: $this->logger,
         );
     }//end setUp()
 

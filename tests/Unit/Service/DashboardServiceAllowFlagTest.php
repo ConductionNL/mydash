@@ -37,11 +37,13 @@ use OCA\MyDash\Service\DashboardFactory;
 use OCA\MyDash\Service\DashboardResolver;
 use OCA\MyDash\Service\DashboardService;
 use OCA\MyDash\Service\TemplateService;
+use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\IUserManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 /**
  * Unit tests for the allow-user-dashboards runtime gate (REQ-ASET-003).
@@ -113,6 +115,20 @@ class DashboardServiceAllowFlagTest extends TestCase
     private $db;
 
     /**
+     * IConfig mock.
+     *
+     * @var IConfig&MockObject
+     */
+    private $config;
+
+    /**
+     * Logger mock.
+     *
+     * @var LoggerInterface&MockObject
+     */
+    private $logger;
+
+    /**
      * Service under test.
      *
      * @var DashboardService
@@ -126,15 +142,17 @@ class DashboardServiceAllowFlagTest extends TestCase
      */
     protected function setUp(): void
     {
-        $this->dashboardMapper  = $this->createMock(className: DashboardMapper::class);
-        $this->placementMapper  = $this->createMock(className: WidgetPlacementMapper::class);
-        $this->settingMapper    = $this->createMock(className: AdminSettingMapper::class);
-        $this->templateService  = $this->createMock(className: TemplateService::class);
-        $this->dashboardFactory = $this->createMock(className: DashboardFactory::class);
-        $this->dashResolver     = $this->createMock(className: DashboardResolver::class);
-        $this->groupManager     = $this->createMock(className: IGroupManager::class);
-        $this->userManager      = $this->createMock(className: IUserManager::class);
-        $this->db               = $this->createMock(className: IDBConnection::class);
+        $this->dashboardMapper  = $this->createMock(DashboardMapper::class);
+        $this->placementMapper  = $this->createMock(WidgetPlacementMapper::class);
+        $this->settingMapper    = $this->createMock(AdminSettingMapper::class);
+        $this->templateService  = $this->createMock(TemplateService::class);
+        $this->dashboardFactory = $this->createMock(DashboardFactory::class);
+        $this->dashResolver     = $this->createMock(DashboardResolver::class);
+        $this->groupManager     = $this->createMock(IGroupManager::class);
+        $this->userManager      = $this->createMock(IUserManager::class);
+        $this->db               = $this->createMock(IDBConnection::class);
+        $this->config           = $this->createMock(IConfig::class);
+        $this->logger           = $this->createMock(LoggerInterface::class);
 
         $this->service = new DashboardService(
             dashboardMapper: $this->dashboardMapper,
@@ -146,6 +164,8 @@ class DashboardServiceAllowFlagTest extends TestCase
             groupManager: $this->groupManager,
             userManager: $this->userManager,
             db: $this->db,
+            config: $this->config,
+            logger: $this->logger,
         );
     }//end setUp()
 
@@ -343,8 +363,9 @@ class DashboardServiceAllowFlagTest extends TestCase
         $this->placementMapper->expects($this->never())->method('update');
         $this->placementMapper->expects($this->never())->method('delete');
 
-        // Simulate flag=false (throws — but still no writes before the throw).
-        $this->settingMapper->method('getValue')->willReturn(false);
+        // Consecutive calls: first returns false (expect throw), then true (no throw).
+        $this->settingMapper->method('getValue')
+            ->willReturnOnConsecutiveCalls(false, true);
 
         try {
             $this->service->assertPersonalDashboardsAllowed();
@@ -352,8 +373,7 @@ class DashboardServiceAllowFlagTest extends TestCase
             // Expected — no writes should have occurred.
         }
 
-        // Simulate flag=true (no throw — still no writes).
-        $this->settingMapper->method('getValue')->willReturn(true);
+        // Second call: flag=true (no throw — still no writes).
         $this->service->assertPersonalDashboardsAllowed();
     }//end testTogglingFlagDoesNotMutateData()
 }//end class

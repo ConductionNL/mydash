@@ -24,6 +24,7 @@ namespace OCA\MyDash\Service;
 
 use DateTime;
 use Exception;
+use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Db\AdminSetting;
 use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Db\Dashboard;
@@ -32,9 +33,11 @@ use OCA\MyDash\Db\WidgetPlacement;
 use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCA\MyDash\Exception\PersonalDashboardsDisabledException;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\IUserManager;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
@@ -73,6 +76,16 @@ class DashboardService
     public const ERR_DEFAULT_TARGET_NOT_IN_GROUP = 'Dashboard not found in group';
 
     /**
+     * Preference key for the user's last-active dashboard UUID.
+     *
+     * Stored via IConfig::setUserValue / getUserValue.
+     * REQ-DASH-019.
+     *
+     * @var string
+     */
+    public const ACTIVE_DASHBOARD_UUID_PREF_KEY = 'active_dashboard_uuid';
+
+    /**
      * Constructor
      *
      * @param DashboardMapper       $dashboardMapper  Dashboard mapper.
@@ -86,6 +99,9 @@ class DashboardService
      * @param IDBConnection         $db               DB connection (for the
      *                                                transactional default
      *                                                flip — REQ-DASH-015).
+     * @param IConfig               $config           Nextcloud per-user
+     *                                                preference storage.
+     * @param LoggerInterface       $logger           PSR logger.
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
@@ -97,6 +113,8 @@ class DashboardService
         private readonly IGroupManager $groupManager,
         private readonly IUserManager $userManager,
         private readonly IDBConnection $db,
+        private readonly IConfig $config,
+        private readonly LoggerInterface $logger,
     ) {
     }//end __construct()
 
@@ -534,6 +552,173 @@ class DashboardService
     }//end getVisibleToUser()
 
     /**
+     * Resolve the active dashboard for a user using the 7-step precedence
+     * chain defined in REQ-DASH-018.
+     *
+     * Steps:
+     *  1. Saved `active_dashboard_uuid` preference — if the UUID resolves to
+     *     a dashboard currently visible to the user (REQ-DASH-013).
+     *  2. `group_shared` with `isDefault = 1` in the user's primary group.
+     *  3. `group_shared` with `isDefault = 1` in the `'default'` group.
+     *  4. First `group_shared` (by sortOrder ASC, then createdAt) in the
+     *     user's primary group.
+     *  5. First `group_shared` in the `'default'` group.
+     *  6. User's first personal (`user`-type) dashboard.
+     *  7. `null` — triggers the empty-state UI.
+     *
+     * The only side-effect on read is the stale-pref auto-clear in step 1:
+     * when the saved UUID is not visible the pref is deleted and a WARNING
+     * is logged before falling through to step 2.
+     *
+     * @param string      $userId         The user ID.
+     * @param string|null $primaryGroupId The user's primary group ID, or null /
+     *                                    {@see Dashboard::DEFAULT_GROUP_ID}.
+     *
+     * @return array{dashboard: Dashboard, source: string}|null
+     *   `{dashboard, source}` where source is `'user'`, `'group'`, or
+     *   `'default'`; or `null` when no dashboard exists at all.
+     */
+    public function resolveActiveDashboard(
+        string $userId,
+        ?string $primaryGroupId
+    ): ?array {
+        // Normalise the sentinel so steps 2-5 can rely on it.
+        $groupId = ($primaryGroupId === null || $primaryGroupId === '')
+            ? Dashboard::DEFAULT_GROUP_ID
+            : $primaryGroupId;
+
+        // Pre-fetch all visible dashboards once — used for the pref lookup
+        // and to avoid redundant DB round-trips.
+        $visible = $this->getVisibleToUser(userId: $userId);
+
+        // Build a UUID-keyed index for O(1) pref lookup.
+        /** @var array<string, array{dashboard: Dashboard, source: string}> $byUuid */
+        $byUuid = [];
+        foreach ($visible as $entry) {
+            $uuid = (string) $entry['dashboard']->getUuid();
+            if ($uuid !== '') {
+                $byUuid[$uuid] = $entry;
+            }
+        }
+
+        // Step 1: saved preference.
+        $savedUuid = $this->config->getUserValue(
+            userId: $userId,
+            appName: Application::APP_ID,
+            key: self::ACTIVE_DASHBOARD_UUID_PREF_KEY,
+            default: ''
+        );
+
+        if ($savedUuid !== '') {
+            if (isset($byUuid[$savedUuid]) === true) {
+                return $byUuid[$savedUuid];
+            }
+
+            // Stale pref: UUID is no longer visible — clear and fall through.
+            $this->config->deleteUserValue(
+                userId: $userId,
+                appName: Application::APP_ID,
+                key: self::ACTIVE_DASHBOARD_UUID_PREF_KEY
+            );
+            $this->logger->warning(
+                message: 'mydash: stale active_dashboard_uuid "{uuid}" cleared for user "{user}"',
+                context: ['uuid' => $savedUuid, 'user' => $userId]
+            );
+        }
+
+        // Steps 2-3: group-shared with isDefault = 1.
+        if ($groupId !== Dashboard::DEFAULT_GROUP_ID) {
+            // Step 2: primary group default.
+            $result = $this->findFirstGroupSharedWhere(
+                visible: $visible,
+                groupId: $groupId,
+                source: Dashboard::SOURCE_GROUP,
+                requireDefault: true
+            );
+            if ($result !== null) {
+                return $result;
+            }
+        }
+
+        // Step 3: default-group default.
+        $result = $this->findFirstGroupSharedWhere(
+            visible: $visible,
+            groupId: Dashboard::DEFAULT_GROUP_ID,
+            source: Dashboard::SOURCE_DEFAULT,
+            requireDefault: true
+        );
+        if ($result !== null) {
+            return $result;
+        }
+
+        // Steps 4-5: first group-shared (sortOrder ASC, createdAt ASC).
+        if ($groupId !== Dashboard::DEFAULT_GROUP_ID) {
+            // Step 4: primary group first.
+            $result = $this->findFirstGroupSharedWhere(
+                visible: $visible,
+                groupId: $groupId,
+                source: Dashboard::SOURCE_GROUP,
+                requireDefault: false
+            );
+            if ($result !== null) {
+                return $result;
+            }
+        }
+
+        // Step 5: default-group first.
+        $result = $this->findFirstGroupSharedWhere(
+            visible: $visible,
+            groupId: Dashboard::DEFAULT_GROUP_ID,
+            source: Dashboard::SOURCE_DEFAULT,
+            requireDefault: false
+        );
+        if ($result !== null) {
+            return $result;
+        }
+
+        // Step 6: first personal dashboard.
+        foreach ($visible as $entry) {
+            if ($entry['source'] === Dashboard::SOURCE_USER) {
+                return $entry;
+            }
+        }
+
+        // Step 7: nothing found.
+        return null;
+    }//end resolveActiveDashboard()
+
+    /**
+     * Persist (or clear) the user's active-dashboard preference.
+     *
+     * Accepts any non-empty UUID string without performing an existence
+     * check — the resolver's stale-pref path handles invalid UUIDs on next
+     * read (REQ-DASH-019 "no existence check on write").
+     *
+     * @param string $userId The user ID.
+     * @param string $uuid   The dashboard UUID, or empty string to clear.
+     *
+     * @return void
+     */
+    public function setActivePreference(string $userId, string $uuid): void
+    {
+        if ($uuid === '') {
+            $this->config->deleteUserValue(
+                userId: $userId,
+                appName: Application::APP_ID,
+                key: self::ACTIVE_DASHBOARD_UUID_PREF_KEY
+            );
+            return;
+        }
+
+        $this->config->setUserValue(
+            userId: $userId,
+            appName: Application::APP_ID,
+            key: self::ACTIVE_DASHBOARD_UUID_PREF_KEY,
+            value: $uuid
+        );
+    }//end setActivePreference()
+
+    /**
      * Check whether the given user is a Nextcloud administrator.
      *
      * Wraps `IGroupManager::isAdmin()` so callers don't have to import
@@ -572,6 +757,57 @@ class DashboardService
             throw new PersonalDashboardsDisabledException();
         }
     }//end assertPersonalDashboardsAllowed()
+
+    /**
+     * Scan the pre-fetched visible list for the first group-shared dashboard
+     * matching a given `groupId`, optionally filtered to `isDefault = 1`.
+     *
+     * The visible list preserves mapper order (sortOrder ASC, createdAt ASC
+     * for group-shared rows via {@see DashboardMapper::findByGroup}), so the
+     * "first" result is already correctly ordered without a secondary sort
+     * here.
+     *
+     * @param array<int, array{dashboard: Dashboard, source: string}> $visible
+     *                          The full visible-to-user list.
+     * @param string            $groupId       The group ID to filter on.
+     * @param string            $source        Expected source tag
+     *                                         (`'group'` or `'default'`).
+     * @param bool              $requireDefault When true, only rows with
+     *                                          `isDefault = 1` are considered.
+     *
+     * @return array{dashboard: Dashboard, source: string}|null
+     */
+    private function findFirstGroupSharedWhere(
+        array $visible,
+        string $groupId,
+        string $source,
+        bool $requireDefault
+    ): ?array {
+        foreach ($visible as $entry) {
+            if ($entry['source'] !== $source) {
+                continue;
+            }
+
+            $dashboard = $entry['dashboard'];
+            if ($dashboard->getType() !== Dashboard::TYPE_GROUP_SHARED) {
+                continue;
+            }
+
+            if ($dashboard->getGroupId() !== $groupId) {
+                continue;
+            }
+
+            if ($requireDefault === true
+                && (int) $dashboard->getIsDefault() !== 1
+            ) {
+                continue;
+            }
+
+            return $entry;
+        }//end foreach
+
+        return null;
+    }//end findFirstGroupSharedWhere()
 
     /**
      * Try to create a dashboard from a template or empty.

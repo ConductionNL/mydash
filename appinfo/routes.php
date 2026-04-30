@@ -19,6 +19,10 @@ return [
 		// User dashboard endpoints
 		['name' => 'dashboard_api#list', 'url' => '/api/dashboards', 'verb' => 'GET'],
 		['name' => 'dashboard_api#visible', 'url' => '/api/dashboards/visible', 'verb' => 'GET'],
+		// REQ-DASH-019: persist active-dashboard preference. Registered BEFORE
+		// the group-scoped routes that share the /api/dashboards/ prefix so the
+		// router matches the literal 'active' segment before any {groupId} wildcard.
+		['name' => 'dashboard_api#setActiveDashboard', 'url' => '/api/dashboards/active', 'verb' => 'POST'],
 		['name' => 'dashboard_api#getActive', 'url' => '/api/dashboard', 'verb' => 'GET'],
 		['name' => 'dashboard_api#create', 'url' => '/api/dashboard', 'verb' => 'POST'],
 		['name' => 'dashboard_api#update', 'url' => '/api/dashboard/{id}', 'verb' => 'PUT'],
