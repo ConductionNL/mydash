@@ -106,7 +106,7 @@ class ImageMimeValidator
             throw new CorruptImageException();
         }
 
-        $detectedMime = ($info['mime'] ?? '');
+        $detectedMime = $info['mime'];
         if ($detectedMime !== $expectedMime) {
             throw new MimeMismatchException();
         }

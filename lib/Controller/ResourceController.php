@@ -8,6 +8,11 @@
  * raw JSON body of the shape `{base64: 'data:image/<type>;base64,...'}`
  * and returns a standardised `{status, url, name, size}` envelope.
  *
+ * The read side of the same capability (REQ-RES-006..008 — public
+ * serve + listing) is delivered by `ResourceServeController`, kept in
+ * a sibling class so this controller's dependency graph stays under
+ * the PHPMD CouplingBetweenObjects limit.
+ *
  * All errors are mapped to a `{status: 'error', error: <stable_code>,
  * message: <display>}` envelope — raw exception messages are NEVER
  * returned to the client.
