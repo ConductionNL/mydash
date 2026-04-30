@@ -22,4 +22,7 @@ module.exports = defineConfig({
 			'@': path.resolve(__dirname, 'src'),
 		},
 	},
+	ssr: {
+		external: ['@nextcloud/vue'],
+	},
 })
