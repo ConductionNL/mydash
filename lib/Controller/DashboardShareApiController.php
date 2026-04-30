@@ -73,7 +73,7 @@ class DashboardShareApiController extends Controller
         if ($this->userId === null) {
             return new DataResponse(
                 data: ['error' => 'Not logged in'],
-                status: Http::STATUS_UNAUTHORIZED
+                statusCode: Http::STATUS_UNAUTHORIZED
             );
         }
 
@@ -90,12 +90,12 @@ class DashboardShareApiController extends Controller
         } catch (DoesNotExistException) {
             return new DataResponse(
                 data: ['error' => 'Dashboard not found'],
-                status: Http::STATUS_NOT_FOUND
+                statusCode: Http::STATUS_NOT_FOUND
             );
         } catch (Exception $e) {
             return new DataResponse(
                 data: ['error' => $e->getMessage()],
-                status: Http::STATUS_FORBIDDEN
+                statusCode: Http::STATUS_FORBIDDEN
             );
         }//end try
     }//end index()
@@ -120,7 +120,7 @@ class DashboardShareApiController extends Controller
         if ($this->userId === null) {
             return new DataResponse(
                 data: ['error' => 'Not logged in'],
-                status: Http::STATUS_UNAUTHORIZED
+                statusCode: Http::STATUS_UNAUTHORIZED
             );
         }
 
@@ -134,22 +134,22 @@ class DashboardShareApiController extends Controller
             );
             return new DataResponse(
                 data: $share->jsonSerialize(),
-                status: Http::STATUS_CREATED
+                statusCode: Http::STATUS_CREATED
             );
         } catch (InvalidArgumentException $e) {
             return new DataResponse(
                 data: ['error' => $e->getMessage()],
-                status: Http::STATUS_BAD_REQUEST
+                statusCode: Http::STATUS_BAD_REQUEST
             );
         } catch (DoesNotExistException) {
             return new DataResponse(
                 data: ['error' => 'Dashboard not found'],
-                status: Http::STATUS_NOT_FOUND
+                statusCode: Http::STATUS_NOT_FOUND
             );
         } catch (Exception $e) {
             return new DataResponse(
                 data: ['error' => $e->getMessage()],
-                status: Http::STATUS_FORBIDDEN
+                statusCode: Http::STATUS_FORBIDDEN
             );
         }//end try
     }//end create()
@@ -167,7 +167,7 @@ class DashboardShareApiController extends Controller
         if ($this->userId === null) {
             return new DataResponse(
                 data: ['error' => 'Not logged in'],
-                status: Http::STATUS_UNAUTHORIZED
+                statusCode: Http::STATUS_UNAUTHORIZED
             );
         }
 
@@ -176,16 +176,16 @@ class DashboardShareApiController extends Controller
                 shareId: $shareId,
                 callerId: $this->userId
             );
-            return new DataResponse(data: [], status: Http::STATUS_NO_CONTENT);
+            return new DataResponse(data: [], statusCode: Http::STATUS_NO_CONTENT);
         } catch (DoesNotExistException) {
             return new DataResponse(
                 data: ['error' => 'Share not found'],
-                status: Http::STATUS_NOT_FOUND
+                statusCode: Http::STATUS_NOT_FOUND
             );
         } catch (Exception $e) {
             return new DataResponse(
                 data: ['error' => $e->getMessage()],
-                status: Http::STATUS_FORBIDDEN
+                statusCode: Http::STATUS_FORBIDDEN
             );
         }//end try
     }//end destroy()
@@ -204,7 +204,7 @@ class DashboardShareApiController extends Controller
         if ($this->userId === null) {
             return new DataResponse(
                 data: ['error' => 'Not logged in'],
-                status: Http::STATUS_UNAUTHORIZED
+                statusCode: Http::STATUS_UNAUTHORIZED
             );
         }
 
@@ -226,17 +226,17 @@ class DashboardShareApiController extends Controller
         } catch (InvalidArgumentException $e) {
             return new DataResponse(
                 data: ['error' => $e->getMessage()],
-                status: Http::STATUS_BAD_REQUEST
+                statusCode: Http::STATUS_BAD_REQUEST
             );
         } catch (DoesNotExistException) {
             return new DataResponse(
                 data: ['error' => 'Dashboard not found'],
-                status: Http::STATUS_NOT_FOUND
+                statusCode: Http::STATUS_NOT_FOUND
             );
         } catch (Exception $e) {
             return new DataResponse(
                 data: ['error' => $e->getMessage()],
-                status: Http::STATUS_FORBIDDEN
+                statusCode: Http::STATUS_FORBIDDEN
             );
         }//end try
     }//end replace()
@@ -258,7 +258,7 @@ class DashboardShareApiController extends Controller
         if ($this->userId === null) {
             return new DataResponse(
                 data: ['error' => 'Not logged in'],
-                status: Http::STATUS_UNAUTHORIZED
+                statusCode: Http::STATUS_UNAUTHORIZED
             );
         }
 
@@ -272,7 +272,7 @@ class DashboardShareApiController extends Controller
         } catch (InvalidArgumentException $e) {
             return new DataResponse(
                 data: ['error' => $e->getMessage()],
-                status: Http::STATUS_BAD_REQUEST
+                statusCode: Http::STATUS_BAD_REQUEST
             );
         }
     }//end revokeForRecipient()

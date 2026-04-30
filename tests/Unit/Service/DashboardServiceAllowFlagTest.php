@@ -39,6 +39,7 @@ use OCA\MyDash\Service\DashboardService;
 use OCA\MyDash\Service\TemplateService;
 use OCP\IConfig;
 use OCP\IDBConnection;
+use OCP\IL10N;
 use OCP\IGroupManager;
 use OCP\IUserManager;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -122,6 +123,13 @@ class DashboardServiceAllowFlagTest extends TestCase
     private $config;
 
     /**
+     * IL10N mock.
+     *
+     * @var IL10N&MockObject
+     */
+    private $l10n;
+
+    /**
      * Logger mock.
      *
      * @var LoggerInterface&MockObject
@@ -152,6 +160,7 @@ class DashboardServiceAllowFlagTest extends TestCase
         $this->userManager      = $this->createMock(IUserManager::class);
         $this->db               = $this->createMock(IDBConnection::class);
         $this->config           = $this->createMock(IConfig::class);
+        $this->l10n             = $this->createMock(IL10N::class);
         $this->logger           = $this->createMock(LoggerInterface::class);
 
         $this->service = new DashboardService(
@@ -165,6 +174,7 @@ class DashboardServiceAllowFlagTest extends TestCase
             userManager: $this->userManager,
             db: $this->db,
             config: $this->config,
+            l10n: $this->l10n,
             logger: $this->logger,
         );
     }//end setUp()

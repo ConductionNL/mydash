@@ -34,6 +34,7 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
+use Psr\Log\LoggerInterface;
 
 /**
  * Controller for dashboard API endpoints.
@@ -49,12 +50,16 @@ class DashboardApiController extends Controller
      * @param IRequest          $request           The request.
      * @param DashboardService  $dashboardService  The dashboard service.
      * @param PermissionService $permissionService The permission service.
+     * @param LoggerInterface   $logger            PSR logger (used by fork
+     *                                             to report unexpected
+     *                                             errors — REQ-DASH-021).
      * @param string|null       $userId            The user ID.
      */
     public function __construct(
         IRequest $request,
         private readonly DashboardService $dashboardService,
         private readonly PermissionService $permissionService,
+        private readonly LoggerInterface $logger,
         private readonly ?string $userId,
     ) {
         parent::__construct(
@@ -73,7 +78,6 @@ class DashboardApiController extends Controller
      * @return JSONResponse The list of dashboards.
      */
     #[NoAdminRequired]
-
     public function list(): JSONResponse
     {
         if ($this->userId === null) {
@@ -99,7 +103,6 @@ class DashboardApiController extends Controller
      * @return JSONResponse The visible dashboards.
      */
     #[NoAdminRequired]
-
     public function visible(): JSONResponse
     {
         if ($this->userId === null) {
@@ -126,7 +129,6 @@ class DashboardApiController extends Controller
      * @return JSONResponse The active dashboard data.
      */
     #[NoAdminRequired]
-
     public function getActive(): JSONResponse
     {
         if ($this->userId === null) {
@@ -164,7 +166,6 @@ class DashboardApiController extends Controller
      * @return JSONResponse The created dashboard.
      */
     #[NoAdminRequired]
-
     public function create(
         $name=null,
         ?string $description=null
@@ -225,7 +226,6 @@ class DashboardApiController extends Controller
      * @return JSONResponse The updated dashboard.
      */
     #[NoAdminRequired]
-
     public function update(
         int $id,
         ?string $name=null,
@@ -287,7 +287,6 @@ class DashboardApiController extends Controller
      * @return JSONResponse The deletion confirmation.
      */
     #[NoAdminRequired]
-
     public function delete(int $id): JSONResponse
     {
         if ($this->userId === null) {
@@ -314,7 +313,6 @@ class DashboardApiController extends Controller
      * @return JSONResponse The activated dashboard.
      */
     #[NoAdminRequired]
-
     public function activate(int $id): JSONResponse
     {
         if ($this->userId === null) {
@@ -345,7 +343,6 @@ class DashboardApiController extends Controller
      * @return JSONResponse The list of group-shared dashboards.
      */
     #[NoAdminRequired]
-
     public function listGroup(string $groupId): JSONResponse
     {
         if ($this->userId === null) {
@@ -376,7 +373,6 @@ class DashboardApiController extends Controller
      * @return JSONResponse The created dashboard.
      */
     #[NoAdminRequired]
-
     public function createGroup(
         string $groupId,
         $name=null,
@@ -426,7 +422,6 @@ class DashboardApiController extends Controller
      * @return JSONResponse The dashboard payload.
      */
     #[NoAdminRequired]
-
     public function getGroup(
         string $groupId,
         string $uuid
@@ -465,7 +460,6 @@ class DashboardApiController extends Controller
      * @return JSONResponse The updated dashboard.
      */
     #[NoAdminRequired]
-
     public function updateGroup(
         string $groupId,
         string $uuid,
@@ -527,7 +521,6 @@ class DashboardApiController extends Controller
      * @return JSONResponse The status payload.
      */
     #[NoAdminRequired]
-
     public function deleteGroup(
         string $groupId,
         string $uuid
@@ -578,7 +571,6 @@ class DashboardApiController extends Controller
      * @return JSONResponse The status payload.
      */
     #[NoAdminRequired]
-
     public function setGroupDefault(
         string $groupId,
         ?string $uuid=null
@@ -643,7 +635,6 @@ class DashboardApiController extends Controller
      *                      when the session has no user.
      */
     #[NoAdminRequired]
-
     public function setActiveDashboard(?string $uuid=null): JSONResponse
     {
         if ($this->userId === null) {
@@ -657,6 +648,81 @@ class DashboardApiController extends Controller
 
         return ResponseHelper::success(data: ['status' => 'success']);
     }//end setActiveDashboard()
+
+    /**
+     * Fork a visible dashboard as a new personal copy.
+     *
+     * Creates a new `user`-type dashboard owned by the calling user,
+     * deep-copying all widget placements from the source dashboard, and
+     * makes it the active dashboard. Gated on `allow_user_dashboards`.
+     * REQ-DASH-020..022.
+     *
+     * @param string      $uuid The source dashboard UUID (URL parameter).
+     * @param string|null $name Optional override name (JSON body field).
+     *
+     * @return JSONResponse HTTP 201 + new dashboard on success;
+     *                      403 when personal dashboards are disabled;
+     *                      404 when the source is not visible to the user;
+     *                      500 on unexpected error.
+     */
+    #[NoAdminRequired]
+    public function fork(
+        string $uuid,
+        ?string $name=null
+    ): JSONResponse {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
+
+        try {
+            $dashboard = $this->dashboardService->forkAsPersonal(
+                userId: $this->userId,
+                sourceUuid: $uuid,
+                name: $name
+            );
+
+            return new JSONResponse(
+                data: [
+                    'status'    => 'success',
+                    'dashboard' => $dashboard->jsonSerialize(),
+                ],
+                statusCode: Http::STATUS_CREATED
+            );
+        } catch (PersonalDashboardsDisabledException $e) {
+            return new JSONResponse(
+                data: [
+                    'status'  => 'error',
+                    'error'   => $e->getErrorCode(),
+                    'message' => $e->getMessage(),
+                ],
+                statusCode: Http::STATUS_FORBIDDEN
+            );
+        } catch (DoesNotExistException $e) {
+            return new JSONResponse(
+                data: [
+                    'status' => 'error',
+                    'error'  => 'not_found',
+                ],
+                statusCode: Http::STATUS_NOT_FOUND
+            );
+        } catch (\Throwable $t) {
+            $this->logger->error(
+                message: 'mydash: fork failed for user {user}: {message}',
+                context: [
+                    'user'    => $this->userId,
+                    'message' => $t->getMessage(),
+                ]
+            );
+            return new JSONResponse(
+                data: [
+                    'status'  => 'error',
+                    'error'   => 'internal_error',
+                    'message' => 'An unexpected error occurred',
+                ],
+                statusCode: Http::STATUS_INTERNAL_SERVER_ERROR
+            );
+        }//end try
+    }//end fork()
 
     /**
      * Resolve create parameters from JSON body or individual params.

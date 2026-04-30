@@ -23,6 +23,11 @@ return [
 		// the group-scoped routes that share the /api/dashboards/ prefix so the
 		// router matches the literal 'active' segment before any {groupId} wildcard.
 		['name' => 'dashboard_api#setActiveDashboard', 'url' => '/api/dashboards/active', 'verb' => 'POST'],
+		// REQ-DASH-020..022: fork a visible dashboard as a personal copy.
+		// Registered BEFORE the group-scoped {groupId} wildcard routes to
+		// prevent the literal 'fork' suffix being consumed by any wildcard.
+		['name' => 'dashboard_api#fork', 'url' => '/api/dashboards/{uuid}/fork', 'verb' => 'POST',
+		 'requirements' => ['uuid' => '[A-Za-z0-9\-]+']],
 		['name' => 'dashboard_api#getActive', 'url' => '/api/dashboard', 'verb' => 'GET'],
 		['name' => 'dashboard_api#create', 'url' => '/api/dashboard', 'verb' => 'POST'],
 		['name' => 'dashboard_api#update', 'url' => '/api/dashboard/{id}', 'verb' => 'PUT'],

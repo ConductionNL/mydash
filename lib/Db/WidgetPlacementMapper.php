@@ -225,6 +225,61 @@ class WidgetPlacementMapper extends QBMapper
     }//end updatePositions()
 
     /**
+     * Clone all placements from a source dashboard into a target dashboard.
+     *
+     * Fetches every placement row belonging to `$sourceDashboardId` and
+     * inserts fresh copies under `$targetDashboardId` with new auto-
+     * generated IDs and reset `createdAt`/`updatedAt` timestamps. All
+     * other fields — gridX/Y/W/H, widgetId, customTitle, styleConfig,
+     * showTitle, isCompulsory, isVisible, sortOrder, tileType, tileTitle,
+     * tileIcon, tileIconType, tileBackgroundColor, tileTextColor,
+     * tileLinkType, tileLinkValue, customIcon — are copied verbatim so
+     * the fork is a true visual clone. Resource URLs (e.g. tileIcon) are
+     * NOT duplicated; both dashboards reference the same URL (REQ-DASH-022).
+     *
+     * @param int $sourceDashboardId The source dashboard ID.
+     * @param int $targetDashboardId The target (new) dashboard ID.
+     *
+     * @return void
+     */
+    public function cloneToDashboard(
+        int $sourceDashboardId,
+        int $targetDashboardId
+    ): void {
+        $now        = (new DateTime())->format(format: 'Y-m-d H:i:s');
+        $placements = $this->findByDashboardId(dashboardId: $sourceDashboardId);
+
+        foreach ($placements as $source) {
+            $clone = new WidgetPlacement();
+            $clone->setDashboardId($targetDashboardId);
+            $clone->setWidgetId($source->getWidgetId());
+            $clone->setGridX($source->getGridX());
+            $clone->setGridY($source->getGridY());
+            $clone->setGridWidth($source->getGridWidth());
+            $clone->setGridHeight($source->getGridHeight());
+            $clone->setIsCompulsory($source->getIsCompulsory());
+            $clone->setIsVisible($source->getIsVisible());
+            $clone->setStyleConfig($source->getStyleConfig());
+            $clone->setCustomTitle($source->getCustomTitle());
+            $clone->setCustomIcon($source->getCustomIcon());
+            $clone->setShowTitle($source->getShowTitle());
+            $clone->setSortOrder($source->getSortOrder());
+            $clone->setTileType($source->getTileType());
+            $clone->setTileTitle($source->getTileTitle());
+            $clone->setTileIcon($source->getTileIcon());
+            $clone->setTileIconType($source->getTileIconType());
+            $clone->setTileBackgroundColor($source->getTileBackgroundColor());
+            $clone->setTileTextColor($source->getTileTextColor());
+            $clone->setTileLinkType($source->getTileLinkType());
+            $clone->setTileLinkValue($source->getTileLinkValue());
+            $clone->setCreatedAt($now);
+            $clone->setUpdatedAt($now);
+
+            $this->insert(entity: $clone);
+        }//end foreach
+    }//end cloneToDashboard()
+
+    /**
      * Get max sort order for a dashboard.
      *
      * @param int $dashboardId The dashboard ID.
