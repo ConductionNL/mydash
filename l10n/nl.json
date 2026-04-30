@@ -168,6 +168,8 @@
         "Fill": "Vullen",
         "None": "Geen",
         "Failed to upload image": "Afbeelding kon niet worden geüpload",
-        "Image URL is required": "Afbeeldings-URL is verplicht"
+        "Image URL is required": "Afbeeldings-URL is verplicht",
+        "My Dashboards": "Mijn dashboards",
+        "+ New Dashboard": "+ Nieuw dashboard"
     }
 }
