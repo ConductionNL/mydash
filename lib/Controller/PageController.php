@@ -26,6 +26,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\TemplateResponse;
+use OCP\Dashboard\IManager;
 use OCP\IRequest;
 use OCP\Util;
 
@@ -34,10 +35,12 @@ class PageController extends Controller
     /**
      * Constructor
      *
-     * @param IRequest $request The request.
+     * @param IRequest $request          The request.
+     * @param IManager $dashboardManager Nextcloud dashboard widget manager.
      */
     public function __construct(
         IRequest $request,
+        private readonly IManager $dashboardManager,
     ) {
         parent::__construct(appName: Application::APP_ID, request: $request);
     }//end __construct()
@@ -71,10 +74,7 @@ class PageController extends Controller
      */
     private function loadWidgetScripts(): void
     {
-        $dashboardManager = \OC::$server->get(
-            \OCP\Dashboard\IManager::class
-        );
-        $widgets          = $dashboardManager->getWidgets();
+        $widgets = $this->dashboardManager->getWidgets();
 
         foreach ($widgets as $widget) {
             // Call the widget's load() method to inject its scripts.

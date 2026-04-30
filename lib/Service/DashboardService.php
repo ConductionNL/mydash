@@ -27,6 +27,7 @@ use OCA\MyDash\Db\AdminSetting;
 use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
+use OCA\MyDash\Db\WidgetPlacement;
 use OCA\MyDash\Db\WidgetPlacementMapper;
 
 /**
@@ -110,13 +111,51 @@ class DashboardService
         $dashboard = $this->dashboardFactory->create(
             userId: $userId,
             name: $name,
-            description: $description
+            description: $description,
+            permissionLevel: $this->resolveDefaultPermissionLevel(),
+            gridColumns: $this->resolveDefaultGridColumns()
         );
 
         $this->dashboardMapper->deactivateAllForUser(userId: $userId);
 
         return $this->dashboardMapper->insert(entity: $dashboard);
     }//end createDashboard()
+
+    /**
+     * Resolve the admin-configured default permission level.
+     *
+     * @return string The default permission level.
+     */
+    private function resolveDefaultPermissionLevel(): string
+    {
+        $value = $this->settingMapper->getValue(
+            key: AdminSetting::KEY_DEFAULT_PERMISSION_LEVEL,
+            default: Dashboard::PERMISSION_FULL
+        );
+        if (is_string($value) === true) {
+            return $value;
+        }
+
+        return Dashboard::PERMISSION_FULL;
+    }//end resolveDefaultPermissionLevel()
+
+    /**
+     * Resolve the admin-configured default grid columns.
+     *
+     * @return int The default grid column count.
+     */
+    private function resolveDefaultGridColumns(): int
+    {
+        $value = $this->settingMapper->getValue(
+            key: AdminSetting::KEY_DEFAULT_GRID_COLUMNS,
+            default: 12
+        );
+        if (is_int($value) === true) {
+            return $value;
+        }
+
+        return 12;
+    }//end resolveDefaultGridColumns()
 
     /**
      * Update a dashboard.
@@ -232,7 +271,7 @@ class DashboardService
             return [
                 'dashboard'       => $dashboard,
                 'placements'      => $placements,
-                'permissionLevel' => Dashboard::PERMISSION_FULL,
+                'permissionLevel' => $dashboard->getPermissionLevel(),
             ];
         }
 
@@ -274,7 +313,7 @@ class DashboardService
 
         $placements = [];
         foreach ($defaults as $config) {
-            $placement = new \OCA\MyDash\Db\WidgetPlacement();
+            $placement = new WidgetPlacement();
             $placement->setDashboardId($dashboardId);
             $placement->setWidgetId($config['widgetId']);
             $placement->setGridX($config['gridX']);

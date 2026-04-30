@@ -26,7 +26,6 @@ use Exception;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
-use Ramsey\Uuid\Uuid;
 
 /**
  * Service for admin template CRUD operations.
@@ -104,8 +103,9 @@ class AdminTemplateService
             $this->dashboardMapper->clearDefaultTemplates();
         }
 
+        $now      = (new DateTime())->format(format: 'Y-m-d H:i:s');
         $template = new Dashboard();
-        $template->setUuid(Uuid::uuid4()->toString());
+        $template->setUuid($this->generateUuid());
         $template->setName($name);
         $template->setDescription($description);
         $template->setType(Dashboard::TYPE_ADMIN_TEMPLATE);
@@ -118,11 +118,27 @@ class AdminTemplateService
             $targetGroups ?? []
         );
         $template->setIsDefault($isDefault);
-        $template->setCreatedAt(new DateTime());
-        $template->setUpdatedAt(new DateTime());
+        $template->setCreatedAt($now);
+        $template->setUpdatedAt($now);
 
         return $this->dashboardMapper->insert(entity: $template);
     }//end createTemplate()
+
+    /**
+     * Generate a v4 UUID using random_bytes (no external dependency).
+     *
+     * @return string A v4 UUID.
+     */
+    private function generateUuid(): string
+    {
+        $data    = random_bytes(length: 16);
+        $data[6] = chr((ord($data[6]) & 0x0F) | 0x40);
+        $data[8] = chr((ord($data[8]) & 0x3F) | 0x80);
+        return vsprintf(
+            format: '%s%s-%s-%s-%s-%s%s%s',
+            values: str_split(string: bin2hex(string: $data), length: 4)
+        );
+    }//end generateUuid()
 
     /**
      * Update an admin template.
@@ -147,7 +163,9 @@ class AdminTemplateService
             data: $data
         );
 
-        $template->setUpdatedAt(new DateTime());
+        $template->setUpdatedAt(
+            (new DateTime())->format(format: 'Y-m-d H:i:s')
+        );
 
         return $this->dashboardMapper->update(entity: $template);
     }//end updateTemplate()

@@ -9,7 +9,10 @@
 			<h2 class="mydash-picker__title">
 				{{ activeTab === 'widgets' ? t('mydash', 'Add to dashboard') : t('mydash', 'Manage dashboards') }}
 			</h2>
-			<NcButton type="tertiary" @click="$emit('close')">
+			<NcButton
+				type="tertiary"
+				:aria-label="t('mydash', 'Close')"
+				@click="$emit('close')">
 				<template #icon>
 					<Close :size="20" />
 				</template>
@@ -50,6 +53,7 @@
 			<div class="mydash-picker__search">
 				<NcTextField
 					v-model="searchQuery"
+					:label="t('mydash', 'Search widgets')"
 					:placeholder="t('mydash', 'Search widgets...')"
 					:show-trailing-button="searchQuery !== ''"
 					trailing-button-icon="close"

@@ -70,6 +70,13 @@ class NamedParametersSniff implements Sniff
             return;
         }
 
+        // Skip Entity magic setter/getter calls. Nextcloud's OCP\AppFramework\Db\Entity
+        // routes set*/get*/is* through __call which uses $args[0] and breaks with named
+        // parameters. Files extending Entity must use positional args for these.
+        if ($this->isEntityMagicAccessor(phpcsFile: $phpcsFile, stackPtr: $stackPtr) === true) {
+            return;
+        }
+
         // Get the closing parenthesis.
         if (isset($tokens[$openParen]['parenthesis_closer']) === false) {
             return;
@@ -95,6 +102,116 @@ class NamedParametersSniff implements Sniff
         }
 
     }//end process()
+
+
+    /**
+     * Check whether the call at $stackPtr is an Entity magic accessor (setX/getX/isX)
+     * inside a class that extends OCP\AppFramework\Db\Entity.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int  $stackPtr  Position of the method-name T_STRING.
+     *
+     * @return bool True if this is a magic Entity accessor call.
+     */
+    private function isEntityMagicAccessor(File $phpcsFile, int $stackPtr): bool
+    {
+        $tokens = $phpcsFile->getTokens();
+        $name   = $tokens[$stackPtr]['content'];
+
+        // Only setX/getX/isX names with at least one trailing capital qualify.
+        if (preg_match(pattern: '/^(set|get|is)[A-Z]/', subject: $name) !== 1) {
+            return false;
+        }
+
+        // Must be a $this->name() call (already established by isInternalCall, but
+        // re-check defensively because we also want to ignore self::set*() etc.).
+        $prev = $phpcsFile->findPrevious(
+            types: [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT],
+            start: ($stackPtr - 1),
+            end: null,
+            exclude: true
+        );
+        if ($prev === false || $tokens[$prev]['code'] !== T_OBJECT_OPERATOR) {
+            return false;
+        }
+
+        return $this->classExtendsEntity(phpcsFile: $phpcsFile);
+
+    }//end isEntityMagicAccessor()
+
+
+    /**
+     * Check if the file's primary class extends OCP\AppFramework\Db\Entity.
+     *
+     * Considers both fully-qualified and use-aliased "Entity" parents.
+     *
+     * @param File $phpcsFile The file being scanned.
+     *
+     * @return bool True when the class extends Entity.
+     */
+    private function classExtendsEntity(File $phpcsFile): bool
+    {
+        $tokens   = $phpcsFile->getTokens();
+        $classPtr = $phpcsFile->findNext(types: T_CLASS, start: 0);
+        if ($classPtr === false) {
+            return false;
+        }
+
+        $extendsPtr = $phpcsFile->findNext(
+            types: T_EXTENDS,
+            start: $classPtr,
+            end: ($tokens[$classPtr]['scope_opener'] ?? $phpcsFile->numTokens)
+        );
+        if ($extendsPtr === false) {
+            return false;
+        }
+
+        // Read the parent class identifier (handles namespaced parents like \OCP\…\Entity).
+        $parentName = '';
+        $j          = ($extendsPtr + 1);
+        $end        = ($tokens[$classPtr]['scope_opener'] ?? $phpcsFile->numTokens);
+        while ($j < $end) {
+            $code = $tokens[$j]['code'];
+            if ($code === T_OPEN_CURLY_BRACKET || $code === T_IMPLEMENTS || $code === T_COMMA) {
+                break;
+            }
+
+            if ($code !== T_WHITESPACE && $code !== T_COMMENT && $code !== T_DOC_COMMENT) {
+                $parentName .= $tokens[$j]['content'];
+            }
+
+            $j++;
+        }
+
+        $parentName = trim(string: $parentName);
+        if ($parentName === '') {
+            return false;
+        }
+
+        // Direct fully-qualified match.
+        if ($parentName === '\OCP\AppFramework\Db\Entity'
+            || $parentName === 'OCP\AppFramework\Db\Entity'
+        ) {
+            return true;
+        }
+
+        // Aliased: parent is "Entity" and a use statement imports it from the OCP path.
+        if ($parentName === 'Entity') {
+            for ($i = 0; $i < $classPtr; $i++) {
+                if ($tokens[$i]['code'] !== T_USE) {
+                    continue;
+                }
+
+                $usePath = $this->getUseStatementPath(phpcsFile: $phpcsFile, usePtr: $i);
+                if ($usePath === 'OCP\AppFramework\Db\Entity') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+
+    }//end classExtendsEntity()
 
 
     /**

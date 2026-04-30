@@ -29,7 +29,6 @@ use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IGroupManager;
 use OCP\IUserManager;
-use Ramsey\Uuid\Uuid;
 
 /**
  * Service for managing admin dashboard templates.
@@ -139,8 +138,9 @@ class TemplateService
         string $userId,
         Dashboard $template
     ): Dashboard {
+        $now       = (new DateTime())->format(format: 'Y-m-d H:i:s');
         $dashboard = new Dashboard();
-        $dashboard->setUuid(Uuid::uuid4()->toString());
+        $dashboard->setUuid($this->generateUuid());
         $dashboard->setName($template->getName());
         $dashboard->setDescription(
             $template->getDescription()
@@ -157,11 +157,27 @@ class TemplateService
             $template->getPermissionLevel()
         );
         $dashboard->setIsActive(true);
-        $dashboard->setCreatedAt(new DateTime());
-        $dashboard->setUpdatedAt(new DateTime());
+        $dashboard->setCreatedAt($now);
+        $dashboard->setUpdatedAt($now);
 
         return $dashboard;
     }//end buildDashboardFromTemplate()
+
+    /**
+     * Generate a v4 UUID using random_bytes (no external dependency).
+     *
+     * @return string A v4 UUID.
+     */
+    private function generateUuid(): string
+    {
+        $data    = random_bytes(length: 16);
+        $data[6] = chr((ord($data[6]) & 0x0F) | 0x40);
+        $data[8] = chr((ord($data[8]) & 0x3F) | 0x80);
+        return vsprintf(
+            format: '%s%s-%s-%s-%s-%s%s%s',
+            values: str_split(string: bin2hex(string: $data), length: 4)
+        );
+    }//end generateUuid()
 
     /**
      * Copy widget placements from a template to a new dashboard.
@@ -221,8 +237,9 @@ class TemplateService
         );
         $placement->setShowTitle($source->getShowTitle());
         $placement->setSortOrder($source->getSortOrder());
-        $placement->setCreatedAt(new DateTime());
-        $placement->setUpdatedAt(new DateTime());
+        $now = (new DateTime())->format(format: 'Y-m-d H:i:s');
+        $placement->setCreatedAt($now);
+        $placement->setUpdatedAt($now);
 
         return $placement;
     }//end clonePlacement()

@@ -32,16 +32,20 @@ class DashboardFactory
     /**
      * Create a new dashboard entity.
      *
-     * @param string      $userId      The user ID.
-     * @param string      $name        The dashboard name.
-     * @param string|null $description The dashboard description.
+     * @param string      $userId          The user ID.
+     * @param string      $name            The dashboard name.
+     * @param string|null $description     The dashboard description.
+     * @param string      $permissionLevel Permission level (defaults to full).
+     * @param int         $gridColumns     Grid columns (defaults to 12).
      *
      * @return Dashboard The created dashboard entity (not yet persisted).
      */
     public function create(
         string $userId,
         string $name,
-        ?string $description=null
+        ?string $description=null,
+        string $permissionLevel=Dashboard::PERMISSION_FULL,
+        int $gridColumns=12
     ): Dashboard {
         $now       = (new DateTime())->format(format: 'Y-m-d H:i:s');
         $dashboard = new Dashboard();
@@ -50,8 +54,8 @@ class DashboardFactory
         $dashboard->setDescription($description);
         $dashboard->setType(Dashboard::TYPE_USER);
         $dashboard->setUserId($userId);
-        $dashboard->setGridColumns(12);
-        $dashboard->setPermissionLevel(Dashboard::PERMISSION_FULL);
+        $dashboard->setGridColumns($gridColumns);
+        $dashboard->setPermissionLevel($permissionLevel);
         $dashboard->setIsActive(1);
         $dashboard->setCreatedAt($now);
         $dashboard->setUpdatedAt($now);

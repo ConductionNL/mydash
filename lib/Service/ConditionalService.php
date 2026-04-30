@@ -130,7 +130,7 @@ class ConditionalService
         $rule->setRuleType($ruleType);
         $rule->setRuleConfigArray($ruleConfig);
         $rule->setIsInclude($isInclude);
-        $rule->setCreatedAt(new DateTime());
+        $rule->setCreatedAt((new DateTime())->format(format: 'c'));
 
         return $this->ruleMapper->insert(entity: $rule);
     }//end addRule()

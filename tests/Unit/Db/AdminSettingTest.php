@@ -97,7 +97,7 @@ class AdminSettingTest extends TestCase
 
     public function testJsonSerialize(): void
     {
-        $now = new DateTime();
+        $now = (new DateTime())->format('c');
         $this->setting->setSettingKey('allow_user_dashboards');
         $this->setting->setValueEncoded(true);
         $this->setting->setUpdatedAt($now);
@@ -107,7 +107,7 @@ class AdminSettingTest extends TestCase
         $this->assertIsArray($serialized);
         $this->assertSame('allow_user_dashboards', $serialized['key']);
         $this->assertTrue($serialized['value']);
-        $this->assertSame($now->format('c'), $serialized['updatedAt']);
+        $this->assertSame($now, $serialized['updatedAt']);
         $this->assertArrayHasKey('id', $serialized);
     }
 
