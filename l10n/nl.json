@@ -171,6 +171,7 @@
         "Failed to upload image": "Afbeelding kon niet worden geüpload",
         "Image URL is required": "Afbeeldings-URL is verplicht",
         "My Dashboards": "Mijn dashboards",
-        "+ New Dashboard": "+ Nieuw dashboard"
+        "+ New Dashboard": "+ Nieuw dashboard",
+        "Personal dashboards are not enabled by your administrator": "Persoonlijke dashboards zijn niet ingeschakeld door uw beheerder"
     }
 }
