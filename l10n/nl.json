@@ -155,6 +155,19 @@
         "Video": "Video",
         "Wallet": "Portemonnee",
         "Widget": "Widget",
-        "Widgets": "Widgets"
+        "Widgets": "Widgets",
+        "No image": "Geen afbeelding",
+        "Image failed to load": "Afbeelding kon niet worden geladen",
+        "Upload Image": "Afbeelding uploaden",
+        "Or enter Image URL": "Of voer een afbeeldings-URL in",
+        "Alt Text": "Alt-tekst",
+        "Link (optional)": "Link (optioneel)",
+        "Fit": "Aanpassingsmanier",
+        "Cover": "Bedekken",
+        "Contain": "Bevatten",
+        "Fill": "Vullen",
+        "None": "Geen",
+        "Failed to upload image": "Afbeelding kon niet worden geüpload",
+        "Image URL is required": "Afbeeldings-URL is verplicht"
     }
 }
