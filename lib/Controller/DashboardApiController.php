@@ -630,6 +630,35 @@ class DashboardApiController extends Controller
     }//end setGroupDefault()
 
     /**
+     * Persist the user's active-dashboard preference.
+     *
+     * Accepts any UUID string (including non-existent UUIDs — the resolver's
+     * stale-pref path handles invalid values on next render). Empty string
+     * clears the preference. REQ-DASH-019.
+     *
+     * @param string|null $uuid The dashboard UUID from the request body, or
+     *                          empty string to clear.
+     *
+     * @return JSONResponse HTTP 200 `{status: 'success'}` on success; 401
+     *                      when the session has no user.
+     */
+    #[NoAdminRequired]
+
+    public function setActiveDashboard(?string $uuid=null): JSONResponse
+    {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
+
+        $this->dashboardService->setActivePreference(
+            userId: $this->userId,
+            uuid: ($uuid ?? '')
+        );
+
+        return ResponseHelper::success(data: ['status' => 'success']);
+    }//end setActiveDashboard()
+
+    /**
      * Resolve create parameters from JSON body or individual params.
      *
      * @param mixed       $name        The name parameter.

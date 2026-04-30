@@ -26,7 +26,10 @@ declare(strict_types=1);
 namespace OCA\MyDash\Controller;
 
 use OCA\MyDash\AppInfo\Application;
+use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Service\AdminSettingsService;
+use OCA\MyDash\Service\AdminTemplateService;
+use OCA\MyDash\Service\DashboardService;
 use OCA\MyDash\Service\InitialStateBuilder;
 use OCA\MyDash\Service\Page;
 use OCP\AppFramework\Controller;
@@ -45,12 +48,17 @@ class PageController extends Controller
     /**
      * Constructor
      *
-     * @param IRequest             $request          The request.
-     * @param IInitialState        $initialState     Nextcloud initial-state service.
-     * @param IDashboardManager    $dashboardManager Dashboard widget manager.
-     * @param IUserSession         $userSession      Current user session.
-     * @param IGroupManager        $groupManager     Group membership lookup.
-     * @param AdminSettingsService $adminSettings    MyDash admin settings.
+     * @param IRequest             $request             The request.
+     * @param IInitialState        $initialState        Nextcloud initial-state service.
+     * @param IDashboardManager    $dashboardManager    Dashboard widget manager.
+     * @param IUserSession         $userSession         Current user session.
+     * @param IGroupManager        $groupManager        Group membership lookup.
+     * @param AdminSettingsService $adminSettings       MyDash admin settings.
+     * @param DashboardService     $dashboardService    Dashboard service (active
+     *                                                  resolver — REQ-DASH-018).
+     * @param AdminTemplateService $templateService     Template service (primary
+     *                                                  group resolver —
+     *                                                  REQ-TMPL-012).
      */
     public function __construct(
         IRequest $request,
@@ -59,6 +67,8 @@ class PageController extends Controller
         private readonly IUserSession $userSession,
         private readonly IGroupManager $groupManager,
         private readonly AdminSettingsService $adminSettings,
+        private readonly DashboardService $dashboardService,
+        private readonly AdminTemplateService $templateService,
     ) {
         parent::__construct(appName: Application::APP_ID, request: $request);
     }//end __construct()
@@ -83,13 +93,17 @@ class PageController extends Controller
 
         $user     = $this->userSession->getUser();
         $isAdmin  = false;
-        $groupIds = [];
+        $userId   = null;
         if ($user !== null) {
-            $isAdmin  = $this->groupManager->isAdmin(userId: $user->getUID());
-            $groupIds = $this->groupManager->getUserGroupIds(user: $user);
+            $userId  = $user->getUID();
+            $isAdmin = $this->groupManager->isAdmin(userId: $userId);
         }
 
-        $primaryGroup     = ($groupIds[0] ?? 'default');
+        // Resolve the primary group via the canonical REQ-TMPL-012 authority.
+        $primaryGroup = ($userId !== null)
+            ? $this->templateService->resolvePrimaryGroup(userId: $userId)
+            : Dashboard::DEFAULT_GROUP_ID;
+
         $primaryGroupName = $primaryGroup;
         if ($primaryGroup !== 'default'
             && $this->groupManager->groupExists(gid: $primaryGroup) === true
@@ -97,6 +111,20 @@ class PageController extends Controller
             $group = $this->groupManager->get(gid: $primaryGroup);
             if ($group !== null) {
                 $primaryGroupName = $group->getDisplayName();
+            }
+        }
+
+        // Resolve the active dashboard via the REQ-DASH-018 precedence chain.
+        $activeDashboardId = '';
+        $dashboardSource   = 'group';
+        if ($userId !== null) {
+            $resolved = $this->dashboardService->resolveActiveDashboard(
+                userId: $userId,
+                primaryGroupId: $primaryGroup
+            );
+            if ($resolved !== null) {
+                $activeDashboardId = (string) $resolved['dashboard']->getUuid();
+                $dashboardSource   = $resolved['source'];
             }
         }
 
@@ -112,8 +140,8 @@ class PageController extends Controller
             ->setPrimaryGroup(primaryGroup: $primaryGroup)
             ->setPrimaryGroupName(primaryGroupName: $primaryGroupName)
             ->setIsAdmin(isAdmin: $isAdmin)
-            ->setActiveDashboardId(activeDashboardId: '')
-            ->setDashboardSource(dashboardSource: 'group')
+            ->setActiveDashboardId(activeDashboardId: $activeDashboardId)
+            ->setDashboardSource(dashboardSource: $dashboardSource)
             ->setGroupDashboards(groupDashboards: [])
             ->setUserDashboards(userDashboards: [])
             ->setAllowUserDashboards(
