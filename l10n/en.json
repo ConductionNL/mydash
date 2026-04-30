@@ -172,6 +172,19 @@
         "Image URL is required": "Image URL is required",
         "My Dashboards": "My Dashboards",
         "+ New Dashboard": "+ New Dashboard",
-        "Personal dashboards are not enabled by your administrator": "Personal dashboards are not enabled by your administrator"
+        "Personal dashboards are not enabled by your administrator": "Personal dashboards are not enabled by your administrator",
+        "%1$s shared **%2$s** with you": "%1$s shared **%2$s** with you",
+        "%1$s shared %2$s with you": "%1$s shared %2$s with you",
+        "Full access": "Full access",
+        "Add-only access": "Add-only access",
+        "View-only access": "View-only access",
+        "Shared access": "Shared access",
+        "**%1$s** is now yours": "**%1$s** is now yours",
+        "%1$s is now yours": "%1$s is now yours",
+        "Ownership transferred after the previous owner was removed": "Ownership transferred after the previous owner was removed",
+        "Access denied": "Access denied",
+        "Invalid shareType": "Invalid shareType",
+        "shareWith is required": "shareWith is required",
+        "Invalid permissionLevel": "Invalid permissionLevel"
     }
 }

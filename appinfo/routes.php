@@ -46,6 +46,18 @@ return [
 		['name' => 'dashboard_api#setGroupDefault', 'url' => '/api/dashboards/group/{groupId}/default', 'verb' => 'POST',
 		 'requirements' => ['groupId' => '[^/]+']],
 
+		// Dashboard sharing endpoints (REQ-SHARE-001..010).
+		// Per-row operations.
+		['name' => 'dashboard_share_api#index', 'url' => '/api/dashboard/{id}/shares', 'verb' => 'GET'],
+		['name' => 'dashboard_share_api#create', 'url' => '/api/dashboard/{id}/shares', 'verb' => 'POST'],
+		['name' => 'dashboard_share_api#destroy', 'url' => '/api/dashboard/share/{shareId}', 'verb' => 'DELETE'],
+		// Bulk replace — REQ-SHARE-009.
+		['name' => 'dashboard_share_api#replace', 'url' => '/api/dashboard/{id}/shares', 'verb' => 'PUT'],
+		// Revoke all for recipient — REQ-SHARE-010.
+		['name' => 'dashboard_share_api#revokeForRecipient',
+		 'url' => '/api/sharees/{shareType}/{shareWith}', 'verb' => 'DELETE',
+		 'requirements' => ['shareType' => '[^/]+', 'shareWith' => '[^/]+']],
+
 		// Widget endpoints
 		['name' => 'widget_api#listAvailable', 'url' => '/api/widgets', 'verb' => 'GET'],
 		['name' => 'widget_api#getItems', 'url' => '/api/widgets/items', 'verb' => 'GET'],
