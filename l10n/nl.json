@@ -172,6 +172,19 @@
         "Image URL is required": "Afbeeldings-URL is verplicht",
         "My Dashboards": "Mijn dashboards",
         "+ New Dashboard": "+ Nieuw dashboard",
-        "Personal dashboards are not enabled by your administrator": "Persoonlijke dashboards zijn niet ingeschakeld door uw beheerder"
+        "Personal dashboards are not enabled by your administrator": "Persoonlijke dashboards zijn niet ingeschakeld door uw beheerder",
+        "%1$s shared **%2$s** with you": "%1$s heeft **%2$s** met u gedeeld",
+        "%1$s shared %2$s with you": "%1$s heeft %2$s met u gedeeld",
+        "Full access": "Volledige toegang",
+        "Add-only access": "Alleen toevoegen",
+        "View-only access": "Alleen bekijken",
+        "Shared access": "Gedeelde toegang",
+        "**%1$s** is now yours": "**%1$s** is nu van u",
+        "%1$s is now yours": "%1$s is nu van u",
+        "Ownership transferred after the previous owner was removed": "Eigendom overgedragen omdat de vorige eigenaar is verwijderd",
+        "Access denied": "Toegang geweigerd",
+        "Invalid shareType": "Ongeldig deeltype",
+        "shareWith is required": "shareWith is verplicht",
+        "Invalid permissionLevel": "Ongeldig rechtenniveau"
     }
 }
