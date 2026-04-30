@@ -45,6 +45,7 @@ import { GridStack } from 'gridstack'
 import WidgetWrapper from './WidgetWrapper.vue'
 import TileWidget from './TileWidget.vue'
 import { placeNewWidget } from '../utils/widgetPlacement.js'
+import { CELL_HEIGHT, GRID_MARGIN, BREAKPOINTS, COLUMN_LAYOUT } from '../constants/gridConfig.js'
 
 export default {
 	name: 'DashboardGrid',
@@ -136,9 +137,7 @@ export default {
 		computeViewportRows() {
 			if (!this.$refs.gridContainer) return
 			const containerHeight = this.$refs.gridContainer.offsetHeight
-			const cellHeight = 80 // Must match the cellHeight in initGrid
-			const margin = 12 // Must match the margin in initGrid
-			const rowHeight = cellHeight + margin
+			const rowHeight = CELL_HEIGHT + GRID_MARGIN
 			this.viewportRows = Math.ceil(containerHeight / rowHeight)
 		},
 
@@ -176,8 +175,12 @@ export default {
 		initGrid() {
 			this.grid = GridStack.init({
 				column: this.gridColumns,
-				cellHeight: 80,
-				margin: 12,
+				cellHeight: CELL_HEIGHT,
+				margin: GRID_MARGIN,
+				columnOpts: {
+					breakpoints: BREAKPOINTS,
+					layout: COLUMN_LAYOUT,
+				},
 				float: true,
 				animate: true,
 				disableDrag: !this.editMode,
