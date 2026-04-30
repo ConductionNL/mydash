@@ -41,6 +41,7 @@
 		<div class="mydash-container" :class="{ 'mydash-edit-mode': isEditMode }">
 			<DashboardGrid
 				v-if="activeDashboard"
+				ref="dashboardGrid"
 				:placements="widgetPlacements"
 				:widgets="availableWidgets"
 				:edit-mode="isEditMode"
@@ -211,7 +212,21 @@ export default {
 			this.isPickerOpen = false
 		},
 		async addWidget(widgetId) {
-			await this.addWidgetToDashboard(widgetId)
+			// Use the widget placement helper to compute position
+			const gridComponent = this.$refs.dashboardGrid
+			let position = null
+
+			if (gridComponent && gridComponent.placeWidget) {
+				// Get widget spec (default size if not specified)
+				const widget = this.availableWidgets.find(w => w.id === widgetId)
+				const spec = {
+					w: widget?.defaultWidth ?? 4,
+					h: widget?.defaultHeight ?? 4,
+				}
+				position = gridComponent.placeWidget(spec)
+			}
+
+			await this.addWidgetToDashboard(widgetId, position)
 		},
 		async removeWidget(placementId) {
 			await this.removeWidgetFromDashboard(placementId)
@@ -276,8 +291,18 @@ export default {
 					console.log('[Views] Tile updated successfully')
 				} else {
 					console.log('[Views] Creating new tile for dashboard')
+					// Use the widget placement helper to compute position
+					const gridComponent = this.$refs.dashboardGrid
+					let position = null
+
+					if (gridComponent && gridComponent.placeWidget) {
+						// Tiles have default size 2×2
+						const spec = { w: 2, h: 2 }
+						position = gridComponent.placeWidget(spec)
+					}
+
 					// Create new tile using the store action (like widgets).
-					await this.addTileToDashboard(tileData)
+					await this.addTileToDashboard(tileData, position)
 					console.log('[Views] Tile added successfully')
 				}
 				this.closeTileEditor()

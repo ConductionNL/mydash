@@ -3,8 +3,10 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
+/* eslint-disable n/no-unpublished-import */
 import { describe, it, expect, beforeAll, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+/* eslint-enable n/no-unpublished-import */
 
 import ImageWidget from '../components/Widgets/Renderers/ImageWidget.vue'
 import ImageForm from '../components/Widgets/Forms/ImageForm.vue'

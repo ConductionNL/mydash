@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:5a8d01e9-189d-41a2-9dcf-903890262473",
+  "serialNumber": "urn:uuid:056c0c17-fe7c-44de-b020-57c82df72cba",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-04-30T18:24:08Z",
+    "timestamp": "2026-04-30T18:45:21Z",
     "tools": [
       {
         "name": "composer",
@@ -82,10 +82,10 @@
       }
     ],
     "component": {
-      "bom-ref": "mydash/mydash-dev-feature/impl-image-widget",
+      "bom-ref": "mydash/mydash-dev-feature/impl-widget-collision-placement",
       "type": "application",
       "name": "mydash",
-      "version": "dev-feature/impl-image-widget",
+      "version": "dev-feature/impl-widget-collision-placement",
       "group": "mydash",
       "description": "Enhanced dashboard with grid layout and admin controls for Nextcloud",
       "author": "MyDash Contributors",
@@ -96,15 +96,15 @@
           }
         }
       ],
-      "purl": "pkg:composer/mydash/mydash@dev-feature/impl-image-widget",
+      "purl": "pkg:composer/mydash/mydash@dev-feature/impl-widget-collision-placement",
       "properties": [
         {
           "name": "cdx:composer:package:distReference",
-          "value": "193f08b27ed00723f29fc6f99321f4040bb84b29"
+          "value": "5fcf2fd73fb70a70661083f4a5fad10008c06396"
         },
         {
           "name": "cdx:composer:package:sourceReference",
-          "value": "193f08b27ed00723f29fc6f99321f4040bb84b29"
+          "value": "5fcf2fd73fb70a70661083f4a5fad10008c06396"
         },
         {
           "name": "cdx:composer:package:type",
@@ -17934,7 +17934,7 @@
       ]
     },
     {
-      "ref": "mydash/mydash-dev-feature/impl-image-widget",
+      "ref": "mydash/mydash-dev-feature/impl-widget-collision-placement",
       "dependsOn": [
         "ramsey/uuid-4.9.2.0"
       ]
