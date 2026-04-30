@@ -172,7 +172,7 @@ import {
 	NcCheckboxRadioSwitch,
 	NcEmptyContent,
 	NcModal,
-} from '@nextcloud/vue'
+} from '@conduction/nextcloud-vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
 import { api } from '../../services/api.js'

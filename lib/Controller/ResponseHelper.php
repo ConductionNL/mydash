@@ -12,9 +12,6 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -23,6 +20,7 @@ namespace OCA\MyDash\Controller;
 
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\JSONResponse;
+use Psr\Log\LoggerInterface;
 
 /**
  * Helper for building common JSON responses in controllers.
@@ -61,17 +59,35 @@ class ResponseHelper
     /**
      * Create an error response from an exception.
      *
-     * @param \Exception $exception  The exception.
-     * @param int        $statusCode The HTTP status code.
+     * Per ADR-005: never return the raw exception message to the client.
+     * Callers SHOULD pass their injected LoggerInterface so the real
+     * exception is recorded in the server log; the client only ever sees
+     * the generic `$message` (defaulting to "Operation failed").
+     *
+     * @param \Exception       $exception  The exception.
+     * @param int              $statusCode The HTTP status code.
+     * @param LoggerInterface|null $logger When provided, the exception is
+     *                                     logged at ERROR level before
+     *                                     the response is returned.
+     * @param string           $message    Generic client-facing message.
      *
      * @return JSONResponse The error response.
      */
     public static function error(
         \Exception $exception,
-        int $statusCode=Http::STATUS_BAD_REQUEST
+        int $statusCode=Http::STATUS_BAD_REQUEST,
+        ?LoggerInterface $logger=null,
+        string $message='Operation failed'
     ): JSONResponse {
+        if ($logger !== null) {
+            $logger->error(
+                message: $exception->getMessage(),
+                context: ['exception' => $exception]
+            );
+        }
+
         return new JSONResponse(
-            data: ['error' => $exception->getMessage()],
+            data: ['error' => $message],
             statusCode: $statusCode
         );
     }//end error()

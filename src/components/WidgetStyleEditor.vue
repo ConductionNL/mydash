@@ -124,7 +124,7 @@ import {
 	NcSelect,
 	NcColorPicker,
 	NcCheckboxRadioSwitch,
-} from '@nextcloud/vue'
+} from '@conduction/nextcloud-vue'
 import {
 	mdiFile,
 	mdiFolder,
