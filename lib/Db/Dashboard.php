@@ -37,6 +37,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setType(?string $type)
  * @method string|null getUserId()
  * @method void setUserId(?string $userId)
+ * @method string|null getGroupId()
+ * @method void setGroupId(?string $groupId)
  * @method int|null getBasedOnTemplate()
  * @method void setBasedOnTemplate(?int $basedOnTemplate)
  * @method int getGridColumns()
@@ -70,6 +72,58 @@ class Dashboard extends Entity implements JsonSerializable
      * @var string
      */
     public const TYPE_USER = 'user';
+
+    /**
+     * Dashboard type for group-shared dashboards.
+     *
+     * Group-shared dashboards are admin-authored, scoped to a single
+     * Nextcloud group via the {@see Dashboard::$groupId} field, and
+     * rendered live (not copied) to every member of that group.
+     * REQ-DASH-011.
+     *
+     * @var string
+     */
+    public const TYPE_GROUP_SHARED = 'group_shared';
+
+    /**
+     * Synthetic group sentinel meaning "visible to every user".
+     *
+     * Reserved literal value for the {@see Dashboard::$groupId} field
+     * on group-shared dashboards. REQ-DASH-012.
+     *
+     * @var string
+     */
+    public const DEFAULT_GROUP_ID = 'default';
+
+    /**
+     * Source tag indicating a personal user-owned dashboard.
+     *
+     * Used in the `/api/dashboards/visible` payload only — never
+     * persisted on the entity. REQ-DASH-013.
+     *
+     * @var string
+     */
+    public const SOURCE_USER = 'user';
+
+    /**
+     * Source tag indicating a group-matched group-shared dashboard.
+     *
+     * Used in the `/api/dashboards/visible` payload only — never
+     * persisted on the entity. REQ-DASH-013.
+     *
+     * @var string
+     */
+    public const SOURCE_GROUP = 'group';
+
+    /**
+     * Source tag indicating a default-group group-shared dashboard.
+     *
+     * Used in the `/api/dashboards/visible` payload only — never
+     * persisted on the entity. REQ-DASH-013.
+     *
+     * @var string
+     */
+    public const SOURCE_DEFAULT = 'default';
 
     /**
      * Permission level for view only.
@@ -126,6 +180,18 @@ class Dashboard extends Entity implements JsonSerializable
      * @var string|null
      */
     protected ?string $userId = null;
+
+    /**
+     * The group ID for group-shared dashboards.
+     *
+     * Populated only when {@see Dashboard::$type} equals
+     * {@see Dashboard::TYPE_GROUP_SHARED}. The literal value
+     * {@see Dashboard::DEFAULT_GROUP_ID} is reserved as a "visible to
+     * every user" sentinel. REQ-DASH-011, REQ-DASH-012.
+     *
+     * @var string|null
+     */
+    protected ?string $groupId = null;
 
     /**
      * The template ID this dashboard is based on.
@@ -250,6 +316,7 @@ class Dashboard extends Entity implements JsonSerializable
             'description'     => $this->description,
             'type'            => $this->type,
             'userId'          => $this->userId,
+            'groupId'         => $this->groupId,
             'basedOnTemplate' => $this->basedOnTemplate,
             'gridColumns'     => $this->gridColumns,
             'permissionLevel' => $this->permissionLevel,

@@ -33,6 +33,8 @@ use OCP\IDBConnection;
  * Mapper for dashboard entities.
  *
  * @extends QBMapper<Dashboard>
+ *
+ * @SuppressWarnings(PHPMD.TooManyPublicMethods)
  */
 class DashboardMapper extends QBMapper
 {
@@ -310,6 +312,215 @@ class DashboardMapper extends QBMapper
 
         $qb->executeStatement();
     }//end setActive()
+
+    /**
+     * Find all group-shared dashboards for a single group.
+     *
+     * Issues `WHERE type = 'group_shared' AND group_id = ?`. Used by the
+     * group-scoped CRUD endpoints (REQ-DASH-014). The `default` group is
+     * looked up the same way as any other group ID.
+     *
+     * @param string $groupId The group ID (real Nextcloud group ID, or
+     *                        the literal {@see Dashboard::DEFAULT_GROUP_ID}
+     *                        sentinel).
+     *
+     * @return Dashboard[] The group-shared dashboards in that group.
+     */
+    public function findByGroup(string $groupId): array
+    {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select(selects: '*')
+            ->from(from: $this->getTableName())
+            ->where(
+                $qb->expr()->eq(
+                    x: 'type',
+                    y: $qb->createNamedParameter(
+                        value: Dashboard::TYPE_GROUP_SHARED
+                    )
+                )
+            )
+            ->andWhere(
+                $qb->expr()->eq(
+                    x: 'group_id',
+                    y: $qb->createNamedParameter(value: $groupId)
+                )
+            )
+            ->orderBy(sort: 'created_at', order: 'ASC');
+
+        return $this->findEntities(query: $qb);
+    }//end findByGroup()
+
+    /**
+     * Find all dashboards visible to a user.
+     *
+     * Issues three indexed queries — personal `user`-type rows owned by
+     * the user, `group_shared` rows whose `group_id` is in the user's
+     * group memberships, and `group_shared` rows whose `group_id` equals
+     * the {@see Dashboard::DEFAULT_GROUP_ID} sentinel — and unions /
+     * dedupes the results by UUID. Each result row carries an extra
+     * `_source` key (`'user'`, `'group'`, or `'default'`) so the caller
+     * can attach the source field to the response. REQ-DASH-013.
+     *
+     * Priority order on UUID overlap is: user > group > default. This
+     * keeps the `source` field deterministic when a user is in the
+     * group _and_ also receives the dashboard via the default sentinel
+     * (rare but handled).
+     *
+     * @param string   $userId       The user ID.
+     * @param string[] $userGroupIds The user's Nextcloud group IDs.
+     *
+     * @return array<int, array{dashboard: Dashboard, source: string}>
+     *   List of {dashboard, source} pairs, deduplicated by dashboard UUID.
+     */
+    public function findVisibleToUser(
+        string $userId,
+        array $userGroupIds
+    ): array {
+        $personal = $this->findByUserId(userId: $userId);
+
+        $groupRows = [];
+        if (empty($userGroupIds) === false) {
+            $groupRows = $this->findGroupSharedInGroups(
+                groupIds: $userGroupIds
+            );
+        }
+
+        $defaultRows = $this->findByGroup(
+            groupId: Dashboard::DEFAULT_GROUP_ID
+        );
+
+        // Dedup by UUID with priority user > group > default.
+        $seen   = [];
+        $result = [];
+
+        foreach ($personal as $dashboard) {
+            $uuid = (string) $dashboard->getUuid();
+            if (isset($seen[$uuid]) === true) {
+                continue;
+            }
+
+            $seen[$uuid] = true;
+            $result[]    = [
+                'dashboard' => $dashboard,
+                'source'    => Dashboard::SOURCE_USER,
+            ];
+        }
+
+        foreach ($groupRows as $dashboard) {
+            $uuid = (string) $dashboard->getUuid();
+            if (isset($seen[$uuid]) === true) {
+                continue;
+            }
+
+            // The default-group sentinel rows are filtered out of the
+            // group-bucket so they always appear under SOURCE_DEFAULT.
+            if ($dashboard->getGroupId() === Dashboard::DEFAULT_GROUP_ID) {
+                continue;
+            }
+
+            $seen[$uuid] = true;
+            $result[]    = [
+                'dashboard' => $dashboard,
+                'source'    => Dashboard::SOURCE_GROUP,
+            ];
+        }
+
+        foreach ($defaultRows as $dashboard) {
+            $uuid = (string) $dashboard->getUuid();
+            if (isset($seen[$uuid]) === true) {
+                continue;
+            }
+
+            $seen[$uuid] = true;
+            $result[]    = [
+                'dashboard' => $dashboard,
+                'source'    => Dashboard::SOURCE_DEFAULT,
+            ];
+        }
+
+        return $result;
+    }//end findVisibleToUser()
+
+    /**
+     * Find group-shared dashboards whose group_id is in the supplied list.
+     *
+     * Helper for {@see DashboardMapper::findVisibleToUser()}. Hits the
+     * `(type, group_id)` composite index.
+     *
+     * @param string[] $groupIds The group IDs to match.
+     *
+     * @return Dashboard[] The matching group-shared dashboards.
+     */
+    private function findGroupSharedInGroups(array $groupIds): array
+    {
+        if (empty($groupIds) === true) {
+            return [];
+        }
+
+        $qb = $this->db->getQueryBuilder();
+        $qb->select(selects: '*')
+            ->from(from: $this->getTableName())
+            ->where(
+                $qb->expr()->eq(
+                    x: 'type',
+                    y: $qb->createNamedParameter(
+                        value: Dashboard::TYPE_GROUP_SHARED
+                    )
+                )
+            )
+            ->andWhere(
+                $qb->expr()->in(
+                    x: 'group_id',
+                    y: $qb->createNamedParameter(
+                        value: $groupIds,
+                        type: IQueryBuilder::PARAM_STR_ARRAY
+                    )
+                )
+            )
+            ->orderBy(sort: 'created_at', order: 'ASC');
+
+        return $this->findEntities(query: $qb);
+    }//end findGroupSharedInGroups()
+
+    /**
+     * Count group-shared dashboards in a single group.
+     *
+     * Used by the last-in-group delete guard (REQ-DASH-014).
+     *
+     * @param string $groupId The group ID.
+     *
+     * @return int The number of group-shared dashboards in that group.
+     */
+    public function countByGroup(string $groupId): int
+    {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select($qb->func()->count('*', 'cnt'))
+            ->from(from: $this->getTableName())
+            ->where(
+                $qb->expr()->eq(
+                    x: 'type',
+                    y: $qb->createNamedParameter(
+                        value: Dashboard::TYPE_GROUP_SHARED
+                    )
+                )
+            )
+            ->andWhere(
+                $qb->expr()->eq(
+                    x: 'group_id',
+                    y: $qb->createNamedParameter(value: $groupId)
+                )
+            );
+
+        $cursor = $qb->executeQuery();
+        $row    = $cursor->fetch();
+        $cursor->closeCursor();
+
+        if ($row === false || isset($row['cnt']) === false) {
+            return 0;
+        }
+
+        return (int) $row['cnt'];
+    }//end countByGroup()
 
     /**
      * Clear default flag on all admin templates.
