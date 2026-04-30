@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:f6175e64-0024-4d75-9d39-f8ba0b78cf60",
+  "serialNumber": "urn:uuid:6cee276e-6aa3-49ab-95e4-1b2e58cb54db",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-04-30T12:01:55Z",
+    "timestamp": "2026-04-30T12:20:58Z",
     "tools": [
       {
         "name": "composer",
@@ -82,10 +82,10 @@
       }
     ],
     "component": {
-      "bom-ref": "mydash/mydash-dev-chore/add-vitest-setup",
+      "bom-ref": "mydash/mydash-dev-feature/impl-group-routing",
       "type": "application",
       "name": "mydash",
-      "version": "dev-chore/add-vitest-setup",
+      "version": "dev-feature/impl-group-routing",
       "group": "mydash",
       "description": "Enhanced dashboard with grid layout and admin controls for Nextcloud",
       "author": "MyDash Contributors",
@@ -96,15 +96,15 @@
           }
         }
       ],
-      "purl": "pkg:composer/mydash/mydash@dev-chore/add-vitest-setup",
+      "purl": "pkg:composer/mydash/mydash@dev-feature/impl-group-routing",
       "properties": [
         {
           "name": "cdx:composer:package:distReference",
-          "value": "7068f89e08bf18c6a58179aa63e110e4d709efc1"
+          "value": "fc7dc0e9ecf9f6ed041d085b82b639324fb8217b"
         },
         {
           "name": "cdx:composer:package:sourceReference",
-          "value": "7068f89e08bf18c6a58179aa63e110e4d709efc1"
+          "value": "fc7dc0e9ecf9f6ed041d085b82b639324fb8217b"
         },
         {
           "name": "cdx:composer:package:type",
@@ -17934,7 +17934,7 @@
       ]
     },
     {
-      "ref": "mydash/mydash-dev-chore/add-vitest-setup",
+      "ref": "mydash/mydash-dev-feature/impl-group-routing",
       "dependsOn": [
         "ramsey/uuid-4.9.2.0"
       ]
