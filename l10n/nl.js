@@ -170,7 +170,20 @@ OC.L10N.register(
     "Widget style" : "Widgetstijl",
     "Widget title" : "Widgettitel",
     "Widgets" : "Widgets",
-    "https://example.com or /apps/files" : "https://voorbeeld.nl of /apps/files"
+    "https://example.com or /apps/files" : "https://voorbeeld.nl of /apps/files",
+    "Link Button" : "Linkknop",
+    "Action Type" : "Actietype",
+    "External Link" : "Externe link",
+    "Internal Function" : "Interne functie",
+    "Create File" : "Bestand aanmaken",
+    "Upload Icon (optional)" : "Pictogram uploaden (optioneel)",
+    "Create Document" : "Document aanmaken",
+    "File Name" : "Bestandsnaam",
+    "Enter filename" : "Voer bestandsnaam in",
+    "Create" : "Aanmaken",
+    "Creating…" : "Aanmaken…",
+    "Failed to create document" : "Document aanmaken mislukt",
+    "Please enter a file name" : "Voer een bestandsnaam in"
 },
 "nplurals=2; plural=(n != 1);"
 );

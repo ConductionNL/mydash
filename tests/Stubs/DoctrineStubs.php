@@ -83,3 +83,40 @@ namespace OC\DB\QueryBuilder\Sharded {
         }
     }
 }
+
+namespace OC\Hooks {
+    if (interface_exists(__NAMESPACE__ . '\\Emitter', false) === false) {
+        /**
+         * Minimal stub for OC\Hooks\Emitter referenced by OCP\Files\IRootFolder.
+         * Only needed outside the Nextcloud Docker container (where the full
+         * runtime is not available). PHPUnit's mock generator requires the
+         * interface to be resolvable before it can build a test double.
+         */
+        interface Emitter
+        {
+            /**
+             * @param string   $scope
+             * @param string   $method
+             * @param callable $callback
+             * @return void
+             */
+            public function listen(string $scope, string $method, callable $callback): void;
+
+            /**
+             * @param string        $scope
+             * @param string        $method
+             * @param callable|null $callback
+             * @return void
+             */
+            public function removeListener(string $scope, string $method, ?callable $callback=null): void;
+
+            /**
+             * @param string $scope
+             * @param string $method
+             * @param array  $arguments
+             * @return void
+             */
+            public function emit(string $scope, string $method, array $arguments=[]): void;
+        }
+    }
+}
