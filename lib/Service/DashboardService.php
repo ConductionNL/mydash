@@ -44,6 +44,7 @@ class DashboardService
      * @param TemplateService       $templateService  Template service.
      * @param DashboardFactory      $dashboardFactory Dashboard factory.
      * @param DashboardResolver     $dashResolver     Dashboard resolver.
+     * @param DashboardSeeder       $dashboardSeeder  Seeds new dashboards with default tiles.
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
@@ -52,6 +53,7 @@ class DashboardService
         private readonly TemplateService $templateService,
         private readonly DashboardFactory $dashboardFactory,
         private readonly DashboardResolver $dashResolver,
+        private readonly DashboardSeeder $dashboardSeeder,
     ) {
     }//end __construct()
 
@@ -118,7 +120,11 @@ class DashboardService
 
         $this->dashboardMapper->deactivateAllForUser(userId: $userId);
 
-        return $this->dashboardMapper->insert(entity: $dashboard);
+        $dashboard = $this->dashboardMapper->insert(entity: $dashboard);
+
+        $this->dashboardSeeder->seed(dashboardId: $dashboard->getId());
+
+        return $dashboard;
     }//end createDashboard()
 
     /**
