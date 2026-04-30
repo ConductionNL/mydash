@@ -5,6 +5,8 @@
 
 import TextDisplayWidget from '../components/Widgets/Renderers/TextDisplayWidget.vue'
 import TextDisplayForm from '../components/Widgets/Forms/TextDisplayForm.vue'
+import LabelWidget from '../components/Widgets/Renderers/LabelWidget.vue'
+import LabelForm from '../components/Widgets/Forms/LabelForm.vue'
 
 /**
  * Localised label helper. `t` is provided as a Nextcloud global at runtime;
@@ -51,6 +53,20 @@ export const widgetRegistry = {
 			color: '',
 			backgroundColor: '',
 			textAlign: 'left',
+		},
+	},
+	label: {
+		type: 'label',
+		label: tt('Label'),
+		component: LabelWidget,
+		form: LabelForm,
+		defaults: {
+			text: '',
+			fontSize: '16px',
+			color: '',
+			backgroundColor: '',
+			fontWeight: 'bold',
+			textAlign: 'center',
 		},
 	},
 }
