@@ -44,6 +44,7 @@
 import { GridStack } from 'gridstack'
 import WidgetWrapper from './WidgetWrapper.vue'
 import TileWidget from './TileWidget.vue'
+import { placeNewWidget } from '../utils/widgetPlacement.js'
 
 export default {
 	name: 'DashboardGrid',
@@ -77,6 +78,7 @@ export default {
 	data() {
 		return {
 			grid: null,
+			viewportRows: 8,
 		}
 	},
 
@@ -103,15 +105,43 @@ export default {
 
 	mounted() {
 		this.initGrid()
+		this.computeViewportRows()
+		window.addEventListener('resize', this.computeViewportRows)
 	},
 
 	beforeDestroy() {
 		if (this.grid) {
 			this.grid.destroy(false)
 		}
+		window.removeEventListener('resize', this.computeViewportRows)
 	},
 
 	methods: {
+		/**
+		 * Place a new widget using the collision placement algorithm (REQ-GRID-006, REQ-GRID-014).
+		 * Returns the placement position {x, y, w, h} for the new widget.
+		 * Caller MUST persist this position via the standard updatePlacements API.
+		 *
+		 * @param {object} spec widget spec with optional {w, h} dimensions
+		 * @return {object} placement position {x, y, w, h}
+		 */
+		placeWidget(spec) {
+			return placeNewWidget(spec, this.placements, this.grid, this.viewportRows)
+		},
+
+		/**
+		 * Compute viewport rows from the grid container height.
+		 * Called on mount and resize events.
+		 */
+		computeViewportRows() {
+			if (!this.$refs.gridContainer) return
+			const containerHeight = this.$refs.gridContainer.offsetHeight
+			const cellHeight = 80 // Must match the cellHeight in initGrid
+			const margin = 12 // Must match the margin in initGrid
+			const rowHeight = cellHeight + margin
+			this.viewportRows = Math.ceil(containerHeight / rowHeight)
+		},
+
 		getPlacementKey(placement) {
 			// Generate a key that changes when placement properties update.
 			// Include updatedAt or stringify relevant properties to force re-render.
