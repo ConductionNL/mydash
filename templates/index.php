@@ -5,4 +5,6 @@
  */
 ?>
 
-<div id="mydash-app"></div>
+<div id="app-workspace" class="mydash-workspace">
+	<div id="workspace-vue"></div>
+</div>
