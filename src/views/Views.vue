@@ -154,7 +154,7 @@
 
 <script>
 import { mapState, mapActions } from 'pinia'
-import { NcButton, NcEmptyContent } from '@nextcloud/vue'
+import { NcButton, NcEmptyContent } from '@conduction/nextcloud-vue'
 import { showSuccess, showError } from '@nextcloud/dialogs'
 import { t } from '@nextcloud/l10n'
 

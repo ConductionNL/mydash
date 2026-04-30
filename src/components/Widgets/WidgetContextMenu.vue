@@ -42,7 +42,7 @@
 </template>
 
 <script>
-import { NcButton } from '@nextcloud/vue'
+import { NcButton } from '@conduction/nextcloud-vue'
 import { t } from '@nextcloud/l10n'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
