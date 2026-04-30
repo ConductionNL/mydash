@@ -28,9 +28,9 @@
 	<img
 		v-if="isUrl"
 		:src="name"
+		:alt="alt || 'icon'"
 		:width="size"
-		:height="size"
-		alt="">
+		:height="size">
 	<component
 		:is="iconComponent"
 		v-else
@@ -64,6 +64,15 @@ export default {
 		size: {
 			type: Number,
 			default: 20,
+		},
+
+		/**
+		 * Alt text for `<img>` elements (custom URLs). Falls back to 'icon'
+		 * if not supplied.
+		 */
+		alt: {
+			type: String,
+			default: null,
 		},
 	},
 
