@@ -52,5 +52,7 @@ return [
 		['name' => 'admin#deleteTemplate', 'url' => '/api/admin/templates/{id}', 'verb' => 'DELETE'],
 		['name' => 'admin#getSettings', 'url' => '/api/admin/settings', 'verb' => 'GET'],
 		['name' => 'admin#updateSettings', 'url' => '/api/admin/settings', 'verb' => 'PUT'],
+		['name' => 'admin#listGroups', 'url' => '/api/admin/groups', 'verb' => 'GET'],
+		['name' => 'admin#updateGroupOrder', 'url' => '/api/admin/groups', 'verb' => 'POST'],
 	],
 ];

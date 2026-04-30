@@ -230,6 +230,9 @@ class Dashboard extends Entity implements JsonSerializable
      */
     public function setTargetGroupsArray(array $groups): void
     {
+        // Entity setters resolve via __call which uses $args[0]; named args
+        // would break the magic forwarding (see project memory).
+        // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
         $this->setTargetGroups(json_encode($groups));
     }//end setTargetGroupsArray()
 
