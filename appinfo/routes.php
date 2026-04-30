@@ -54,5 +54,8 @@ return [
 		['name' => 'admin#updateSettings', 'url' => '/api/admin/settings', 'verb' => 'PUT'],
 		['name' => 'admin#listGroups', 'url' => '/api/admin/groups', 'verb' => 'GET'],
 		['name' => 'admin#updateGroupOrder', 'url' => '/api/admin/groups', 'verb' => 'POST'],
+
+		// Resource uploads (admin-only base64 mini file API)
+		['name' => 'resource#upload', 'url' => '/api/resources', 'verb' => 'POST'],
 	],
 ];
