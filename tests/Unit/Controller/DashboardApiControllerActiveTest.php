@@ -27,6 +27,7 @@ use OCP\AppFramework\Http;
 use OCP\IRequest;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 /**
  * Unit tests for the setActiveDashboard controller action (REQ-DASH-019).
@@ -39,12 +40,15 @@ class DashboardApiControllerActiveTest extends TestCase
     private $dashboardService;
     /** @var PermissionService&MockObject */
     private $permissionService;
+    /** @var LoggerInterface&MockObject */
+    private $logger;
 
     protected function setUp(): void
     {
         $this->request           = $this->createMock(IRequest::class);
         $this->dashboardService  = $this->createMock(DashboardService::class);
         $this->permissionService = $this->createMock(PermissionService::class);
+        $this->logger            = $this->createMock(LoggerInterface::class);
     }//end setUp()
 
     /**
@@ -56,6 +60,7 @@ class DashboardApiControllerActiveTest extends TestCase
             request: $this->request,
             dashboardService: $this->dashboardService,
             permissionService: $this->permissionService,
+            logger: $this->logger,
             userId: $userId,
         );
     }//end makeController()

@@ -35,6 +35,7 @@ use OCA\MyDash\Exception\PersonalDashboardsDisabledException;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IConfig;
 use OCP\IDBConnection;
+use OCP\IL10N;
 use OCP\IGroupManager;
 use OCP\IUserManager;
 use Psr\Log\LoggerInterface;
@@ -101,6 +102,10 @@ class DashboardService
      *                                                flip — REQ-DASH-015).
      * @param IConfig               $config           Nextcloud per-user
      *                                                preference storage.
+     * @param IL10N                 $l10n             Localisation service
+     *                                                (used for the fork
+     *                                                default name —
+     *                                                REQ-DASH-020).
      * @param LoggerInterface       $logger           PSR logger.
      */
     public function __construct(
@@ -114,6 +119,7 @@ class DashboardService
         private readonly IUserManager $userManager,
         private readonly IDBConnection $db,
         private readonly IConfig $config,
+        private readonly IL10N $l10n,
         private readonly LoggerInterface $logger,
     ) {
     }//end __construct()
@@ -185,6 +191,114 @@ class DashboardService
 
         return $this->dashboardMapper->insert(entity: $dashboard);
     }//end createDashboard()
+
+    /**
+     * Fork a visible dashboard as a new personal copy for the caller.
+     *
+     * Implements REQ-DASH-020..022. Creates a new `user`-type dashboard
+     * owned by `$userId`, deep-copies all widget placements from the
+     * source, and makes it the user's active dashboard. The entire
+     * operation runs inside a single DB transaction (REQ-DASH-021).
+     *
+     * Gating rules:
+     *  - `allow_user_dashboards` must be `true`; otherwise throws
+     *    {@see PersonalDashboardsDisabledException} (→ HTTP 403).
+     *  - The source must be visible to `$userId` (any type); otherwise
+     *    throws {@see DoesNotExistException} (→ HTTP 404, no info leak).
+     *
+     * Resource URLs in placements are kept as-is — no resource bytes are
+     * duplicated (REQ-DASH-022).
+     *
+     * @param string      $userId     The calling user ID.
+     * @param string      $sourceUuid The UUID of the dashboard to fork.
+     * @param string|null $name       Override name; defaults to
+     *                                `t('My copy of {name}', …)`.
+     *
+     * @return Dashboard The newly created personal dashboard.
+     *
+     * @throws PersonalDashboardsDisabledException When the admin flag is off.
+     * @throws DoesNotExistException               When the source is not visible
+     *                                             to the calling user.
+     * @throws \Throwable                          On any DB error (rolled back).
+     *
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     */
+    public function forkAsPersonal(
+        string $userId,
+        string $sourceUuid,
+        ?string $name=null
+    ): Dashboard {
+        // REQ-ASET-003 gate — throws PersonalDashboardsDisabledException on failure.
+        $this->assertPersonalDashboardsAllowed();
+
+        // Resolve source from the user's visible set (REQ-DASH-013).
+        // Do NOT fall back to a raw findByUuid — that would leak existence
+        // of dashboards the user cannot see (REQ-DASH-020, 404 scenario).
+        $visible = $this->getVisibleToUser(userId: $userId);
+        $source  = null;
+        foreach ($visible as $entry) {
+            if ((string) $entry['dashboard']->getUuid() === $sourceUuid) {
+                $source = $entry['dashboard'];
+                break;
+            }
+        }
+
+        if ($source === null) {
+            throw new DoesNotExistException(
+                msg: 'Dashboard not found or not visible'
+            );
+        }
+
+        // Resolve the fork name — fall back to a translated default.
+        if ($name !== null && $name !== '') {
+            $forkName = $name;
+        } else {
+            $forkName = $this->l10n->t(
+                'My copy of {name}',
+                ['name' => (string) $source->getName()]
+            );
+        }
+
+        $this->db->beginTransaction();
+        try {
+            // Build the new personal dashboard entity.
+            $newDash = $this->dashboardFactory->create(
+                userId: $userId,
+                name: $forkName,
+                type: Dashboard::TYPE_USER,
+                groupId: null,
+                gridColumns: (int) $source->getGridColumns()
+            );
+            // Forks are never defaults (REQ-DASH-020 scenario).
+            $newDash->setIsDefault(0);
+
+            // Deactivate other personal dashboards BEFORE insert so the
+            // factory-set isActive=1 on the new row stays clean.
+            $this->dashboardMapper->deactivateAllForUser(userId: $userId);
+
+            // Persist the new dashboard row.
+            $newDash = $this->dashboardMapper->insert(entity: $newDash);
+
+            // Deep-copy placements (REQ-DASH-020, REQ-DASH-022).
+            $this->placementMapper->cloneToDashboard(
+                sourceDashboardId: (int) $source->getId(),
+                targetDashboardId: (int) $newDash->getId()
+            );
+
+            // Persist the active-dashboard preference (REQ-DASH-019).
+            $this->setActivePreference(
+                userId: $userId,
+                uuid: (string) $newDash->getUuid()
+            );
+
+            $this->db->commit();
+        } catch (Throwable $t) {
+            $this->db->rollBack();
+            throw $t;
+        }//end try
+
+        return $newDash;
+    }//end forkAsPersonal()
 
     /**
      * Update a dashboard.
@@ -583,16 +697,22 @@ class DashboardService
         ?string $primaryGroupId
     ): ?array {
         // Normalise the sentinel so steps 2-5 can rely on it.
-        $groupId = ($primaryGroupId === null || $primaryGroupId === '')
-            ? Dashboard::DEFAULT_GROUP_ID
-            : $primaryGroupId;
+        if ($primaryGroupId === null || $primaryGroupId === '') {
+            $groupId = Dashboard::DEFAULT_GROUP_ID;
+        } else {
+            $groupId = $primaryGroupId;
+        }
 
         // Pre-fetch all visible dashboards once — used for the pref lookup
         // and to avoid redundant DB round-trips.
         $visible = $this->getVisibleToUser(userId: $userId);
 
         // Build a UUID-keyed index for O(1) pref lookup.
-        /** @var array<string, array{dashboard: Dashboard, source: string}> $byUuid */
+        /**
+         * UUID-keyed index of the visible-to-user dashboard list.
+         *
+         * @var array<string, array{dashboard: Dashboard, source: string}> $byUuid
+         */
         $byUuid = [];
         foreach ($visible as $entry) {
             $uuid = (string) $entry['dashboard']->getUuid();
@@ -767,13 +887,12 @@ class DashboardService
      * "first" result is already correctly ordered without a secondary sort
      * here.
      *
-     * @param array<int, array{dashboard: Dashboard, source: string}> $visible
-     *                          The full visible-to-user list.
-     * @param string            $groupId       The group ID to filter on.
-     * @param string            $source        Expected source tag
-     *                                         (`'group'` or `'default'`).
-     * @param bool              $requireDefault When true, only rows with
-     *                                          `isDefault = 1` are considered.
+     * @param array<int, array{dashboard: Dashboard, source: string}> $visible        The full visible-to-user list.
+     * @param string                                                  $groupId        The group ID to filter on.
+     * @param string                                                  $source         Expected source tag
+     *                                                                                (`'group'` or `'default'`).
+     * @param bool                                                    $requireDefault When true, only rows with
+     *                                                                                `isDefault = 1` are considered.
      *
      * @return array{dashboard: Dashboard, source: string}|null
      */
