@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:388a0eb0-b171-4af8-ad2a-9b3607de7672",
+  "serialNumber": "urn:uuid:f6175e64-0024-4d75-9d39-f8ba0b78cf60",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-04-30T11:58:37Z",
+    "timestamp": "2026-04-30T12:01:55Z",
     "tools": [
       {
         "name": "composer",
@@ -82,10 +82,10 @@
       }
     ],
     "component": {
-      "bom-ref": "mydash/mydash-dev-chore/fix-phpstan-ocp-autoload",
+      "bom-ref": "mydash/mydash-dev-chore/add-vitest-setup",
       "type": "application",
       "name": "mydash",
-      "version": "dev-chore/fix-phpstan-ocp-autoload",
+      "version": "dev-chore/add-vitest-setup",
       "group": "mydash",
       "description": "Enhanced dashboard with grid layout and admin controls for Nextcloud",
       "author": "MyDash Contributors",
@@ -96,15 +96,15 @@
           }
         }
       ],
-      "purl": "pkg:composer/mydash/mydash@dev-chore/fix-phpstan-ocp-autoload",
+      "purl": "pkg:composer/mydash/mydash@dev-chore/add-vitest-setup",
       "properties": [
         {
           "name": "cdx:composer:package:distReference",
-          "value": "ba8a0759c1cbb204e95d28999d3ab6df45f8bff0"
+          "value": "7068f89e08bf18c6a58179aa63e110e4d709efc1"
         },
         {
           "name": "cdx:composer:package:sourceReference",
-          "value": "ba8a0759c1cbb204e95d28999d3ab6df45f8bff0"
+          "value": "7068f89e08bf18c6a58179aa63e110e4d709efc1"
         },
         {
           "name": "cdx:composer:package:type",
@@ -2486,65 +2486,6 @@
               "value": "node_modules/@nextcloud/vue/node_modules/p-timeout"
             }
           ]
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "parseargs",
-      "group": "@pkgjs",
-      "version": "0.11.0",
-      "bom-ref": "mydash@1.0.0|@pkgjs/parseargs@0.11.0",
-      "description": "Polyfill of future proposal for `util.parseArgs()`",
-      "scope": "optional",
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ],
-      "purl": "pkg:npm/%40pkgjs/parseargs@0.11.0",
-      "externalReferences": [
-        {
-          "url": "git+ssh://git@github.com/pkgjs/parseargs.git",
-          "type": "vcs",
-          "comment": "as detected from PackageJson property \"repository.url\""
-        },
-        {
-          "url": "https://github.com/pkgjs/parseargs#readme",
-          "type": "website",
-          "comment": "as detected from PackageJson property \"homepage\""
-        },
-        {
-          "url": "https://github.com/pkgjs/parseargs/issues",
-          "type": "issue-tracker",
-          "comment": "as detected from PackageJson property \"bugs.url\""
-        },
-        {
-          "url": "https://registry.npmjs.org/@pkgjs/parseargs/-/parseargs-0.11.0.tgz",
-          "type": "distribution",
-          "hashes": [
-            {
-              "alg": "SHA-512",
-              "content": "fb55648dd0f44012cfa1d1ab2547aa6ab1fc54022f40e0c86f087d5e93f94b28ac7fb628420b0928f345a2aa8b425bbe550fed552b21311ea5a0f327f14f9d3e"
-            }
-          ],
-          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\""
-        }
-      ],
-      "properties": [
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        },
-        {
-          "name": "cdx:npm:package:extraneous",
-          "value": "true"
-        },
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/@pkgjs/parseargs"
         }
       ]
     },
@@ -13565,8 +13506,8 @@
     {
       "type": "library",
       "name": "postcss",
-      "version": "8.5.6",
-      "bom-ref": "mydash@1.0.0|postcss@8.5.6",
+      "version": "8.5.12",
+      "bom-ref": "mydash@1.0.0|postcss@8.5.12",
       "author": "Andrey Sitnik",
       "description": "Tool for transforming styles with JS plugins",
       "licenses": [
@@ -13576,7 +13517,7 @@
           }
         }
       ],
-      "purl": "pkg:npm/postcss@8.5.6",
+      "purl": "pkg:npm/postcss@8.5.12",
       "externalReferences": [
         {
           "url": "git+https://github.com/postcss/postcss.git",
@@ -13594,12 +13535,12 @@
           "comment": "as detected from PackageJson property \"bugs.url\""
         },
         {
-          "url": "https://registry.npmjs.org/postcss/-/postcss-8.5.6.tgz",
+          "url": "https://registry.npmjs.org/postcss/-/postcss-8.5.12.tgz",
           "type": "distribution",
           "hashes": [
             {
               "alg": "SHA-512",
-              "content": "dd86e2d6d02ec003fdb34af5510d89e27e58d06d396c99295083b4fdb23d321c260fbd12e5a4d66d7181c311eb7a54fe5ccd64e9d334a64f92c0d9294d137b3e"
+              "content": "5badadfd27baac0d00cf70df08bd00a89c17b8ac0179883a9ce6888333fec59ecde4114223b0d88b5aaceb2814613eabbdf8bab7d93ae5430b242f8f1d9a4300"
             }
           ],
           "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\""
@@ -17993,7 +17934,7 @@
       ]
     },
     {
-      "ref": "mydash/mydash-dev-chore/fix-phpstan-ocp-autoload",
+      "ref": "mydash/mydash-dev-chore/add-vitest-setup",
       "dependsOn": [
         "ramsey/uuid-4.9.2.0"
       ]
