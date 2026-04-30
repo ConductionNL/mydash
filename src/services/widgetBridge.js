@@ -6,6 +6,8 @@
  * @spec openspec/changes/archive/2026-04-24-retrofit-legacy-widget-bridge/tasks.md#task-2
  * @spec openspec/changes/archive/2026-04-24-retrofit-legacy-widget-bridge/tasks.md#task-3
  * @spec openspec/changes/archive/2026-04-24-retrofit-legacy-widget-bridge/tasks.md#task-4
+ * @spec openspec/changes/nc-dashboard-widget-proxy/specs/legacy-widget-bridge/spec.md#req-lwb-005
+ * @spec openspec/changes/nc-dashboard-widget-proxy/specs/legacy-widget-bridge/spec.md#req-lwb-006
  */
 
 /**
@@ -136,6 +138,80 @@ class WidgetBridge {
 	 */
 	getRegisteredWidgetIds() {
 		return Array.from(this.widgetCallbacks.keys())
+	}
+
+	/**
+	 * Poll until a callback is registered for the given widgetId or the poll is
+	 * exhausted / aborted. Resolves `true` immediately (no setInterval) if the
+	 * callback is already registered. Internally uses `hasWidgetCallback` as the
+	 * single source of truth (REQ-LWB-006).
+	 *
+	 * @param {string} widgetId - The widget ID to watch
+	 * @param {object} [options] - Optional configuration
+	 * @param {number} [options.intervalMs=200] - Milliseconds between checks
+	 * @param {number} [options.maxRetries=15] - Maximum number of interval ticks
+	 * @param {AbortSignal} [options.signal] - AbortController signal for cancellation
+	 * @return {Promise<boolean>} Resolves true if registered, false on timeout or abort
+	 *
+	 * @spec openspec/changes/nc-dashboard-widget-proxy/specs/legacy-widget-bridge/spec.md#req-lwb-005
+	 * @spec openspec/changes/nc-dashboard-widget-proxy/specs/legacy-widget-bridge/spec.md#req-lwb-006
+	 */
+	pollForCallback(widgetId, options = {}) {
+		const intervalMs = options.intervalMs !== undefined ? options.intervalMs : 200
+		const maxRetries = options.maxRetries !== undefined ? options.maxRetries : 15
+		const signal = options.signal || null
+
+		// Synchronous fast-path: already registered, resolve immediately (REQ-LWB-005)
+		if (this.hasWidgetCallback(widgetId)) {
+			return Promise.resolve(true)
+		}
+
+		return new Promise((resolve) => {
+			let retries = 0
+			let timerId = null
+
+			const cleanup = () => {
+				if (timerId !== null) {
+					clearInterval(timerId)
+					timerId = null
+				}
+			}
+
+			const abort = () => {
+				cleanup()
+				resolve(false)
+			}
+
+			// Register abort handler before starting the interval
+			if (signal) {
+				if (signal.aborted) {
+					resolve(false)
+					return
+				}
+				signal.addEventListener('abort', abort, { once: true })
+			}
+
+			timerId = setInterval(() => {
+				retries++
+
+				if (this.hasWidgetCallback(widgetId)) {
+					if (signal) {
+						signal.removeEventListener('abort', abort)
+					}
+					cleanup()
+					resolve(true)
+					return
+				}
+
+				if (retries >= maxRetries) {
+					if (signal) {
+						signal.removeEventListener('abort', abort)
+					}
+					cleanup()
+					resolve(false)
+				}
+			}, intervalMs)
+		})
 	}
 
 }
