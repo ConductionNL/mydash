@@ -54,3 +54,17 @@ npm start            # Dev server at http://localhost:3000 with hot reload
 ### Adding documentation
 
 Simply add or edit Markdown files in the `docs/` folder. The sidebar is auto-generated from the folder structure. Changes will appear on the product page after pushing to `development`.
+
+## Security review checkboxes
+
+### Extending the SVG whitelist
+
+`lib/Service/SvgSanitiser.php` ships a deliberately conservative whitelist of 24 element types and 50 attribute types — see `ALLOWED_ELEMENTS` and `ALLOWED_ATTRIBUTES` (REQ-RES-010 / REQ-RES-011 in the `resource-uploads` capability).
+
+Adding any element or attribute to either constant is a **security review checkbox**, not an editorial change. Before merging an addition, confirm:
+
+- the element / attribute carries no executable surface (no script, no event handler, no foreign content, no URL fetch outside the existing `href` filter);
+- the addition is justified by a real upload that is currently being rejected, not a speculative future need;
+- a corresponding unit test covers the new whitelist entry.
+
+The sanitiser runs server-side BEFORE the size cap (REQ-RES-009), so an over-permissive whitelist becomes stored XSS the moment a sanitised-looking SVG is rendered back into a logged-in user's browser.

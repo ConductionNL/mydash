@@ -11,8 +11,10 @@
  * and persists the bytes via `IAppData::getFolder('resources')` with
  * a high-entropy `resource_<uniqid>.<ext>` filename.
  *
- * SVG sanitisation is delegated to a sibling capability and is
- * intentionally out of scope here.
+ * For SVG uploads the bytes are first passed through `SvgSanitiser`
+ * (REQ-RES-009..013); the sanitised bytes are what get persisted, and
+ * the 5 MB size cap is measured AFTER sanitisation. A null sanitiser
+ * return is surfaced as HTTP 400 `invalid_svg`.
  *
  * @category  Service
  * @package   OCA\MyDash\Service
@@ -34,6 +36,7 @@ use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Exception\FileTooLargeException;
 use OCA\MyDash\Exception\InvalidDataUrlException;
 use OCA\MyDash\Exception\InvalidImageFormatException;
+use OCA\MyDash\Exception\InvalidSvgException;
 use OCA\MyDash\Exception\StorageFailureException;
 use OCP\Files\IAppData;
 use OCP\Files\NotFoundException;
@@ -78,10 +81,12 @@ class ResourceService
      * @param IAppData           $appData       Nextcloud app-data
      *                                          interface for this app.
      * @param ImageMimeValidator $mimeValidator Raster MIME cross-checker.
+     * @param SvgSanitiser       $svgSanitiser  DOM whitelist SVG sanitiser.
      */
     public function __construct(
         private readonly IAppData $appData,
         private readonly ImageMimeValidator $mimeValidator,
+        private readonly SvgSanitiser $svgSanitiser,
     ) {
     }//end __construct()
 
@@ -102,8 +107,11 @@ class ResourceService
      *                                     or unparseable.
      * @throws InvalidImageFormatException When the declared type is
      *                                     not in the allowed list.
-     * @throws FileTooLargeException       When decoded bytes exceed
-     *                                     5 MB.
+     * @throws InvalidSvgException         When an SVG payload fails
+     *                                     to parse or is fully stripped.
+     * @throws FileTooLargeException       When decoded bytes (or the
+     *                                     SANITISED bytes for SVG)
+     *                                     exceed 5 MB.
      * @throws StorageFailureException     When writing to IAppData
      *                                     fails.
      */
@@ -113,12 +121,25 @@ class ResourceService
         $declaredType = $parsed['type'];
         $bytes        = $parsed['bytes'];
 
+        // SVG branch: sanitise BEFORE the size check so the 5 MB cap
+        // is measured against the persisted (sanitised) byte count
+        // (REQ-RES-009). Sanitiser returns null on parse failure or
+        // an empty document — surface as HTTP 400 invalid_svg.
+        if ($declaredType === 'svg') {
+            $sanitised = $this->svgSanitiser->sanitize(bytes: $bytes);
+            if ($sanitised === null) {
+                throw new InvalidSvgException();
+            }
+
+            $bytes = $sanitised;
+        }
+
         // Enforce the 5 MB cap BEFORE invoking the image library.
         if (strlen(string: $bytes) > self::MAX_BYTES) {
             throw new FileTooLargeException();
         }
 
-        // Cross-check raster MIME (SVG handled by sibling sanitiser).
+        // Cross-check raster MIME (SVG short-circuits inside validate).
         $this->mimeValidator->validate(
             declaredType: $declaredType,
             bytes: $bytes

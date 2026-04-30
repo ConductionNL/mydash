@@ -1,6 +1,7 @@
 OC.L10N.register(
     "mydash",
     {
+    "SVG could not be parsed or contained no allowed content" : "SVG could not be parsed or contained no allowed content",
     "Active" : "Active",
     "Add" : "Add",
     "Add only" : "Add only",

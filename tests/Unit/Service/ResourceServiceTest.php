@@ -24,6 +24,7 @@ use OCA\MyDash\Exception\MimeMismatchException;
 use OCA\MyDash\Exception\StorageFailureException;
 use OCA\MyDash\Service\ImageMimeValidator;
 use OCA\MyDash\Service\ResourceService;
+use OCA\MyDash\Service\SvgSanitiser;
 use OCP\Files\IAppData;
 use OCP\Files\NotFoundException;
 use OCP\Files\NotPermittedException;
@@ -60,6 +61,7 @@ class ResourceServiceTest extends TestCase
         $this->service = new ResourceService(
             appData: $this->appData,
             mimeValidator: $this->mimeValidator,
+            svgSanitiser: new SvgSanitiser(),
         );
     }
 
