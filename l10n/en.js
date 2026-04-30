@@ -130,6 +130,7 @@ OC.L10N.register(
     "Parking" : "Parking",
     "Permission level" : "Permission level",
     "Person" : "Person",
+    "Personal dashboards are not enabled by your administrator" : "Personal dashboards are not enabled by your administrator",
     "Phone" : "Phone",
     "Picture" : "Picture",
     "Reset" : "Reset",

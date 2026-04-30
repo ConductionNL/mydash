@@ -30,6 +30,7 @@ use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacement;
 use OCA\MyDash\Db\WidgetPlacementMapper;
+use OCA\MyDash\Exception\PersonalDashboardsDisabledException;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
@@ -546,6 +547,31 @@ class DashboardService
     {
         return $this->groupManager->isAdmin(userId: $userId);
     }//end isAdmin()
+
+    /**
+     * Assert that personal-dashboard creation is permitted by admin settings.
+     *
+     * Implements REQ-ASET-003 runtime gating: when the admin flag
+     * `allow_user_dashboards` is `false` (or absent — default is `false`),
+     * creation of `type='user'` dashboards MUST be blocked at the service
+     * boundary. Read / update / delete operations on existing personal
+     * dashboards MUST NOT call this method.
+     *
+     * @return void
+     *
+     * @throws PersonalDashboardsDisabledException When the flag is off.
+     */
+    public function assertPersonalDashboardsAllowed(): void
+    {
+        $allowed = $this->settingMapper->getValue(
+            key: AdminSetting::KEY_ALLOW_USER_DASHBOARDS,
+            default: false
+        );
+
+        if ($allowed !== true) {
+            throw new PersonalDashboardsDisabledException();
+        }
+    }//end assertPersonalDashboardsAllowed()
 
     /**
      * Try to create a dashboard from a template or empty.

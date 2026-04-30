@@ -25,6 +25,7 @@ namespace OCA\MyDash\Controller;
 
 use InvalidArgumentException;
 use OCA\MyDash\AppInfo\Application;
+use OCA\MyDash\Exception\PersonalDashboardsDisabledException;
 use OCA\MyDash\Service\DashboardService;
 use OCA\MyDash\Service\PermissionService;
 use OCP\AppFramework\Controller;
@@ -72,6 +73,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The list of dashboards.
      */
     #[NoAdminRequired]
+
     public function list(): JSONResponse
     {
         if ($this->userId === null) {
@@ -97,6 +99,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The visible dashboards.
      */
     #[NoAdminRequired]
+
     public function visible(): JSONResponse
     {
         if ($this->userId === null) {
@@ -123,6 +126,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The active dashboard data.
      */
     #[NoAdminRequired]
+
     public function getActive(): JSONResponse
     {
         if ($this->userId === null) {
@@ -160,6 +164,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The created dashboard.
      */
     #[NoAdminRequired]
+
     public function create(
         $name=null,
         ?string $description=null
@@ -172,6 +177,19 @@ class DashboardApiController extends Controller
             name: $name,
             description: $description
         );
+
+        try {
+            $this->dashboardService->assertPersonalDashboardsAllowed();
+        } catch (PersonalDashboardsDisabledException $e) {
+            return new JSONResponse(
+                data: [
+                    'status'  => 'error',
+                    'error'   => $e->getErrorCode(),
+                    'message' => $e->getMessage(),
+                ],
+                statusCode: Http::STATUS_FORBIDDEN
+            );
+        }
 
         $permError = $this->checkCreatePermissions(
             userId: $this->userId
@@ -207,6 +225,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The updated dashboard.
      */
     #[NoAdminRequired]
+
     public function update(
         int $id,
         ?string $name=null,
@@ -268,6 +287,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The deletion confirmation.
      */
     #[NoAdminRequired]
+
     public function delete(int $id): JSONResponse
     {
         if ($this->userId === null) {
@@ -294,6 +314,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The activated dashboard.
      */
     #[NoAdminRequired]
+
     public function activate(int $id): JSONResponse
     {
         if ($this->userId === null) {
@@ -324,6 +345,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The list of group-shared dashboards.
      */
     #[NoAdminRequired]
+
     public function listGroup(string $groupId): JSONResponse
     {
         if ($this->userId === null) {
@@ -354,6 +376,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The created dashboard.
      */
     #[NoAdminRequired]
+
     public function createGroup(
         string $groupId,
         $name=null,
@@ -403,6 +426,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The dashboard payload.
      */
     #[NoAdminRequired]
+
     public function getGroup(
         string $groupId,
         string $uuid
@@ -441,6 +465,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The updated dashboard.
      */
     #[NoAdminRequired]
+
     public function updateGroup(
         string $groupId,
         string $uuid,
@@ -502,6 +527,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The status payload.
      */
     #[NoAdminRequired]
+
     public function deleteGroup(
         string $groupId,
         string $uuid
@@ -552,6 +578,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The status payload.
      */
     #[NoAdminRequired]
+
     public function setGroupDefault(
         string $groupId,
         ?string $uuid=null

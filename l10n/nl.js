@@ -130,6 +130,7 @@ OC.L10N.register(
     "Parking" : "Parkeren",
     "Permission level" : "Rechteniveau",
     "Person" : "Persoon",
+    "Personal dashboards are not enabled by your administrator" : "Persoonlijke dashboards zijn niet ingeschakeld door uw beheerder",
     "Phone" : "Telefoon",
     "Picture" : "Afbeelding",
     "Reset" : "Herstellen",

@@ -171,6 +171,7 @@
         "Failed to upload image": "Failed to upload image",
         "Image URL is required": "Image URL is required",
         "My Dashboards": "My Dashboards",
-        "+ New Dashboard": "+ New Dashboard"
+        "+ New Dashboard": "+ New Dashboard",
+        "Personal dashboards are not enabled by your administrator": "Personal dashboards are not enabled by your administrator"
     }
 }
