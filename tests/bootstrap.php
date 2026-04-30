@@ -31,6 +31,14 @@ require_once __DIR__ . '/../vendor/autoload.php';
 // the full environment (including \OC::$server) is available.
 if (file_exists(__DIR__ . '/../../../lib/base.php')) {
     require_once __DIR__ . '/../../../lib/base.php';
+} elseif (is_dir(__DIR__ . '/../vendor/nextcloud/ocp/OCP')) {
+    // Outside the container we register the OCP stubs from
+    // vendor/nextcloud/ocp so unit tests that mock OCP interfaces
+    // (e.g. IInitialState) can still run. These are signature-only
+    // stubs and are sufficient for PHPUnit's createMock().
+    $ocpLoader = new \Composer\Autoload\ClassLoader();
+    $ocpLoader->addPsr4('OCP\\', __DIR__ . '/../vendor/nextcloud/ocp/OCP/');
+    $ocpLoader->register();
 }
 
 // Register Test\ namespace for NC test classes.
