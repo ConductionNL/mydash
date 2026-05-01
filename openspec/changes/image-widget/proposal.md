@@ -2,14 +2,14 @@
 
 ## Why
 
-MyDash today has no first-class way to put a single image on a dashboard. Users currently jam logos, screenshots, branding, and decorative imagery into the markdown widget via `<img>` tags or rely on the iframe widget pointing at an external image URL — both workarounds. Neither path supports proper `object-fit` control, broken-image fallback, click-through to a target URL, or the upload-a-file UX users expect from a dashboard product. Competitor dashboards (Sendent, Grafana, Microsoft Power BI tiles) all ship a dedicated image widget. We need parity, with the small UX upgrade that the cell only looks clickable when there is actually a link to click.
+MyDash today has no first-class way to put a single image on a dashboard. Users currently jam logos, screenshots, branding, and decorative imagery into the markdown widget via `<img>` tags or rely on the iframe widget pointing at an external image URL — both workarounds. Neither path supports proper `object-fit` control, broken-image fallback, click-through to a target URL, or the upload-a-file UX users expect from a dashboard product. Competitor dashboards (Grafana, Microsoft Power BI tiles, and similar) all ship a dedicated image widget. We need parity, with the small UX upgrade that the cell only looks clickable when there is actually a link to click.
 
 ## What Changes
 
 - Add a new widget type `image` rendered via `src/components/Widgets/Renderers/ImageWidget.vue`.
 - Persisted shape: `{type: 'image', content: {url, alt, link, fit}}`. `fit` defaults to `'cover'` and is restricted to `'cover' | 'contain' | 'fill' | 'none'` by a Vue prop validator (with fallback to `'cover'` on unknown input).
 - The form (`src/components/Widgets/Forms/ImageForm.vue`) offers two ways to set `url`: file upload (handed to the resource-uploads endpoint) OR direct URL string. It also exposes `alt`, `link`, `fit`, and a live preview thumbnail.
-- Click-through: when `link` is non-empty, clicking the cell opens the link via `window.open(link, '_blank', 'noopener,noreferrer')`. When `link` is empty there is no navigation AND `cursor` stays default (deliberate fix for the Sendent UX bug where every image cell looked clickable even without a link).
+- Click-through: when `link` is non-empty, clicking the cell opens the link via `window.open(link, '_blank', 'noopener,noreferrer')`. When `link` is empty there is no navigation AND `cursor` stays default (deliberate UX choice — no misleading clickable affordance when there is nothing to click).
 - Empty-URL placeholder: 48 px camera icon + `t('No image')` centred, in `var(--color-text-maxcontrast)`.
 - Broken-image fallback: `<img @error>` swaps in the same placeholder plus the annotation `t('Image failed to load')`. Must not crash the surrounding GridStack grid.
 - Register the new type in `src/constants/widgetRegistry.js` with defaults `{url:'', alt:'', link:'', fit:'cover'}`.
