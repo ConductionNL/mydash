@@ -45,17 +45,18 @@ class PageController extends Controller
     /**
      * Constructor
      *
-     * @param IRequest             $request             The request.
-     * @param IInitialState        $initialState        Nextcloud initial-state service.
-     * @param IDashboardManager    $dashboardManager    Dashboard widget manager.
-     * @param IUserSession         $userSession         Current user session.
-     * @param IGroupManager        $groupManager        Group membership lookup.
-     * @param AdminSettingsService $adminSettings       MyDash admin settings.
-     * @param DashboardService     $dashboardService    Dashboard service (active
-     *                                                  resolver — REQ-DASH-018).
-     * @param AdminTemplateService $templateService     Template service (primary
-     *                                                  group resolver —
-     *                                                  REQ-TMPL-012).
+     * @param IRequest             $request          The request.
+     * @param IInitialState        $initialState     Nextcloud initial-state service.
+     * @param IDashboardManager    $dashboardManager Dashboard widget manager.
+     * @param IUserSession         $userSession      Current user session.
+     * @param IGroupManager        $groupManager     Group membership lookup.
+     * @param AdminSettingsService $adminSettings    MyDash admin settings.
+     * @param DashboardService     $dashboardService Dashboard service (active
+     *                                               resolver —
+     *                                               REQ-DASH-018).
+     * @param AdminTemplateService $templateService  Template service (primary
+     *                                               group resolver —
+     *                                               REQ-TMPL-012).
      */
     public function __construct(
         IRequest $request,
@@ -88,18 +89,19 @@ class PageController extends Controller
         // Load all widget scripts so legacy widgets can register their callbacks.
         $widgets = $this->loadWidgetScripts();
 
-        $user     = $this->userSession->getUser();
-        $isAdmin  = false;
-        $userId   = null;
+        $user    = $this->userSession->getUser();
+        $isAdmin = false;
+        $userId  = null;
         if ($user !== null) {
             $userId  = $user->getUID();
             $isAdmin = $this->groupManager->isAdmin(userId: $userId);
         }
 
         // Resolve the primary group via the canonical REQ-TMPL-012 authority.
-        $primaryGroup = ($userId !== null)
-            ? $this->templateService->resolvePrimaryGroup(userId: $userId)
-            : Dashboard::DEFAULT_GROUP_ID;
+        $primaryGroup = Dashboard::DEFAULT_GROUP_ID;
+        if ($userId !== null) {
+            $primaryGroup = $this->templateService->resolvePrimaryGroup(userId: $userId);
+        }
 
         $primaryGroupName = $primaryGroup;
         if ($primaryGroup !== 'default'
