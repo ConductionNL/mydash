@@ -42,3 +42,8 @@ node_modules
 # Test/build artifacts
 .phpunit.cache
 .phpunit.result.cache
+
+# Research notes (local-only)
+/docs/sendent-analysis.md
+/sendent-workspace-main/
+/2026.*_sendent-workspace-main.zip
