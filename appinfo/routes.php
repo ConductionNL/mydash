@@ -230,6 +230,21 @@ return [
 		['name' => 'rule_api#updateRule', 'url' => '/api/rules/{ruleId}', 'verb' => 'PUT'],
 		['name' => 'rule_api#deleteRule', 'url' => '/api/rules/{ruleId}', 'verb' => 'DELETE'],
 
+		// Role-feature permissions (REQ-RFP-001..010). Admin-only — the
+		// controller calls `requireAdmin()` on every method. Sits with
+		// the rest of the admin-scoped routes; the duplicate
+		// admin#listTemplates / admin#getSettings / resource#upload
+		// entries from the PR's original routes diff were dropped here
+		// because they already live in dev under the same names.
+		['name' => 'role_feature_permission_api#listPermissions',  'url' => '/api/role-feature-permissions', 'verb' => 'GET'],
+		['name' => 'role_feature_permission_api#savePermission',   'url' => '/api/role-feature-permissions', 'verb' => 'POST'],
+		['name' => 'role_feature_permission_api#deletePermission', 'url' => '/api/role-feature-permissions/{id}', 'verb' => 'DELETE',
+		 'requirements' => ['id' => '\d+']],
+		['name' => 'role_feature_permission_api#listLayoutDefaults',  'url' => '/api/role-layout-defaults', 'verb' => 'GET'],
+		['name' => 'role_feature_permission_api#saveLayoutDefault',   'url' => '/api/role-layout-defaults', 'verb' => 'POST'],
+		['name' => 'role_feature_permission_api#deleteLayoutDefault', 'url' => '/api/role-layout-defaults/{id}', 'verb' => 'DELETE',
+		 'requirements' => ['id' => '\d+']],
+
 		// File creation endpoint (REQ-LBN-004) — link-button-widget
 		// createFile flow. POST-only; validates filename, dir, and the
 		// admin-configured extension allow-list before touching storage.
