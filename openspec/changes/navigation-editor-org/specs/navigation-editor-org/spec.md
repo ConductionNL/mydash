@@ -8,7 +8,11 @@ status: draft
 
 ### Requirement: REQ-ONAV-001 Org navigation tree storage
 
-The system MUST persist an organisation-wide navigation tree in a new global Nextcloud app setting `mydash.org_navigation_tree` (JSON string, maximum 64 KB). The tree is an ordered array of node objects, each with:
+The system MUST persist an organisation-wide navigation tree as a **JSON file on the Nextcloud filesystem** at a well-known path within the application's data directory. One file is stored per language: `appdata/mydash/org-navigation-{lang}.json` (e.g., `org-navigation-nl.json`, `org-navigation-en.json`). The implementation MUST NOT use a Nextcloud app-config key for the tree payload. The maximum accepted file size is **5 MB** (enforced on read and write).
+
+> **v1 language scope:** MyDash v1 ships with support for `nl` (Dutch) and `en` (English). Both language files are maintained independently; changing one does not affect the other. The API accepts an optional `?lang=` query parameter (default: `nl`). A CLI copy command (`mydash:copy-org-navigation <source> <target>`) is a planned follow-up, not part of v1.
+
+The tree is an ordered array of node objects, each with:
 
 ```json
 {
@@ -22,11 +26,13 @@ The system MUST persist an organisation-wide navigation tree in a new global Nex
 }
 ```
 
-The root level of the tree is an array; each child node follows the same schema recursively. The tree depth (including root) MUST NOT exceed 3 levels.
+> **NOTE — MyDash addition:** The `groupVisibility` field is a MyDash-specific design choice. The reference intranet product does not store group visibility in the navigation JSON; it relies on filesystem ACL (GroupFolder read permissions) to filter nodes. Because MyDash stores the tree in application data (not in per-user GroupFolders), no ACL is available to piggyback on. The per-node array approach (`null` = all users, populated array = restrict to listed group IDs) is the deliberate MyDash substitute. The filtering logic is implemented explicitly in `OrgNavigationService.php` using Nextcloud's `IGroupManager`.
 
-#### Scenario: Tree persists to global setting
+The root level of the tree is an array; each child node follows the same schema recursively. The tree depth (including root) MUST NOT exceed 3 levels. This is a stricter limit than some reference implementations (which are unlimited) and is a deliberate MyDash choice to keep the admin UI manageable.
+
+#### Scenario: Tree persists to file
 - GIVEN an admin creates and saves an org-nav tree with 2 top-level sections and 3 subsections
-- WHEN the setting `mydash.org_navigation_tree` is queried
+- WHEN the file `appdata/mydash/org-navigation-nl.json` is read
 - THEN it MUST contain valid JSON with the persisted tree structure
 
 #### Scenario: Node id is uuid
@@ -46,7 +52,7 @@ The root level of the tree is an array; each child node follows the same schema 
 
 ### Requirement: REQ-ONAV-002 Admin read API with group filtering
 
-The system MUST expose a `GET /api/admin/org-navigation` endpoint accessible to any logged-in user. The response MUST return the complete tree structure, but filtered to only include nodes the requesting user is permitted to see based on group memberships.
+The system MUST expose a `GET /api/admin/org-navigation` endpoint accessible to any logged-in user. The endpoint MUST accept an optional `?lang=` query parameter (values: `nl`, `en`; default: `nl`) that selects which language file is read. The response MUST return the complete tree structure for that language, filtered to only include nodes the requesting user is permitted to see based on group memberships.
 
 A node is visible if and only if:
 - `groupVisibility` is `null` (visible to all), OR
@@ -79,7 +85,7 @@ If a parent node is hidden, all its children are also hidden (cascading). Nodes 
 
 ### Requirement: REQ-ONAV-003 Admin write API with validation
 
-The system MUST expose a `PUT /api/admin/org-navigation` endpoint accessible only to users with the admin role (e.g., `OC_PERMISSION_ADMIN` or app-level admin flag). The endpoint accepts a complete replacement tree (no PATCH) and validates before persisting.
+The system MUST expose a `PUT /api/admin/org-navigation` endpoint accessible only to users with the admin role (e.g., `OC_PERMISSION_ADMIN` or app-level admin flag). The endpoint accepts an optional `?lang=` query parameter (values: `nl`, `en`; default: `nl`) that selects which language file to overwrite. The endpoint accepts a complete replacement tree for that language file (no PATCH) and validates before persisting.
 
 Validation rules:
 - The payload MUST be an array of node objects
@@ -90,13 +96,13 @@ Validation rules:
 - The `groupVisibility` field (if present) MUST be either null or a non-empty array of string group ids
 - Return HTTP 403 if the requesting user is not an admin
 
-On success, persist the tree to `mydash.org_navigation_tree` and return HTTP 200 with the persisted tree (unchanged, not re-filtered).
+On success, write the validated tree to `appdata/mydash/org-navigation-{lang}.json` (wholesale file replacement) and return HTTP 200 with the persisted tree (unchanged, not re-filtered). The 3-level depth limit returns HTTP 400 rather than silently truncating — this is intentionally stricter than reference implementations that silently discard excess depth.
 
 #### Scenario: Admin saves valid tree
 - GIVEN an admin provides a valid tree with 2 sections, each with 2 child links
 - WHEN `PUT /api/admin/org-navigation` is called
 - THEN the response MUST be HTTP 200
-- AND the tree MUST be persisted
+- AND the tree MUST be persisted to `appdata/mydash/org-navigation-nl.json` (default language)
 
 #### Scenario: Depth exceeded returns 400
 - GIVEN a tree with 4 levels (root → child → grandchild → great-grandchild)
@@ -252,7 +258,7 @@ The system MUST provide an admin editor UI (accessible at a route like `/apps/my
 - GIVEN the user edits the tree (add 2 sections, reorder, set group visibility)
 - WHEN the user clicks Save
 - AND no validation errors occur
-- THEN the tree MUST be persisted to the backend
+- THEN `PUT /api/admin/org-navigation` MUST be called and the tree written to `appdata/mydash/org-navigation-{lang}.json`
 - AND a success message MUST appear
 
 #### Scenario: Save with error prevents persist
@@ -268,7 +274,7 @@ If the org-nav tree is empty (no nodes), OR if the user has no visible nodes aft
 This prevents visual clutter when the tree is disabled or not yet configured.
 
 #### Scenario: Empty tree renders nothing
-- GIVEN `mydash.org_navigation_tree` is an empty array `[]`
+- GIVEN `appdata/mydash/org-navigation-nl.json` contains an empty array `[]`
 - AND `mydash.org_navigation_position = 'left'`
 - WHEN the app renders
 - THEN no org-nav rail MUST be visible

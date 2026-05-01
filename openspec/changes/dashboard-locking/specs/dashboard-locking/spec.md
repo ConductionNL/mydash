@@ -6,7 +6,7 @@ status: draft
 
 ## Purpose
 
-Dashboard locking provides a concurrent-edit guard for dashboards. When two users open the same dashboard's edit view, the system MUST prevent the second user from editing until the first releases the lock. The mechanism uses a time-based lease (default 5 minutes) with client-driven heartbeat renewal to tolerate transient network outages and browser crashes without manual intervention.
+Dashboard locking provides a concurrent-edit guard for dashboards. When two users open the same dashboard's edit view, the system MUST prevent the second user from editing until the first releases the lock. The mechanism uses a time-based lease (default 15 minutes) with client-driven heartbeat renewal to tolerate transient network outages and browser crashes without manual intervention.
 
 ## Data Model
 
@@ -16,9 +16,14 @@ Each dashboard lock is stored in the `oc_mydash_dashboard_locks` table with the 
 - **dashboardUuid**: VARCHAR(36) UNIQUE, references dashboard UUID
 - **userId**: VARCHAR(64), Nextcloud user ID of the lock owner
 - **displayName**: VARCHAR(255), cached display name for UI feedback (avoids second lookup on conflict response)
-- **acquiredAt**: TIMESTAMP, when the lock was first acquired
-- **expiresAt**: TIMESTAMP, when the lock becomes stale (ignored on read if in the past)
-- **clientId**: VARCHAR(64), browser/tab identifier so the same user with two tabs can recognize their own lock
+- **acquiredAt**: TIMESTAMP, when the lock was first acquired (never updated after initial insert)
+- **lastHeartbeat**: TIMESTAMP (`updated_at`), bumped on every heartbeat; expiry is computed as `lastHeartbeat + LOCK_TIMEOUT` where `LOCK_TIMEOUT = 15 minutes`
+
+Indexes: PRIMARY on `id`, UNIQUE on `dashboardUuid`, secondary on `userId`, secondary on `lastHeartbeat` (for efficient inline expiry cleanup).
+
+The TTL constant (`LOCK_TIMEOUT = 15 minutes`) lives in `DashboardLockService`, not in the row. There is no stored expiry column — the active/stale state of a lock is always computed at query time from `lastHeartbeat`.
+
+Stale-lock cleanup is performed inline: `DashboardLockService` calls `DashboardLockMapper::deleteExpiredForDashboard(string $uuid)` at the start of both `getLockState()` and `acquireLock()`, deleting any row for that dashboard whose `lastHeartbeat` is older than `now - 15 minutes`. This prevents stale locks from blocking new acquisitions without requiring a background sweeper.
 
 ## ADDED Requirements
 
@@ -26,103 +31,90 @@ Each dashboard lock is stored in the `oc_mydash_dashboard_locks` table with the 
 
 A user MUST be able to acquire an exclusive write lock on a dashboard. Only one user (or admin) can hold a lock at a time. A second user attempting to acquire MUST receive the existing lock details in a conflict response.
 
+Same-user acquire is re-entrant: if the same user already holds the lock, the acquire call MUST succeed with HTTP 200 and refresh the lock (bump `lastHeartbeat`), rather than returning 409.
+
 #### Scenario: First user acquires lock on unlocked dashboard
 - GIVEN dashboard with uuid "d1" has no lock
-- WHEN alice sends `POST /api/dashboards/d1/lock` with body `{"clientId": "tab-abc123"}`
+- WHEN alice sends `POST /api/dashboards/d1/lock`
 - THEN the system MUST create a lock record with:
   - `dashboardUuid = "d1"`
   - `userId = "alice"`
   - `displayName = "Alice Smith"` (fetched from Nextcloud user display name)
-  - `clientId = "tab-abc123"`
   - `acquiredAt = now`
-  - `expiresAt = now + 300 seconds` (5 minutes default TTL)
+  - `lastHeartbeat = now`
 - AND the response MUST return HTTP 200 with the full lock object
 - AND alice MUST be able to edit the dashboard
 
 #### Scenario: Second user encounters lock held by first user
 - GIVEN dashboard "d1" has an active lock owned by alice
-- WHEN bob sends `POST /api/dashboards/d1/lock` with body `{"clientId": "tab-xyz789"}`
+- WHEN bob sends `POST /api/dashboards/d1/lock`
 - THEN the system MUST NOT create a new lock
 - AND the response MUST return HTTP 409 (Conflict)
 - AND the response body MUST contain the existing lock object:
   - `userId = "alice"`
   - `displayName = "Alice Smith"`
-  - `expiresAt = ...` (current expiry, not extended)
-  - `clientId = "tab-abc123"`
-- AND bob MUST see a read-only banner on the dashboard with alice's display name and lock expiry time
+  - `lastHeartbeat = ...` (current heartbeat timestamp; client computes implied expiry as `lastHeartbeat + 900s`)
+- AND bob MUST see a read-only banner on the dashboard with alice's display name and the implied lock expiry time
 
-#### Scenario: Same user with two browser tabs
-- GIVEN alice has two tabs open on the same dashboard with different `clientId` values ("tab-1", "tab-2")
-- WHEN tab-1 acquires the lock
-- AND tab-2 attempts to acquire immediately after
-- THEN tab-2 MUST receive HTTP 409 with alice's lock details
-- AND the frontend MUST recognize that it is alice's own lock (by matching `userId`) and display a different UI (e.g., "You are editing in another tab")
-- NOTE: Both tabs show editing UI, but only the lock owner can commit changes; the second tab's edit attempt fails at save time with a "Lock held by you" error
+#### Scenario: Same user with two browser tabs (re-entrant acquire)
+- GIVEN alice has tab-1 open on dashboard "d1" and has already acquired the lock
+- WHEN alice opens tab-2 on the same dashboard and tab-2 sends `POST /api/dashboards/d1/lock`
+- THEN tab-2 MUST receive HTTP 200 (re-entrant refresh)
+- AND the lock's `lastHeartbeat` MUST be updated to now
+- AND alice's edit session in tab-2 is valid (the lock is hers)
+- NOTE: The frontend MAY detect that a pre-existing lock exists (by comparing `acquiredAt` with what tab-1 stored) and display a "You may be editing in another tab" informational notice; this is a UX concern and does not affect the backend contract
 
 #### Scenario: Expired lock is overwritable
-- GIVEN dashboard "d1" has a lock owned by alice with `expiresAt` in the past
+- GIVEN dashboard "d1" has a lock owned by alice where `lastHeartbeat` is more than 15 minutes in the past
 - WHEN bob sends `POST /api/dashboards/d1/lock`
-- THEN the system MUST treat the expired lock as non-existent
+- THEN the system MUST treat the expired lock as non-existent (inline cleanup removes it first)
 - AND bob MUST receive HTTP 200 with a new lock owned by bob
-- AND alice's expired lock MUST be silently deleted (or left in place for background cleanup)
-
-#### Scenario: clientId is arbitrary string (frontend responsibility)
-- GIVEN a user calls `POST /api/dashboards/d1/lock` with `{"clientId": "my-unique-id"}`
-- THEN the system MUST store the `clientId` exactly as provided
-- AND the `clientId` MUST be usable by the frontend to identify "is this my lock?" on the heartbeat/release calls
-- NOTE: The system does NOT generate `clientId`; the frontend is responsible for generating a stable, unique identifier per browser tab (e.g., UUID or tab ID)
+- AND alice's expired lock MUST be deleted before the new lock is created
 
 ### Requirement: REQ-LOCK-002 Heartbeat to Extend Lock
 
-A lock owner (matching `clientId` and optionally `userId`) MUST be able to extend the lock's expiry without releasing and re-acquiring. Heartbeat MUST only succeed if the caller provides the correct `clientId`.
+A lock owner MUST be able to extend the lock by sending a heartbeat. Ownership is determined by `userId` alone. The heartbeat MUST only succeed if the caller is the current lock owner. The recommended heartbeat cadence is every 60 seconds, giving a 15× safety margin against the 15-minute TTL.
 
 #### Scenario: Lock owner extends lease with heartbeat
-- GIVEN alice holds a lock on dashboard "d1" with `expiresAt = T0 + 300s`, acquired at `T0`
-- WHEN alice's browser sends `POST /api/dashboards/d1/lock/heartbeat` with `{"clientId": "tab-abc123"}` at time `T1 = T0 + 150s`
-- THEN the system MUST update the lock with `expiresAt = T1 + 300s`
-- AND the response MUST return HTTP 200 with the updated lock object showing new `expiresAt`
-- AND no `acquiredAt` change (remains `T0`)
+- GIVEN alice holds a lock on dashboard "d1" with `lastHeartbeat = T0`, acquired at `T0`
+- WHEN alice's browser sends `PUT /api/dashboards/d1/lock` at time `T1 = T0 + 60s`
+- THEN the system MUST update the lock with `lastHeartbeat = T1`
+- AND the response MUST return HTTP 200 with the updated lock object showing the new `lastHeartbeat`
+- AND `acquiredAt` MUST remain unchanged (still `T0`)
 
 #### Scenario: Non-owner cannot heartbeat
-- GIVEN alice holds a lock on dashboard "d1" with `clientId = "tab-abc123"`
-- WHEN bob sends `POST /api/dashboards/d1/lock/heartbeat` with `{"clientId": "tab-xyz789"}` (different `clientId`)
+- GIVEN alice holds a lock on dashboard "d1"
+- WHEN bob (a different user) sends `PUT /api/dashboards/d1/lock`
 - THEN the system MUST return HTTP 403 (Forbidden)
 - AND the lock MUST NOT be modified
 
-#### Scenario: Wrong clientId on alice's own lock
-- GIVEN alice holds a lock on dashboard "d1" with `clientId = "tab-abc123"`
-- WHEN alice sends `POST /api/dashboards/d1/lock/heartbeat` from a different browser tab with `{"clientId": "tab-different"}`
-- THEN the system MUST return HTTP 403
-- AND the response MUST indicate the mismatch (e.g., error message "Lock held by you in another tab")
-- NOTE: This forces the user to close the first tab before editing in the second
-
 #### Scenario: Heartbeat on non-existent lock
 - GIVEN dashboard "d1" has no lock
-- WHEN alice sends `POST /api/dashboards/d1/lock/heartbeat` with `{"clientId": "tab-abc123"}`
+- WHEN alice sends `PUT /api/dashboards/d1/lock`
 - THEN the system MUST return HTTP 404 (Not Found)
 - AND the response MUST indicate "Lock not found; call acquire first"
 
 #### Scenario: Frequent heartbeat prevents expiry
-- GIVEN alice acquires a lock at `T0` with 5-minute TTL
-- WHEN alice's browser sends heartbeat every 3 minutes
+- GIVEN alice acquires a lock at `T0` with 15-minute TTL
+- WHEN alice's browser sends `PUT /api/dashboards/d1/lock` every 60 seconds
 - THEN the lock MUST never expire while the browser remains open
 - AND alice MUST retain exclusive edit access indefinitely
-- NOTE: Frontend is responsible for calling heartbeat ~3 minutes; server does NOT force a heartbeat frequency
+- NOTE: The recommended heartbeat cadence is every 60 seconds (15× safety margin against the 15-minute TTL); the server does not enforce a minimum frequency
 
 ### Requirement: REQ-LOCK-003 Release Dashboard Lock
 
-A lock owner or administrator MUST be able to release a lock, returning the dashboard to an unlocked state. Non-owners MUST NOT be able to release another user's lock unless they are admins.
+A lock owner or administrator MUST be able to release a lock, returning the dashboard to an unlocked state. Non-owners MUST NOT be able to release another user's lock unless they are admins. Ownership is determined by `userId` alone.
 
 #### Scenario: Lock owner releases lock
 - GIVEN alice holds a lock on dashboard "d1"
-- WHEN alice sends `DELETE /api/dashboards/d1/lock` with `{"clientId": "tab-abc123"}`
+- WHEN alice sends `DELETE /api/dashboards/d1/lock`
 - THEN the system MUST delete the lock record
 - AND the response MUST return HTTP 204 (No Content)
 - AND bob can now acquire the lock immediately
 
 #### Scenario: Non-owner cannot release another user's lock
-- GIVEN alice holds a lock on dashboard "d1" with `clientId = "tab-abc123"`
-- WHEN bob sends `DELETE /api/dashboards/d1/lock` with `{"clientId": "tab-any"}`
+- GIVEN alice holds a lock on dashboard "d1"
+- WHEN bob sends `DELETE /api/dashboards/d1/lock`
 - THEN the system MUST return HTTP 403 (Forbidden)
 - AND the lock MUST remain intact
 - AND the response MUST indicate "Only the lock owner or an admin can release this lock"
@@ -134,12 +126,6 @@ A lock owner or administrator MUST be able to release a lock, returning the dash
 - THEN the system MUST delete alice's lock
 - AND the response MUST return HTTP 204
 - AND the action MUST be audit-logged separately (via REQ-LOCK-006)
-
-#### Scenario: clientId mismatch on release
-- GIVEN alice holds a lock on dashboard "d1" with `clientId = "tab-abc123"`
-- WHEN alice sends `DELETE /api/dashboards/d1/lock` with `{"clientId": "tab-different"}`
-- THEN the system MUST return HTTP 403
-- AND the lock MUST remain intact
 
 #### Scenario: Release non-existent lock
 - GIVEN dashboard "d1" has no lock
@@ -158,9 +144,8 @@ Any logged-in user MUST be able to query the current lock state of a dashboard t
 - THEN the system MUST return HTTP 200 with the lock object:
   - `userId = "alice"`
   - `displayName = "Alice Smith"`
-  - `expiresAt = ...` (future timestamp)
-  - `clientId = "tab-abc123"` (may or may not be exposed to non-owner; backend MUST include it for debugging)
-- AND bob can display "Dashboard is being edited by Alice Smith (expires in 4m 30s)"
+  - `lastHeartbeat = ...` (timestamp of the most recent heartbeat)
+- AND bob can display "Dashboard is being edited by Alice Smith" with an implied expiry of `lastHeartbeat + 900s` computed client-side
 
 #### Scenario: Get lock when none exists
 - GIVEN dashboard "d1" has no lock
@@ -170,9 +155,9 @@ Any logged-in user MUST be able to query the current lock state of a dashboard t
 - AND the frontend MUST interpret this as "dashboard is unlocked"
 
 #### Scenario: Get lock when it has expired
-- GIVEN dashboard "d1" has an expired lock (expiresAt in the past)
+- GIVEN dashboard "d1" has a lock where `lastHeartbeat` is more than 15 minutes in the past
 - WHEN bob sends `GET /api/dashboards/d1/lock`
-- THEN the system MUST return HTTP 404 or treat the lock as non-existent
+- THEN the system MUST perform inline cleanup and return HTTP 404 (treating the lock as non-existent)
 - AND the response MUST NOT leak expired lock details
 - AND bob MUST be able to acquire a new lock immediately
 
@@ -185,76 +170,65 @@ Any logged-in user MUST be able to query the current lock state of a dashboard t
 
 ### Requirement: REQ-LOCK-005 Lock Expiry and Stale State
 
-Locks MUST automatically become stale when `expiresAt` is in the past. Stale locks MUST be silently ignored on read and overwritable on acquire without conflict.
+Locks MUST automatically become stale when `lastHeartbeat + LOCK_TIMEOUT` (15 minutes) is in the past. Stale locks MUST be silently removed via inline cleanup on read and acquire, and MUST be overwritable without conflict.
 
 #### Scenario: Stale lock is invisible on read
-- GIVEN dashboard "d1" has a lock with `expiresAt = now - 1 minute`
+- GIVEN dashboard "d1" has a lock where `lastHeartbeat` is more than 15 minutes in the past
 - WHEN bob sends `GET /api/dashboards/d1/lock`
-- THEN the system MUST return HTTP 404 (or null if API design prefers)
+- THEN the system MUST perform inline cleanup and return HTTP 404 (or null)
 - AND the response MUST NOT include the stale lock
-- NOTE: Stale locks remain in the database until a background cleanup job runs (out of scope of this spec)
 
 #### Scenario: Stale lock does not block new acquisition
-- GIVEN dashboard "d1" has a lock with `expiresAt = now - 1 minute`
-- WHEN bob sends `POST /api/dashboards/d1/lock` with valid `clientId`
+- GIVEN dashboard "d1" has a lock where `lastHeartbeat` is more than 15 minutes in the past
+- WHEN bob sends `POST /api/dashboards/d1/lock`
 - THEN the system MUST NOT return HTTP 409 (conflict)
+- AND the inline cleanup MUST delete the stale row before inserting the new lock
 - AND bob MUST receive HTTP 200 with a new lock
-- AND the old stale lock MAY remain in the database or be silently deleted
-- NOTE: No explicit error on conflict; the stale lock is simply transparent
 
 #### Scenario: Network outage does not prevent lock release
 - GIVEN alice acquires a lock and then closes her browser (crash or network cut)
-- AND the lock expires after 5 minutes of inactivity
+- AND the lock expires after 15 minutes of inactivity (no heartbeats received)
 - WHEN bob attempts to acquire after expiry
 - THEN bob MUST succeed immediately (no manual admin intervention required for correctness)
-- NOTE: Background cleanup MAY later delete the stale row, but correctness does not depend on it
+- NOTE: Inline cleanup removes the stale row at acquire time; no background sweeper is required for correctness
 
-#### Scenario: Default TTL is 5 minutes
+#### Scenario: Default TTL is 15 minutes
 - GIVEN alice acquires a lock on dashboard "d1" at time `T0`
-- THEN the lock's `expiresAt` MUST be set to `T0 + 300 seconds` (5 minutes)
-- WHEN 301 seconds have passed without a heartbeat
-- THEN the lock MUST be considered stale
-- NOTE: Callers MAY specify a custom TTL (e.g., 600 seconds for batch operations), but the default is 5 minutes
+- THEN the lock's effective expiry is `T0 + 900 seconds` (15 minutes), computed from `lastHeartbeat`
+- WHEN 901 seconds have passed without a heartbeat
+- THEN the lock MUST be considered stale and treated as non-existent on the next read or acquire
 
 ### Requirement: REQ-LOCK-006 Admin Override and Audit Logging
 
-A Nextcloud administrator MUST be able to steal a lock from any user via `POST /api/dashboards/{uuid}/lock/force-acquire`. This action MUST be audit-logged via Nextcloud's activity system with the original owner's name and the admin's action.
+A Nextcloud administrator MUST be able to release a lock from any user via `POST /api/dashboards/{uuid}/lock/force-release`. This action MUST be logged via `LoggerInterface` (PSR logger) with the original owner's name and the admin's action. The dashboard is returned to an unlocked state; the admin may then acquire a new lock via the normal path if they wish to edit.
 
-#### Scenario: Admin steals a lock
+#### Scenario: Admin force-releases a lock
 - GIVEN alice holds a lock on dashboard "d1"
 - AND charlie is a Nextcloud admin
-- WHEN charlie sends `POST /api/dashboards/d1/lock/force-acquire` with `{"clientId": "admin-tab-123"}`
-- THEN the system MUST delete alice's lock and create a new one owned by charlie:
-  - `userId = "charlie"`
-  - `displayName = "Charlie Admin"`
-  - `clientId = "admin-tab-123"`
-  - `expiresAt = now + 300 seconds`
-- AND the response MUST return HTTP 200 with the new lock object
-- AND the action MUST be logged to Nextcloud activity log with type `dashboard_lock_override` (or similar), subject containing alice's name and the dashboard UUID
+- WHEN charlie sends `POST /api/dashboards/d1/lock/force-release`
+- THEN the system MUST delete alice's lock record
+- AND the response MUST return HTTP 200 (or HTTP 204)
+- AND the action MUST be logged via `LoggerInterface::info()` with the original owner's userId, the dashboard UUID, and the admin's userId
+- AND dashboard "d1" MUST be in an unlocked state after this call
 
-#### Scenario: Non-admin cannot force-acquire
+#### Scenario: Admin acquires lock after force-release (normal flow)
+- GIVEN charlie (admin) has just force-released alice's lock on dashboard "d1"
+- WHEN charlie sends `POST /api/dashboards/d1/lock`
+- THEN charlie MUST receive HTTP 200 with a new lock owned by charlie
+- NOTE: Force-release and acquire are two separate steps; the admin does not automatically take ownership
+
+#### Scenario: Non-admin cannot force-release
 - GIVEN alice holds a lock on dashboard "d1"
-- WHEN bob (non-admin) sends `POST /api/dashboards/d1/lock/force-acquire` with `{"clientId": "tab-xyz"}`
+- WHEN bob (non-admin) sends `POST /api/dashboards/d1/lock/force-release`
 - THEN the system MUST return HTTP 403 (Forbidden)
 - AND alice's lock MUST remain intact
-- AND the action MUST NOT be logged to activity (or logged as a failed override attempt)
 
-#### Scenario: Force-acquire succeeds even if lock is expired
-- GIVEN dashboard "d1" has an expired lock
+#### Scenario: Force-release on expired or non-existent lock
+- GIVEN dashboard "d1" has no active lock (either no lock or an expired one)
 - AND charlie is admin
-- WHEN charlie sends `POST /api/dashboards/d1/lock/force-acquire`
-- THEN charlie MUST receive HTTP 200 with a new lock
-- AND the old expired lock MUST be silently replaced
-
-#### Scenario: Activity log message includes context
-- GIVEN alice holds a lock on dashboard "d1" ("My Dashboard")
-- WHEN charlie (admin) force-acquires the lock
-- THEN the activity log entry MUST include:
-  - Original lock owner: "Alice Smith"
-  - Dashboard uuid: "d1"
-  - Action: "force-acquire" or "Dashboard lock override" (user-facing string)
-  - Timestamp: when the override occurred
-- AND admins reviewing activity logs MUST understand who stole the lock from whom and on which dashboard
+- WHEN charlie sends `POST /api/dashboards/d1/lock/force-release`
+- THEN charlie MUST receive HTTP 200 (or HTTP 204) — idempotent
+- AND the action MUST still be logged
 
 ### Requirement: REQ-LOCK-007 Contention and Consistency
 
@@ -271,7 +245,7 @@ When multiple users attempt to acquire the same lock simultaneously (network rac
 - GIVEN alice holds a lock on dashboard "d1"
 - WHEN alice's browser sends two heartbeat requests simultaneously (e.g., due to a double-click or retried request)
 - THEN both MUST succeed with HTTP 200
-- AND the lock's `expiresAt` MUST be updated consistently
+- AND the lock's `lastHeartbeat` MUST be updated consistently
 - AND no lock duplication or corruption MUST occur
 - NOTE: Backend MUST update atomically; SELECT-then-UPDATE is not safe
 
@@ -294,7 +268,7 @@ When a dashboard is deleted, its lock (if any) MUST be automatically deleted as 
 - THEN the system MUST:
   - Delete the dashboard record from `oc_mydash_dashboards`
   - Delete the associated lock record from `oc_mydash_dashboard_locks`
-- AND the cascade MUST be enforced by a foreign key constraint or application logic
+- AND the cascade MUST be enforced by application logic in `DashboardService::delete()` calling `DashboardLockMapper::deleteByDashboardUuid()`, or by a DB-level ON DELETE CASCADE (note: Nextcloud's migration framework supports foreign keys on MySQL/Postgres but not SQLite; application-layer cascade is the safer default)
 - NOTE: If the delete request comes from a different user or admin, the same cascade applies
 
 #### Scenario: Lock is not a blocker for dashboard deletion
@@ -306,11 +280,11 @@ When a dashboard is deleted, its lock (if any) MUST be automatically deleted as 
 
 ## Non-Functional Requirements
 
-- **Performance**: `POST /api/dashboards/{uuid}/lock` MUST complete within 100ms (single INSERT + potential UPDATE). `GET /api/dashboards/{uuid}/lock` MUST complete within 50ms (single SELECT with index on `dashboardUuid`).
+- **Performance**: `POST /api/dashboards/{uuid}/lock` MUST complete within 100ms (inline cleanup DELETE + INSERT/UPDATE). `GET /api/dashboards/{uuid}/lock` MUST complete within 50ms (cleanup DELETE + SELECT with index on `dashboardUuid`).
 - **Atomicity**: Only one lock holder per dashboard MUST be enforced by database UNIQUE constraint + application logic.
-- **Audit trail**: All admin `force-acquire` actions MUST be logged to Nextcloud activity for compliance and debugging.
-- **Expiry grace period**: No grace period — locks expire at exactly `expiresAt` timestamp; queries treat past timestamps as stale immediately.
-- **Localization**: All error messages and activity log entries MUST support English and Dutch.
+- **Audit trail**: All admin `force-release` actions MUST be logged via `LoggerInterface::info()` for audit and debugging purposes.
+- **Expiry**: Locks are considered stale when `lastHeartbeat + 900s` is in the past; the system treats them as non-existent on the next read or acquire call (inline cleanup).
+- **Localization**: All error messages MUST support English and Dutch.
 
 ### Current Implementation Status
 

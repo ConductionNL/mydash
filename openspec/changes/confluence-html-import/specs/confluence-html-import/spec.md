@@ -39,38 +39,47 @@ The system MUST parse a Confluence HTML Export ZIP archive and extract its direc
 - THEN the system MUST locate `attachments/page-123/logo.png` in the archive
 - AND treat it as a candidate for upload
 
-### Requirement: REQ-CFLI-002 Page hierarchy extraction from index.html
+### Requirement: REQ-CFLI-002 Page hierarchy extraction
 
-The system MUST parse Confluence's `index.html` (table of contents) to extract the page tree structure (parent-child relationships, page titles, Confluence page IDs).
+The system MUST derive the page tree (parent-child relationships, sibling order) from two sources applied in priority order: (1) directory nesting within the extracted ZIP, and (2) the breadcrumb navigation inside each individual page file. `index.html` is used solely to assign sibling ordering, NOT to define parent-child relationships.
 
-#### Scenario: Extract page hierarchy from TOC
+#### Scenario: Directory nesting establishes initial parent-child relationships
 
-- GIVEN `index.html` with Confluence TOC structure listing pages with titles and IDs (e.g., `<a href="SPACE/page-123.html">Page Title</a>`)
-- WHEN the importer parses the TOC
-- THEN the system MUST extract: page ID (from filename or TOC entry), page title, parent page ID (if nested in TOC), and any depth/order indicators
-- AND build an in-memory tree structure `{pageId, title, parentPageId, children: [...]}`
+- GIVEN pages stored at `SPACE/page-123.html` and `SPACE/SUB/page-456.html`
+- WHEN the importer builds the page hierarchy
+- THEN `page-456` MUST be treated as a child of the page at the first directory level (`SPACE/`)
+- AND directory depth determines the initial parent assignment before breadcrumb override is applied
+
+#### Scenario: Breadcrumb overrides directory-based parent
+
+- GIVEN a page file containing `<ol class="breadcrumbs"><li><a href="page-100.html">Section A</a></li><li>Current Page</li></ol>`
+- WHEN the importer builds the page hierarchy
+- THEN the system MUST parse the breadcrumb `<ol class="breadcrumbs">` or `<ol id="breadcrumbs">` to extract the parent chain
+- AND the breadcrumb-derived parent MUST take precedence over the directory-derived parent
+- AND the system MUST assign `parentPageId` to the ID extracted from the second-to-last breadcrumb link
+
+#### Scenario: index.html provides sibling order only
+
+- GIVEN `index.html` containing an ordered link list (`<a href="SPACE/page-123.html">`, `<a href="SPACE/page-456.html">`, ...)
+- WHEN the importer reads `index.html`
+- THEN the system MUST extract the 0-based position of each `href` match to assign sibling ordering
+- AND MUST NOT infer parent-child relationships from `index.html` link nesting
+- AND `index.html` links MUST be matched via `href` attribute parsing (regex on href attributes), not DOM tree depth
 
 #### Scenario: Root pages have null parent
 
-- GIVEN a TOC entry at the top level (not nested under another page)
+- GIVEN a page whose breadcrumb contains only its own title (no ancestor links)
 - WHEN the importer extracts the hierarchy
 - THEN the system MUST assign `parentPageId = null` to that page
 - AND treat it as a root page in the destination dashboard hierarchy
 
-#### Scenario: Nested pages inherit parent
+#### Scenario: Malformed breadcrumb does not block import
 
-- GIVEN a TOC with nested structure: "Section A" > "Subsection A.1"
-- WHEN the importer extracts the hierarchy
-- THEN pages under "Subsection A.1" MUST have `parentPageId = <uuid-of-section-a-1-dashboard>`
-- AND the depth MUST be preserved
-
-#### Scenario: Malformed TOC does not block import
-
-- GIVEN `index.html` with malformed or incomplete TOC entries
-- WHEN the importer encounters unparseable TOC sections
-- THEN the system MUST log warnings for each unparseable entry
-- AND MUST continue processing remaining entries
-- AND MUST import the pages that CAN be extracted from actual page files
+- GIVEN a page with a missing or malformed breadcrumb `<ol>`
+- WHEN the importer encounters the unparseable breadcrumb
+- THEN the system MUST fall back to directory-nesting for parent assignment
+- AND MUST log a warning for the affected page
+- AND MUST continue processing remaining pages
 
 ### Requirement: REQ-CFLI-003 Confluence page → MyDash dashboard conversion
 
@@ -100,9 +109,17 @@ The system MUST convert each Confluence page into a MyDash dashboard with the pa
 
 #### Scenario: Text-display widget captures page body
 
-- GIVEN a Confluence page with body `<div id="main-content"><p>Page content</p></div>`
-- WHEN the importer creates the dashboard
-- THEN the system MUST extract the content of `<div id="main-content">` (if present; fallback to `<body>`)
+- GIVEN a Confluence page HTML file
+- WHEN the importer extracts the page body
+- THEN the system MUST apply the following selector waterfall in order, using the first non-empty result:
+  1. `//div[@id='main-content']`
+  2. `//div[contains(@class, 'wiki-content')]`
+  3. `//div[contains(@class, 'page-content')]`
+  4. `//div[@id='content']`
+  5. `//main`
+  6. `//article`
+  - Fallback: regex extraction of `<body>…</body>` content, then raw HTML as last resort
+- AND before returning the selected node the system MUST strip the following navigation elements in place: `div#pagetreesearch`, `div.breadcrumbs`, `div.pageSection`, `form[name=pagetreesearchform]`, `form.aui`, `nav`, `div.page-metadata`
 - AND MUST create a text-display widget with `type = "text"`, `content.text = <sanitized-html>`
 - AND MUST place the widget at grid position (0, 0) with size (12, 12) — full dashboard width
 - AND MUST set `content.fontSize = "14px"`, `content.color = "var(--color-main-text)"`, `content.backgroundColor = "transparent"`, `content.textAlign = "left"`
@@ -117,6 +134,8 @@ The system MUST convert each Confluence page into a MyDash dashboard with the pa
 ### Requirement: REQ-CFLI-004 Internal link rewriting
 
 The system MUST rewrite internal Confluence links (`<a href="pageId.html">`) to point to the corresponding imported MyDash dashboard.
+
+> **NOTE — MyDash addition:** No link-rewriting code exists in the ported reference. The entire link-rewriting subsystem described here must be built from scratch. The reference leaves internal Confluence `<a href="pageId.html">` links as-is in exported HTML blocks; there is no `pageId→uuid` map and no href-rewrite pass anywhere in the reference codebase.
 
 #### Scenario: Rewrite link to sibling page
 
@@ -149,6 +168,8 @@ The system MUST rewrite internal Confluence links (`<a href="pageId.html">`) to 
 ### Requirement: REQ-CFLI-005 Image upload and source rewriting
 
 The system MUST upload Confluence page attachments and shared images to a Nextcloud folder and rewrite `<img src>` attributes to point to the new NC URLs.
+
+> **NOTE — MyDash addition:** The ported reference does NOT upload anything to Nextcloud. It registers `MediaDownload` objects for Storage Format `<ac:image>` elements only, but the resolution is not implemented and no file-write to Nextcloud occurs. Plain HTML `<img src="attachments/...">` tags are not scanned at all. The `MyDash/Imports/{timestamp}/` destination folder and the full upload pipeline described below are new work that must be designed and built.
 
 #### Scenario: Upload attachment image to NC folder
 
@@ -189,16 +210,45 @@ The system MUST upload Confluence page attachments and shared images to a Nextcl
 - AND MUST NOT overwrite files from the first import
 - AND created dashboards from the two runs MUST be independent (per REQ-CFLI-010)
 
-### Requirement: REQ-CFLI-006 Confluence macro placeholder injection
+### Requirement: REQ-CFLI-006 Confluence macro rendering and placeholder injection
 
-The system MUST identify Confluence macros (non-representable block elements like `<ac:structured-macro>`) and replace them with human-readable placeholders so admins know what content was skipped.
+The system MUST process Confluence `<ac:structured-macro>` elements through registered handlers that produce rich widget output. Recognised macros are rendered into appropriate blocks; unrecognised macros receive a fallback placeholder block.
 
-#### Scenario: Replace structured-macro with placeholder
+#### Scenario: Panel-type macros render as styled blocks
 
-- GIVEN a page body with `<ac:structured-macro ac:name="code"><ac:parameter ac:name="language">java</ac:parameter>...</ac:structured-macro>`
-- WHEN the importer sanitizes the content
-- THEN the system MUST replace the macro with `<p><em>[Macro: code not imported]</em></p>`
-- AND the macro name MUST be extracted and included in the placeholder text
+- GIVEN a page body with `<ac:structured-macro ac:name="info">` (or `note`, `warning`, `tip`, `error`, `panel`)
+- WHEN the importer processes the macro
+- THEN the system MUST produce a text widget block styled with the CSS class `confluence-panel-{type}` (e.g., `confluence-panel-info`)
+- AND MUST preserve the macro body content inside the styled block
+
+#### Scenario: Code macro renders as preformatted block
+
+- GIVEN a page body with `<ac:structured-macro ac:name="code"><ac:parameter ac:name="language">java</ac:parameter>…</ac:structured-macro>`
+- WHEN the importer processes the macro
+- THEN the system MUST produce a `<pre><code class="language-java">…</code></pre>` block
+- AND MUST NOT replace it with a placeholder
+
+#### Scenario: Expand macro renders as collapsible block
+
+- GIVEN a page body with `<ac:structured-macro ac:name="expand">`
+- WHEN the importer processes the macro
+- THEN the system MUST produce a `<details><summary>…</summary>…</details>` block
+- AND MUST NOT replace it with a placeholder
+
+#### Scenario: Attachment and viewfile macros render as placeholders
+
+- GIVEN a page body with `<ac:structured-macro ac:name="attachments">` or `<ac:structured-macro ac:name="viewfile">`
+- WHEN the importer processes the macro
+- THEN the system MUST produce a static HTML placeholder link block
+- AND MUST NOT attempt dynamic file listing
+
+#### Scenario: Unrecognised macros receive fallback placeholder
+
+- GIVEN a page body with `<ac:structured-macro ac:name="sql">` or any other unregistered macro name
+- WHEN the importer processes the macro
+- THEN the system MUST produce `<div class="confluence-unsupported-macro">⚠️ Unsupported macro: <code>sql</code></div>`
+- AND the macro name MUST be included in the placeholder
+- AND admins MUST be able to identify which macros were skipped
 
 #### Scenario: Unsupported HTML elements are stripped
 
@@ -207,16 +257,11 @@ The system MUST identify Confluence macros (non-representable block elements lik
 - THEN the system MUST strip these elements entirely (not replaced with placeholders)
 - AND MUST log a debug note for each stripped element
 
-#### Scenario: Macro placeholders include context
-
-- GIVEN multiple macros of different types in a single page
-- WHEN the importer processes the page
-- THEN each placeholder MUST include the macro name: `[Macro: sql not imported]`, `[Macro: jira not imported]`, etc.
-- AND admins MUST be able to identify which macros were skipped and why
-
 ### Requirement: REQ-CFLI-007 Dry-run endpoint for import preview
 
 The system MUST expose a `POST /api/admin/import/confluence/dry-run` endpoint that performs all parsing and validation WITHOUT creating any dashboards or uploading files.
+
+> **NOTE — MyDash addition:** No dry-run path exists in the reference implementation. The reference controller is fully synchronous with a single endpoint and no `dry-run` parameter, flag, or separate route. This is a new endpoint to build.
 
 #### Scenario: Dry-run returns page count
 
@@ -238,7 +283,7 @@ The system MUST expose a `POST /api/admin/import/confluence/dry-run` endpoint th
 
 - GIVEN a Confluence export with some malformed pages
 - WHEN the admin runs dry-run
-- THEN the system MUST log warnings for unparseable TOC entries, missing images, broken links, etc.
+- THEN the system MUST log warnings for unparseable breadcrumbs, missing images, broken links, etc.
 - AND MUST return the full warnings list
 - AND the admin MUST see these warnings BEFORE committing to the full import
 
@@ -252,6 +297,8 @@ The system MUST expose a `POST /api/admin/import/confluence/dry-run` endpoint th
 ### Requirement: REQ-CFLI-008 Asynchronous import for large archives
 
 The system MUST run imports synchronously for archives with <100 pages and asynchronously (background job) for larger archives, with job tracking and polling support.
+
+> **NOTE — MyDash addition:** The reference controller is fully synchronous — it processes in the request thread and returns a single JSON response. There is no page-count threshold, no background job dispatch, no job-id, and no polling endpoint. The sync/async split and all job-tracking described below must be built from scratch. Note: async jobs must not rely on `ITempManager` temp paths, which are cleaned on request end.
 
 #### Scenario: Small import runs synchronously
 
@@ -308,6 +355,8 @@ The system MUST run imports synchronously for archives with <100 pages and async
 ### Requirement: REQ-CFLI-009 Error resilience: single-page failures do not abort import
 
 The system MUST skip pages that fail to parse and continue importing remaining pages, logging errors for admin review.
+
+> **NOTE — Partial port:** The reference contains a null-guard that silently skips pages where `parseHtmlFile` returns `null` (unreadable file or empty body), and the loop continues. However, there is no `try/catch` around the per-file parsing loop, no error accumulator, and no `errors` list in the response — any thrown exception propagates to the controller and returns HTTP 500 for the entire request. Implementing the full resilience contract below requires adding per-page `try/catch`, an error-accumulation structure, and surfacing collected errors in the response.
 
 #### Scenario: Page with malformed HTML is skipped
 
@@ -375,6 +424,8 @@ The system MUST allow the same Confluence archive to be imported multiple times,
 
 The system MUST expose a Nextcloud OCC command `php occ mydash:import:confluence` for imports via CLI/cron, with options for file path and parent dashboard path.
 
+> **NOTE — MyDash addition:** No `occ mydash:import:confluence` command exists in the reference. The reference contains an `ImportPagesCommand` that operates on the native IntraVox JSON format only, not on Confluence ZIP archives. The `occ mydash:import:confluence` command must be built from scratch.
+
 #### Scenario: CLI import with file option
 
 - GIVEN an admin with shell access to the Nextcloud server
@@ -435,11 +486,12 @@ The system MUST sanitize all imported page HTML using a strict allow-list of for
 - THEN all event handlers (`onclick`, `onerror`, etc.) and `javascript:` URLs MUST be removed
 - AND the result MUST be safe (e.g., `<a>x</a>` or `<img>` with no handlers)
 
-#### Scenario: Confluence-specific markup is converted to placeholders
+#### Scenario: Confluence-specific markup falls through to macro handler
 
-- GIVEN content with `<ac:macro ac:name="expand">`, `<at:macro at:name="code">`, or similar Confluence markup
-- WHEN the importer sanitizes
-- THEN these MUST be replaced with `<p><em>[Macro: expand not imported]</em></p>` etc.
+- GIVEN content with `<ac:structured-macro ac:name="expand">` or similar Confluence markup
+- WHEN the importer processes the content
+- THEN recognised macros MUST be rendered per REQ-CFLI-006 (not treated as generic disallowed elements)
+- AND unrecognised macros MUST receive the `<div class="confluence-unsupported-macro">` fallback per REQ-CFLI-006
 - AND the page MUST still be importable (not fail entirely)
 
 #### Scenario: Allow-list includes all common semantic tags

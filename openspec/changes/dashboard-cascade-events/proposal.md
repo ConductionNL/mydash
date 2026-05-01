@@ -25,7 +25,6 @@ The design ensures each listener is independently isolated — a failure in one 
   - `TreeListener` — on cascade-delete, recursively dispatches `DashboardDeletedEvent` for each child dashboard.
 - Add `UserDeletedListener` subscribing to NC's `\OCP\User\Events\UserDeletedEvent`.
 - Add `GroupDeletedListener` subscribing to NC's `\OCP\Group\Events\GroupDeletedEvent`.
-- Add a new `oc_mydash_cascade_failures` table (one migration) for recording listener failures to allow orphan-cleanup retry.
 - Register all listeners in `Application` via `IEventDispatcher::addListener`.
 - Extend the `DashboardService::delete()` response to include `{deletedAt, cascadeStats: {...}}`.
 
@@ -33,7 +32,7 @@ The design ensures each listener is independently isolated — a failure in one 
 
 ### New Capabilities
 
-- `dashboard-cascade-events`: provides REQ-CSC-001 through REQ-CSC-010 covering event definition, listener registry, widget/asset listener group, user/group lifecycle listeners, failure isolation, failure recording, idempotency, cascade stats response, tree recursion, and listener registration.
+- `dashboard-cascade-events`: provides REQ-CSC-001 through REQ-CSC-010 covering event definition, listener registry, widget/asset listener group, user/group lifecycle listeners, failure isolation (log-and-continue), idempotency, cascade stats response, tree recursion, and listener registration.
 
 ### Modified Capabilities
 
@@ -57,7 +56,6 @@ The design ensures each listener is independently isolated — a failure in one 
 - `lib/Listener/UserDeletedListener.php` — new
 - `lib/Listener/GroupDeletedListener.php` — new
 - `lib/Service/DashboardService.php` — dispatch event post-delete; extend response with `cascadeStats`
-- `lib/Migration/VersionXXXXDate2026AddCascadeFailuresTable.php` — adds `oc_mydash_cascade_failures`
 - `lib/AppInfo/Application.php` — register all 13 listeners via `IEventDispatcher`
 
 **Affected APIs:**
@@ -75,5 +73,4 @@ The design ensures each listener is independently isolated — a failure in one 
 
 **Migration:**
 
-- Adds `oc_mydash_cascade_failures` table (columns: `id`, `listener_class`, `dashboard_uuid`, `error_message`, `failed_at`).
-- Existing rows are unaffected; migration is reversible (drop table on rollback).
+- No new tables. Listener failures are handled via log-and-continue (WARN level); the orphan-cleanup job identifies residual rows by querying dependent tables directly.

@@ -6,33 +6,57 @@ status: draft
 
 ## Purpose
 
-The `people-widget` capability registers a dashboard widget that displays a discoverable directory of Nextcloud users with customizable layout (card/grid/list), profile field visibility control, group filtering, and birthday tracking. The widget integrates with Nextcloud's Dashboard Widget API via `OCP\Dashboard\IManager`, stores configuration in the widget placement's JSON config, and provides a paginated API endpoint for user lookup. Results respect each user's profile visibility settings, and birthdays are computed at request time to ensure accuracy.
+The `people-widget` capability registers a dashboard widget that displays a discoverable directory of Nextcloud users with customizable layout (card/grid/list), profile field visibility control, group filtering, and birthday tracking. The widget integrates with Nextcloud's Dashboard Widget API via `OCP\Dashboard\IManager`, stores configuration in the widget placement's JSON config, and provides a paginated API endpoint for user lookup. Results expose each user's profile fields as returned by `OCP\Accounts\IAccountManager`; scope-based visibility filtering is a planned follow-up (see REQ-PPL-004).
 
 ## Data Model
 
-User listings are stateless and fetched per-request via `GET /api/widgets/people/{placementId}/users`. Results include:
+User listings are stateless and fetched per-request via `GET /api/people`. Results include:
 
-- **userId**: Unique NC user ID
-- **displayName**: User's configured display name
-- **jobTitle**: From `OCP\Accounts\IAccountManager` (if visible)
-- **department**: From `OCP\Accounts\IAccountManager` (if visible)
-- **email**: From `OCP\Accounts\IAccountManager` (if visible)
-- **phone**: From `OCP\Accounts\IAccountManager` (if visible)
-- **avatarUrl**: NC's standard avatar endpoint at configured size (default 64×64)
+- **uid**: Unique NC user ID
+- **displayName**: User's configured display name (from `IUser::getDisplayName()`)
+- **email**: From `OCP\Accounts\IAccountManager` (if non-empty)
+- **phone**: From `OCP\Accounts\IAccountManager` (if non-empty)
+- **avatarUrl**: NC's standard avatar endpoint, always fetched at 128 px resolution; display size is layout-dependent (80 px card / 64 px grid / 44 px list)
 - **groups**: Array of NC group names the user belongs to
-- **daysToBirthday**: Integer (0..365) or null. Null if birthdate not set, not visible to viewer, or `showBirthdays: false`.
+- **role**: From `IAccountManager::PROPERTY_ROLE` (job title / function)
+- **organisation**: From `IAccountManager::PROPERTY_ORGANISATION`
+- **pronouns**: From `IAccountManager::PROPERTY_PRONOUNS` (if non-empty)
+- **headline**: From `IAccountManager::PROPERTY_HEADLINE` (if non-empty)
+- **biography**: From `IAccountManager::PROPERTY_BIOGRAPHY` (if non-empty)
+- **address**: From `IAccountManager::PROPERTY_ADDRESS` (if non-empty)
+- **website**: From `IAccountManager::PROPERTY_WEBSITE` (if non-empty)
+- **twitter**: From `IAccountManager::PROPERTY_TWITTER` (if non-empty)
+- **bluesky**: From `IAccountManager::PROPERTY_BLUESKY` (if non-empty)
+- **fediverse**: From `IAccountManager::PROPERTY_FEDIVERSE` (if non-empty)
+- **birthdate**: ISO 8601 date string or null. Null if birthdate not set. Days-to-birthday display is computed client-side from this value.
+- **status**: User status string from `IUserStatusManager` (optional, omitted if not available)
+- *(dynamic)*: LDAP/OIDC extra properties and app-level custom fields may appear as additional keys
+
+Fields are omitted from the response when their value is empty or null; they are never included with a null value unless explicitly noted.
 
 Widget configuration is stored in the placement's `widgetContent` JSON:
 
 ```json
 {
   "layout": "grid",
-  "groupFilter": [],
+  "selectionMode": "filter",
+  "selectedUsers": [],
+  "filters": [{"fieldName": "group", "operator": "in", "values": ["management"]}],
+  "filterOperator": "AND",
   "excludeDisabled": true,
   "showBirthdays": true,
   "birthdayWindowDays": 7,
   "sortBy": "displayName",
-  "cardFields": ["displayName", "jobTitle", "department", "email", "phone", "avatar"]
+  "columns": 3,
+  "showFields": {
+    "displayName": true,
+    "role": true,
+    "organisation": true,
+    "email": true,
+    "phone": true,
+    "avatar": true,
+    "birthdate": true
+  }
 }
 ```
 
@@ -68,19 +92,23 @@ The system MUST register a widget with id `mydash_people` via `OCP\Dashboard\IMa
 
 Each widget placement MUST support configuration stored in the placement's `widgetContent` JSON field. Configuration keys and defaults:
 - `layout: 'card'|'grid'|'list'` (default `grid`)
-- `groupFilter: string[]` (default `[]` — all visible users)
+- `selectionMode: 'manual'|'filter'` (default `filter`)
+- `selectedUsers: string[]` (default `[]` — used when `selectionMode: 'manual'`)
+- `filters: FilterObject[]` (default `[]` — filter objects with `fieldName`, `operator`, `values`; group filtering is expressed here as `{fieldName: "group", operator: "in", values: [...]}`)
+- `filterOperator: 'AND'|'OR'` (default `'AND'`)
 - `excludeDisabled: boolean` (default `true`)
 - `showBirthdays: boolean` (default `true`)
 - `birthdayWindowDays: number` (default `7`, valid range 0..30)
 - `sortBy: 'displayName'|'group'|'recent-activity'` (default `displayName`)
-- `cardFields: string[]` (default all 6: `displayName`, `jobTitle`, `department`, `email`, `phone`, `avatar`)
+- `columns: 2|3|4` (default `3` for card, `4` for grid; not applicable to list layout)
+- `showFields: object` (map of field name to boolean; default all fields `true`)
 
 The frontend MUST validate `birthdayWindowDays` is between 0 and 30 (inclusive) before saving.
 
 #### Scenario: Config saved to placement
-- **GIVEN** user configures widget layout to "card" with `groupFilter: ["management"]`
+- **GIVEN** user configures widget layout to "card" with a group filter for "management"
 - **WHEN** they save
-- **THEN** the placement's `widgetContent` JSON MUST contain `{"layout": "card", "groupFilter": ["management"], ...}`
+- **THEN** the placement's `widgetContent` JSON MUST contain `{"layout": "card", "filters": [{"fieldName": "group", "operator": "in", "values": ["management"]}], ...}`
 
 #### Scenario: Invalid birthdayWindowDays rejected
 - **GIVEN** user sets `birthdayWindowDays: 50`
@@ -94,77 +122,86 @@ The frontend MUST validate `birthdayWindowDays` is between 0 and 30 (inclusive) 
 - **THEN** the frontend MUST reject with error message
 - **AND** fall back to `displayName`
 
-#### Scenario: cardFields subset validated
-- **GIVEN** user configures `cardFields: ["displayName", "email"]` (omitting others)
+#### Scenario: showFields subset validated
+- **GIVEN** user configures `showFields: {"displayName": true, "email": true}` (omitting others)
 - **WHEN** they save and the widget renders
 - **THEN** only displayName and email MUST be shown on cards
 - **AND** other fields MUST NOT appear
 
 ### Requirement: Paginated users API endpoint (REQ-PPL-003)
 
-The system MUST expose `GET /api/widgets/people/{placementId}/users?cursor=&limit=50` returning a paginated list of users matching the placement's configuration.
+The system MUST expose `GET /api/people?filters=...&limit=50&offset=0` returning a paginated list of users matching the request parameters. Pagination is offset-based. Maximum `limit` is 100.
 
 Response shape:
 ```json
 {
   "users": [
     {
-      "userId": "alice",
+      "uid": "alice",
       "displayName": "Alice Smith",
-      "jobTitle": "Product Manager",
-      "department": "Product",
+      "role": "Product Manager",
+      "organisation": "Product",
       "email": "alice@example.com",
       "phone": "+31612345678",
-      "avatarUrl": "/avatar/alice?size=64",
+      "avatarUrl": "https://example.com/avatar/alice/128",
       "groups": ["management", "product"],
-      "daysToBirthday": 5
+      "birthdate": "1990-06-10",
+      "status": "online"
     }
   ],
-  "nextCursor": "alice_001"
+  "total": 150,
+  "hasMore": true
 }
 ```
 
 #### Scenario: Fetch first page of users
-- **GIVEN** a placement with 150 visible users
-- **WHEN** user sends `GET /api/widgets/people/5/users?limit=50` (no cursor)
+- **GIVEN** 150 visible users
+- **WHEN** client sends `GET /api/people?limit=50&offset=0`
 - **THEN** the system MUST return HTTP 200 with the first 50 users
-- **AND** `nextCursor` MUST be set (non-null) to fetch the next page
-- **AND** each user object MUST include all fields (subject to visibility rules)
+- **AND** `hasMore` MUST be `true`
+- **AND** `total` MUST be `150`
+- **AND** each user object MUST include all non-empty fields
 
-#### Scenario: Fetch second page via cursor
-- **GIVEN** `nextCursor` from the first page
-- **WHEN** user sends `GET /api/widgets/people/5/users?cursor=alice_001&limit=50`
+#### Scenario: Fetch second page via offset
+- **GIVEN** a first page of 50 users was fetched
+- **WHEN** client sends `GET /api/people?limit=50&offset=50`
 - **THEN** the system MUST return the next 50 users
-- **AND** pagination MUST not overlap or skip users
+- **AND** results MUST NOT overlap with the first page
 
-#### Scenario: Last page returns null nextCursor
-- **GIVEN** the last page of results (fewer than limit)
-- **WHEN** user fetches that page
-- **THEN** `nextCursor` MUST be `null`
-- **AND** the response MUST indicate no more users available
+#### Scenario: Last page returns hasMore false
+- **GIVEN** the last page of results (fewer users remaining than limit)
+- **WHEN** client fetches that page
+- **THEN** `hasMore` MUST be `false`
+- **AND** `total` MUST reflect the full result count
 
-#### Scenario: Placement not found returns 404
-- **GIVEN** a non-existent placement ID
-- **WHEN** user sends `GET /api/widgets/people/99999/users`
-- **THEN** the system MUST return HTTP 404
+#### Scenario: limit exceeds maximum returns 400
+- **GIVEN** client sends `GET /api/people?limit=200`
+- **WHEN** request is processed
+- **THEN** the system MUST return HTTP 400
+- **AND** response MUST contain a clear error message indicating the maximum is 100
 
-#### Scenario: Invalid cursor gracefully handled
-- **GIVEN** a malformed or expired cursor
-- **WHEN** user sends `GET /api/widgets/people/5/users?cursor=invalid`
-- **THEN** the system MUST either restart pagination from the beginning OR return HTTP 400 with clear error message
+#### Scenario: Invalid offset or limit type handled
+- **GIVEN** a malformed offset or limit (e.g. negative or non-integer)
+- **WHEN** client sends the request
+- **THEN** the system MUST return HTTP 400 with a clear error message
 
 ### Requirement: Profile visibility enforcement (REQ-PPL-004)
 
-The system MUST only return profile fields the requesting viewer is allowed to see, per Nextcloud's `IAccountManager` field-level visibility settings. Hidden fields MUST be omitted entirely from the response (not included with null value).
+The system MUST NOT return empty or null field values — all returned fields MUST have a non-empty value. The system SHOULD only return profile fields the requesting viewer is allowed to see, per Nextcloud's `IAccountManager` field-level visibility settings. Hidden fields SHOULD be omitted entirely from the response (not included with null value).
 
-#### Scenario: Viewer cannot see hidden email
+**NOTE (v1 limitation)**: The current implementation reads `IAccountManager` properties unconditionally via `$account->getProperty($property)->getValue()` without checking `$prop->getScope()`. All non-empty profile fields are returned to any authenticated viewer regardless of the user's privacy settings. Enforcing NC scope-based visibility is a planned follow-up (see Open Follow-Ups).
+
+**NOTE (caching risk)**: The non-group-filter path uses a 1-hour shared APCu cache keyed only on filter + sort parameters, not on the requesting user. If scope-based visibility is enforced in a future revision, this cache MUST be made per-viewer or disabled to prevent data leakage.
+
+#### Scenario: Viewer cannot see hidden email (future)
 - **GIVEN** user "alice" has set her email visibility to "private" (not visible to others)
 - **AND** user "bob" is viewing the people widget
 - **WHEN** bob fetches the user list
-- **THEN** alice's entry MUST NOT have an `email` field
-- **AND** the `email` key MUST NOT appear in the response object (not `email: null`)
+- **THEN** alice's entry SHOULD NOT have an `email` field
+- **AND** the `email` key SHOULD NOT appear in the response object (not `email: null`)
+- **NOTE**: This scenario describes the target state; scope-based filtering is not enforced in v1.
 
-#### Scenario: Viewer can see visible email
+#### Scenario: Viewer can see visible email (future)
 - **GIVEN** user "alice" has set her email visibility to "public" or "organization"
 - **WHEN** bob fetches the user list
 - **THEN** alice's entry MUST include `email: "alice@example.com"`
@@ -175,198 +212,177 @@ The system MUST only return profile fields the requesting viewer is allowed to s
 - **THEN** charlie MUST see all their own fields regardless of privacy settings
 - **NOTE**: Users may see all their own fields; privacy is for viewing others.
 
-#### Scenario: Missing birthdate returns null or omits field
+#### Scenario: Missing birthdate returns omitted field
 - **GIVEN** user "dave" has not set a birthdate
 - **WHEN** bob fetches the people list with `showBirthdays: true`
-- **THEN** dave's entry MUST have `daysToBirthday: null`
-- **OR** the `daysToBirthday` field MUST be omitted entirely
+- **THEN** dave's entry MUST NOT include a `birthdate` field (omitted, not nulled)
 
-### Requirement: Birthday computation (REQ-PPL-005)
+### Requirement: Birthday field (REQ-PPL-005)
 
-The system MUST compute `daysToBirthday` at request time from the user's `birthdate` (stored in `IAccountManager`). The value MUST be the number of days until the next upcoming birthday (modulo year), or `null` if:
-- Birthdate not set
-- Birthdate not visible to the viewer
-- `showBirthdays: false` in widget config
+The system MUST return `birthdate` as an ISO 8601 date string (e.g. `"1990-06-10"`) when the user has a birthdate set in `IAccountManager::PROPERTY_BIRTHDATE`. The raw value may be stored in locale-specific formats (DD-MM-YYYY, DD/MM/YYYY, DD.MM.YYYY) and MUST be normalized to ISO 8601 server-side before being returned. If the birthdate is not set the field MUST be omitted from the response.
 
-Leap-year dates (Feb 29) MUST be handled correctly (celebrated on Feb 28 in non-leap years, or Feb 29 in leap years).
+Birthday window filtering (e.g. "upcoming birthdays in next N days") is expressed as a filter object `{fieldName: "birthday", operator: "within_next_days", values: [7]}`. This filter is computed server-side as a predicate but the `birthdate` string (not a days-countdown) is what is returned in the response.
 
-#### Scenario: Upcoming birthday in current year
+Days-to-birthday display logic MUST be computed client-side from the returned `birthdate` string.
+
+**NOTE (Feb-29 guard)**: The `within_next_days` filter operator constructs the current-year birthday date as `YYYY-MM-DD` from the stored month-day without a Feb-29 guard. This will throw an exception on non-leap years for users with a Feb-29 birthday. A guard must be added (see Open Follow-Ups).
+
+#### Scenario: Upcoming birthday returned as ISO string
 - **GIVEN** today is 2026-05-15
-- **AND** user "alice" has birthdate 1990-06-10
-- **WHEN** system computes `daysToBirthday`
-- **THEN** result MUST be 26 (days until June 10, 2026)
+- **AND** user "alice" has birthdate stored as "10-06-1990"
+- **WHEN** system returns alice's profile
+- **THEN** `birthdate` MUST be `"1990-06-10"` (ISO 8601 normalized)
 
-#### Scenario: Past birthday this year wraps to next year
-- **GIVEN** today is 2026-06-15
-- **AND** user "bob" has birthdate 1990-05-10 (birthday was 36 days ago)
-- **WHEN** system computes `daysToBirthday`
-- **THEN** result MUST be 330 (days until May 10, 2027)
+#### Scenario: Birthday filter within_next_days
+- **GIVEN** placement config requests birthday filter `within_next_days: 7`
+- **AND** today is 2026-05-15
+- **WHEN** system fetches user list
+- **THEN** only users whose birthday falls between 2026-05-15 and 2026-05-22 MUST be included
+- **AND** each included user's `birthdate` MUST be the ISO date string of their birthday
 
-#### Scenario: Birthday today returns 0
+#### Scenario: Birthday today is included
 - **GIVEN** today is 2026-06-10
 - **AND** user "charlie" has birthdate 1990-06-10
-- **WHEN** system computes `daysToBirthday`
-- **THEN** result MUST be 0
+- **WHEN** system applies `within_next_days: 7` filter
+- **THEN** charlie MUST be included in results
+- **AND** `birthdate` MUST be `"1990-06-10"`
 
-#### Scenario: Leap-year birthday in non-leap-year
-- **GIVEN** today is 2025-02-27
-- **AND** user "dave" has birthdate 1990-02-29
-- **WHEN** system computes `daysToBirthday` in 2025 (non-leap year)
-- **THEN** result MUST be 1 (Feb 29 celebrated on Feb 28; tomorrow is Feb 28, 2025)
+#### Scenario: Missing birthdate omits field
+- **GIVEN** user "dave" has not set a birthdate
+- **WHEN** any request is processed
+- **THEN** dave's entry MUST NOT include a `birthdate` field
 
-#### Scenario: Birthdate hidden from viewer returns null
-- **GIVEN** user "eve" has marked her birthdate as private
-- **AND** user "frank" is the viewer
-- **WHEN** frank requests the people list
-- **THEN** eve's entry MUST have `daysToBirthday: null`
-
-#### Scenario: showBirthdays disabled returns null
+#### Scenario: showBirthdays false omits birthdate
 - **GIVEN** placement config has `showBirthdays: false`
 - **WHEN** system computes results
-- **THEN** all entries MUST have `daysToBirthday: null`
+- **THEN** all entries MUST NOT include a `birthdate` field
 - **AND** birthday information MUST NOT be sent to the frontend
 
 ### Requirement: Group filtering (REQ-PPL-006)
 
-The system MUST apply the `groupFilter` configuration to restrict results to users in any of the specified Nextcloud groups. An empty `groupFilter: []` means all visible users. A non-empty filter MUST intersect: only users in ANY of the listed groups are returned.
+The system MUST apply group filters expressed as filter objects in the `filters` array (where `fieldName === 'group'`) to restrict results to users in any of the specified Nextcloud groups. An empty `filters` array means all visible users. A group filter MUST use a union (OR) strategy: users in ANY of the listed group values are included. Deduplication MUST be applied so users appearing in multiple groups appear only once.
 
-#### Scenario: Empty group filter returns all visible users
-- **GIVEN** placement config has `groupFilter: []`
+Group filtering is implemented via `IGroupManager::get($groupId)->getUsers()`. An unknown group name MUST yield zero users for that group value (no error), and the results from other group values in the filter are still returned.
+
+#### Scenario: Empty filters returns all visible users
+- **GIVEN** placement config has `filters: []`
 - **WHEN** system fetches user list
-- **THEN** all NC users visible to the viewer MUST be returned (subject to `excludeDisabled`, `showBirthdays`, field visibility)
+- **THEN** all NC users visible to the viewer MUST be returned (subject to `excludeDisabled` and field visibility)
 
 #### Scenario: Single group filter
-- **GIVEN** `groupFilter: ["management"]`
+- **GIVEN** `filters: [{"fieldName": "group", "operator": "in", "values": ["management"]}]`
 - **WHEN** system fetches user list
 - **THEN** only users in the "management" group MUST be returned
 - **AND** users in other groups MUST be excluded
 - **AND** `groups` field MUST show all groups the user belongs to (not just the matched group)
 
-#### Scenario: Multiple group filter (union)
-- **GIVEN** `groupFilter: ["management", "product"]`
+#### Scenario: Multiple group values (union)
+- **GIVEN** `filters: [{"fieldName": "group", "operator": "in", "values": ["management", "product"]}]`
 - **WHEN** system fetches user list
 - **THEN** users in either "management" OR "product" MUST be returned
-- **AND** users in both groups appear only once (not duplicated)
+- **AND** users belonging to both groups MUST appear only once (deduplicated)
 
 #### Scenario: Unknown group name handled gracefully
-- **GIVEN** `groupFilter: ["nonexistent-group"]`
+- **GIVEN** `filters: [{"fieldName": "group", "operator": "in", "values": ["nonexistent-group"]}]`
 - **WHEN** system fetches user list
-- **THEN** no users MUST be returned (intersection is empty)
-- **OR** the system MUST return HTTP 400 with error message "Unknown group: nonexistent-group"
+- **THEN** no users MUST be returned (the unknown group yields zero users)
+- **AND** the system MUST return HTTP 200 with an empty `users` array (not HTTP 400 or 500)
 
-#### Scenario: Users in group appear in results with group list
+#### Scenario: Users in group appear with full group list
 - **GIVEN** user "alice" is in groups ["management", "product"]
-- **AND** `groupFilter: ["management"]`
+- **AND** `filters: [{"fieldName": "group", "operator": "in", "values": ["management"]}]`
 - **WHEN** system returns alice
 - **THEN** alice's `groups` array MUST show `["management", "product"]` (all her groups)
 
 ### Requirement: Avatar URLs (REQ-PPL-007)
 
-The system MUST provide avatar URLs via Nextcloud's standard avatar endpoint. The avatar size MUST be configurable via the app config key `mydash.people_widget_avatar_size` (default 64 pixels). URLs MUST point to `/avatar/{userId}?size={pixelSize}` and MUST always succeed (Nextcloud returns a placeholder for missing avatars).
+The system MUST provide absolute avatar URLs via Nextcloud's standard avatar route (`core.avatar.getAvatar`). The avatar route MUST always be fetched at 128 px resolution. Display size is layout-dependent and controlled by the frontend component (80 px for card, 64 px for grid, 44 px for list). There is no app config key for avatar size. Nextcloud returns a generated placeholder avatar for users without an uploaded avatar, so URLs MUST always succeed.
 
 #### Scenario: Avatar URL for existing user
-- **GIVEN** user "alice" with avatar
-- **AND** config `mydash.people_widget_avatar_size: 64`
+- **GIVEN** user "alice" with an uploaded avatar
 - **WHEN** system returns alice in the user list
-- **THEN** `avatarUrl` MUST be `/avatar/alice?size=64`
+- **THEN** `avatarUrl` MUST be an absolute URL to the NC avatar route at size 128
 
 #### Scenario: Avatar URL for user without avatar
 - **GIVEN** user "bob" with no avatar uploaded
 - **WHEN** system returns bob
-- **THEN** `avatarUrl` MUST still be `/avatar/bob?size=64`
-- **AND** Nextcloud MUST serve a default placeholder
+- **THEN** `avatarUrl` MUST still be a valid absolute URL pointing to NC's avatar route
+- **AND** Nextcloud MUST serve a generated placeholder avatar
 
-#### Scenario: Custom avatar size from config
-- **GIVEN** admin sets `mydash.people_widget_avatar_size: 128`
-- **WHEN** system fetches user list
-- **THEN** all `avatarUrl` values MUST have `?size=128`
-
-#### Scenario: Avatar size bounds validation
-- **GIVEN** admin sets `mydash.people_widget_avatar_size: -5` or `50000`
-- **WHEN** system fetches user list
-- **THEN** invalid sizes MUST be clamped to a reasonable range (e.g., 16..1024)
-- **AND** the widget MUST still render without error
+#### Scenario: Avatar displayed at layout-appropriate size
+- **GIVEN** widget is rendering in card layout
+- **WHEN** frontend receives `avatarUrl` (128 px source)
+- **THEN** the avatar MUST be displayed at 80 px in card layout
+- **AND** at 64 px in grid layout
+- **AND** at 44 px in list layout
 
 ### Requirement: Three layout modes (REQ-PPL-008)
 
-The frontend MUST support three layout modes: `card`, `grid`, and `list`. Each layout MUST respect the `cardFields` configuration for which fields to display.
+The frontend MUST support three layout modes: `card`, `list`, and `grid`. Each layout MUST respect the `showFields` configuration for which fields to display.
 
 **Card layout** (`layout: 'card'`):
 - Displays full profile cards (~200×280 px each)
-- Avatar: ~64 px, top/center
-- Fields stacked vertically below avatar (displayName, jobTitle, department, email, phone)
-- Birthday badge "🎂 in N days" overlaid on avatar (if applicable)
+- Avatar: 80 px, top/center
+- Fields stacked vertically below avatar (displayName, role, organisation, email, phone, and any enabled showFields)
 - Hover effect (optional): subtle shadow/scale
+- Supports configurable column count via `columns` key (2/3/4, default 3)
 
 **Grid layout** (`layout: 'grid'`):
 - Compact grid of small cards (~80×120 px each)
-- Avatar: ~48 px centered
+- Avatar: 64 px centered
 - Display name below avatar (1-2 lines, truncated if needed)
-- Birthday badge "🎂 in N days" small, bottom-right of avatar (if applicable)
+- Supports configurable column count via `columns` key (2/3/4, default 4)
 - Optimized for many users on a narrow dashboard
 
 **List layout** (`layout: 'list'`):
 - Single-line rows (height ~40 px)
-- Avatar: ~32 px, left side
-- Name + optional secondary field (email or department, configured via `cardFields`)
+- Avatar: 44 px, left side
+- Name + optional secondary field (email or organisation, configured via `showFields`)
 - Hover: highlight row background
-- Birthday badge: "🎂 in N days" on the right side (if applicable)
 
 #### Scenario: Card layout displays full profile
-- **GIVEN** `layout: 'card'`, `cardFields: ["displayName", "jobTitle", "department", "email"]`
+- **GIVEN** `layout: 'card'`, `showFields: {"displayName": true, "role": true, "organisation": true, "email": true}`
 - **WHEN** widget renders 10 users
-- **THEN** each card MUST show avatar + all 4 configured fields
+- **THEN** each card MUST show avatar (80 px) + all 4 configured fields
 - **AND** cards MUST be approximately 200×280 px each
-- **AND** cards MUST stack vertically or in a shallow grid
+- **AND** cards MUST be arranged according to the `columns` config (default 3 per row)
 
 #### Scenario: Grid layout shows avatar + name only
-- **GIVEN** `layout: 'grid'`, any `cardFields` value
+- **GIVEN** `layout: 'grid'`, any `showFields` value
 - **WHEN** widget renders 20 users
-- **THEN** each cell MUST show avatar (~48 px) + display name (2 lines max, truncated)
+- **THEN** each cell MUST show avatar (64 px) + display name (2 lines max, truncated)
 - **AND** cells MUST be approximately 80×120 px each
-- **AND** cells MUST fit 3-4 per row on a typical dashboard
+- **AND** cells MUST be arranged according to the `columns` config (default 4 per row)
 
 #### Scenario: List layout shows compact rows
-- **GIVEN** `layout: 'list'`, `cardFields: ["displayName", "email"]`
+- **GIVEN** `layout: 'list'`, `showFields: {"displayName": true, "email": true}`
 - **WHEN** widget renders 50 users
 - **THEN** each row MUST be a single line (~40 px height)
-- **AND** row MUST show avatar (~32 px) + name + email
+- **AND** row MUST show avatar (44 px) + name + email
 - **AND** rows MUST be scrollable if they exceed widget height
 
-#### Scenario: Birthday badge displays when applicable
-- **GIVEN** user "alice" has `daysToBirthday: 5`, `birthdayWindowDays: 7`
-- **WHEN** widget renders alice in any layout
-- **THEN** a "🎂 in 5 days" badge MUST appear (exact emoji/text configurable)
-- **AND** badge position MUST adapt to layout (card: top-right, grid: bottom-right, list: right side)
-
-#### Scenario: cardFields filtered per layout
-- **GIVEN** `cardFields: ["displayName", "department"]` (omitting email, phone, jobTitle)
+#### Scenario: showFields filtered per layout
+- **GIVEN** `showFields: {"displayName": true, "organisation": true}` (omitting email, phone, role)
 - **WHEN** card layout renders
-- **THEN** only displayName and department MUST be shown
-- **AND** email, phone, jobTitle MUST NOT appear
+- **THEN** only displayName and organisation MUST be shown
+- **AND** email, phone, and role MUST NOT appear
 
 ### Requirement: Empty state and error handling (REQ-PPL-009)
 
 The widget MUST display a user-friendly message when no results are available.
 
 #### Scenario: No users match filter
-- **GIVEN** `groupFilter: ["nonexistent-group"]` (no users in group)
+- **GIVEN** `filters: [{"fieldName": "group", "operator": "in", "values": ["nonexistent-group"]}]` (no users in group)
 - **WHEN** widget renders
 - **THEN** text "No matching users." MUST be displayed (localized to user's language)
 - **AND** no broken/empty grid MUST appear
 
 #### Scenario: Failed API request
-- **GIVEN** the `/api/widgets/people/{placementId}/users` endpoint returns 500 error
+- **GIVEN** the `/api/people` endpoint returns 500 error
 - **WHEN** widget renders
 - **THEN** error message "Failed to load users" MUST be displayed
 - **AND** a "Retry" button MUST be provided
 - **AND** widget MUST NOT crash or show raw error traces
-
-#### Scenario: Placement not found
-- **GIVEN** placement has been deleted
-- **WHEN** widget tries to fetch users via invalid placement ID
-- **THEN** widget MUST show "Widget configuration missing or invalid"
-- **AND** user MUST be able to remove/reconfigure the widget
 
 #### Scenario: Empty result after search
 - **GIVEN** user searches for "zzz" (no matching names/emails)
@@ -376,6 +392,8 @@ The widget MUST display a user-friendly message when no results are available.
 ### Requirement: Click-through to user profile (REQ-PPL-010)
 
 Clicking on a user profile card (or avatar, or name in list view) MUST open Nextcloud's standard user profile page.
+
+**NOTE**: This feature is NOT present in the reference implementation. It must be added fresh in MyDash.
 
 #### Scenario: Card click opens profile
 - **GIVEN** user "alice" is displayed in card layout
@@ -391,7 +409,7 @@ Clicking on a user profile card (or avatar, or name in list view) MUST open Next
 #### Scenario: Avatar click opens profile
 - **GIVEN** any layout
 - **WHEN** user clicks the avatar image
-- **THEN** browser MUST navigate to `/u/{userId}` in the same tab
+- **THEN** browser MUST navigate to `/u/{uid}` in the same tab
 
 #### Scenario: Profile page respects access control
 - **GIVEN** user "charlie" does not have access to see user "dave"'s profile
@@ -461,12 +479,22 @@ The widget MUST cache results in memory for 60 seconds per placement. A force-re
 
 ## Non-Functional Requirements
 
-- **Performance**: `GET /api/widgets/people/{placementId}/users` MUST return within 1 second for orgs with <1000 users. Pagination with limit=50 MUST be efficient (cursor-based, not offset-based).
+- **Performance**: `GET /api/people` MUST return within 1 second for orgs with <1000 users. Pagination with limit=50 MUST be efficient (offset-based, max 100 per page).
 - **Compatibility**: Widget MUST work with all Nextcloud versions supported by MyDash (currently 25+).
-- **Data integrity**: User list MUST reflect real-time group membership (no stale cache on backend).
+- **Data integrity**: User list MUST reflect real-time group membership (no stale cache on backend for group-filtered paths).
 - **Accessibility**: Widget MUST support keyboard navigation (Tab through users, Enter to open profile). All fields MUST have accessible labels. Avatar images MUST have alt text.
-- **Localization**: All user-facing strings MUST support English and Dutch (nl/en). Birthday computation MUST work with any user's locale.
-- **Privacy**: Hidden profile fields MUST NEVER be returned to the client (not even nulled). Birthday information MUST respect visibility settings.
+- **Localization**: All user-facing strings MUST support English and Dutch (nl/en). Birthday display formatting MUST work with any user's locale.
+- **Privacy**: Scope-based field filtering is a planned follow-up. The shared backend APCu cache (keyed on filter + sort only) MUST be made per-viewer before scope-based visibility is enforced to prevent data leakage.
+
+## Open Follow-Ups
+
+- **Privacy — scope enforcement**: Implement `IAccountManager` scope-based visibility (`$prop->getScope()` check against viewer) before the shared filter cache is safe to retain.
+- **Privacy — per-viewer cache**: The 1-hour shared APCu cache ignores the requesting user. When scope-based visibility is enforced, the cache key MUST include the viewer's uid (or the cache must be disabled).
+- **Feb-29 birthday guard**: The `within_next_days` filter operator constructs dates with `new \DateTime($currentYear . '-' . $date->format('m-d'))` — this throws on Feb 29 in non-leap years. A guard (substitute Feb 28 in non-leap years) must be added.
+- **Click-through to `/u/{uid}`**: Not present in the reference implementation; must be added to the frontend card/list components.
+- **Birthday badge overlay**: "🎂 in N days" badge rendering is not in the reference source; to be added if desired.
+- **Status integration**: `IUserStatusManager` is wired and populates `status` in the profile. Expose and document `status` field fully in a follow-up.
+- **Public share access**: The reference source exposes people data via `GET /api/share/{token}/people` — the spec does not address this route. Decide scope.
 
 ## Current Implementation Status
 
@@ -481,9 +509,9 @@ The widget MUST cache results in memory for 60 seconds per placement. A force-re
 ### Standards & References
 
 - Nextcloud Dashboard Widget API: `OCP\Dashboard\IManager::registerWidget()`, `IWidget` interface
-- Nextcloud User Management: `OCP\IUserManager::getUsers()`, `OCP\IGroupManager::displayNamesInGroup()`
+- Nextcloud User Management: `OCP\IUserManager::getUsers()`, `OCP\IGroupManager`
 - Nextcloud Profile: `OCP\Accounts\IAccountManager` (field-level visibility, birthdate storage)
 - Nextcloud User Status: `OCP\UserStatus\IManager` (for presence, future feature)
-- Avatar serving: `/avatar/{userId}?size=N` standard NC endpoint
-- WCAG 2.1 AA: Alt text for avatars, keyboard navigation, color contrast for badges
+- Avatar serving: `core.avatar.getAvatar` route, 128 px fetch size
+- WCAG 2.1 AA: Alt text for avatars, keyboard navigation, color contrast
 - WAI-ARIA: List roles, button semantics for profile clicks and search

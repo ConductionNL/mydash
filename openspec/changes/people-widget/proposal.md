@@ -9,22 +9,26 @@ MyDash dashboards need a discoverable people directory as a core widget capabili
 ## What Changes
 
 - **NEW** `POST /appinfo/dashboard.php` registers widget id `mydash_people` via `OCP\Dashboard\IManager::registerWidget()`.
-- **NEW** `GET /api/widgets/people/{placementId}/users` endpoint returns paginated user list `{users: [{userId, displayName, jobTitle, department, email, phone, avatarUrl, groups, daysToBirthday|null}], nextCursor}`.
+- **NEW** `GET /api/people?filters=...&limit=50&offset=0` endpoint returns paginated user list `{users: [{uid, displayName, role, organisation, email, phone, avatarUrl, groups, birthdate|omitted, status?}], total, hasMore}`. Pagination is offset-based (max limit 100).
 - **NEW** per-placement config in `widgetContent JSON`:
   - `layout: 'card'|'grid'|'list'` (default `grid`)
-  - `groupFilter: string[]` — empty = all visible users, non-empty = intersection with named NC groups
+  - `selectionMode: 'manual'|'filter'` (default `filter`)
+  - `selectedUsers: string[]` (default `[]`)
+  - `filters: FilterObject[]` — group filtering expressed as `{fieldName: "group", operator: "in", values: [...]}` (default `[]` = all visible users)
+  - `filterOperator: 'AND'|'OR'` (default `'AND'`)
   - `excludeDisabled: boolean` (default `true`)
   - `showBirthdays: boolean` (default `true`)
-  - `birthdayWindowDays: number` (default 7, range 0..30) — "🎂 in N days" badges
+  - `birthdayWindowDays: number` (default 7, range 0..30)
   - `sortBy: 'displayName'|'group'|'recent-activity'` (default `displayName`)
-  - `cardFields: string[]` — subset of `['displayName', 'jobTitle', 'department', 'email', 'phone', 'avatar']` (default all)
-- **NEW** Vue 3 SFC `PeopleWidget.vue` with three layout modes (card ~200×280px, grid ~80×120px, list single-line) and optional in-widget search (client-side substring filter).
-- **NEW** birthday computation: read from `OCP\Accounts\IAccountManager`'s `birthdate` property if visible, compute next birthday modulo year, return `null` if not set or not visible.
-- **NEW** avatar URL via NC's standard route at 64×64 px (configurable via `mydash.people_widget_avatar_size`).
-- **NEW** profile visibility enforcement: only return fields the viewer is allowed to see; hidden fields are omitted entirely.
-- **NEW** group-filter intersection: display only users in any of the configured groups (validated via `IGroupManager::displayNamesInGroup()`).
+  - `columns: 2|3|4` (default 3 for card, 4 for grid)
+  - `showFields: object` — map of field name to boolean (default all `true`)
+- **NEW** Vue 3 SFC `PeopleWidget.vue` with three layout modes (card ~200×280px / avatar 80 px, grid ~80×120px / avatar 64 px, list single-line / avatar 44 px) and optional in-widget search (client-side substring filter).
+- **NEW** birthday field: read from `OCP\Accounts\IAccountManager`'s `PROPERTY_BIRTHDATE`, normalized to ISO 8601 string. Returned as `birthdate: "YYYY-MM-DD"` or omitted. Days-to-birthday display computed client-side. Birthday window filtering via `within_next_days` filter operator (server-side predicate only).
+- **NEW** avatar URL via NC's standard `core.avatar.getAvatar` route at 128 px resolution; display size is layout-dependent (80/64/44 px). No configurable size app config key.
+- **NEW** profile visibility: v1 returns all non-empty `IAccountManager` fields unconditionally. Scope-based visibility enforcement is a planned follow-up.
+- **NEW** group-filter: expressed as a filter object in `filters` array; uses `IGroupManager::get($groupId)->getUsers()` with deduplication via `$seen` map.
 - **NEW** 60-second client-side cache with force-refresh button in widget header.
-- **NEW** click on profile card → opens `/u/{userId}` standard NC profile page in same tab.
+- **NEW** click on profile card → opens `/u/{uid}` standard NC profile page in same tab (must be added fresh — not in reference source).
 - **NEW** empty state: "No matching users."
 
 ## Capabilities
@@ -59,10 +63,10 @@ The people widget is a self-contained feature: registration, endpoint, service l
 
 - Widget registration via `appinfo/dashboard.php` (standard NC approach).
 - Config stored in widget placement's `widgetContent` JSON field (no separate config table).
-- Endpoint returns paginated list (cursor-based for efficient large-org queries).
-- Profile visibility enforced via `IAccountManager`'s per-field visibility flags — hidden fields are omitted, never nulled.
-- Birthdays computed server-side at request time (not cached; next upcoming birthday from today).
-- Avatar URLs point to NC's standard `avatar.php` endpoint.
+- Endpoint returns paginated list (offset-based, max 100 per page; `{users, total, hasMore}`).
+- Profile visibility: v1 returns all non-empty `IAccountManager` fields unconditionally; scope-based visibility is a planned follow-up.
+- Birthday field returned as ISO 8601 string; days-to-birthday computed client-side. Server-side `within_next_days` filter predicate used for birthday window queries.
+- Avatar URLs point to NC's standard `core.avatar.getAvatar` route at 128 px; display size is layout-dependent.
 - Client-side search filters current page only (not all users — efficient for large orgs).
 - Click → `/u/{userId}` opens user's NC profile in same tab.
 
