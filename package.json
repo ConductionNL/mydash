@@ -21,7 +21,7 @@
 		"test:coverage": "vitest run --coverage"
 	},
 	"dependencies": {
-		"@conduction/nextcloud-vue": "^0.1.0-beta.1",
+		"@conduction/nextcloud-vue": "^0.1.0-beta.17",
 		"@mdi/js": "^7.4.47",
 		"@nextcloud/axios": "^2.5.0",
 		"@nextcloud/dialogs": "^6.1.1",
