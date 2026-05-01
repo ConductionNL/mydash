@@ -1,0 +1,83 @@
+{
+  "skill_name": "sync-docs",
+  "version": "1.0.0",
+  "created": "2026-04-07",
+  "last_validated": null,
+  "evals": [
+    {
+      "id": "app-docs",
+      "description": "Sync app feature docs",
+      "prompt": "Run /sync-docs app on openregister",
+      "setup": "App with outdated docs/",
+      "expected_output": "Should check and update feature docs",
+      "expectations": [
+        "Reads current app state and specs",
+        "Compares against existing docs/",
+        "Identifies outdated or missing sections",
+        "Updates docs to reflect current state"
+      ]
+    },
+    {
+      "id": "dev-docs",
+      "description": "Sync developer docs",
+      "prompt": "Run /sync-docs dev",
+      "setup": ".claude/docs/ with potential drift",
+      "expected_output": "Should check developer docs alignment",
+      "expectations": [
+        "Checks config.yaml rules alignment",
+        "Checks Sources of Truth accuracy",
+        "Verifies writing-specs.md schema alignment",
+        "Reports drift with suggestions"
+      ]
+    },
+    {
+      "id": "preflight",
+      "description": "Run pre-flight checks",
+      "prompt": "Run sync-docs with pre-flight",
+      "setup": "Docs potentially out of date",
+      "expected_output": "Should run validation checks",
+      "expectations": [
+        "Checks upstream schema drift",
+        "Validates sources of truth table",
+        "Reports staleness signals",
+        "Suggests specific updates"
+      ]
+    }
+  ],
+  "trigger_tests": {
+    "should_trigger": [
+      "sync the docs",
+      "update documentation",
+      "sync-docs",
+      "check if docs are current",
+      "refresh documentation",
+      "run /sync-docs",
+      "I need to sync the docs",
+      "can you update the app docs",
+      "sync developer documentation",
+      "check if the docs are up to date for openregister",
+      "sync app feature docs",
+      "update the docs to match the current state",
+      "refresh the Claude developer guides",
+      "sync docs for opencatalogi",
+      "check docs drift"
+    ],
+    "should_not_trigger": [
+      "write new docs",
+      "create a spec",
+      "sync specs",
+      "sync GitHub",
+      "update intelligence",
+      "create a PR",
+      "clean the environment",
+      "test the app",
+      "run regression tests",
+      "what docs exist",
+      "read the docs",
+      "explain the workflow",
+      "run all tests",
+      "update the README",
+      "commit the docs"
+    ]
+  }
+}

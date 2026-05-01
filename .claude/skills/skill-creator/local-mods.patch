@@ -1,0 +1,11 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -164,7 +164,7 @@
+
+ This section is one continuous sequence — don't stop partway through. Do NOT use `/skill-test` or any other testing skill.
+
+-Put results in `<skill-name>-workspace/` as a sibling to the skill directory. Within the workspace, organize results by iteration (`iteration-1/`, `iteration-2/`, etc.) and within that, each test case gets a directory (`eval-0/`, `eval-1/`, etc.). Don't create all of this upfront — just create directories as you go.
++**LOCAL CONVENTION (this repo):** Put results inside the skill directory at `<skill-dir>/evals/workspace/iteration-N/` — NOT in a sibling `<skill-name>-workspace/` folder. Eval artifacts stay co-located with the skill they belong to. Within the workspace, organize results by iteration (`iteration-1/`, `iteration-2/`, etc.) and within that, each test case gets a directory (`eval-0/`, `eval-1/`, etc.). Don't create all of this upfront — just create directories as you go. (Upstream Skill Creator uses `<skill-name>-workspace/` as a sibling; we deviate to keep eval results adjacent to the skill — see `local-mods.patch` in this folder.)
+
+ ### Step 1: Spawn all runs (with-skill AND baseline) in the same turn
+

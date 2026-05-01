@@ -1,0 +1,82 @@
+{
+  "skill_name": "openspec-archive-change",
+  "version": "1.0.0",
+  "created": "2026-04-10",
+  "last_validated": null,
+  "evals": [
+    {
+      "id": "archive-complete",
+      "description": "Archive a fully completed change",
+      "prompt": "Archive the add-search-filter change",
+      "setup": "Change 'add-search-filter' with all artifacts done and all tasks checked off",
+      "expected_output": "Should archive the change cleanly after verification",
+      "expectations": [
+        "Runs openspec status to check artifact completion",
+        "Reads tasks file to check task completion",
+        "Confirms all artifacts are done",
+        "Confirms all tasks are checked",
+        "Runs openspec archive command",
+        "Reports successful archive"
+      ]
+    },
+    {
+      "id": "archive-with-incomplete-tasks",
+      "description": "Warn and confirm when tasks are incomplete",
+      "prompt": "Archive the partial-feature change",
+      "setup": "Change with some tasks still unchecked",
+      "expected_output": "Should warn user and ask for confirmation before proceeding",
+      "expectations": [
+        "Detects incomplete tasks via task file check",
+        "Shows count of incomplete tasks",
+        "Uses AskUserQuestion to confirm the user wants to proceed",
+        "Only archives after explicit user confirmation",
+        "Does NOT auto-archive without confirmation"
+      ]
+    },
+    {
+      "id": "archive-ambiguous",
+      "description": "Prompt when multiple changes exist",
+      "prompt": "Archive the change",
+      "setup": "Multiple active changes in the workspace",
+      "expected_output": "Should list changes and ask user to select",
+      "expectations": [
+        "Runs openspec list to get available changes",
+        "Shows only non-archived changes",
+        "Uses AskUserQuestion to let user choose",
+        "Does NOT auto-select a change",
+        "Proceeds with user-selected change"
+      ]
+    }
+  ],
+  "trigger_tests": {
+    "should_trigger": [
+      "/openspec-archive-change",
+      "archive the change",
+      "finalize and archive this change",
+      "openspec archive change",
+      "mark the change as done and archive",
+      "archive after implementation is complete",
+      "run openspec-archive-change",
+      "archive the completed feature",
+      "wrap up and archive",
+      "close out the change",
+      "archive change add-search-filter"
+    ],
+    "should_not_trigger": [
+      "openspec-apply-change",
+      "openspec-explore",
+      "openspec-propose",
+      "opsx-archive",
+      "implement the tasks",
+      "show me the change",
+      "list all changes",
+      "explore ideas for the change",
+      "propose a new change",
+      "what does openspec-archive-change do",
+      "just list the changes",
+      "view the change status",
+      "opsx-apply the change",
+      "continue implementing"
+    ]
+  }
+}
