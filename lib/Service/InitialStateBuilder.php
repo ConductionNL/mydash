@@ -108,6 +108,9 @@ class InitialStateBuilder
             'groupDashboards',
             'userDashboards',
             'allowUserDashboards',
+            // REQ-RFP-010: list of widget IDs the caller is permitted to see.
+            // null = no restriction configured (backwards-compat).
+            'allowedWidgets',
         ],
         Page::ADMIN->value     => [
             'allGroups',
@@ -269,6 +272,21 @@ class InitialStateBuilder
         $this->values['allowUserDashboards'] = $allowUserDashboards;
         return $this;
     }//end setAllowUserDashboards()
+
+    /**
+     * Set the list of widget IDs the caller is permitted to see (workspace).
+     * `null` means no restriction is configured — legacy behaviour where the
+     * full widget catalogue is shown (REQ-RFP-009 / REQ-RFP-010).
+     *
+     * @param array|null $allowedWidgets List of widget IDs, or null.
+     *
+     * @return self
+     */
+    public function setAllowedWidgets(?array $allowedWidgets): self
+    {
+        $this->values['allowedWidgets'] = $allowedWidgets;
+        return $this;
+    }//end setAllowedWidgets()
 
     /**
      * Set every Nextcloud group (admin).

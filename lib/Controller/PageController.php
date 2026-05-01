@@ -31,6 +31,7 @@ use OCA\MyDash\Service\AdminTemplateService;
 use OCA\MyDash\Service\DashboardService;
 use OCA\MyDash\Service\InitialState\Page;
 use OCA\MyDash\Service\InitialStateBuilder;
+use OCA\MyDash\Service\RoleFeaturePermissionService;
 use OCA\MyDash\Service\WidgetService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -76,6 +77,7 @@ class PageController extends Controller
         private readonly WidgetService $widgetService,
         private readonly DashboardService $dashboardService,
         private readonly AdminTemplateService $adminTemplateService,
+        private readonly RoleFeaturePermissionService $roleFeaturePerm,
     ) {
         parent::__construct(appName: Application::APP_ID, request: $request);
     }//end __construct()
@@ -202,6 +204,13 @@ class PageController extends Controller
             ->setGroupDashboards($groupDashboards)
             ->setUserDashboards($userDashboards)
             ->setAllowUserDashboards($allowUserDashboards)
+            // PR #95 (role-based-content): per-user widget allow-list.
+            // `null` = no admin policy for this user (unlimited).
+            ->setAllowedWidgets(
+                $userId !== null
+                    ? $this->roleFeaturePerm->getAllowedWidgetIds(userId: $userId)
+                    : null
+            )
             ->apply();
 
         // REQ-SHELL-001: pass the chrome slot ids so Nextcloud treats

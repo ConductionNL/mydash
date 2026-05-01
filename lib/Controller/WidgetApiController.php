@@ -22,15 +22,17 @@ use DateTimeImmutable;
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Service\CalendarWidgetService;
 use OCA\MyDash\Service\NewsWidgetService;
+use OCA\MyDash\Service\PermissionService;
+use OCA\MyDash\Service\RoleFeaturePermissionService;
 use OCA\MyDash\Service\WidgetPlacementService;
 use OCA\MyDash\Service\WidgetService;
-use OCA\MyDash\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
@@ -47,13 +49,15 @@ class WidgetApiController extends Controller
     /**
      * Constructor
      *
-     * @param IRequest               $request                The request.
-     * @param WidgetService          $widgetService          The widget service.
-     * @param PermissionService      $permissionService      The permission service.
-     * @param NewsWidgetService      $newsWidgetService      The news widget service.
-     * @param CalendarWidgetService  $calendarWidgetService  The calendar widget service (REQ-CAL-003).
-     * @param WidgetPlacementService $widgetPlacementService Placement-payload validators (REQ-CONT-006).
-     * @param string|null            $userId                 The user ID.
+     * @param IRequest                     $request                The request.
+     * @param WidgetService                $widgetService          The widget service.
+     * @param PermissionService            $permissionService      The permission service.
+     * @param NewsWidgetService            $newsWidgetService      The news widget service.
+     * @param CalendarWidgetService        $calendarWidgetService  The calendar widget service (REQ-CAL-003).
+     * @param WidgetPlacementService       $widgetPlacementService Placement-payload validators (REQ-CONT-006).
+     * @param RoleFeaturePermissionService $roleFeaturePerm        Role-feature filter (REQ-RFP-001..010).
+     * @param LoggerInterface              $logger                 Logger (for audit).
+     * @param string|null                  $userId                 The user ID.
      */
     public function __construct(
         IRequest $request,
@@ -62,6 +66,8 @@ class WidgetApiController extends Controller
         private readonly NewsWidgetService $newsWidgetService,
         private readonly CalendarWidgetService $calendarWidgetService,
         private readonly WidgetPlacementService $widgetPlacementService,
+        private readonly RoleFeaturePermissionService $roleFeaturePerm,
+        private readonly LoggerInterface $logger,
         private readonly ?string $userId,
     ) {
         parent::__construct(
@@ -71,7 +77,8 @@ class WidgetApiController extends Controller
     }//end __construct()
 
     /**
-     * List all available Nextcloud widgets.
+     * List all available Nextcloud widgets, filtered by the caller's
+     * role-feature permissions (REQ-RFP-001 / REQ-RFP-003).
      *
      * @return JSONResponse The list of available widgets.
      *
@@ -80,9 +87,36 @@ class WidgetApiController extends Controller
     #[NoAdminRequired]
     public function listAvailable(): JSONResponse
     {
-        return ResponseHelper::success(
-            data: $this->widgetService->getAvailableWidgets()
+        $widgets = $this->widgetService->getAvailableWidgets();
+
+        if ($this->userId === null) {
+            return ResponseHelper::success(data: $widgets);
+        }
+
+        $allowed = $this->roleFeaturePerm->getAllowedWidgetIds(
+            userId: $this->userId
         );
+        if ($allowed === null) {
+            // Backwards-compat: nothing configured, return everything.
+            return ResponseHelper::success(data: $widgets);
+        }
+
+        $filtered = array_values(
+            array: array_filter(
+                array: $widgets,
+                callback: function (array $w) use ($allowed): bool {
+                    $id = (string) ($w['id'] ?? '');
+                    return $id !== ''
+                        && in_array(
+                            needle: $id,
+                            haystack: $allowed,
+                            strict: true
+                        );
+                }
+            )
+        );
+
+        return ResponseHelper::success(data: $filtered);
     }//end listAvailable()
 
     /**

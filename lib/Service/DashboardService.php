@@ -207,6 +207,9 @@ class DashboardService
      *                                                               compat with
      *                                                               existing
      *                                                               test doubles.
+     * @param RoleFeaturePermissionService     $roleFeaturePerm      Role-default
+     *                                                               layout seeding
+     *                                                               (REQ-RFP-002).
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
@@ -222,6 +225,7 @@ class DashboardService
         private readonly IConfig $config,
         private readonly IFactory $l10nFactory,
         private readonly LoggerInterface $logger,
+        private readonly RoleFeaturePermissionService $roleFeaturePerm,
         private readonly ?DashboardTranslationService $translationService=null,
         private readonly ?DashboardLockMapper $lockMapper=null,
         private readonly ?FooterService $footerService=null,
@@ -1795,9 +1799,25 @@ class DashboardService
                 userId: $userId,
                 name: 'My Dashboard'
             );
-            $placements = $this->createDefaultPlacements(
-                dashboardId: $dashboard->getId()
+
+            // REQ-RFP-002: when no admin template applies, prefer seeding
+            // from the user's RoleLayoutDefault rows. Only fall back to the
+            // hardcoded recommendations + activity pair when no role-defaults
+            // exist for any of the user's groups (or the user is in no group).
+            $seeded = $this->roleFeaturePerm->seedLayoutFromRoleDefaults(
+                userId: $userId,
+                dashboard: $dashboard
             );
+            if ($seeded > 0) {
+                $placements = $this->placementMapper->findByDashboardId(
+                    dashboardId: $dashboard->getId()
+                );
+            } else {
+                $placements = $this->createDefaultPlacements(
+                    dashboardId: $dashboard->getId()
+                );
+            }
+
             return [
                 'dashboard'       => $dashboard,
                 'placements'      => $placements,
