@@ -44,6 +44,9 @@ const PAGE_KEYS = {
 		groupDashboards: [],
 		userDashboards: [],
 		allowUserDashboards: false,
+		// REQ-RFP-010: list of widget IDs the caller is permitted to see.
+		// `null` = no role-feature-permissions configured (legacy, unrestricted).
+		allowedWidgets: null,
 	},
 	admin: {
 		allGroups: [],

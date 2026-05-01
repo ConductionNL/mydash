@@ -897,6 +897,17 @@
         "The reusable tile API is no longer available. Use the unified add-widget flow with type:tile instead.": "De herbruikbare tegel-API is niet meer beschikbaar. Gebruik in plaats daarvan de geünificeerde widget-toevoegstroom met type:tile.",
         "Pick a widget": "Kies een widget",
         "No Nextcloud widgets are installed": "Er zijn geen Nextcloud-widgets geïnstalleerd",
-        "Selected": "Geselecteerd"
+        "Selected": "Geselecteerd",
+        "Role-based widget permissions": "Rol-gebaseerde widget-rechten",
+        "Restrict which widgets each Nextcloud group can add to their dashboard. Empty list = full catalogue (legacy).": "Beperk welke widgets elke Nextcloud-groep aan hun dashboard kan toevoegen. Lege lijst = volledige catalogus (legacy).",
+        "No role permissions configured": "Geen rolrechten geconfigureerd",
+        "Add a role-permission row to start filtering the widget catalogue per Nextcloud group.": "Voeg een rolregel toe om de widget-catalogus per Nextcloud-groep te filteren.",
+        "Add role permission": "Rolrecht toevoegen",
+        "Edit role permission": "Rolrecht bewerken",
+        "Nextcloud group ID": "Nextcloud-groep-ID",
+        "Description (optional)": "Beschrijving (optioneel)",
+        "Allowed widget IDs (comma separated)": "Toegestane widget-ID's (kommagescheiden)",
+        "Denied widget IDs (comma separated)": "Verboden widget-ID's (kommagescheiden)",
+        "Delete role permission for \"{group}\"?": "Rolrecht voor \"{group}\" verwijderen?"
     }
 }

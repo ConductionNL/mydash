@@ -225,6 +225,11 @@
 				<AdminDemoData />
 			</div>
 
+			<!-- Role-based widget permissions (REQ-RFP-001..010) -->
+			<div class="mydash-admin__section">
+				<RolePermissionsSection />
+			</div>
+
 			<!-- Info -->
 			<div class="mydash-admin__section">
 				<h3>{{ t('mydash', 'Setting as default app') }}</h3>
@@ -321,6 +326,7 @@ import OrgNavigationEditor from './OrgNavigationEditor.vue'
 import AdminDemoData from './AdminDemoData.vue'
 import SetupWizardModal from './SetupWizardModal.vue'
 import { api } from '../../services/api.js'
+import RolePermissionsSection from './RolePermissionsSection.vue'
 
 export default {
 	name: 'AdminSettings',
@@ -344,6 +350,7 @@ export default {
 		Plus,
 		SetupWizardModal,
 		ViewDashboard,
+		RolePermissionsSection,
 	},
 
 	// REQ-INIT-004: read the initial-state snapshot the PHP admin form
