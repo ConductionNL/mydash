@@ -163,8 +163,8 @@
 </template>
 
 <script>
-import { CnSettingsSection } from '@conduction/nextcloud-vue'
 import {
+	CnSettingsSection,
 	NcButton,
 	NcSelect,
 	NcSelectTags,
