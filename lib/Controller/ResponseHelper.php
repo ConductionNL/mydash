@@ -64,12 +64,12 @@ class ResponseHelper
      * exception is recorded in the server log; the client only ever sees
      * the generic `$message` (defaulting to "Operation failed").
      *
-     * @param \Exception       $exception  The exception.
-     * @param int              $statusCode The HTTP status code.
-     * @param LoggerInterface|null $logger When provided, the exception is
-     *                                     logged at ERROR level before
-     *                                     the response is returned.
-     * @param string           $message    Generic client-facing message.
+     * @param \Exception           $exception  The exception.
+     * @param int                  $statusCode The HTTP status code.
+     * @param LoggerInterface|null $logger     When provided, the exception is
+     *                                         logged at ERROR level before
+     *                                         the response is returned.
+     * @param string               $message    Generic client-facing message.
      *
      * @return JSONResponse The error response.
      */
