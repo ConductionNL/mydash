@@ -14,14 +14,10 @@ declare(strict_types=1);
  * @license   https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12 EUPL-1.2
  * @version   GIT:auto
  * @link      https://conduction.nl
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 namespace OCA\MyDash\Db;
 
-use DateTime;
 use JsonSerializable;
 use OCP\AppFramework\Db\Entity;
 
@@ -36,8 +32,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setRuleConfig(?string $ruleConfig)
  * @method bool getIsInclude()
  * @method void setIsInclude(bool $isInclude)
- * @method DateTime getCreatedAt()
- * @method void setCreatedAt(DateTime $createdAt)
+ * @method string|null getCreatedAt()
+ * @method void setCreatedAt(?string $createdAt)
  */
 class ConditionalRule extends Entity implements JsonSerializable
 {
@@ -99,11 +95,11 @@ class ConditionalRule extends Entity implements JsonSerializable
     protected bool $isInclude = true;
 
     /**
-     * The creation timestamp.
+     * The creation timestamp (ISO-8601 / 'c' format).
      *
-     * @var DateTime|null
+     * @var string|null
      */
-    protected ?DateTime $createdAt = null;
+    protected ?string $createdAt = null;
 
     /**
      * Constructor
@@ -150,7 +146,10 @@ class ConditionalRule extends Entity implements JsonSerializable
      */
     public function setRuleConfigArray(array $config): void
     {
-        $this->setRuleConfig(ruleConfig: json_encode(value: $config));
+        // Entity setters resolve via __call which uses $args[0]; named args
+        // would break the magic forwarding (see project memory).
+        // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
+        $this->setRuleConfig(json_encode($config));
     }//end setRuleConfigArray()
 
     /**
@@ -160,18 +159,13 @@ class ConditionalRule extends Entity implements JsonSerializable
      */
     public function jsonSerialize(): array
     {
-        $createdAtValue = null;
-        if ($this->createdAt !== null) {
-            $createdAtValue = $this->createdAt->format(format: 'c');
-        }
-
         return [
             'id'                => $this->getId(),
             'widgetPlacementId' => $this->widgetPlacementId,
             'ruleType'          => $this->ruleType,
             'ruleConfig'        => $this->getRuleConfigArray(),
             'isInclude'         => $this->isInclude,
-            'createdAt'         => $createdAtValue,
+            'createdAt'         => $this->createdAt,
         ];
     }//end jsonSerialize()
 }//end class

@@ -12,9 +12,6 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -107,13 +104,13 @@ class AdminSettingMapper extends QBMapper
         try {
             $setting = $this->findByKey(key: $key);
             $setting->setValueEncoded($value);
-            $setting->setUpdatedAt(new DateTime());
+            $setting->setUpdatedAt((new DateTime())->format(format: 'Y-m-d H:i:s'));
             return $this->update(entity: $setting);
         } catch (DoesNotExistException) {
             $setting = new AdminSetting();
             $setting->setSettingKey($key);
             $setting->setValueEncoded($value);
-            $setting->setUpdatedAt(new DateTime());
+            $setting->setUpdatedAt((new DateTime())->format(format: 'Y-m-d H:i:s'));
             return $this->insert(entity: $setting);
         }
     }//end setSetting()

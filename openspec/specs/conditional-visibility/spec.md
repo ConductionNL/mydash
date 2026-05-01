@@ -1,5 +1,5 @@
 ---
-status: reviewed
+status: implemented
 ---
 
 # Conditional Visibility Specification
@@ -48,7 +48,7 @@ NOTE: Date rules use camelCase keys (`startDate`, `endDate`). Both fields are op
 
 ### REQ-VIS-001: Create Conditional Rule
 
-Users MUST be able to add conditional visibility rules to widget placements on their dashboards.
+Users MUST be able to add conditional visibility rules to widget placements on dashboards they own.
 
 #### Scenario: Create a group-based inclusion rule
 - GIVEN user "alice" has widget placement id 10 on her dashboard
@@ -74,9 +74,9 @@ Users MUST be able to add conditional visibility rules to widget placements on t
     "isInclude": false
   }
   ```
-- THEN the system MUST create an exclusion rule that hides the widget when the current server time is between 18:00 and 08:00
+- THEN the system MUST create an exclusion rule that hides the widget when the current server time matches
 - AND `isInclude: false` MUST mean the widget is hidden when the rule matches
-- NOTE: The `timezone` field is NOT supported in the current implementation. Time evaluation uses the server's `new DateTime()`. Also, the current time comparison is a simple string comparison (`>=` and `<=`) and does NOT handle midnight-spanning windows correctly (startTime > endTime).
+- NOTE: The current time comparison uses simple string comparison (`>=` and `<=`) and does NOT handle midnight-spanning windows correctly (startTime > endTime).
 
 #### Scenario: Create a date-based inclusion rule
 - GIVEN widget placement id 10 on alice's dashboard
@@ -107,7 +107,7 @@ Users MUST be able to add conditional visibility rules to widget placements on t
 - WHEN she sends POST /api/widgets/10/rules with body `{"ruleType": "weather", "ruleConfig": {}, "isInclude": true}`
 - THEN the system SHOULD return HTTP 400 with an error indicating the ruleType is invalid
 - AND only `group`, `time`, `date`, and `attribute` SHOULD be accepted
-- NOTE: Rule type validation is NOT currently implemented -- any string value is accepted for ruleType. Unknown rule types will always evaluate to `false` in the RuleEvaluatorService (default case).
+- NOTE: Rule type validation is NOT currently implemented -- any string value is accepted. Unknown rule types evaluate to `false` via the `default => false` case in `evaluateRule()`.
 
 #### Scenario: Create rule on another user's placement
 - GIVEN widget placement id 10 belongs to alice's dashboard
@@ -116,7 +116,7 @@ Users MUST be able to add conditional visibility rules to widget placements on t
 
 ### REQ-VIS-002: List Conditional Rules
 
-Users MUST be able to retrieve all conditional rules for a widget placement.
+Users MUST be able to retrieve all conditional rules for a widget placement they own.
 
 #### Scenario: List rules for a placement with multiple rules
 - GIVEN widget placement id 10 has 3 conditional rules:
@@ -132,9 +132,14 @@ Users MUST be able to retrieve all conditional rules for a widget placement.
 - WHEN the user sends GET /api/widgets/11/rules
 - THEN the system MUST return HTTP 200 with an empty array
 
+#### Scenario: List rules for another user's placement
+- GIVEN widget placement id 10 belongs to alice's dashboard
+- WHEN user "bob" sends GET /api/widgets/10/rules
+- THEN the system MUST return HTTP 403 (via `verifyPlacementOwnership()`)
+
 ### REQ-VIS-003: Update Conditional Rule
 
-Users MUST be able to modify existing conditional rules.
+Users MUST be able to modify existing conditional rules on placements they own.
 
 #### Scenario: Update rule configuration
 - GIVEN conditional rule id 5 with `ruleConfig: {"groups": ["marketing"]}`
@@ -164,6 +169,13 @@ Users MUST be able to modify existing conditional rules.
 - GIVEN rule id 5 belongs to a placement on alice's dashboard
 - WHEN user "bob" sends PUT /api/rules/5
 - THEN the system MUST return HTTP 403
+- NOTE: Ownership verification for update is NOT currently implemented in `RuleApiController`. Only `addRule()` and `getRules()` call `verifyPlacementOwnership()`.
+
+#### Scenario: Partial update preserves unspecified fields
+- GIVEN conditional rule id 5 with `ruleType: "group"`, `ruleConfig: {"groups": ["marketing"]}`, `isInclude: true`
+- WHEN the user sends PUT /api/rules/5 with body `{"isInclude": false}`
+- THEN only `isInclude` MUST be updated to `false`
+- AND `ruleType` and `ruleConfig` MUST remain unchanged
 
 ### REQ-VIS-004: Delete Conditional Rule
 
@@ -183,16 +195,17 @@ Users MUST be able to remove conditional rules from their widget placements.
 - THEN the system MUST delete the rule
 - AND the placement's `isVisible` remains 1 (unchanged)
 - AND since no rules exist, the widget will always be shown (ConditionalService returns true when no rules exist)
-- NOTE: There is no automatic state change when the last rule is deleted. The `isVisible` field is NOT modified.
+- NOTE: There is no automatic state change when the last rule is deleted.
 
 #### Scenario: Delete another user's rule
 - GIVEN rule id 5 belongs to a placement on alice's dashboard
 - WHEN user "bob" sends DELETE /api/rules/5
 - THEN the system MUST return HTTP 403
+- NOTE: Ownership verification for delete is NOT currently implemented in `RuleApiController`.
 
 ### REQ-VIS-005: Group-Based Rule Evaluation
 
-Group-based rules MUST show or hide widgets based on the current user's Nextcloud group memberships.
+Group-based rules MUST show or hide widgets based on the current user's Nextcloud group memberships, resolved via `IGroupManager::getUserGroupIds()`.
 
 #### Scenario: User is in a matching group (inclusion rule)
 - GIVEN widget placement id 10 has a group inclusion rule with `groups: ["marketing", "sales"]`
@@ -216,11 +229,17 @@ Group-based rules MUST show or hide widgets based on the current user's Nextclou
 - GIVEN widget placement id 10 has a group inclusion rule with `groups: ["marketing"]`
 - AND user "dave" is a member of groups ["engineering", "marketing", "all-staff"]
 - WHEN the dashboard is rendered for dave
-- THEN the widget MUST be visible (user is in at least one of the specified groups)
+- THEN the widget MUST be visible (user is in at least one of the specified groups via `array_intersect()`)
+
+#### Scenario: Empty groups array in rule config
+- GIVEN widget placement id 10 has a group inclusion rule with `groups: []`
+- WHEN the dashboard is rendered
+- THEN the rule MUST evaluate as not matching (empty target groups returns false)
+- AND the widget MUST be hidden (no include rule matches)
 
 ### REQ-VIS-006: Time-Based Rule Evaluation
 
-Time-based rules MUST show or hide widgets based on the current time of day using the server's local time.
+Time-based rules MUST show or hide widgets based on the current time of day using the server's local time via `new DateTime()`.
 
 #### Scenario: Current time is within the time window (inclusion rule)
 - GIVEN widget placement id 10 has a time inclusion rule with `startTime: "09:00", endTime: "17:00"`
@@ -239,15 +258,15 @@ Time-based rules MUST show or hide widgets based on the current time of day usin
 - AND the current server time is 02:00
 - WHEN the dashboard is rendered
 - THEN the widget SHOULD be visible (the time window wraps around midnight)
-- NOTE: The current implementation uses simple string comparison (`currentTime >= startTime && currentTime <= endTime`) which does NOT handle midnight-spanning windows. A startTime of "22:00" and endTime of "06:00" would NOT match 02:00 because "02:00" is NOT >= "22:00". This is a known limitation.
+- NOTE: The current implementation uses simple string comparison (`currentTime >= startTime && currentTime <= endTime`) which does NOT handle midnight-spanning windows. This is a known limitation.
 
 #### Scenario: Time evaluation uses server timezone (NOT configurable)
 - GIVEN a time rule with `startTime: "09:00", endTime: "17:00"` (no timezone field)
 - AND the server is in UTC where it is 08:00 UTC
 - WHEN the dashboard is rendered
-- THEN the rule MUST evaluate using the server's timezone (UTC in this case, so 08:00)
+- THEN the rule MUST evaluate using the server's timezone (UTC in this case)
 - AND the widget MUST be hidden (08:00 is before 09:00)
-- NOTE: The `timezone` field in ruleConfig is NOT supported. The RuleEvaluatorService creates `new DateTime()` which uses the server's default timezone.
+- NOTE: The `timezone` field in ruleConfig is NOT supported. `RuleEvaluatorService` creates `new DateTime()` which uses the server's default timezone.
 
 #### Scenario: Time rule with day-of-week filter
 - GIVEN widget placement id 10 has a time inclusion rule with `startTime: "09:00", endTime: "17:00", days: ["mon", "tue", "wed", "thu", "fri"]`
@@ -256,9 +275,21 @@ Time-based rules MUST show or hide widgets based on the current time of day usin
 - THEN the widget MUST be hidden (Saturday is not in the allowed days list)
 - AND the time check is only performed if the day check passes
 
+#### Scenario: Time rule without day filter
+- GIVEN a time inclusion rule with `startTime: "09:00", endTime: "17:00"` and no `days` field
+- AND the current day is Saturday at 10:00
+- WHEN the dashboard is rendered
+- THEN the widget MUST be visible (no day filter means all days are allowed)
+
+#### Scenario: Time rule with default start and end times
+- GIVEN a time inclusion rule with neither `startTime` nor `endTime` specified
+- WHEN the rule is evaluated
+- THEN `startTime` MUST default to `"00:00"` and `endTime` MUST default to `"23:59"`
+- AND the rule MUST match at any time of day
+
 ### REQ-VIS-007: Date-Based Rule Evaluation
 
-Date-based rules MUST show or hide widgets based on the current date.
+Date-based rules MUST show or hide widgets based on the current date, with optional open-ended ranges.
 
 #### Scenario: Current date is within the date range (inclusion rule)
 - GIVEN widget placement id 10 has a date inclusion rule with `startDate: "2026-12-01", endDate: "2026-12-31"`
@@ -272,17 +303,23 @@ Date-based rules MUST show or hide widgets based on the current date.
 - WHEN the dashboard is rendered
 - THEN the widget MUST be hidden
 
-#### Scenario: Open-ended date range
+#### Scenario: Open-ended date range (no end date)
 - GIVEN a date inclusion rule with `startDate: "2026-01-01"` and no `endDate`
 - AND today is 2027-06-15
 - WHEN the dashboard is rendered
 - THEN the widget MUST be visible (no endDate means the rule matches indefinitely from the start date)
 
+#### Scenario: Open-ended date range (no start date)
+- GIVEN a date inclusion rule with `endDate: "2026-12-31"` and no `startDate`
+- AND today is 2025-06-15
+- WHEN the dashboard is rendered
+- THEN the widget MUST be visible (no startDate means matches from the beginning of time)
+
 #### Scenario: Date range boundary inclusivity
 - GIVEN a date inclusion rule with `startDate: "2026-12-01", endDate: "2026-12-31"`
 - AND today is 2026-12-01 (the start date)
 - WHEN the dashboard is rendered
-- THEN the widget MUST be visible (both start and end dates are inclusive -- uses `<` and `>` comparisons, meaning boundary dates are included)
+- THEN the widget MUST be visible (both start and end dates are inclusive -- uses `<` and `>` comparisons for exclusion)
 
 ### REQ-VIS-008: Attribute-Based Rule Evaluation
 
@@ -305,6 +342,12 @@ Attribute-based rules MUST show or hide widgets based on user profile attributes
 - AND user "carol" has her language set to "de"
 - WHEN the dashboard is rendered for carol
 - THEN the widget MUST be visible (language "de" is not equal to "en")
+
+#### Scenario: Attribute with "contains" operator
+- GIVEN an attribute inclusion rule with `attribute: "email", operator: "contains", value: "@company.com"`
+- AND user "dave" has email "dave@company.com"
+- WHEN the dashboard is rendered for dave
+- THEN the widget MUST be visible
 
 #### Scenario: Non-existent attribute
 - GIVEN an attribute rule referencing `attribute: "department"` which does not exist for the current user
@@ -338,7 +381,7 @@ When a widget placement has multiple conditional rules, they MUST be combined us
   - Rule 2: date exclusion rule, 2026-07-01 to 2026-07-31 -- today is 2026-07-15 (matches)
 - WHEN the dashboard is rendered
 - THEN the widget MUST be hidden
-- AND the evaluation logic in VisibilityChecker is: first check include rules (OR -- at least one must match), then check exclude rules (AND -- if ANY exclude rule matches, hide)
+- AND the evaluation logic is: first check include rules (OR -- at least one must match), then check exclude rules (AND -- if ANY exclude rule matches, hide)
 
 #### Scenario: No rules on placement with isVisible=1
 - GIVEN widget placement id 10 has `isVisible: 1` but no ConditionalRule records exist
@@ -351,6 +394,45 @@ When a widget placement has multiple conditional rules, they MUST be combined us
 - WHEN the dashboard is rendered
 - THEN the widget MUST be visible (passesIncludeRules returns true when no include rules exist, passesExcludeRules returns true when no exclude rule matches)
 
+### REQ-VIS-010: Visibility Evaluation Pipeline
+
+The ConditionalService MUST evaluate visibility through a defined pipeline: isVisible flag check, then rule loading, then VisibilityChecker evaluation.
+
+#### Scenario: Widget with isVisible=0 bypasses rule evaluation
+- GIVEN widget placement id 10 has `isVisible: 0` and 3 conditional rules
+- WHEN the dashboard is rendered
+- THEN the system MUST immediately return false (hidden) without evaluating any rules
+- AND rule evaluation MUST be skipped for performance
+
+#### Scenario: Widget with isVisible=1 and rules triggers evaluation
+- GIVEN widget placement id 10 has `isVisible: 1` and 2 conditional rules
+- WHEN `ConditionalService::isWidgetVisible()` is called
+- THEN the system MUST load rules via `ConditionalRuleMapper::findByPlacementId()`
+- AND delegate evaluation to `VisibilityChecker::checkRules()`
+
+#### Scenario: Widget with isVisible=1 and no rules is always visible
+- GIVEN widget placement id 10 has `isVisible: 1` and no conditional rules
+- WHEN `ConditionalService::isWidgetVisible()` is called
+- THEN the system MUST return true without calling VisibilityChecker
+- AND the widget MUST always be displayed
+
+### REQ-VIS-011: Rule Cascade Deletion
+
+When a widget placement is deleted, all its associated conditional rules MUST also be deleted.
+
+#### Scenario: Delete placement cascades to rules
+- GIVEN widget placement id 10 has 5 conditional rules
+- WHEN placement 10 is deleted via DELETE /api/widgets/10
+- THEN all 5 conditional rules MUST also be deleted
+- AND no orphaned rules MUST remain in the database
+- NOTE: `PlacementService::removePlacement()` does NOT explicitly cascade-delete conditional rules. This depends on database-level cascade constraints.
+
+#### Scenario: Delete dashboard cascades to placements and rules
+- GIVEN dashboard id 5 has 3 placements, each with 2 conditional rules
+- WHEN dashboard 5 is deleted
+- THEN all 3 placements and all 6 conditional rules MUST be deleted
+- NOTE: `DashboardService::deleteDashboard()` deletes placements via `placementMapper->deleteByDashboardId()` but does not explicitly handle conditional rules.
+
 ## Non-Functional Requirements
 
 - **Performance**: Rule evaluation for a single placement with up to 10 rules MUST complete within 50ms. Total evaluation for a dashboard with 30 placements and 100 rules MUST complete within 500ms.
@@ -358,3 +440,31 @@ When a widget placement has multiple conditional rules, they MUST be combined us
 - **Data integrity**: Deleting a widget placement MUST cascade-delete all its conditional rules. Rules MUST NOT reference non-existent placements.
 - **Accessibility**: Conditional visibility MUST NOT affect the accessibility tree for visible widgets. Hidden widgets MUST be fully removed from the DOM, not just hidden via CSS.
 - **Localization**: Rule type labels and validation messages MUST support English and Dutch.
+
+### Current Implementation Status
+
+**Fully implemented:**
+- REQ-VIS-001 (Create Conditional Rule): `ConditionalService::addRule()` creates rules. `RuleApiController::addRule()` exposes POST /api/widgets/{placementId}/rules with ownership verification.
+- REQ-VIS-002 (List Conditional Rules): `ConditionalService::getRules()` returns rules by placement ID with ownership check.
+- REQ-VIS-003 (Update Conditional Rule): `ConditionalService::updateRule()` handles partial updates. `RuleApiController::updateRule()` exposes PUT /api/rules/{ruleId}.
+- REQ-VIS-004 (Delete Conditional Rule): `ConditionalService::deleteRule()` removes rules. `RuleApiController::deleteRule()` exposes DELETE /api/rules/{ruleId}.
+- REQ-VIS-005 (Group-Based Rule Evaluation): `RuleEvaluatorService::evaluateGroupRule()` uses `IGroupManager::getUserGroupIds()` and `array_intersect()`.
+- REQ-VIS-006 (Time-Based Rule Evaluation): `RuleEvaluatorService::evaluateTimeRule()` checks day-of-week filter and time range. Uses `strtolower($now->format('D'))` for day abbreviations.
+- REQ-VIS-007 (Date-Based Rule Evaluation): `RuleEvaluatorService::evaluateDateRule()` supports optional `startDate` and `endDate`.
+- REQ-VIS-008 (Attribute-Based Rule Evaluation): `RuleEvaluatorService::evaluateAttributeRule()` delegates to `UserAttributeResolver`. Supports operators: `equals`, `not_equals`, `contains`, `starts_with`, `ends_with`.
+- REQ-VIS-009 (Multiple Rule Combination): `VisibilityChecker::checkRules()` separates include/exclude rules. Include uses OR, exclude uses AND.
+- REQ-VIS-010 (Visibility Evaluation Pipeline): `ConditionalService::isWidgetVisible()` checks `isVisible` flag first, then loads rules, then delegates to `VisibilityChecker`.
+
+**Not yet implemented:**
+- REQ-VIS-001 ruleType validation: No server-side validation for ruleType values.
+- REQ-VIS-003/004 ownership verification: `updateRule()` and `deleteRule()` in `RuleApiController` do NOT verify placement ownership.
+- REQ-VIS-006 midnight-spanning windows: Simple string comparison does not handle time windows spanning midnight.
+- REQ-VIS-006 timezone support: No `timezone` field support.
+- REQ-VIS-011 cascade delete: `PlacementService::removePlacement()` does not explicitly cascade-delete conditional rules.
+- Frontend UI: No Vue component exists for creating or managing conditional rules.
+
+### Standards & References
+- Nextcloud Group API: `OCP\IGroupManager::getUserGroupIds()`
+- Nextcloud User API: `OCP\IUserManager::get()`, `IUser::getLanguage()`, `IUser::getEMailAddress()`
+- PHP DateTime: Server timezone via `new DateTime()` (no timezone parameter)
+- WCAG 2.1 AA: Hidden widgets must be removed from DOM, not just CSS-hidden

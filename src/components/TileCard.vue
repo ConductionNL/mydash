@@ -23,7 +23,7 @@
 			</svg>
 			<div v-else class="tile-card__icon">
 				<span v-if="tile.iconType === 'class'" :class="tile.icon" />
-				<img v-else-if="tile.iconType === 'url'" :src="tile.icon" alt="Icon">
+				<img v-else-if="tile.iconType === 'url'" :src="tile.icon" :alt="t('mydash', 'Icon')">
 				<span v-else class="tile-card__emoji">{{ tile.icon }}</span>
 			</div>
 			<div class="tile-card__title">
@@ -51,7 +51,7 @@
 </template>
 
 <script>
-import { NcButton } from '@nextcloud/vue'
+import { NcButton } from '@conduction/nextcloud-vue'
 import { generateUrl } from '@nextcloud/router'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Close from 'vue-material-design-icons/Close.vue'
@@ -122,16 +122,14 @@ export default {
 	height: 100%;
 	padding: 16px;
 	border-radius: var(--border-radius-large);
-	box-shadow: 0 0 10px var(--color-box-shadow);
 	text-decoration: none;
-	transition: transform 0.2s ease, box-shadow 0.2s ease;
+	transition: opacity var(--animation-quick) ease;
 	gap: 12px;
 	cursor: pointer;
 }
 
 .tile-card:hover {
-	transform: translateY(-2px);
-	box-shadow: 0 4px 16px var(--color-box-shadow);
+	opacity: 0.9;
 }
 
 .tile-card__icon {
@@ -144,11 +142,9 @@ export default {
 	width: 100%;
 	height: 100%;
 	object-fit: contain;
-	filter: none;
 }
 
 .tile-card__emoji {
-	filter: none !important;
 	font-size: 48px;
 }
 
@@ -167,16 +163,11 @@ export default {
 	display: flex;
 	gap: 4px;
 	opacity: 0;
-	transition: opacity 0.2s ease;
+	transition: opacity var(--animation-quick) ease;
 	z-index: 10;
 }
 
 .tile-card-wrapper:hover .tile-card__actions {
 	opacity: 1;
-}
-
-.tile-card__actions :deep(.button-vue) {
-	background: var(--color-main-background) !important;
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 </style>

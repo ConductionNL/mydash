@@ -1,0 +1,48 @@
+version = 1
+
+# REUSE compliance for MyDash.
+#
+# PHP files carry license + copyright metadata via PHPDoc tags
+# (@license / @copyright / @author) in the main file docblock per
+# ADR-014. This REUSE.toml tells `reuse lint` to accept that instead
+# of requiring SPDX-* lines duplicated on every file.
+#
+# Non-PHP source files (Vue/JS/TS/CSS) still SHOULD carry an SPDX
+# header on their first line if they have one; the annotation below
+# is the fallback for files without a header.
+
+[[annotations]]
+path = "**/*.php"
+SPDX-FileCopyrightText = "2024 Conduction B.V. <info@conduction.nl>"
+SPDX-License-Identifier = "EUPL-1.2"
+
+[[annotations]]
+path = [
+    "**/*.vue",
+    "**/*.js",
+    "**/*.ts",
+    "**/*.css",
+    "**/*.scss",
+    "**/*.sh",
+]
+SPDX-FileCopyrightText = "2024 Conduction B.V. <info@conduction.nl>"
+SPDX-License-Identifier = "EUPL-1.2"
+
+# Config / data / generated files — CC0 (same treatment as many
+# upstream Nextcloud apps). Adjust if a specific asset warrants a
+# different licence.
+[[annotations]]
+path = [
+    "**/*.json",
+    "**/*.yml",
+    "**/*.yaml",
+    "**/*.xml",
+    "**/*.md",
+    "**/*.toml",
+    "img/**",
+    "l10n/**",
+    "composer.lock",
+    "package-lock.json",
+]
+SPDX-FileCopyrightText = "2024 Conduction B.V. <info@conduction.nl>"
+SPDX-License-Identifier = "CC0-1.0"

@@ -12,9 +12,6 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -29,6 +26,7 @@ use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Db\AdminSetting;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IGroupManager;
 
 class PermissionService
 {
@@ -38,16 +36,21 @@ class PermissionService
      * @param DashboardMapper       $dashboardMapper Dashboard mapper.
      * @param WidgetPlacementMapper $placementMapper Widget placement mapper.
      * @param AdminSettingMapper    $settingMapper   Admin setting mapper.
+     * @param IGroupManager         $groupManager    Group manager.
+     * @param string|null           $currentUserId   The current user ID
+     *                                               (null when unauthenticated).
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
         private readonly WidgetPlacementMapper $placementMapper,
         private readonly AdminSettingMapper $settingMapper,
+        private readonly IGroupManager $groupManager,
+        private readonly ?string $currentUserId=null,
     ) {
     }//end __construct()
 
     /**
-     * Check if user can edit a dashboard.
+     * Check if user can edit a dashboard (widgets, tiles, layout).
      *
      * @param string $userId      The user ID.
      * @param int    $dashboardId The dashboard ID.
@@ -85,6 +88,37 @@ class PermissionService
             ]
         );
     }//end canEditDashboard()
+
+    /**
+     * Check if user can edit dashboard metadata (name, description).
+     *
+     * Per REQ-PERM-007, permission levels do NOT restrict editing of
+     * dashboard metadata. All users who own a dashboard can edit its
+     * name and description, regardless of permission level.
+     *
+     * @param string $userId      The user ID.
+     * @param int    $dashboardId The dashboard ID.
+     *
+     * @return bool Whether the user can edit the dashboard metadata.
+     */
+    public function canEditDashboardMetadata(
+        string $userId,
+        int $dashboardId
+    ): bool {
+        try {
+            $dashboard = $this->dashboardMapper->find(id: $dashboardId);
+        } catch (DoesNotExistException) {
+            return false;
+        }
+
+        // Admin templates can only be edited by admins.
+        if ($dashboard->getType() === Dashboard::TYPE_ADMIN_TEMPLATE) {
+            return false;
+        }
+
+        // User must own the dashboard.
+        return $dashboard->getUserId() === $userId;
+    }//end canEditDashboardMetadata()
 
     /**
      * Check if user can add widgets to a dashboard.
@@ -239,12 +273,32 @@ class PermissionService
     /**
      * Get the effective permission level for a dashboard.
      *
+     * Group-shared dashboards (REQ-DASH-011) override the persisted
+     * `permissionLevel` field at resolution time:
+     *   - admins always get {@see Dashboard::PERMISSION_FULL}
+     *   - non-admin members always get
+     *     {@see Dashboard::PERMISSION_VIEW_ONLY}
+     *
+     * The override is applied here (single source of truth) so that
+     * future widgets / tiles consulting `getEffectivePermissionLevel`
+     * stay consistent with the route-level admin guard. The persisted
+     * column is preserved for forward-compat with per-tile editing.
+     *
      * @param Dashboard $dashboard The dashboard.
      *
      * @return string The effective permission level.
      */
     public function getEffectivePermissionLevel(Dashboard $dashboard): string
     {
+        // Group-shared scope: admin → full, non-admin → view_only.
+        if ($dashboard->getType() === Dashboard::TYPE_GROUP_SHARED) {
+            if ($this->currentUserIsAdmin() === true) {
+                return Dashboard::PERMISSION_FULL;
+            }
+
+            return Dashboard::PERMISSION_VIEW_ONLY;
+        }
+
         // If based on a template, use template's permission level.
         if ($dashboard->getBasedOnTemplate() !== null) {
             try {
@@ -268,6 +322,24 @@ class PermissionService
             default: Dashboard::PERMISSION_FULL
         );
     }//end getEffectivePermissionLevel()
+
+    /**
+     * Test whether the current request actor is a Nextcloud admin.
+     *
+     * Returns false on unauthenticated requests rather than throwing,
+     * so callers (including the group-shared resolver) can safely fall
+     * back to the read-only branch.
+     *
+     * @return bool Whether the actor is an admin.
+     */
+    private function currentUserIsAdmin(): bool
+    {
+        if ($this->currentUserId === null || $this->currentUserId === '') {
+            return false;
+        }
+
+        return $this->groupManager->isAdmin(userId: $this->currentUserId);
+    }//end currentUserIsAdmin()
 
     /**
      * Verify user owns a dashboard.

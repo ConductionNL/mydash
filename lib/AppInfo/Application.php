@@ -12,19 +12,19 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
 
 namespace OCA\MyDash\AppInfo;
 
+use OCA\MyDash\Listener\UserDeletedListener;
+use OCA\MyDash\Notification\Notifier;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
+use OCP\User\Events\UserDeletedEvent;
 
 class Application extends App implements IBootstrap
 {
@@ -49,7 +49,15 @@ class Application extends App implements IBootstrap
      */
     public function register(IRegistrationContext $context): void
     {
-        // Register services, event listeners, etc.
+        // Register the INotifier for dashboard_shared and
+        // dashboard_ownership_transferred subjects. REQ-SHARE-011.
+        $context->registerNotifierService(notifierClass: Notifier::class);
+
+        // Register the user-deletion cascade listener. REQ-SHARE-012.
+        $context->registerEventListener(
+            event: UserDeletedEvent::class,
+            listener: UserDeletedListener::class
+        );
     }//end register()
 
     /**
