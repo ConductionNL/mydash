@@ -38,7 +38,8 @@
 				<NcSelect
 					v-model="selectedIcon"
 					:options="iconOptions"
-					:label="t('mydash', 'Icon')"
+					:input-label="t('mydash', 'Icon')"
+					label="label"
 					label-outside>
 					<template #selected-option="{ label }">
 						<div class="icon-option">
@@ -72,7 +73,9 @@
 						<NcColorPicker
 							:value.sync="form.backgroundColor"
 							@input="form.backgroundColor = $event">
-							<NcButton type="tertiary">
+							<NcButton
+								type="tertiary"
+								:aria-label="t('mydash', 'Pick background color')">
 								<template #icon>
 									<div
 										class="color-preview"
@@ -88,7 +91,9 @@
 						<NcColorPicker
 							:value.sync="form.textColor"
 							@input="form.textColor = $event">
-							<NcButton type="tertiary">
+							<NcButton
+								type="tertiary"
+								:aria-label="t('mydash', 'Pick text color')">
 								<template #icon>
 									<div
 										class="color-preview"
@@ -128,7 +133,7 @@
 </template>
 
 <script>
-import { NcModal, NcButton, NcTextField, NcSelect, NcColorPicker } from '@nextcloud/vue'
+import { NcModal, NcButton, NcTextField, NcSelect, NcColorPicker } from '@conduction/nextcloud-vue'
 import {
 	mdiFile,
 	mdiFolder,

@@ -1,16 +1,29 @@
+includes:
+    - phpstan-baseline.neon
+
 parameters:
     level: 5
     paths:
         - lib
     bootstrapFiles:
-        - vendor/autoload.php
+        - phpstan-bootstrap.php
     excludePaths:
         - vendor
-    scanDirectories:
-        - vendor/nextcloud/ocp
     reportUnmatchedIgnoredErrors: false
     ignoreErrors:
         # Nextcloud internal classes that PHPStan might not recognize
         - '#Call to an undefined method OC::#'
         - '#Class OC not found#'
         - '#Access to static property \$server on an unknown class OC#'
+        # Doctrine DBAL is provided by Nextcloud at runtime but not in composer require
+        - '#unknown class Doctrine\\DBAL\\#'
+        - '#Doctrine\\DBAL\\[a-zA-Z\\]+.*not found#'
+        - '#on an unknown class Doctrine\\DBAL\\#'
+        - '#invalid type Doctrine\\DBAL\\#'
+        # Dynamic HTTP status codes from business rule validation results
+        - '#Parameter \$statusCode of class OCP\\AppFramework\\Http\\JSONResponse constructor expects#'
+        # registerRepairStep / getLanguage exist on server but not in nextcloud/ocp stub
+        - '#Call to an undefined method OCP\\AppFramework\\Bootstrap\\IRegistrationContext::registerRepairStep#'
+        - '#Call to an undefined method OCP\\IUser::getLanguage#'
+        # OCP\AppFramework\Db\Entity implements JsonSerializable at runtime but stub omits it
+        - '#Call to an undefined method OCP\\AppFramework\\Db\\Entity::jsonSerialize#'

@@ -12,9 +12,6 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -25,6 +22,11 @@ use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
+/**
+ * Database mapper for Tile entities.
+ *
+ * @extends QBMapper<Tile>
+ */
 class TileMapper extends QBMapper
 {
     /**

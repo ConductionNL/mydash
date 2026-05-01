@@ -12,9 +12,6 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -130,7 +127,7 @@ class ConditionalService
         $rule->setRuleType($ruleType);
         $rule->setRuleConfigArray($ruleConfig);
         $rule->setIsInclude($isInclude);
-        $rule->setCreatedAt(new DateTime());
+        $rule->setCreatedAt((new DateTime())->format(format: 'c'));
 
         return $this->ruleMapper->insert(entity: $rule);
     }//end addRule()

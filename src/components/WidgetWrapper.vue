@@ -19,7 +19,10 @@
 				</h3>
 			</div>
 			<div v-if="editMode" class="mydash-widget__actions">
-				<NcButton type="tertiary" @click="$emit('edit', placement)">
+				<NcButton
+					type="tertiary"
+					:aria-label="t('mydash', 'Edit widget')"
+					@click="$emit('edit', placement)">
 					<template #icon>
 						<Cog :size="20" />
 					</template>
@@ -48,7 +51,7 @@
 </template>
 
 <script>
-import { NcButton } from '@nextcloud/vue'
+import { NcButton } from '@conduction/nextcloud-vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import WidgetRenderer from './WidgetRenderer.vue'
 
@@ -179,9 +182,6 @@ export default {
 	height: 100%;
 	display: flex;
 	flex-direction: column;
-	background: var(--color-main-background);
-	border-radius: 0;
-	border: 1px solid var(--color-border);
 	overflow: hidden;
 }
 
@@ -190,7 +190,6 @@ export default {
 	align-items: center;
 	justify-content: space-between;
 	padding: 12px 16px;
-	border-bottom: 1px solid var(--color-border);
 	flex-shrink: 0;
 }
 
@@ -232,7 +231,6 @@ export default {
 	display: flex;
 	justify-content: flex-end;
 	padding: 8px 16px;
-	border-top: 1px solid var(--color-border);
 	flex-shrink: 0;
 }
 </style>

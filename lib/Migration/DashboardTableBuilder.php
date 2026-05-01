@@ -12,9 +12,6 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -100,6 +97,14 @@ class DashboardTableBuilder
         );
         $table->addColumn(
             name: 'user_id',
+            typeName: Types::STRING,
+            options: [
+                'notnull' => false,
+                'length'  => 64,
+            ]
+        );
+        $table->addColumn(
+            name: 'group_id',
             typeName: Types::STRING,
             options: [
                 'notnull' => false,
@@ -197,6 +202,10 @@ class DashboardTableBuilder
         $table->addIndex(
             columnNames: ['user_id', 'is_active'],
             indexName: 'mydash_dashboard_active'
+        );
+        $table->addIndex(
+            columnNames: ['type', 'group_id'],
+            indexName: 'mydash_dash_type_group'
         );
     }//end addIndexes()
 }//end class

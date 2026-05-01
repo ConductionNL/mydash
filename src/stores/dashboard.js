@@ -6,6 +6,15 @@
 import { defineStore } from 'pinia'
 import { api } from '../services/api.js'
 
+/**
+ * The supported source values returned by GET /api/dashboards/visible.
+ * Matches Dashboard::SOURCE_USER / SOURCE_GROUP / SOURCE_DEFAULT on the
+ * backend (REQ-DASH-013).
+ */
+export const SOURCE_USER = 'user'
+export const SOURCE_GROUP = 'group'
+export const SOURCE_DEFAULT = 'default'
+
 export const useDashboardStore = defineStore('dashboard', {
 	state: () => ({
 		dashboards: [],
@@ -26,14 +35,35 @@ export const useDashboardStore = defineStore('dashboard', {
 		compulsoryPlacements: (state) => {
 			return state.widgetPlacements.filter(p => p.isCompulsory)
 		},
+
+		// REQ-DASH-013 — group-shared dashboards bound to a real group.
+		groupSharedDashboards: (state) => {
+			return state.dashboards.filter(d => d.source === SOURCE_GROUP)
+		},
+
+		// REQ-DASH-013 — group-shared dashboards bound to the 'default' sentinel.
+		defaultGroupDashboards: (state) => {
+			return state.dashboards.filter(d => d.source === SOURCE_DEFAULT)
+		},
+
+		// REQ-DASH-013 — personal user-owned dashboards.
+		personalDashboards: (state) => {
+			return state.dashboards.filter(d => d.source === SOURCE_USER)
+		},
 	},
 
 	actions: {
 		async loadDashboards() {
 			this.loading = true
 			try {
-				const response = await api.getDashboards()
-				this.dashboards = response.data
+				// REQ-DASH-013 — primary listing now hits /visible so the
+				// page sees personal + group + default in one payload.
+				const response = await api.getVisibleDashboards()
+				this.dashboards = (response.data || []).map(d => ({
+					...d,
+					// Defensive default — older backends may not tag rows.
+					source: d.source ?? SOURCE_USER,
+				}))
 
 				// Load the active dashboard
 				const activeResponse = await api.getActiveDashboard()
@@ -68,7 +98,10 @@ export const useDashboardStore = defineStore('dashboard', {
 			this.loading = true
 			try {
 				const response = await api.createDashboard({ name })
-				this.dashboards.push(response.data.dashboard)
+				this.dashboards.push({
+					...response.data.dashboard,
+					source: SOURCE_USER,
+				})
 				this.activeDashboard = response.data.dashboard
 				this.widgetPlacements = []
 			} catch (error) {
@@ -96,9 +129,18 @@ export const useDashboardStore = defineStore('dashboard', {
 				}))
 				console.log('[DashboardStore] Sending placements to API:', JSON.stringify(placementsData, null, 2))
 
-				await api.updateDashboard(this.activeDashboard.id, {
-					placements: placementsData,
-				})
+				// REQ-DASH-013 — route the PUT to the correct endpoint
+				// based on the active dashboard's source.
+				const active = this.activeDashboard
+				if (active && (active.source === SOURCE_GROUP || active.source === SOURCE_DEFAULT)) {
+					await api.updateGroupDashboard(active.groupId, active.uuid, {
+						placements: placementsData,
+					})
+				} else {
+					await api.updateDashboard(active.id, {
+						placements: placementsData,
+					})
+				}
 				console.log('[DashboardStore] Successfully saved placements')
 			} catch (error) {
 				console.error('Failed to save placements:', error)

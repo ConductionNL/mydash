@@ -12,15 +12,13 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
 
 namespace OCA\MyDash\Controller;
 
+use InvalidArgumentException;
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Service\AdminTemplateService;
@@ -28,7 +26,9 @@ use OCA\MyDash\Service\AdminSettingsService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\IGroupManager;
 use OCP\IRequest;
+use OCP\IUserSession;
 
 /**
  * Controller for admin dashboard template management.
@@ -41,11 +41,15 @@ class AdminController extends Controller
      * @param IRequest             $request         The request.
      * @param AdminTemplateService $templateService The admin template service.
      * @param AdminSettingsService $settingsService The admin settings service.
+     * @param IGroupManager        $groupManager    The Nextcloud group manager.
+     * @param IUserSession         $userSession     The current user session.
      */
     public function __construct(
         IRequest $request,
         private readonly AdminTemplateService $templateService,
         private readonly AdminSettingsService $settingsService,
+        private readonly IGroupManager $groupManager,
+        private readonly IUserSession $userSession,
     ) {
         parent::__construct(
             appName: Application::APP_ID,
@@ -238,6 +242,160 @@ class AdminController extends Controller
             return ResponseHelper::error(exception: $e);
         }//end try
     }//end updateSettings()
+
+    /**
+     * List all Nextcloud groups partitioned for the admin UI (REQ-ASET-013).
+     *
+     * Returns `{active, inactive, allKnown}`:
+     * - `active`  — the persisted `group_order` list, in admin-chosen order.
+     *               Stale IDs (no longer in Nextcloud) are preserved so the
+     *               admin can see and remove them.
+     * - `inactive` — every Nextcloud group ID NOT in `active`, sorted by
+     *                display name (case-insensitive).
+     * - `allKnown` — full descriptor list `{id, displayName}` for every group
+     *                currently known to Nextcloud, so the UI can render
+     *                display names without a second round-trip. Stale IDs are
+     *                NOT included here (no display name available).
+     *
+     * Admin-only (REQ-ASET-014): non-admins receive HTTP 403.
+     *
+     * @return JSONResponse The grouped descriptor payload, or 403.
+     *
+     * @NoAdminRequired
+     */
+    public function listGroups(): JSONResponse
+    {
+        $guard = $this->requireAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        $allKnown    = [];
+        $allKnownIds = [];
+        foreach ($this->groupManager->search(search: '') as $group) {
+            $id         = $group->getGID();
+            $allKnown[] = [
+                'id'          => $id,
+                'displayName' => $group->getDisplayName(),
+            ];
+            $allKnownIds[$id] = $group->getDisplayName();
+        }
+
+        // Stable sort `allKnown` by displayName (case-insensitive).
+        usort(
+            array: $allKnown,
+            callback: static function (array $a, array $b): int {
+                return strcasecmp(
+                    string1: $a['displayName'],
+                    string2: $b['displayName']
+                );
+            }
+        );
+
+        $active     = $this->settingsService->getGroupOrder();
+        $activeKeys = array_flip($active);
+
+        $inactive = [];
+        foreach (array_keys($allKnownIds) as $id) {
+            if (isset($activeKeys[$id]) === false) {
+                $inactive[] = $id;
+            }
+        }
+
+        // Sort `inactive` by displayName (case-insensitive) per REQ-ASET-013.
+        usort(
+            array: $inactive,
+            callback: static function (string $a, string $b) use ($allKnownIds): int {
+                return strcasecmp(
+                    string1: $allKnownIds[$a] ?? $a,
+                    string2: $allKnownIds[$b] ?? $b
+                );
+            }
+        );
+
+        return ResponseHelper::success(
+            data: [
+                'active'   => $active,
+                'inactive' => $inactive,
+                'allKnown' => $allKnown,
+            ]
+        );
+    }//end listGroups()
+
+    /**
+     * Replace the persisted group priority order wholesale (REQ-ASET-014).
+     *
+     * Accepts a JSON body `{groups: string[]}`:
+     * - 403 if the caller is not a Nextcloud admin (no side effects).
+     * - 400 if `groups` is missing or contains a non-string element (no
+     *   side effects on the persisted setting).
+     * - Duplicates are deduplicated (first occurrence wins, order preserved).
+     * - Unknown IDs are tolerated (per REQ-ASET-014 "Unknown IDs accepted").
+     * - 200 with `{status: 'ok', groupOrder: string[]}` on success.
+     *
+     * @param mixed $groups The new ordered list (validated to `string[]`).
+     *
+     * @return JSONResponse The status response.
+     *
+     * @NoAdminRequired
+     */
+    public function updateGroupOrder(mixed $groups=null): JSONResponse
+    {
+        $guard = $this->requireAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        if (is_array($groups) === false) {
+            return new JSONResponse(
+                data: ['error' => 'Field "groups" must be an array of strings.'],
+                statusCode: Http::STATUS_BAD_REQUEST
+            );
+        }
+
+        try {
+            $this->settingsService->setGroupOrder(groupIds: $groups);
+        } catch (InvalidArgumentException) {
+            // ADR-005: do not leak raw exception messages.
+            return new JSONResponse(
+                data: ['error' => 'Invalid groups payload'],
+                statusCode: Http::STATUS_BAD_REQUEST
+            );
+        }
+
+        return ResponseHelper::success(
+            data: [
+                'status'     => 'ok',
+                'groupOrder' => $this->settingsService->getGroupOrder(),
+            ]
+        );
+    }//end updateGroupOrder()
+
+    /**
+     * Verify the current session belongs to a Nextcloud admin.
+     *
+     * Returns `null` when the caller is an admin (proceed). Returns a 401
+     * JSONResponse when no user is logged in, and a 403 JSONResponse when
+     * the user is not an admin. REQ-ASET-014.
+     *
+     * @return JSONResponse|null The error response when the guard fails;
+     *                           `null` when the caller is an admin.
+     */
+    private function requireAdmin(): ?JSONResponse
+    {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return ResponseHelper::unauthorized();
+        }
+
+        if ($this->groupManager->isAdmin(userId: $user->getUID()) === false) {
+            return ResponseHelper::forbidden(
+                message: 'Administrator privileges required.'
+            );
+        }
+
+        return null;
+    }//end requireAdmin()
 
     /**
      * Build the update data array from nullable parameters.

@@ -1,0 +1,59 @@
+<?php
+
+/**
+ * Bootstrap file for Unit Tests
+ *
+ * This bootstrap loads the full Nextcloud environment since tests run inside
+ * the Nextcloud Docker container. This gives access to \OC::$server and the
+ * full DI container, enabling tests to cover code that depends on Nextcloud services.
+ *
+ * @category Test
+ * @package  OCA\MyDash\Tests
+ *
+ * @author    Conduction Development Team <info@conduction.nl>
+ * @copyright 2024 Conduction B.V.
+ * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+ *
+ * @version GIT: <git-id>
+ *
+ * @link https://conduction.nl
+ */
+
+declare(strict_types=1);
+
+// Define that we're running PHPUnit.
+define('PHPUNIT_RUN', 1);
+
+// Include Composer's autoloader.
+require_once __DIR__ . '/../vendor/autoload.php';
+
+// Bootstrap Nextcloud — since we run inside the Docker container,
+// the full environment (including \OC::$server) is available.
+if (file_exists(__DIR__ . '/../../../lib/base.php')) {
+    require_once __DIR__ . '/../../../lib/base.php';
+} elseif (is_dir(__DIR__ . '/../vendor/nextcloud/ocp/OCP')) {
+    // Outside the container we register the OCP stubs from
+    // vendor/nextcloud/ocp so unit tests that mock OCP interfaces
+    // (e.g. IInitialState) can still run. These are signature-only
+    // stubs and are sufficient for PHPUnit's createMock().
+    $ocpLoader = new \Composer\Autoload\ClassLoader();
+    $ocpLoader->addPsr4('OCP\\', __DIR__ . '/../vendor/nextcloud/ocp/OCP/');
+    $ocpLoader->register();
+
+    // The OCP IDBConnection / IQueryBuilder stubs reference Doctrine
+    // DBAL classes that are not in our composer.json (Nextcloud
+    // provides them at runtime). Load minimal placeholder classes so
+    // PHPUnit's automatic mock generator can introspect IDBConnection
+    // for the REQ-DASH-015 tests.
+    require_once __DIR__ . '/Stubs/DoctrineStubs.php';
+}
+
+// Register Test\ namespace for NC test classes.
+$serverTestsLib = __DIR__ . '/../../../tests/lib/';
+if (is_dir($serverTestsLib)) {
+    $loader = new \Composer\Autoload\ClassLoader();
+    $loader->addPsr4('Test\\', $serverTestsLib);
+    $loader->register(true);
+}
+
+error_log('[UNIT TEST BOOTSTRAP] Full Nextcloud bootstrap complete - \OC::$server available');

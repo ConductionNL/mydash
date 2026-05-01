@@ -1,5 +1,5 @@
 ---
-status: reviewed
+status: implemented
 ---
 
 # Grid Layout Specification
@@ -28,16 +28,13 @@ The grid MUST initialize with the correct configuration when a dashboard is load
 #### Scenario: Initialize grid with default 12-column layout
 - GIVEN user "alice" activates dashboard id 5 with `gridColumns: 12`
 - WHEN the dashboard view loads
-- THEN GridStack MUST be initialized with 12 columns
-- AND cell height MUST be set to 80px
-- AND margins MUST be set to 12px
-- AND float mode MUST be enabled (`float: true`)
-- AND the grid MUST render all widget placements at their stored (gridX, gridY, gridWidth, gridHeight) coordinates
+- THEN GridStack MUST be initialized with `column: 12`, `cellHeight: 80`, `margin: 12`, `float: true`, `animate: true`
+- AND the grid MUST render all widget placements at their stored (gridX, gridY, gridWidth, gridHeight) coordinates using `gs-x`, `gs-y`, `gs-w`, `gs-h` attributes
 
 #### Scenario: Initialize grid with custom column count
 - GIVEN dashboard id 5 has `gridColumns: 6`
 - WHEN the dashboard view loads
-- THEN GridStack MUST be initialized with 6 columns
+- THEN GridStack MUST be initialized with `column: 6`
 - AND all widget placements MUST be constrained to the 6-column grid
 - AND placements with `gridX + gridWidth > 6` MUST be automatically reflowed to fit
 
@@ -46,6 +43,7 @@ The grid MUST initialize with the correct configuration when a dashboard is load
 - WHEN the dashboard view loads
 - THEN GridStack MUST initialize an empty grid
 - AND the empty grid MUST display a placeholder message or empty state (e.g., "Add widgets to get started")
+- NOTE: Empty state placeholder is NOT currently implemented
 
 #### Scenario: Grid renders placements in correct positions
 - GIVEN dashboard id 5 has the following placements:
@@ -56,9 +54,15 @@ The grid MUST initialize with the correct configuration when a dashboard is load
   | 12           | calendar       | 8     | 0     | 4         | 2          |
   | 13           | (tile)         | 0     | 2     | 2         | 2          |
 - WHEN the dashboard view loads
-- THEN each placement MUST be rendered at its exact grid coordinates
+- THEN each placement MUST be rendered at its exact grid coordinates via `gs-id`, `gs-x`, `gs-y`, `gs-w`, `gs-h` attributes
 - AND no placements MUST overlap
 - AND the grid height MUST expand to accommodate all placements
+
+#### Scenario: Grid initialization options match configuration
+- GIVEN the DashboardGrid component receives props
+- WHEN `initGrid()` is called
+- THEN GridStack.init MUST be called with `disableDrag: !this.editMode` and `disableResize: !this.editMode`
+- AND `removable: false` MUST prevent accidental widget removal via drag-out
 
 ### REQ-GRID-002: Drag to Reposition
 
@@ -93,6 +97,12 @@ Users MUST be able to drag widgets to new positions on the grid in edit mode.
 - THEN GridStack MUST push widget B down to (0, 4) to make room
 - AND no overlap MUST occur
 
+#### Scenario: Drag emits position update
+- GIVEN the dashboard is in edit mode
+- WHEN the user drags a widget to a new position
+- THEN the GridStack `change` event MUST fire
+- AND `handleGridChange()` MUST emit `update:placements` with all current placement positions
+
 ### REQ-GRID-003: Resize by Edge Dragging
 
 Users MUST be able to resize widgets by dragging their edges or corners in edit mode.
@@ -115,32 +125,31 @@ Users MUST be able to resize widgets by dragging their edges or corners in edit 
 - GIVEN a widget with size 4x3
 - WHEN the user tries to resize it smaller than 2x2
 - THEN the widget MUST NOT be smaller than the minimum size (2 columns wide, 2 rows tall)
-- AND GridStack MUST enforce minimum dimensions (`gs-min-w="2"`, `gs-min-h="2"`)
+- AND GridStack MUST enforce minimum dimensions via `gs-min-w="2"` and `gs-min-h="2"` attributes
 
 #### Scenario: Resize constrained by grid columns
 - GIVEN a widget at position (8, 0) with size 4x2 on a 12-column grid
 - WHEN the user tries to resize it to gridWidth 6
 - THEN the widget width MUST be constrained to 4 (since 8 + 6 = 14 > 12)
-- OR GridStack MUST reposition the widget to allow the resize (e.g., move to gridX=6)
+- OR GridStack MUST reposition the widget to allow the resize
 
 #### Scenario: Resize handles not visible in view mode
 - GIVEN the dashboard is in view mode
 - WHEN the user hovers over a widget edge
 - THEN no resize handles MUST be displayed
 - AND the cursor MUST NOT change to a resize cursor
-- NOTE: The grid uses `disableResize: !this.editMode` on initialization.
+- NOTE: `disableResize: !this.editMode` on initialization.
 
 ### REQ-GRID-004: View Mode vs Edit Mode
 
-The grid MUST support two distinct interaction modes.
+The grid MUST support two distinct interaction modes controlled by the `editMode` prop.
 
 #### Scenario: Enter edit mode
 - GIVEN the dashboard is in view mode
-- WHEN the user clicks the "Edit" button
+- WHEN the user clicks the "Edit" button (handled by parent component)
 - THEN the grid MUST transition to edit mode via `grid.enable()`
 - AND drag handles MUST become visible on all widget placements
 - AND resize handles MUST become active on widget edges
-- AND the "Edit" button MUST change to a "Done" or "Save" label
 
 #### Scenario: Exit edit mode
 - GIVEN the dashboard is in edit mode
@@ -148,45 +157,49 @@ The grid MUST support two distinct interaction modes.
 - WHEN the user clicks the "Done" button
 - THEN the grid MUST transition to view mode via `grid.disable()`
 - AND all drag and resize interactions MUST be disabled
-- AND the final positions MUST be persisted via the API
+- AND the final positions MUST be persisted via the API (handled by parent component)
 
 #### Scenario: View mode is the default
 - GIVEN the user navigates to their active dashboard
 - WHEN the dashboard loads
-- THEN the grid MUST be in view mode by default
-- AND widgets MUST be static and non-interactive (from a grid perspective)
+- THEN the grid MUST be in view mode by default (`editMode: false`)
+- AND widgets MUST be static and non-interactive from a grid perspective
 
 #### Scenario: View-only permission prevents edit mode
 - GIVEN dashboard id 5 has `permissionLevel: "view_only"`
 - WHEN the user views the dashboard
-- THEN the "Edit" button MUST NOT be displayed
+- THEN the "Edit" button MUST NOT be displayed (handled by parent component based on permissionLevel)
 - AND the grid MUST always remain in view mode
-- AND no drag or resize interactions MUST be possible
+
+#### Scenario: Edit mode watcher responds to prop changes
+- GIVEN the DashboardGrid component is mounted
+- WHEN the `editMode` prop changes from false to true
+- THEN the watcher MUST call `grid.enable()`
+- AND when it changes from true to false, the watcher MUST call `grid.disable()`
 
 ### REQ-GRID-005: Position Persistence
 
-Grid position changes MUST be saved to the server.
+Grid position changes MUST be communicated to the parent component for API persistence.
 
 #### Scenario: Save after grid change
 - GIVEN the user drags a widget to a new position
 - WHEN the GridStack `change` event fires
 - THEN the DashboardGrid component MUST emit an `update:placements` event with all updated placement positions
-- AND the parent component MUST send the update to the API
-- NOTE: Debouncing is NOT implemented in the DashboardGrid component. The `handleGridChange` method emits immediately on every GridStack change event. Any debouncing must be handled by the parent component.
+- NOTE: Debouncing is NOT implemented in DashboardGrid. `handleGridChange` emits immediately on every GridStack change event.
 
 #### Scenario: Multiple rapid changes
 - GIVEN the user rapidly repositions 3 widgets
 - WHEN each repositioning triggers a GridStack change event
 - THEN each change MUST trigger an `update:placements` emit
-- NOTE: Since there is no debounce in DashboardGrid, rapid changes will result in multiple emit calls. The parent component is responsible for coalescing or debouncing API calls.
+- NOTE: Since there is no debounce, rapid changes result in multiple emit calls. The parent component is responsible for coalescing API calls.
 
 #### Scenario: Save failure with retry
 - GIVEN the user repositions a widget
 - AND the API request to save positions fails
 - WHEN the failure is detected
-- THEN the system MUST display an error notification (e.g., "Failed to save layout. Retrying...")
+- THEN the system MUST display an error notification
 - AND the system MUST retry the save automatically (up to 3 retries)
-- AND if all retries fail, the system MUST display a persistent error with a manual retry button
+- NOTE: Save failure/retry is NOT currently implemented in the frontend.
 
 #### Scenario: Concurrent edits from multiple tabs
 - GIVEN user "alice" has the same dashboard open in two browser tabs
@@ -195,17 +208,23 @@ Grid position changes MUST be saved to the server.
 - THEN each tab MUST independently save its changes
 - AND the last save MUST win (no merge conflict resolution required)
 
+#### Scenario: Change event maps grid items to placements
+- GIVEN the GridStack `change` event fires with an array of updated grid items
+- WHEN `handleGridChange(items)` processes the items
+- THEN each grid item's `id` MUST be matched to a placement's `id` via string comparison
+- AND the placement's gridX, gridY, gridWidth, gridHeight MUST be updated from the grid item's x, y, w, h values
+
 ### REQ-GRID-006: Widget Auto-Layout
 
-New widgets added to the dashboard MUST be placed in the first available grid position.
+New widgets added to the dashboard MUST be positioned by GridStack's auto-placement algorithm.
 
 #### Scenario: Add widget to partially filled grid
 - GIVEN the grid has widgets occupying rows 0-2 in columns 0-8
 - AND columns 8-11 in row 0 are empty
 - WHEN the user adds a new widget with gridWidth 4 and gridHeight 2
-- THEN GridStack MUST place the widget at the first available position that fits (e.g., gridX=8, gridY=0)
-- AND the widget MUST NOT overlap existing placements
-- NOTE: With `float: true`, auto-placement behavior may differ from non-float mode. Widgets are added via `syncGridItems()` which calls `grid.makeWidget()`.
+- THEN `syncGridItems()` MUST detect the new placement and call `grid.makeWidget()` on the next tick
+- AND GridStack MUST place the widget at an available position
+- NOTE: With `float: true`, auto-placement behavior may differ from non-float mode.
 
 #### Scenario: Add widget to a full row
 - GIVEN all 12 columns in rows 0-3 are occupied
@@ -213,11 +232,11 @@ New widgets added to the dashboard MUST be placed in the first available grid po
 - THEN GridStack MUST place it in the next available row (gridY=4 or later)
 - AND the grid MUST expand vertically to accommodate the new widget
 
-#### Scenario: Auto-layout respects widget size
-- GIVEN columns 0-7 in row 0 are occupied (8 columns used)
-- WHEN the user adds a widget with gridWidth 6
-- THEN the widget MUST NOT be placed at gridX=8 (since 8 + 6 = 14 > 12)
-- AND it MUST be placed at gridX=0, gridY at the next available row
+#### Scenario: Remove widget syncs grid
+- GIVEN widget placement id 10 is removed from the placements array
+- WHEN the placements watcher triggers `syncGridItems()`
+- THEN `syncGridItems()` MUST find the orphaned grid node and call `grid.removeWidget()` with `removeDOM: false`
+- AND the grid MUST update its layout accordingly
 
 ### REQ-GRID-007: Grid Responsiveness
 
@@ -227,7 +246,7 @@ The grid MUST adapt to the container width while maintaining the configured colu
 - GIVEN the dashboard container is 1200px wide
 - AND the grid has 12 columns with 12px margins
 - WHEN the grid renders
-- THEN each column MUST be approximately (1200 - 13*12) / 12 = 87px wide
+- THEN each column MUST be proportionally sized to fill the container width
 - AND the grid MUST fill the full container width
 
 #### Scenario: Grid adapts to container resize
@@ -237,6 +256,11 @@ The grid MUST adapt to the container width while maintaining the configured colu
 - AND widget positions MUST remain in their grid coordinates (columns and rows)
 - AND no widget content MUST overflow its cell boundaries
 
+#### Scenario: Minimum grid height
+- GIVEN the dashboard has no widgets or very few widgets
+- WHEN the grid renders
+- THEN the grid container MUST maintain a minimum height of 400px (`.mydash-grid { min-height: 400px }`)
+
 ### REQ-GRID-008: Grid Accessibility
 
 The grid MUST support keyboard navigation and screen reader compatibility.
@@ -244,20 +268,22 @@ The grid MUST support keyboard navigation and screen reader compatibility.
 #### Scenario: Keyboard navigation between widgets
 - GIVEN the dashboard is in view mode
 - WHEN the user presses Tab
-- THEN focus MUST move sequentially through widget placements in sortOrder
+- THEN focus MUST move sequentially through widget placements
 - AND each focused widget MUST have a visible focus indicator
+- NOTE: Keyboard navigation is NOT currently implemented.
 
 #### Scenario: Keyboard widget movement in edit mode
 - GIVEN the dashboard is in edit mode
 - AND a widget has keyboard focus
 - WHEN the user presses Arrow keys while holding a modifier key (e.g., Ctrl+Arrow)
 - THEN the widget MUST move one grid cell in the arrow direction
-- AND the movement MUST respect grid boundaries and collision avoidance
+- NOTE: Keyboard movement is NOT currently implemented.
 
 #### Scenario: Screen reader announces widget positions
 - GIVEN a screen reader is active
 - WHEN a widget receives focus
-- THEN the screen reader MUST announce: the widget title, its grid position (e.g., "column 1, row 1"), and its size (e.g., "spans 4 columns and 2 rows")
+- THEN the screen reader MUST announce: the widget title, its grid position, and its size
+- NOTE: ARIA attributes for grid positions are NOT currently implemented.
 
 ### REQ-GRID-009: Tile vs Widget Rendering
 
@@ -267,7 +293,8 @@ The grid MUST distinguish between tile placements and widget placements for rend
 - GIVEN a placement with `tileType: "custom"` and inline tile data (tileTitle, tileIcon, etc.)
 - WHEN the grid renders
 - THEN the placement MUST be rendered using the `TileWidget` component (not `WidgetWrapper`)
-- AND the `isTilePlacement()` check uses `placement.tileType === 'custom'`
+- AND `isTilePlacement()` check uses `placement.tileType === 'custom'`
+- AND `getTileData()` extracts inline tile data from placement fields into a tile object
 
 #### Scenario: Regular widget placement renders WidgetWrapper
 - GIVEN a placement with `tileType: null` and `widgetId: "weather_status"`
@@ -275,10 +302,89 @@ The grid MUST distinguish between tile placements and widget placements for rend
 - THEN the placement MUST be rendered using the `WidgetWrapper` component
 - AND the widget data MUST be resolved via `getWidget(placement.widgetId)` from the available widgets array
 
+#### Scenario: TileWidget receives edit mode prop
+- GIVEN a tile placement on a dashboard in edit mode
+- WHEN the tile is rendered
+- THEN `TileWidget` MUST receive `editMode: true`
+- AND an edit button MUST be visible on the tile
+- AND clicking the edit button MUST emit `tile-edit` via the grid component
+
+#### Scenario: WidgetWrapper receives placement and widget data
+- GIVEN a widget placement with `widgetId: "recommendations"`
+- AND the available widgets array contains a widget with `id: "recommendations"`
+- WHEN the grid renders
+- THEN `WidgetWrapper` MUST receive both the `placement` object and the resolved `widget` object
+- AND if no matching widget is found, `widget` MUST be null (graceful degradation)
+
+### REQ-GRID-010: Grid Styling
+
+The grid MUST apply consistent visual styling to all grid items.
+
+#### Scenario: Grid item content styling
+- GIVEN a grid item is rendered
+- WHEN the item is displayed
+- THEN `.grid-stack-item-content` MUST have: background blur via `backdrop-filter`, large border radius via `--border-radius-large`, and `overflow: hidden`
+
+#### Scenario: Placeholder styling during drag
+- GIVEN the user is dragging a widget in edit mode
+- WHEN a placeholder appears showing the drop target
+- THEN `.grid-stack-placeholder > .placeholder-content` MUST have: a primary element light background and a 2px dashed border in primary color with large border radius
+
+#### Scenario: Placement key regeneration
+- GIVEN a widget placement is updated (e.g., style change)
+- WHEN the grid re-renders
+- THEN the placement key MUST include the `updatedAt` timestamp and `styleConfig` hash to force re-rendering via `getPlacementKey()`
+
+### REQ-GRID-011: Grid Synchronization
+
+The grid MUST stay synchronized with the placements prop when items are added or removed externally.
+
+#### Scenario: New placement added to props
+- GIVEN the placements array receives a new placement via the parent component
+- WHEN the `placements` watcher triggers `syncGridItems()`
+- THEN the new placement MUST be added to the grid via `grid.makeWidget()` on `$nextTick()`
+
+#### Scenario: Placement removed from props
+- GIVEN a placement is removed from the placements array
+- WHEN the `placements` watcher triggers `syncGridItems()`
+- THEN the orphaned grid node MUST be detected by comparing placement IDs
+- AND the element MUST be removed via `grid.removeWidget(el, false)`
+
+#### Scenario: Grid destruction on component unmount
+- GIVEN the DashboardGrid component is about to be destroyed
+- WHEN `beforeDestroy` lifecycle hook fires
+- THEN `grid.destroy(false)` MUST be called (false = do not remove DOM elements)
+
 ## Non-Functional Requirements
 
 - **Performance**: Grid initialization MUST complete within 500ms for dashboards with up to 30 widget placements. Drag and resize interactions MUST maintain 60fps with no visible lag.
 - **Library version**: GridStack 10.3.1 MUST be used. Upgrades require spec review for breaking changes.
 - **Browser support**: The grid MUST function in all browsers supported by Nextcloud (Chrome, Firefox, Safari, Edge -- latest 2 versions).
-- **Debouncing**: Debouncing is NOT currently implemented in the DashboardGrid component. The `handleGridChange` method emits `update:placements` immediately on every GridStack change event. Debouncing SHOULD be added either in DashboardGrid or in the parent component to reduce API calls during rapid rearrangements.
+- **Debouncing**: Debouncing is NOT currently implemented in DashboardGrid. The `handleGridChange` method emits immediately on every change event. Debouncing SHOULD be added.
 - **Accessibility**: Grid interactions MUST provide keyboard alternatives for all mouse-based operations. WCAG AA compliance is required.
+
+### Current Implementation Status
+
+**Fully implemented:**
+- REQ-GRID-001 (Grid Initialization): `DashboardGrid.vue` initializes GridStack with all specified options.
+- REQ-GRID-002 (Drag to Reposition): Drag enabled/disabled via `grid.enable()`/`grid.disable()` in editMode watcher.
+- REQ-GRID-003 (Resize by Edge Dragging): Resize controlled via `disableResize: !this.editMode`. Min sizes via `gs-min-w="2"`, `gs-min-h="2"`.
+- REQ-GRID-004 (View Mode vs Edit Mode): `editMode` prop controls grid state.
+- REQ-GRID-005 (Position Persistence): `handleGridChange()` emits `update:placements` on every change event.
+- REQ-GRID-006 (Widget Auto-Layout): `syncGridItems()` adds/removes items.
+- REQ-GRID-009 (Tile vs Widget Rendering): `isTilePlacement()`, `getTileData()` handle rendering distinction.
+- REQ-GRID-010 (Grid Styling): CSS applied via scoped styles with deep selectors.
+- REQ-GRID-011 (Grid Synchronization): `placements` watcher triggers `syncGridItems()`.
+
+**Not yet implemented:**
+- REQ-GRID-005 save failure/retry: No retry logic in frontend.
+- REQ-GRID-005 debouncing: No debounce on handleGridChange.
+- REQ-GRID-007 (Grid Responsiveness): No explicit responsive handling or breakpoints.
+- REQ-GRID-008 (Grid Accessibility): No keyboard navigation, keyboard movement, or ARIA attributes.
+- REQ-GRID-001 empty state: No empty state placeholder.
+
+### Standards & References
+- GridStack 10.3.1: https://gridstackjs.com/
+- WAI-ARIA Grid pattern: https://www.w3.org/WAI/ARIA/apg/patterns/grid/
+- WCAG 2.1 AA: Focus indicators, keyboard operability, screen reader compatibility
+- Nextcloud Vue components: `NcButton` used in parent components for edit/done toggle

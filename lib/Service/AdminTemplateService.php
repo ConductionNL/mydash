@@ -12,9 +12,6 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -26,7 +23,8 @@ use Exception;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
-use Ramsey\Uuid\Uuid;
+use OCP\IGroupManager;
+use OCP\IUserManager;
 
 /**
  * Service for admin template CRUD operations.
@@ -38,10 +36,16 @@ class AdminTemplateService
      *
      * @param DashboardMapper       $dashboardMapper Dashboard mapper.
      * @param WidgetPlacementMapper $placementMapper Widget placement mapper.
+     * @param AdminSettingsService  $adminSettings   Admin settings reader (for `group_order`).
+     * @param IGroupManager         $groupManager    Nextcloud group membership lookup.
+     * @param IUserManager          $userManager     Nextcloud user lookup (resolve user ID to IUser).
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
         private readonly WidgetPlacementMapper $placementMapper,
+        private readonly AdminSettingsService $adminSettings,
+        private readonly IGroupManager $groupManager,
+        private readonly IUserManager $userManager,
     ) {
     }//end __construct()
 
@@ -105,7 +109,7 @@ class AdminTemplateService
         }
 
         $template = new Dashboard();
-        $template->setUuid(Uuid::uuid4()->toString());
+        $template->setUuid($this->generateUuid());
         $template->setName($name);
         $template->setDescription($description);
         $template->setType(Dashboard::TYPE_ADMIN_TEMPLATE);
@@ -226,4 +230,117 @@ class AdminTemplateService
             );
         }
     }//end applyTemplateUpdates()
+
+    /**
+     * Resolve the user's primary workspace group (REQ-TMPL-012).
+     *
+     * Pure read-only function — performs no writes. Implements the single
+     * routing authority for primary-group resolution (REQ-TMPL-013): every
+     * workspace-rendering and dashboard-resolution code path MUST consult
+     * this method instead of inlining the algorithm.
+     *
+     * Algorithm:
+     *   1. Read the admin-configured ordered list of group IDs from
+     *      `admin_settings.group_order` (JSON `string[]`, default `[]`).
+     *   2. Read the user's Nextcloud group memberships via
+     *      `IGroupManager::getUserGroupIds`.
+     *   3. Walk `group_order` left-to-right and return the first group ID
+     *      that also appears in the user's memberships.
+     *   4. If no match (including empty list, user in no configured group,
+     *      or every configured ID is stale), return the literal sentinel
+     *      `Dashboard::DEFAULT_GROUP_ID` (`'default'`).
+     *
+     * Stale (deleted) group IDs in `group_order` are tolerated — cleanup is
+     * the admin UI's responsibility and the resolver MUST NOT throw on
+     * them.
+     *
+     * @param string $userId The Nextcloud user ID.
+     *
+     * @return string The matched Nextcloud group ID, or
+     *                {@see Dashboard::DEFAULT_GROUP_ID} when no match
+     *                exists.
+     */
+    public function resolvePrimaryGroup(string $userId): string
+    {
+        $orderedGroups = $this->adminSettings->getGroupOrder();
+
+        // Short-circuit: if no groups are configured the answer is always
+        // the default sentinel — no need to look the user up.
+        if ($orderedGroups === []) {
+            return Dashboard::DEFAULT_GROUP_ID;
+        }
+
+        $user = $this->userManager->get($userId);
+        if ($user === null) {
+            // Stale / unknown user ID — tolerate silently per
+            // REQ-TMPL-012 spirit (resolver MUST NOT throw on bad input).
+            return Dashboard::DEFAULT_GROUP_ID;
+        }
+
+        $userGroups = $this->groupManager->getUserGroupIds(user: $user);
+
+        $match = self::pickFirstMatch(
+            orderedGroups: $orderedGroups,
+            userGroups: $userGroups
+        );
+
+        return ($match ?? Dashboard::DEFAULT_GROUP_ID);
+    }//end resolvePrimaryGroup()
+
+    /**
+     * Pick the first ordered group that the user is a member of.
+     *
+     * Internal pure helper extracted for direct unit-testability of the
+     * intersection logic, independent of any Nextcloud/DI dependencies.
+     * Walks `$orderedGroups` left-to-right and returns the first entry that
+     * also appears in `$userGroups`. Returns `null` when no overlap exists
+     * (including either argument being empty).
+     *
+     * Tolerates stale entries in `$orderedGroups` — entries that are not in
+     * `$userGroups` are simply skipped, never raise an error.
+     *
+     * @param array<int, string> $orderedGroups The admin-configured ordered
+     *                                          list of group IDs.
+     * @param array<int, string> $userGroups    The user's actual Nextcloud
+     *                                          group memberships.
+     *
+     * @return string|null The first matching group ID, or `null` when the
+     *                     two lists do not intersect.
+     */
+    public static function pickFirstMatch(
+        array $orderedGroups,
+        array $userGroups
+    ): ?string {
+        if ($orderedGroups === [] || $userGroups === []) {
+            return null;
+        }
+
+        // O(n) lookup: hash the user's groups for constant-time matching.
+        $userGroupSet = array_flip($userGroups);
+
+        foreach ($orderedGroups as $groupId) {
+            if (isset($userGroupSet[$groupId]) === true) {
+                return $groupId;
+            }
+        }
+
+        return null;
+    }//end pickFirstMatch()
+
+    /**
+     * Generate a UUID v4.
+     *
+     * @return string The generated UUID.
+     */
+    private function generateUuid(): string
+    {
+        $data    = random_bytes(length: 16);
+        $data[6] = chr(codepoint: ord(character: $data[6]) & 0x0f | 0x40);
+        $data[8] = chr(codepoint: ord(character: $data[8]) & 0x3f | 0x80);
+
+        return vsprintf(
+            format: '%s%s-%s-%s-%s-%s%s%s',
+            values: str_split(string: bin2hex(string: $data), length: 4)
+        );
+    }//end generateUuid()
 }//end class

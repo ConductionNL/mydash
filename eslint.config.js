@@ -36,7 +36,13 @@ module.exports = defineConfig([{
 		'import/default': 'off',
 		'import/no-named-as-default': 'off',
 		'import/no-named-as-default-member': 'off',
+		'import/no-unresolved': ['error', { ignore: ['^@conduction/nextcloud-vue'] }],
 		'no-console': 'off',
 		'no-debugger': 'off',
+	},
+}, {
+	files: ['src/**/*.test.js', 'src/**/*.spec.js', 'src/__tests__/**/*.js'],
+	rules: {
+		'n/no-unpublished-import': 'off',
 	},
 }])
