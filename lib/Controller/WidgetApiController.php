@@ -19,14 +19,16 @@ declare(strict_types=1);
 namespace OCA\MyDash\Controller;
 
 use OCA\MyDash\AppInfo\Application;
-use OCA\MyDash\Service\WidgetService;
 use OCA\MyDash\Service\PermissionService;
+use OCA\MyDash\Service\RoleFeaturePermissionService;
+use OCA\MyDash\Service\WidgetService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
+use Psr\Log\LoggerInterface;
 
 /**
  * Controller for managing dashboard widgets.
@@ -36,15 +38,19 @@ class WidgetApiController extends Controller
     /**
      * Constructor
      *
-     * @param IRequest          $request           The request.
-     * @param WidgetService     $widgetService     The widget service.
-     * @param PermissionService $permissionService The permission service.
-     * @param string|null       $userId            The user ID.
+     * @param IRequest                     $request          The request.
+     * @param WidgetService                $widgetService    The widget service.
+     * @param PermissionService            $permissionService The permission service.
+     * @param RoleFeaturePermissionService $roleFeaturePerm   Role-feature filter.
+     * @param LoggerInterface              $logger            Logger (for audit).
+     * @param string|null                  $userId            The user ID.
      */
     public function __construct(
         IRequest $request,
         private readonly WidgetService $widgetService,
         private readonly PermissionService $permissionService,
+        private readonly RoleFeaturePermissionService $roleFeaturePerm,
+        private readonly LoggerInterface $logger,
         private readonly ?string $userId,
     ) {
         parent::__construct(
@@ -54,16 +60,44 @@ class WidgetApiController extends Controller
     }//end __construct()
 
     /**
-     * List all available Nextcloud widgets.
+     * List all available Nextcloud widgets, filtered by the caller's
+     * role-feature permissions (REQ-RFP-001 / REQ-RFP-003).
      *
      * @return JSONResponse The list of available widgets.
      */
     #[NoAdminRequired]
     public function listAvailable(): JSONResponse
     {
-        return ResponseHelper::success(
-            data: $this->widgetService->getAvailableWidgets()
+        $widgets = $this->widgetService->getAvailableWidgets();
+
+        if ($this->userId === null) {
+            return ResponseHelper::success(data: $widgets);
+        }
+
+        $allowed = $this->roleFeaturePerm->getAllowedWidgetIds(
+            userId: $this->userId
         );
+        if ($allowed === null) {
+            // Backwards-compat: nothing configured, return everything.
+            return ResponseHelper::success(data: $widgets);
+        }
+
+        $filtered = array_values(
+            array: array_filter(
+                array: $widgets,
+                callback: function (array $w) use ($allowed): bool {
+                    $id = (string) ($w['id'] ?? '');
+                    return $id !== ''
+                        && in_array(
+                            needle: $id,
+                            haystack: $allowed,
+                            strict: true
+                        );
+                }
+            )
+        );
+
+        return ResponseHelper::success(data: $filtered);
     }//end listAvailable()
 
     /**

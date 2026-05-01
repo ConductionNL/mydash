@@ -103,7 +103,10 @@ class DashboardService
      *                                                (used for the fork
      *                                                default name —
      *                                                REQ-DASH-020).
-     * @param LoggerInterface       $logger           PSR logger.
+     * @param LoggerInterface              $logger             PSR logger.
+     * @param RoleFeaturePermissionService $roleFeaturePerm    Role-default
+     *                                                         layout seeding
+     *                                                         (REQ-RFP-002).
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
@@ -118,6 +121,7 @@ class DashboardService
         private readonly IConfig $config,
         private readonly IL10N $l10n,
         private readonly LoggerInterface $logger,
+        private readonly RoleFeaturePermissionService $roleFeaturePerm,
     ) {
     }//end __construct()
 
@@ -956,9 +960,25 @@ class DashboardService
                 userId: $userId,
                 name: 'My Dashboard'
             );
-            $placements = $this->createDefaultPlacements(
-                dashboardId: $dashboard->getId()
+
+            // REQ-RFP-002: when no admin template applies, prefer seeding
+            // from the user's RoleLayoutDefault rows. Only fall back to the
+            // hardcoded recommendations + activity pair when no role-defaults
+            // exist for any of the user's groups (or the user is in no group).
+            $seeded = $this->roleFeaturePerm->seedLayoutFromRoleDefaults(
+                userId: $userId,
+                dashboard: $dashboard
             );
+            if ($seeded > 0) {
+                $placements = $this->placementMapper->findByDashboardId(
+                    dashboardId: $dashboard->getId()
+                );
+            } else {
+                $placements = $this->createDefaultPlacements(
+                    dashboardId: $dashboard->getId()
+                );
+            }
+
             return [
                 'dashboard'       => $dashboard,
                 'placements'      => $placements,
