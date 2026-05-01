@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main, development]
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   sbom:
     runs-on: ubuntu-latest
@@ -79,7 +83,18 @@ jobs:
       - name: npm audit
         run: npm audit --audit-level=critical
 
-      - name: Commit SBOM
+      # Protected branches (main, development, beta) reject direct pushes per
+      # the org ruleset, so route SBOM updates through a PR instead. On any
+      # other branch (feature/**, bugfix/**, hotfix/**) commit + push direct
+      # since they aren't protected. Skip entirely on pull_request events —
+      # the SBOM is already validated by the steps above; merging the PR will
+      # re-trigger this workflow on the target branch.
+      - name: Commit SBOM (unprotected branches)
+        if: |
+          github.event_name == 'push' &&
+          github.ref_name != 'main' &&
+          github.ref_name != 'development' &&
+          github.ref_name != 'beta'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -90,6 +105,26 @@ jobs:
             git commit -m "chore: update SBOM"
             git push
           fi
+
+      - name: Open PR with SBOM update (protected branches)
+        if: |
+          github.event_name == 'push' &&
+          (github.ref_name == 'main' || github.ref_name == 'development' || github.ref_name == 'beta')
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update SBOM"
+          title: "chore: update SBOM (auto-generated)"
+          body: |
+            Auto-generated SBOM regeneration after a push to `${{ github.ref_name }}`.
+
+            Source run: [${{ github.workflow }} #${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+
+            Merge to keep `sbom.cdx.json` in sync with the locked dependency tree on `${{ github.ref_name }}`.
+          branch: chore/sbom-update-${{ github.ref_name }}
+          base: ${{ github.ref_name }}
+          add-paths: sbom.cdx.json
+          delete-branch: true
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v4
