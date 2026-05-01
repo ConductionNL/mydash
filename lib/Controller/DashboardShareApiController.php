@@ -31,7 +31,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
-use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
 
 /**
@@ -65,13 +65,13 @@ class DashboardShareApiController extends Controller
      *
      * @param int $id The dashboard ID.
      *
-     * @return DataResponse The list of shares.
+     * @return JSONResponse The list of shares.
      */
     #[NoAdminRequired]
-    public function index(int $id): DataResponse
+    public function index(int $id): JSONResponse
     {
         if ($this->userId === null) {
-            return new DataResponse(
+            return new JSONResponse(
                 data: ['error' => 'Not logged in'],
                 statusCode: Http::STATUS_UNAUTHORIZED
             );
@@ -86,15 +86,15 @@ class DashboardShareApiController extends Controller
                 callback: static fn($s) => $s->jsonSerialize(),
                 array: $shares
             );
-            return new DataResponse(data: $serialized);
+            return new JSONResponse(data: $serialized);
         } catch (DoesNotExistException) {
-            return new DataResponse(
+            return new JSONResponse(
                 data: ['error' => 'Dashboard not found'],
                 statusCode: Http::STATUS_NOT_FOUND
             );
         } catch (Exception) {
             // ADR-005: do not leak raw exception messages to clients.
-            return new DataResponse(
+            return new JSONResponse(
                 data: ['error' => 'Forbidden'],
                 statusCode: Http::STATUS_FORBIDDEN
             );
@@ -109,7 +109,7 @@ class DashboardShareApiController extends Controller
      * @param string|null $shareWith       The recipient.
      * @param string|null $permissionLevel The permission level.
      *
-     * @return DataResponse The created/updated share.
+     * @return JSONResponse The created/updated share.
      */
     #[NoAdminRequired]
     public function create(
@@ -117,9 +117,9 @@ class DashboardShareApiController extends Controller
         ?string $shareType=null,
         ?string $shareWith=null,
         ?string $permissionLevel=null
-    ): DataResponse {
+    ): JSONResponse {
         if ($this->userId === null) {
-            return new DataResponse(
+            return new JSONResponse(
                 data: ['error' => 'Not logged in'],
                 statusCode: Http::STATUS_UNAUTHORIZED
             );
@@ -133,24 +133,24 @@ class DashboardShareApiController extends Controller
                 permissionLevel: (string) $permissionLevel,
                 callerId: $this->userId
             );
-            return new DataResponse(
+            return new JSONResponse(
                 data: $share->jsonSerialize(),
                 statusCode: Http::STATUS_CREATED
             );
         } catch (InvalidArgumentException) {
             // ADR-005: do not leak raw exception messages to clients.
-            return new DataResponse(
+            return new JSONResponse(
                 data: ['error' => 'Invalid request'],
                 statusCode: Http::STATUS_BAD_REQUEST
             );
         } catch (DoesNotExistException) {
-            return new DataResponse(
+            return new JSONResponse(
                 data: ['error' => 'Dashboard not found'],
                 statusCode: Http::STATUS_NOT_FOUND
             );
         } catch (Exception) {
             // ADR-005: do not leak raw exception messages to clients.
-            return new DataResponse(
+            return new JSONResponse(
                 data: ['error' => 'Forbidden'],
                 statusCode: Http::STATUS_FORBIDDEN
             );
@@ -162,13 +162,13 @@ class DashboardShareApiController extends Controller
      *
      * @param int $shareId The share ID.
      *
-     * @return DataResponse Empty 204 on success.
+     * @return JSONResponse Empty 204 on success.
      */
     #[NoAdminRequired]
-    public function destroy(int $shareId): DataResponse
+    public function destroy(int $shareId): JSONResponse
     {
         if ($this->userId === null) {
-            return new DataResponse(
+            return new JSONResponse(
                 data: ['error' => 'Not logged in'],
                 statusCode: Http::STATUS_UNAUTHORIZED
             );
@@ -179,15 +179,15 @@ class DashboardShareApiController extends Controller
                 shareId: $shareId,
                 callerId: $this->userId
             );
-            return new DataResponse(data: [], statusCode: Http::STATUS_NO_CONTENT);
+            return new JSONResponse(data: [], statusCode: Http::STATUS_NO_CONTENT);
         } catch (DoesNotExistException) {
-            return new DataResponse(
+            return new JSONResponse(
                 data: ['error' => 'Share not found'],
                 statusCode: Http::STATUS_NOT_FOUND
             );
         } catch (Exception) {
             // ADR-005: do not leak raw exception messages to clients.
-            return new DataResponse(
+            return new JSONResponse(
                 data: ['error' => 'Forbidden'],
                 statusCode: Http::STATUS_FORBIDDEN
             );
@@ -200,13 +200,13 @@ class DashboardShareApiController extends Controller
      * @param int        $id     The dashboard ID.
      * @param array|null $shares The new share list.
      *
-     * @return DataResponse The new full share list.
+     * @return JSONResponse The new full share list.
      */
     #[NoAdminRequired]
-    public function replace(int $id, ?array $shares=null): DataResponse
+    public function replace(int $id, ?array $shares=null): JSONResponse
     {
         if ($this->userId === null) {
-            return new DataResponse(
+            return new JSONResponse(
                 data: ['error' => 'Not logged in'],
                 statusCode: Http::STATUS_UNAUTHORIZED
             );
@@ -226,21 +226,21 @@ class DashboardShareApiController extends Controller
                 callback: static fn($s) => $s->jsonSerialize(),
                 array: $newShares
             );
-            return new DataResponse(data: $serialized);
+            return new JSONResponse(data: $serialized);
         } catch (InvalidArgumentException) {
             // ADR-005: do not leak raw exception messages to clients.
-            return new DataResponse(
+            return new JSONResponse(
                 data: ['error' => 'Invalid request'],
                 statusCode: Http::STATUS_BAD_REQUEST
             );
         } catch (DoesNotExistException) {
-            return new DataResponse(
+            return new JSONResponse(
                 data: ['error' => 'Dashboard not found'],
                 statusCode: Http::STATUS_NOT_FOUND
             );
         } catch (Exception) {
             // ADR-005: do not leak raw exception messages to clients.
-            return new DataResponse(
+            return new JSONResponse(
                 data: ['error' => 'Forbidden'],
                 statusCode: Http::STATUS_FORBIDDEN
             );
@@ -254,15 +254,15 @@ class DashboardShareApiController extends Controller
      * @param string $shareType The share type.
      * @param string $shareWith The recipient user/group ID.
      *
-     * @return DataResponse The count of deleted rows.
+     * @return JSONResponse The count of deleted rows.
      */
     #[NoAdminRequired]
     public function revokeForRecipient(
         string $shareType,
         string $shareWith
-    ): DataResponse {
+    ): JSONResponse {
         if ($this->userId === null) {
-            return new DataResponse(
+            return new JSONResponse(
                 data: ['error' => 'Not logged in'],
                 statusCode: Http::STATUS_UNAUTHORIZED
             );
@@ -274,10 +274,10 @@ class DashboardShareApiController extends Controller
                 shareWith: $shareWith,
                 callerId: $this->userId
             );
-            return new DataResponse(data: ['deleted' => $count]);
+            return new JSONResponse(data: ['deleted' => $count]);
         } catch (InvalidArgumentException) {
             // ADR-005: do not leak raw exception messages to clients.
-            return new DataResponse(
+            return new JSONResponse(
                 data: ['error' => 'Invalid request'],
                 statusCode: Http::STATUS_BAD_REQUEST
             );
