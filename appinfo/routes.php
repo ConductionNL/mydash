@@ -92,6 +92,17 @@ return [
 		['name' => 'admin#getSettings', 'url' => '/api/admin/settings', 'verb' => 'GET'],
 		['name' => 'admin#updateSettings', 'url' => '/api/admin/settings', 'verb' => 'PUT'],
 		['name' => 'admin#listGroups', 'url' => '/api/admin/groups', 'verb' => 'GET'],
+
+		// Role-feature permissions (REQ-RFP-001..010). Admin-only — the
+		// controller calls `requireAdmin()` on every method.
+		['name' => 'role_feature_permission_api#listPermissions',  'url' => '/api/role-feature-permissions', 'verb' => 'GET'],
+		['name' => 'role_feature_permission_api#savePermission',   'url' => '/api/role-feature-permissions', 'verb' => 'POST'],
+		['name' => 'role_feature_permission_api#deletePermission', 'url' => '/api/role-feature-permissions/{id}', 'verb' => 'DELETE',
+		 'requirements' => ['id' => '\d+']],
+		['name' => 'role_feature_permission_api#listLayoutDefaults',  'url' => '/api/role-layout-defaults', 'verb' => 'GET'],
+		['name' => 'role_feature_permission_api#saveLayoutDefault',   'url' => '/api/role-layout-defaults', 'verb' => 'POST'],
+		['name' => 'role_feature_permission_api#deleteLayoutDefault', 'url' => '/api/role-layout-defaults/{id}', 'verb' => 'DELETE',
+		 'requirements' => ['id' => '\d+']],
 		['name' => 'admin#updateGroupOrder', 'url' => '/api/admin/groups', 'verb' => 'POST'],
 
 		// Resource uploads (admin-only base64 mini file API)
