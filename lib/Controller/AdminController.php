@@ -355,9 +355,10 @@ class AdminController extends Controller
 
         try {
             $this->settingsService->setGroupOrder(groupIds: $groups);
-        } catch (InvalidArgumentException $e) {
+        } catch (InvalidArgumentException) {
+            // ADR-005: do not leak raw exception messages.
             return new JSONResponse(
-                data: ['error' => $e->getMessage()],
+                data: ['error' => 'Invalid groups payload'],
                 statusCode: Http::STATUS_BAD_REQUEST
             );
         }
