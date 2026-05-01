@@ -92,9 +92,10 @@ class DashboardShareApiController extends Controller
                 data: ['error' => 'Dashboard not found'],
                 statusCode: Http::STATUS_NOT_FOUND
             );
-        } catch (Exception $e) {
+        } catch (Exception) {
+            // ADR-005: do not leak raw exception messages to clients.
             return new DataResponse(
-                data: ['error' => $e->getMessage()],
+                data: ['error' => 'Forbidden'],
                 statusCode: Http::STATUS_FORBIDDEN
             );
         }//end try
@@ -136,9 +137,10 @@ class DashboardShareApiController extends Controller
                 data: $share->jsonSerialize(),
                 statusCode: Http::STATUS_CREATED
             );
-        } catch (InvalidArgumentException $e) {
+        } catch (InvalidArgumentException) {
+            // ADR-005: do not leak raw exception messages to clients.
             return new DataResponse(
-                data: ['error' => $e->getMessage()],
+                data: ['error' => 'Invalid request'],
                 statusCode: Http::STATUS_BAD_REQUEST
             );
         } catch (DoesNotExistException) {
@@ -146,9 +148,10 @@ class DashboardShareApiController extends Controller
                 data: ['error' => 'Dashboard not found'],
                 statusCode: Http::STATUS_NOT_FOUND
             );
-        } catch (Exception $e) {
+        } catch (Exception) {
+            // ADR-005: do not leak raw exception messages to clients.
             return new DataResponse(
-                data: ['error' => $e->getMessage()],
+                data: ['error' => 'Forbidden'],
                 statusCode: Http::STATUS_FORBIDDEN
             );
         }//end try
@@ -182,9 +185,10 @@ class DashboardShareApiController extends Controller
                 data: ['error' => 'Share not found'],
                 statusCode: Http::STATUS_NOT_FOUND
             );
-        } catch (Exception $e) {
+        } catch (Exception) {
+            // ADR-005: do not leak raw exception messages to clients.
             return new DataResponse(
-                data: ['error' => $e->getMessage()],
+                data: ['error' => 'Forbidden'],
                 statusCode: Http::STATUS_FORBIDDEN
             );
         }//end try
@@ -223,9 +227,10 @@ class DashboardShareApiController extends Controller
                 array: $newShares
             );
             return new DataResponse(data: $serialized);
-        } catch (InvalidArgumentException $e) {
+        } catch (InvalidArgumentException) {
+            // ADR-005: do not leak raw exception messages to clients.
             return new DataResponse(
-                data: ['error' => $e->getMessage()],
+                data: ['error' => 'Invalid request'],
                 statusCode: Http::STATUS_BAD_REQUEST
             );
         } catch (DoesNotExistException) {
@@ -233,9 +238,10 @@ class DashboardShareApiController extends Controller
                 data: ['error' => 'Dashboard not found'],
                 statusCode: Http::STATUS_NOT_FOUND
             );
-        } catch (Exception $e) {
+        } catch (Exception) {
+            // ADR-005: do not leak raw exception messages to clients.
             return new DataResponse(
-                data: ['error' => $e->getMessage()],
+                data: ['error' => 'Forbidden'],
                 statusCode: Http::STATUS_FORBIDDEN
             );
         }//end try
@@ -269,9 +275,10 @@ class DashboardShareApiController extends Controller
                 callerId: $this->userId
             );
             return new DataResponse(data: ['deleted' => $count]);
-        } catch (InvalidArgumentException $e) {
+        } catch (InvalidArgumentException) {
+            // ADR-005: do not leak raw exception messages to clients.
             return new DataResponse(
-                data: ['error' => $e->getMessage()],
+                data: ['error' => 'Invalid request'],
                 statusCode: Http::STATUS_BAD_REQUEST
             );
         }

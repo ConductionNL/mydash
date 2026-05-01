@@ -25,7 +25,6 @@ use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCP\IGroupManager;
 use OCP\IUserManager;
-use Ramsey\Uuid\Uuid;
 
 /**
  * Service for admin template CRUD operations.
@@ -110,7 +109,7 @@ class AdminTemplateService
         }
 
         $template = new Dashboard();
-        $template->setUuid(Uuid::uuid4()->toString());
+        $template->setUuid($this->generateUuid());
         $template->setName($name);
         $template->setDescription($description);
         $template->setType(Dashboard::TYPE_ADMIN_TEMPLATE);
@@ -327,4 +326,22 @@ class AdminTemplateService
 
         return null;
     }//end pickFirstMatch()
+
+
+    /**
+     * Generate a UUID v4.
+     *
+     * @return string The generated UUID.
+     */
+    private function generateUuid(): string
+    {
+        $data    = random_bytes(length: 16);
+        $data[6] = chr(codepoint: ord(character: $data[6]) & 0x0f | 0x40);
+        $data[8] = chr(codepoint: ord(character: $data[8]) & 0x3f | 0x80);
+
+        return vsprintf(
+            format: '%s%s-%s-%s-%s-%s%s%s',
+            values: str_split(string: bin2hex(string: $data), length: 4)
+        );
+    }//end generateUuid()
 }//end class

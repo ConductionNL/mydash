@@ -432,9 +432,10 @@ class DashboardApiController extends Controller
                 groupId: $groupId,
                 uuid: $uuid
             );
-        } catch (DoesNotExistException $e) {
+        } catch (DoesNotExistException) {
+            // ADR-005: do not leak raw exception messages to clients.
             return new JSONResponse(
-                data: ['error' => $e->getMessage()],
+                data: ['error' => 'Dashboard not found'],
                 statusCode: Http::STATUS_NOT_FOUND
             );
         }
@@ -496,9 +497,10 @@ class DashboardApiController extends Controller
             return ResponseHelper::success(
                 data: ['dashboard' => $dashboard->jsonSerialize()]
             );
-        } catch (DoesNotExistException $e) {
+        } catch (DoesNotExistException) {
+            // ADR-005: do not leak raw exception messages to clients.
             return new JSONResponse(
-                data: ['error' => $e->getMessage()],
+                data: ['error' => 'Dashboard not found'],
                 statusCode: Http::STATUS_NOT_FOUND
             );
         } catch (\Exception $e) {
@@ -543,9 +545,10 @@ class DashboardApiController extends Controller
             );
 
             return ResponseHelper::success(data: ['status' => 'ok']);
-        } catch (DoesNotExistException $e) {
+        } catch (DoesNotExistException) {
+            // ADR-005: do not leak raw exception messages to clients.
             return new JSONResponse(
-                data: ['error' => $e->getMessage()],
+                data: ['error' => 'Dashboard not found'],
                 statusCode: Http::STATUS_NOT_FOUND
             );
         } catch (\Exception $e) {
@@ -608,9 +611,10 @@ class DashboardApiController extends Controller
                     'uuid'    => $uuid,
                 ]
             );
-        } catch (DoesNotExistException $e) {
+        } catch (DoesNotExistException) {
+            // ADR-005: do not leak raw exception messages to clients.
             return new JSONResponse(
-                data: ['error' => $e->getMessage()],
+                data: ['error' => 'Dashboard not found'],
                 statusCode: Http::STATUS_NOT_FOUND
             );
         } catch (\Exception $e) {

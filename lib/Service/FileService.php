@@ -28,6 +28,8 @@ use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Exception\ForbiddenExtensionException;
 use OCA\MyDash\Exception\InvalidDirectoryException;
 use OCA\MyDash\Exception\InvalidFilenameException;
+use OCP\Files\File;
+use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
 use OCP\IURLGenerator;
 
@@ -110,18 +112,31 @@ class FileService
                 $userFolder->newFolder(path: $normalizedDir);
             }
 
-            $targetFolder = $userFolder->get(path: $normalizedDir);
+            $resolved = $userFolder->get(path: $normalizedDir);
+            if (($resolved instanceof Folder) === false) {
+                throw new \RuntimeException(
+                    'Expected '.$normalizedDir.' to be a folder, got file'
+                );
+            }
+
+            $targetFolder = $resolved;
         }
 
         // Overwrite if the file already exists; create otherwise.
         if ($targetFolder->nodeExists(path: $filename) === true) {
-            // @phpstan-ignore-next-line
-            $file = $targetFolder->get(path: $filename);
-            $file->putContent(data: $content);
+            $existing = $targetFolder->get(path: $filename);
+            if (($existing instanceof File) === false) {
+                throw new \RuntimeException(
+                    'Expected '.$filename.' to be a file, got folder'
+                );
+            }
+
+            $file = $existing;
         } else {
             $file = $targetFolder->newFile(path: $filename);
-            $file->putContent(data: $content);
         }
+
+        $file->putContent(data: $content);
 
         $fileId = $file->getId();
 

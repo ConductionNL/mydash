@@ -68,7 +68,7 @@ When `url` is empty or null, the renderer MUST display a placeholder consisting 
 
 ### Requirement: REQ-IMG-003 Click-through link behaviour
 
-When the persisted `link` field is non-empty, a click on the cell MUST open `link` in a new tab via `window.open(link, '_blank', 'noopener,noreferrer')`. The cell wrapper MUST set `cursor: pointer` only when `link` is non-empty — when there is no link the cursor MUST remain default so users are not given a misleading clickable affordance (this is a deliberate fix of the Sendent UX bug where every image cell looked clickable even without a link).
+When the persisted `link` field is non-empty, a click on the cell MUST open `link` in a new tab via `window.open(link, '_blank', 'noopener,noreferrer')`. The cell wrapper MUST set `cursor: pointer` only when `link` is non-empty — when there is no link the cursor MUST remain default so users are not given a misleading clickable affordance.
 
 #### Scenario: Click opens link in new tab
 
