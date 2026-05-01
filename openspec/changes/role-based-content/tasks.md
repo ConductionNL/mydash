@@ -1,3 +1,8 @@
+> **Stage 1-3 complete on build/role-based-content (PR #95).** Native mydash
+> persistence used in place of OpenRegister-based design (see PR description).
+> Tasks 0.x, 4.2-4.3, 8.2, 9.3, 11.2-11.3, 12.x-14.x, 15.2, 16.x deferred to
+> Stage 4 / follow-up commits.
+
 # Tasks — role-based-content
 
 ## 0. Deduplication check
@@ -14,12 +19,12 @@
 
 ## 1. OpenRegister schemas and seed data
 
-- [ ] 1.1 Add `RoleFeaturePermission` schema definition to `lib/Settings/mydash_register.json`
+- [x] 1.1 Add `RoleFeaturePermission` schema definition to `lib/Settings/mydash_register.json`
       (schema key `role-feature-permission`, register key `mydash`) with all properties from
       design.md: `name`, `description`, `groupId`, `allowedWidgets`, `deniedWidgets`,
       `priorityWeights`. Mark `name`, `groupId`, `allowedWidgets` as required. Use schema.org
       vocabulary per ADR-011.
-- [ ] 1.2 Add `RoleLayoutDefault` schema definition to `lib/Settings/mydash_register.json`
+- [x] 1.2 Add `RoleLayoutDefault` schema definition to `lib/Settings/mydash_register.json`
       (schema key `role-layout-default`) with properties: `name`, `groupId`, `widgetId`,
       `gridX`, `gridY`, `gridWidth`, `gridHeight`, `sortOrder`, `isCompulsory`, `description`.
       Mark `name`, `groupId`, `widgetId`, `gridX`, `gridY`, `gridWidth`, `gridHeight`,
@@ -34,7 +39,7 @@
 
 ## 2. Backend service
 
-- [ ] 2.1 Create `lib/Service/RoleFeaturePermissionService.php` with:
+- [x] 2.1 Create `lib/Service/RoleFeaturePermissionService.php` with:
       - `@spec openspec/changes/role-based-content/tasks.md#task-2`
       - Constructor injection: `ObjectService $objectService`,
         `AdminSettingsService $adminSettingsService`, `IGroupManager $groupManager`,
@@ -49,18 +54,18 @@
       - `authorizeAdminObject(IUser $user): void` — throws `OCSForbiddenException` if not
         admin (ADR-005 pattern)
       - All methods MUST be stateless (no instance state between requests, ADR-003)
-- [ ] 2.2 Implement multi-group resolution algorithm per design.md §"Multi-group Resolution
+- [x] 2.2 Implement multi-group resolution algorithm per design.md §"Multi-group Resolution
       Algorithm": walk `group_order`, base set from first matching group, union additional
       matches, deny-wins rule (REQ-RFP-005, REQ-RFP-006).
-- [ ] 2.3 Implement fallback to `'default'` RoleFeaturePermission when no `group_order` match
+- [x] 2.3 Implement fallback to `'default'` RoleFeaturePermission when no `group_order` match
       found, and null fallback (return all widgets) when no `'default'` object exists
       (REQ-RFP-009).
-- [ ] 2.4 In `seedLayoutFromRoleDefaults()`: only call when the dashboard has zero existing
+- [x] 2.4 In `seedLayoutFromRoleDefaults()`: only call when the dashboard has zero existing
       placements (guard against overwriting personal customisations, REQ-RFP-002 scenario 3).
 
 ## 3. Backend controller
 
-- [ ] 3.1 Create `lib/Controller/RoleFeaturePermissionController.php` with:
+- [x] 3.1 Create `lib/Controller/RoleFeaturePermissionController.php` with:
       - `@spec openspec/changes/role-based-content/tasks.md#task-3`
       - All methods annotated `#[AuthorizedAdminSetting(Application::APP_ID)]`
       - `listPermissions(): JSONResponse` — `GET /api/role-feature-permissions`
@@ -69,7 +74,7 @@
       - `saveLayoutDefault(Request $request): JSONResponse` — `POST /api/role-layout-defaults`
       - Each method: thin (<10 lines), calls service, returns JSONResponse (ADR-003)
       - Error responses: static generic messages only — NEVER `$e->getMessage()` (ADR-015)
-- [ ] 3.2 Register all four routes in `appinfo/routes.php` before any wildcard `{slug}` route:
+- [x] 3.2 Register all four routes in `appinfo/routes.php` before any wildcard `{slug}` route:
       - `GET  /api/role-feature-permissions`
       - `POST /api/role-feature-permissions`
       - `GET  /api/role-layout-defaults`
@@ -77,7 +82,7 @@
 
 ## 4. Extend existing widget controller
 
-- [ ] 4.1 In `lib/Controller/WidgetController.php` `list()` method: inject
+- [x] 4.1 In `lib/Controller/WidgetController.php` `list()` method: inject
       `RoleFeaturePermissionService` and call `getAllowedWidgetIds($userId)`; if the result is
       not null, filter the widget array to only those with IDs in the allowed set (REQ-RFP-001,
       REQ-RFP-003).
@@ -91,34 +96,34 @@
 
 ## 5. Extend dashboard resolver
 
-- [ ] 5.1 In `lib/Service/DashboardResolver.php` (or equivalent) `tryCreateFromTemplate()`:
+- [x] 5.1 In `lib/Service/DashboardResolver.php` (or equivalent) `tryCreateFromTemplate()`:
       after all admin-template matching fails, call
       `RoleFeaturePermissionService::seedLayoutFromRoleDefaults()` if RoleLayoutDefault
       objects exist for the user's primary group (REQ-RFP-002).
-- [ ] 5.2 Verify the guard: `seedLayoutFromRoleDefaults()` MUST only run when the new
+- [x] 5.2 Verify the guard: `seedLayoutFromRoleDefaults()` MUST only run when the new
       dashboard has zero placements — assert this in the unit test (REQ-RFP-002 scenario 3).
 
 ## 6. Initial-state payload
 
-- [ ] 6.1 In the settings/initial-state controller (e.g. `SettingsController`): call
+- [x] 6.1 In the settings/initial-state controller (e.g. `SettingsController`): call
       `RoleFeaturePermissionService::getAllowedWidgetIds()` and include the result as
       `allowedWidgets` in the JSON response (REQ-RFP-010). Return `null` when unconfigured.
-- [ ] 6.2 Ensure the initial-state type definition / PHP doc reflects the new field so Psalm
+- [x] 6.2 Ensure the initial-state type definition / PHP doc reflects the new field so Psalm
       does not flag it as undeclared.
 
 ## 7. Frontend — store
 
-- [ ] 7.1 Create `src/store/modules/roleFeaturePermission.js`:
+- [x] 7.1 Create `src/store/modules/roleFeaturePermission.js`:
       `createObjectStore('role-feature-permission')` with `auditTrailsPlugin` (Pinia pattern,
       ADR-004). Register in `src/store/store.js` via `registerObjectType`.
-- [ ] 7.2 Create `src/store/modules/roleLayoutDefault.js`:
+- [x] 7.2 Create `src/store/modules/roleLayoutDefault.js`:
       `createObjectStore('role-layout-default')`. Register in `src/store/store.js`.
-- [ ] 7.3 Extend settings store: add `allowedWidgets: null` field, populated from the
+- [x] 7.3 Extend settings store: add `allowedWidgets: null` field, populated from the
       initial-state payload (REQ-RFP-010).
 
 ## 8. Frontend — card library filtering
 
-- [ ] 8.1 In the widget card library / picker component: read `allowedWidgets` from the
+- [x] 8.1 In the widget card library / picker component: read `allowedWidgets` from the
       settings store; if non-null, filter the widget list before rendering so that
       disallowed widgets are absent from the DOM entirely (not hidden via CSS) (REQ-RFP-003,
       non-functional accessibility requirement).
@@ -127,13 +132,13 @@
 
 ## 9. Frontend — admin UI
 
-- [ ] 9.1 Create `src/components/RolePermissionsSection.vue` (scoped style, EUPL header):
+- [x] 9.1 Create `src/components/RolePermissionsSection.vue` (scoped style, EUPL header):
       - Lists existing RoleFeaturePermission objects in a `CnDataTable`
       - Add button opens `CnFormDialog` (schema-driven form for RoleFeaturePermission)
       - Edit opens `CnFormDialog` pre-populated
       - Delete opens `CnDeleteDialog`
       - All user-visible strings via `t(appName, 'key')` — no hardcoded strings (ADR-007)
-- [ ] 9.2 Add `RolePermissionsSection` to `src/views/AdminApp.vue` beneath existing admin
+- [x] 9.2 Add `RolePermissionsSection` to `src/views/AdminApp.vue` beneath existing admin
       sections. Register the component in `components: {}` (ADR-004: every component used
       in template MUST be imported AND registered).
 - [ ] 9.3 Add a RoleLayoutDefault section (`CnDataTable` + `CnFormDialog` + `CnDeleteDialog`)
@@ -142,14 +147,14 @@
 
 ## 10. i18n
 
-- [ ] 10.1 Add English translation keys to `l10n/en.json` for all new user-facing strings:
+- [x] 10.1 Add English translation keys to `l10n/en.json` for all new user-facing strings:
       admin section titles, column headers, form labels, error messages (ADR-007 sentence case).
-- [ ] 10.2 Add Dutch (`nl`) translations to `l10n/nl.json` for every key added in 10.1.
+- [x] 10.2 Add Dutch (`nl`) translations to `l10n/nl.json` for every key added in 10.1.
       Both files MUST contain exactly the same keys with zero gaps.
 
 ## 11. Unit tests (PHPUnit)
 
-- [ ] 11.1 `tests/Unit/Service/RoleFeaturePermissionServiceTest.php` — table-driven tests
+- [x] 11.1 `tests/Unit/Service/RoleFeaturePermissionServiceTest.php` — table-driven tests
       covering every REQ-RFP scenario:
       - single group, allowed widget in list → allowed
       - single group, widget not in allowed list → denied
@@ -196,7 +201,7 @@
 
 ## 15. Documentation
 
-- [ ] 15.1 Add `docs/role-based-content.md` describing the feature for IT admins: how to
+- [x] 15.1 Add `docs/role-based-content.md` describing the feature for IT admins: how to
       create RoleFeaturePermission objects, how group priority interacts with widget filtering,
       how RoleLayoutDefault seeds new users (ADR-009).
 - [ ] 15.2 Include at least one screenshot of the admin UI role-permissions section.
