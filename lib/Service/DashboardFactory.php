@@ -3,7 +3,8 @@
 /**
  * DashboardFactory
  *
- * Factory service for creating dashboard entities.
+ * Factory service for creating dashboard entities. Enforces the
+ * `(type, groupId)` invariant required by REQ-DASH-011.
  *
  * @category  Service
  * @package   OCA\MyDash\Service
@@ -22,6 +23,7 @@ declare(strict_types=1);
 namespace OCA\MyDash\Service;
 
 use DateTime;
+use InvalidArgumentException;
 use OCA\MyDash\Db\Dashboard;
 
 /**
@@ -32,36 +34,93 @@ class DashboardFactory
     /**
      * Create a new dashboard entity.
      *
-     * @param string      $userId          The user ID.
-     * @param string      $name            The dashboard name.
-     * @param string|null $description     The dashboard description.
-     * @param string      $permissionLevel Permission level (defaults to full).
-     * @param int         $gridColumns     Grid columns (defaults to 12).
+     * Enforces the REQ-DASH-011 invariant: `type === TYPE_GROUP_SHARED`
+     * iff `groupId !== null`. Throws `InvalidArgumentException` on
+     * mismatch — no row is persisted in that case (the caller never
+     * receives an entity to insert).
+     *
+     * @param string|null $userId      The user ID — must be non-null for
+     *                                 `TYPE_USER`, must be null for
+     *                                 `TYPE_GROUP_SHARED` /
+     *                                 `TYPE_ADMIN_TEMPLATE`.
+     * @param string      $name        The dashboard name.
+     * @param string|null $description The dashboard description.
+     * @param string      $type        The dashboard type
+     *                                 (default {@see Dashboard::TYPE_USER}).
+     * @param string|null $groupId     The group ID — required when
+     *                                 `type === TYPE_GROUP_SHARED`,
+     *                                 forbidden otherwise.
+     * @param int         $gridColumns The grid column count.
      *
      * @return Dashboard The created dashboard entity (not yet persisted).
+     *
+     * @throws InvalidArgumentException When the (type, groupId) invariant
+     *                                  is violated.
      */
     public function create(
-        string $userId,
+        ?string $userId,
         string $name,
         ?string $description=null,
-        string $permissionLevel=Dashboard::PERMISSION_FULL,
+        string $type=Dashboard::TYPE_USER,
+        ?string $groupId=null,
         int $gridColumns=12
     ): Dashboard {
+        $this->assertTypeGroupInvariant(type: $type, groupId: $groupId);
+
         $now       = (new DateTime())->format(format: 'Y-m-d H:i:s');
         $dashboard = new Dashboard();
         $dashboard->setUuid($this->generateUuid());
         $dashboard->setName($name);
         $dashboard->setDescription($description);
-        $dashboard->setType(Dashboard::TYPE_USER);
+        $dashboard->setType($type);
         $dashboard->setUserId($userId);
+        $dashboard->setGroupId($groupId);
         $dashboard->setGridColumns($gridColumns);
-        $dashboard->setPermissionLevel($permissionLevel);
-        $dashboard->setIsActive(1);
+        $dashboard->setPermissionLevel(Dashboard::PERMISSION_FULL);
+        // Group-shared dashboards are not "active" per-user — activation
+        // is a personal-scope concept tied to the active-dashboard cookie.
+        $isActive = 0;
+        if ($type === Dashboard::TYPE_USER) {
+            $isActive = 1;
+        }
+
+        $dashboard->setIsActive($isActive);
         $dashboard->setCreatedAt($now);
         $dashboard->setUpdatedAt($now);
 
         return $dashboard;
     }//end create()
+
+    /**
+     * Assert the (type, groupId) invariant of REQ-DASH-011.
+     *
+     * @param string      $type    The dashboard type.
+     * @param string|null $groupId The group ID.
+     *
+     * @return void
+     *
+     * @throws InvalidArgumentException When the invariant is violated.
+     */
+    private function assertTypeGroupInvariant(
+        string $type,
+        ?string $groupId
+    ): void {
+        if ($type === Dashboard::TYPE_GROUP_SHARED) {
+            if ($groupId === null || $groupId === '') {
+                throw new InvalidArgumentException(
+                    message: 'Dashboard type group_shared requires a non-empty groupId'
+                );
+            }
+
+            return;
+        }
+
+        if ($groupId !== null) {
+            throw new InvalidArgumentException(
+                message: 'Dashboard type '.$type.' must not have a groupId'
+            );
+        }
+    }//end assertTypeGroupInvariant()
 
     /**
      * Generate a UUID v4.

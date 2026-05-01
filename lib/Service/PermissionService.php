@@ -29,22 +29,37 @@ use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Db\AdminSetting;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IGroupManager;
+use OCP\IUserManager;
 
 class PermissionService
 {
     /**
      * Constructor
      *
-     * @param DashboardMapper       $dashboardMapper Dashboard mapper.
-     * @param WidgetPlacementMapper $placementMapper Widget placement mapper.
-     * @param AdminSettingMapper    $settingMapper   Admin setting mapper.
+     * @param DashboardMapper        $dashboardMapper Dashboard mapper.
+     * @param WidgetPlacementMapper  $placementMapper Widget placement mapper.
+     * @param AdminSettingMapper     $settingMapper   Admin setting mapper.
+     * @param DashboardShareService  $shareService    Share resolution service.
+     * @param IGroupManager          $groupManager    Group manager for resolving recipient groups.
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
         private readonly WidgetPlacementMapper $placementMapper,
         private readonly AdminSettingMapper $settingMapper,
+        private readonly DashboardShareService $shareService,
+        private readonly IGroupManager $groupManager,
+        private readonly IUserManager $userManager,
     ) {
     }//end __construct()
+
+    /**
+     * Whether the user can see a dashboard at all (owner OR has any share).
+     */
+    public function canViewDashboard(string $userId, int $dashboardId): bool
+    {
+        return $this->resolveAccessLevel(userId: $userId, dashboardId: $dashboardId) !== null;
+    }//end canViewDashboard()
 
     /**
      * Check if user can edit a dashboard (widgets, tiles, layout).
@@ -67,18 +82,13 @@ class PermissionService
             return false;
         }
 
-        // User must own the dashboard.
-        if ($dashboard->getUserId() !== $userId) {
+        $level = $this->resolveAccessLevel(userId: $userId, dashboard: $dashboard);
+        if ($level === null) {
             return false;
         }
 
-        // Check permission level.
-        $permissionLevel = $this->getEffectivePermissionLevel(
-            dashboard: $dashboard
-        );
-
         return in_array(
-            needle: $permissionLevel,
+            needle: $level,
             haystack: [
                 Dashboard::PERMISSION_ADD_ONLY,
                 Dashboard::PERMISSION_FULL,
@@ -87,11 +97,7 @@ class PermissionService
     }//end canEditDashboard()
 
     /**
-     * Check if user can edit dashboard metadata (name, description).
-     *
-     * Per REQ-PERM-007, permission levels do NOT restrict editing of
-     * dashboard metadata. All users who own a dashboard can edit its
-     * name and description, regardless of permission level.
+     * Check if user can edit dashboard metadata (name, description). Owner only.
      *
      * @param string $userId      The user ID.
      * @param int    $dashboardId The dashboard ID.
@@ -113,7 +119,7 @@ class PermissionService
             return false;
         }
 
-        // User must own the dashboard.
+        // Only owner can rename / change description.
         return $dashboard->getUserId() === $userId;
     }//end canEditDashboardMetadata()
 
@@ -127,24 +133,13 @@ class PermissionService
      */
     public function canAddWidget(string $userId, int $dashboardId): bool
     {
-        try {
-            $dashboard = $this->dashboardMapper->find(id: $dashboardId);
-        } catch (DoesNotExistException) {
+        $level = $this->resolveAccessLevel(userId: $userId, dashboardId: $dashboardId);
+        if ($level === null) {
             return false;
         }
-
-        // User must own the dashboard.
-        if ($dashboard->getUserId() !== $userId) {
-            return false;
-        }
-
-        // Check permission level.
-        $permissionLevel = $this->getEffectivePermissionLevel(
-            dashboard: $dashboard
-        );
 
         return in_array(
-            needle: $permissionLevel,
+            needle: $level,
             haystack: [
                 Dashboard::PERMISSION_ADD_ONLY,
                 Dashboard::PERMISSION_FULL,
@@ -171,28 +166,18 @@ class PermissionService
             return false;
         }
 
-        // User must own the dashboard.
-        if ($dashboard->getUserId() !== $userId) {
+        $level = $this->resolveAccessLevel(userId: $userId, dashboard: $dashboard);
+        if ($level === null) {
             return false;
         }
 
-        // Check permission level.
-        $permissionLevel = $this->getEffectivePermissionLevel(
-            dashboard: $dashboard
-        );
-
-        // View only users can't remove anything.
-        if ($permissionLevel === Dashboard::PERMISSION_VIEW_ONLY) {
+        if ($level === Dashboard::PERMISSION_VIEW_ONLY) {
             return false;
         }
-
-        // Full permission can remove anything.
-        if ($permissionLevel === Dashboard::PERMISSION_FULL) {
+        if ($level === Dashboard::PERMISSION_FULL) {
             return true;
         }
-
-        // Add only users can't remove compulsory widgets.
-        if ($permissionLevel === Dashboard::PERMISSION_ADD_ONLY) {
+        if ($level === Dashboard::PERMISSION_ADD_ONLY) {
             return $placement->getIsCompulsory() === 0;
         }
 
@@ -218,18 +203,13 @@ class PermissionService
             return false;
         }
 
-        // User must own the dashboard.
-        if ($dashboard->getUserId() !== $userId) {
+        $level = $this->resolveAccessLevel(userId: $userId, dashboard: $dashboard);
+        if ($level === null) {
             return false;
         }
 
-        // Check permission level.
-        $permissionLevel = $this->getEffectivePermissionLevel(
-            dashboard: $dashboard
-        );
-
         return in_array(
-            needle: $permissionLevel,
+            needle: $level,
             haystack: [
                 Dashboard::PERMISSION_ADD_ONLY,
                 Dashboard::PERMISSION_FULL,
@@ -268,7 +248,7 @@ class PermissionService
     }//end canHaveMultipleDashboards()
 
     /**
-     * Get the effective permission level for a dashboard.
+     * Get the effective permission level for a dashboard, ignoring sharing.
      *
      * @param Dashboard $dashboard The dashboard.
      *
@@ -299,6 +279,45 @@ class PermissionService
             default: Dashboard::PERMISSION_FULL
         );
     }//end getEffectivePermissionLevel()
+
+    /**
+     * Resolve the effective permission level a user has on a dashboard:
+     *  - If the user is the owner, returns the dashboard's effective level.
+     *  - If a share applies (direct or via group), returns that share's level.
+     *  - Otherwise returns null (no access).
+     *
+     * Pass either a dashboard id or an already-loaded dashboard entity.
+     *
+     * @param string         $userId      The user id.
+     * @param int|null       $dashboardId The dashboard id (optional if $dashboard given).
+     * @param Dashboard|null $dashboard   The dashboard entity (optional if $dashboardId given).
+     *
+     * @return string|null The permission level or null when no access.
+     */
+    public function resolveAccessLevel(
+        string $userId,
+        ?int $dashboardId = null,
+        ?Dashboard $dashboard = null
+    ): ?string {
+        if ($dashboard === null) {
+            try {
+                $dashboard = $this->dashboardMapper->find(id: $dashboardId);
+            } catch (DoesNotExistException) {
+                return null;
+            }
+        }
+
+        if ($dashboard->getUserId() === $userId) {
+            return $this->getEffectivePermissionLevel(dashboard: $dashboard);
+        }
+
+        $shares = $this->shareService->resolveSharedDashboards(
+            userId: $userId,
+            groupIds: $this->getUserGroupIds(userId: $userId)
+        );
+
+        return $shares[$dashboard->getId()] ?? null;
+    }//end resolveAccessLevel()
 
     /**
      * Verify user owns a dashboard.
@@ -345,4 +364,20 @@ class PermissionService
 
         return $placement;
     }//end verifyPlacementOwnership()
+
+    /**
+     * Resolve the group ids a user belongs to.
+     *
+     * @param string $userId The user id.
+     *
+     * @return string[] Group ids.
+     */
+    public function getUserGroupIds(string $userId): array
+    {
+        $user = $this->userManager->get(uid: $userId);
+        if ($user === null) {
+            return [];
+        }
+        return $this->groupManager->getUserGroupIds(user: $user);
+    }//end getUserGroupIds()
 }//end class

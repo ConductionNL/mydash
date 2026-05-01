@@ -34,6 +34,35 @@ export const api = {
 		return axios.post(`${baseUrl}/api/dashboard/${id}/activate`)
 	},
 
+	getDashboardById(id) {
+		return axios.get(`${baseUrl}/api/dashboard/${id}`)
+	},
+
+	// Sharing endpoints
+	listShares(dashboardId) {
+		return axios.get(`${baseUrl}/api/dashboard/${dashboardId}/shares`)
+	},
+
+	addShare(dashboardId, data) {
+		return axios.post(`${baseUrl}/api/dashboard/${dashboardId}/shares`, data)
+	},
+
+	replaceShares(dashboardId, shares) {
+		return axios.put(`${baseUrl}/api/dashboard/${dashboardId}/shares`, { shares })
+	},
+
+	removeShare(shareId) {
+		return axios.delete(`${baseUrl}/api/dashboard/share/${shareId}`)
+	},
+
+	revokeAllForRecipient(shareType, shareWith) {
+		return axios.delete(`${baseUrl}/api/sharees/${shareType}/${encodeURIComponent(shareWith)}`)
+	},
+
+	searchSharees(query) {
+		return axios.get(`${baseUrl}/api/sharees`, { params: { query } })
+	},
+
 	// Widget endpoints
 	getAvailableWidgets() {
 		return axios.get(`${baseUrl}/api/widgets`)

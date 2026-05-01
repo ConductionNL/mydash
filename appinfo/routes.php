@@ -19,10 +19,19 @@ return [
 		// User dashboard endpoints
 		['name' => 'dashboard_api#list', 'url' => '/api/dashboards', 'verb' => 'GET'],
 		['name' => 'dashboard_api#getActive', 'url' => '/api/dashboard', 'verb' => 'GET'],
+		['name' => 'dashboard_api#getById', 'url' => '/api/dashboard/{id}', 'verb' => 'GET'],
 		['name' => 'dashboard_api#create', 'url' => '/api/dashboard', 'verb' => 'POST'],
 		['name' => 'dashboard_api#update', 'url' => '/api/dashboard/{id}', 'verb' => 'PUT'],
 		['name' => 'dashboard_api#delete', 'url' => '/api/dashboard/{id}', 'verb' => 'DELETE'],
 		['name' => 'dashboard_api#activate', 'url' => '/api/dashboard/{id}/activate', 'verb' => 'POST'],
+
+		// Dashboard sharing endpoints
+		['name' => 'dashboard_share_api#index', 'url' => '/api/dashboard/{id}/shares', 'verb' => 'GET'],
+		['name' => 'dashboard_share_api#create', 'url' => '/api/dashboard/{id}/shares', 'verb' => 'POST'],
+		['name' => 'dashboard_share_api#replace', 'url' => '/api/dashboard/{id}/shares', 'verb' => 'PUT'],
+		['name' => 'dashboard_share_api#destroy', 'url' => '/api/dashboard/share/{shareId}', 'verb' => 'DELETE'],
+		['name' => 'dashboard_share_api#searchSharees', 'url' => '/api/sharees', 'verb' => 'GET'],
+		['name' => 'dashboard_share_api#revokeForRecipient', 'url' => '/api/sharees/{shareType}/{shareWith}', 'verb' => 'DELETE'],
 
 		// Widget endpoints
 		['name' => 'widget_api#listAvailable', 'url' => '/api/widgets', 'verb' => 'GET'],

@@ -7,34 +7,18 @@
 				:dashboards="dashboards"
 				:active-id="activeDashboard?.id"
 				@switch="switchDashboard" />
-			<NcButton
-				v-if="canEdit"
-				:type="isEditMode ? 'primary' : 'secondary'"
-				:aria-label="isEditMode ? t('mydash', 'Close') : t('mydash', 'Customize')"
-				@click="toggleEditMode">
-				<template #icon>
-					<Close v-if="isEditMode" :size="20" />
-					<Cog v-else :size="20" />
-				</template>
-				{{ isEditMode ? t('mydash', 'Close') : '' }}
-			</NcButton>
-			<NcButton
-				v-if="isEditMode"
-				type="secondary"
-				@click="openWidgetPicker">
-				<template #icon>
-					<Plus :size="20" />
-				</template>
-				{{ t('mydash', 'Add') }}
-			</NcButton>
-			<NcButton
-				type="tertiary"
-				:aria-label="t('mydash', 'Documentation')"
-				@click="openLink('https://mydash.app', '_blank')">
-				<template #icon>
-					<BookOpenVariantOutline :size="20" />
-				</template>
-			</NcButton>
+			<DashboardConfigMenu
+				:dashboards="dashboards"
+				:active-dashboard-id="activeDashboard?.id"
+				:is-edit-mode="isEditMode"
+				:can-edit="canEdit"
+				:is-active-owner="activeDashboard?.isOwner !== false"
+				@switch-dashboard="switchDashboard"
+				@create-dashboard="handleCreateDashboard"
+				@toggle-edit="toggleEditMode"
+				@open-config="openConfigModal"
+				@add-tile="openTileEditor()"
+				@add-widget="openWidgetModal" />
 		</div>
 
 		<!-- Main dashboard grid -->
@@ -66,20 +50,23 @@
 			</div>
 		</div>
 
-		<!-- Widget picker sidebar -->
-		<WidgetPicker
-			:open="isPickerOpen"
+		<!-- Widget picker modal -->
+		<WidgetPickerModal
+			:open="isWidgetModalOpen"
 			:widgets="availableWidgets"
 			:placed-widget-ids="placedWidgetIds"
-			:dashboards="dashboards"
-			:active-dashboard-id="activeDashboard?.id"
-			@close="closeWidgetPicker"
-			@add="addWidget"
-			@add-tile="openTileEditor()"
-			@switch-dashboard="switchDashboard"
-			@create-dashboard="handleCreateDashboard"
-			@edit-dashboard="handleEditDashboard"
-			@delete-dashboard="handleDeleteDashboard" />
+			@close="closeWidgetModal"
+			@add="addWidget" />
+
+		<!-- Dashboard configuration modal (also used for creating a new dashboard) -->
+		<DashboardConfigModal
+			:open="isConfigModalOpen"
+			:dashboard="configModalMode === 'create' ? null : activeDashboard"
+			:mode="configModalMode"
+			:can-delete="dashboards.length > 1"
+			@close="closeConfigModal"
+			@save="saveDashboardConfig"
+			@delete="deleteCurrentDashboard" />
 
 		<!-- Style editor modal -->
 		<WidgetStyleEditor
@@ -106,18 +93,16 @@ import { NcButton, NcEmptyContent } from '@nextcloud/vue'
 import { t } from '@nextcloud/l10n'
 
 // Icons
-import Close from 'vue-material-design-icons/Close.vue'
-import Cog from 'vue-material-design-icons/Cog.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
-import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
 
 // Components
 import DashboardGrid from '../components/DashboardGrid.vue'
-import WidgetPicker from '../components/WidgetPicker.vue'
+import WidgetPickerModal from '../components/WidgetPickerModal.vue'
 import WidgetStyleEditor from '../components/WidgetStyleEditor.vue'
 import TileEditor from '../components/TileEditor.vue'
 import DashboardSwitcher from '../components/DashboardSwitcher.vue'
+import DashboardConfigMenu from '../components/DashboardConfigMenu.vue'
+import DashboardConfigModal from '../components/DashboardConfigModal.vue'
 
 // Stores
 import { useDashboardStore } from '../stores/dashboard.js'
@@ -130,21 +115,21 @@ export default {
 	components: {
 		NcButton,
 		NcEmptyContent,
-		Close,
-		Cog,
-		Plus,
 		ViewDashboard,
-		BookOpenVariantOutline,
 		DashboardGrid,
-		WidgetPicker,
+		WidgetPickerModal,
 		WidgetStyleEditor,
 		TileEditor,
 		DashboardSwitcher,
+		DashboardConfigMenu,
+		DashboardConfigModal,
 	},
 	data() {
 		return {
 			isEditMode: false,
-			isPickerOpen: false,
+			isWidgetModalOpen: false,
+			isConfigModalOpen: false,
+			configModalMode: 'edit',
 			isStyleEditorOpen: false,
 			editingPlacement: null,
 			isTileEditorOpen: false,
@@ -194,21 +179,32 @@ export default {
 		]),
 		...mapActions(useTileStore, ['createTile', 'updateTile', 'deleteTile']),
 
-		openLink(url, target) {
-			window.open(url, target)
-		},
 		toggleEditMode() {
 			this.isEditMode = !this.isEditMode
 			if (!this.isEditMode) {
-				this.closeWidgetPicker()
+				this.closeWidgetModal()
 				this.closeStyleEditor()
 			}
 		},
-		openWidgetPicker() {
-			this.isPickerOpen = true
+		openWidgetModal() {
+			if (!this.isEditMode) {
+				this.isEditMode = true
+			}
+			this.isWidgetModalOpen = true
 		},
-		closeWidgetPicker() {
-			this.isPickerOpen = false
+		closeWidgetModal() {
+			this.isWidgetModalOpen = false
+		},
+		openConfigModal() {
+			this.configModalMode = 'edit'
+			this.isConfigModalOpen = true
+		},
+		openCreateDashboardModal() {
+			this.configModalMode = 'create'
+			this.isConfigModalOpen = true
+		},
+		closeConfigModal() {
+			this.isConfigModalOpen = false
 		},
 		async addWidget(widgetId) {
 			await this.addWidgetToDashboard(widgetId)
@@ -225,23 +221,23 @@ export default {
 			this.editingPlacement = null
 		},
 		async updateWidgetStyle(placementId, updates) {
-			console.log('[Views] updateWidgetStyle called with:', placementId, updates)
 			await this.updateWidgetPlacement(placementId, updates)
 			this.closeStyleEditor()
 		},
 		async deleteWidget() {
 			if (this.editingPlacement?.id) {
-				console.log('[Views] Deleting widget:', this.editingPlacement.id)
 				await this.removeWidget(this.editingPlacement.id)
 				this.closeStyleEditor()
 			}
 		},
 		openTileEditor(tile = null) {
+			if (!this.isEditMode) {
+				this.isEditMode = true
+			}
 			this.editingTile = tile
 			this.isTileEditorOpen = true
 		},
 		openTileEditorForEdit(placement) {
-			// Convert placement data to tile format for editing.
 			const tileData = {
 				id: placement.id,
 				title: placement.tileTitle,
@@ -259,11 +255,8 @@ export default {
 			this.editingTile = null
 		},
 		async saveTile(tileData) {
-			console.log('[Views] saveTile called with data:', tileData)
 			try {
 				if (this.editingTile) {
-					console.log('[Views] Updating existing tile:', this.editingTile.id)
-					// Update existing tile (which is stored as a placement).
 					await this.updateWidgetPlacement(this.editingTile.id, {
 						tileTitle: tileData.title,
 						tileIcon: tileData.icon,
@@ -273,57 +266,45 @@ export default {
 						tileLinkType: tileData.linkType,
 						tileLinkValue: tileData.linkValue,
 					})
-					console.log('[Views] Tile updated successfully')
 				} else {
-					console.log('[Views] Creating new tile for dashboard')
-					// Create new tile using the store action (like widgets).
 					await this.addTileToDashboard(tileData)
-					console.log('[Views] Tile added successfully')
 				}
 				this.closeTileEditor()
 			} catch (error) {
 				console.error('[Views] Failed to save tile:', error)
-				console.error('[Views] Error details:', error.response?.data)
 			}
 		},
 		async deleteTile() {
 			if (this.editingTile?.id) {
-				console.log('[Views] Deleting tile:', this.editingTile.id)
 				await this.removeWidget(this.editingTile.id)
 				this.closeTileEditor()
 			}
 		},
-		async handleCreateDashboard() {
-			const name = prompt(this.t('mydash', 'Dashboard name'))
-			if (!name) return
-
+		handleCreateDashboard() {
+			this.openCreateDashboardModal()
+		},
+		async saveDashboardConfig({ id, name, description }) {
 			try {
-				await this.createDashboard({ name })
+				if (id == null) {
+					await this.createDashboard({ name, description })
+				} else {
+					await api.updateDashboard(id, { name, description })
+					await this.loadDashboards()
+				}
+				this.closeConfigModal()
 			} catch (error) {
-				console.error('Failed to create dashboard:', error)
+				console.error('Failed to save dashboard:', error)
 			}
 		},
-		async handleEditDashboard(dashboard) {
-			const name = prompt(this.t('mydash', 'Dashboard name'), dashboard.name)
-			if (!name || name === dashboard.name) return
-
-			try {
-				await api.updateDashboard(dashboard.id, { name })
-				// Refresh dashboards.
-				await this.loadDashboards()
-			} catch (error) {
-				console.error('Failed to update dashboard:', error)
-			}
-		},
-		async handleDeleteDashboard(dashboard) {
+		async deleteCurrentDashboard(dashboard) {
 			if (!confirm(this.t('mydash', 'Are you sure you want to delete this dashboard?'))) {
 				return
 			}
 
 			try {
 				await api.deleteDashboard(dashboard.id)
-				// Refresh dashboards.
 				await this.loadDashboards()
+				this.closeConfigModal()
 			} catch (error) {
 				console.error('Failed to delete dashboard:', error)
 			}
@@ -342,11 +323,22 @@ export default {
 .mydash-floating-controls {
 	position: fixed;
 	top: 80px;
-	right: 16px;
+	right: 44px;
 	display: flex;
 	gap: 8px;
 	align-items: center;
 	z-index: 1000;
+}
+
+/* Strip the visible text on the menu trigger button — we want icon-only.
+   NcActions renders its aria-label as button text in this version. */
+.mydash-floating-controls :deep(.action-item__menutoggle .button-vue__text) {
+	display: none;
+}
+.mydash-floating-controls :deep(.action-item__menutoggle) {
+	width: var(--default-clickable-area, 44px);
+	min-width: var(--default-clickable-area, 44px);
+	padding: 0;
 }
 
 .mydash-container {

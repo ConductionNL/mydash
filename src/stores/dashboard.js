@@ -38,7 +38,12 @@ export const useDashboardStore = defineStore('dashboard', {
 				// Load the active dashboard
 				const activeResponse = await api.getActiveDashboard()
 				if (activeResponse.data) {
-					this.activeDashboard = activeResponse.data.dashboard
+					this.activeDashboard = {
+						...activeResponse.data.dashboard,
+						// getActive only returns the user's own dashboards.
+						isOwner: true,
+						sharedBy: null,
+					}
 					this.widgetPlacements = activeResponse.data.placements || []
 					this.permissionLevel = activeResponse.data.permissionLevel || 'full'
 				}
@@ -52,9 +57,23 @@ export const useDashboardStore = defineStore('dashboard', {
 		async switchDashboard(dashboardId) {
 			this.loading = true
 			try {
-				await api.activateDashboard(dashboardId)
-				const response = await api.getActiveDashboard()
-				this.activeDashboard = response.data.dashboard
+				const target = this.dashboards.find(d => d.id === dashboardId)
+				const isOwned = target?.isOwner !== false
+
+				if (isOwned) {
+					// Persist the active flag for owned dashboards.
+					await api.activateDashboard(dashboardId)
+				}
+
+				// Always load full dashboard data via the by-id endpoint;
+				// it returns placements + the user's effective permission
+				// level for both owned and shared dashboards.
+				const response = await api.getDashboardById(dashboardId)
+				this.activeDashboard = {
+					...response.data.dashboard,
+					isOwner: response.data.isOwner,
+					sharedBy: response.data.sharedBy,
+				}
 				this.widgetPlacements = response.data.placements || []
 				this.permissionLevel = response.data.permissionLevel || 'full'
 			} catch (error) {
@@ -64,10 +83,15 @@ export const useDashboardStore = defineStore('dashboard', {
 			}
 		},
 
-		async createDashboard(name = 'My Dashboard') {
+		async createDashboard(payload = 'My Dashboard') {
+			// Accept either a plain name string or an object with name/description
+			// (legacy callers may pass a string).
+			const data = typeof payload === 'string'
+				? { name: payload }
+				: { name: payload.name || 'My Dashboard', description: payload.description }
 			this.loading = true
 			try {
-				const response = await api.createDashboard({ name })
+				const response = await api.createDashboard(data)
 				this.dashboards.push(response.data.dashboard)
 				this.activeDashboard = response.data.dashboard
 				this.widgetPlacements = []
