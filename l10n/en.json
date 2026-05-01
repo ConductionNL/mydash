@@ -182,7 +182,6 @@
         "**%1$s** is now yours": "**%1$s** is now yours",
         "%1$s is now yours": "%1$s is now yours",
         "Ownership transferred after the previous owner was removed": "Ownership transferred after the previous owner was removed",
-        "Access denied": "Access denied",
         "Invalid shareType": "Invalid shareType",
         "shareWith is required": "shareWith is required",
         "Invalid permissionLevel": "Invalid permissionLevel",
@@ -198,6 +197,18 @@
         "Create": "Create",
         "Creating…": "Creating…",
         "Failed to create document": "Failed to create document",
-        "Please enter a file name": "Please enter a file name"
+        "Please enter a file name": "Please enter a file name",
+        "Role-based widget permissions": "Role-based widget permissions",
+        "Restrict which widgets each Nextcloud group can add to their dashboard. Empty list = full catalogue (legacy).": "Restrict which widgets each Nextcloud group can add to their dashboard. Empty list = full catalogue (legacy).",
+        "No role permissions configured": "No role permissions configured",
+        "Add a role-permission row to start filtering the widget catalogue per Nextcloud group.": "Add a role-permission row to start filtering the widget catalogue per Nextcloud group.",
+        "Add role permission": "Add role permission",
+        "Edit role permission": "Edit role permission",
+        "Nextcloud group ID": "Nextcloud group ID",
+        "Description (optional)": "Description (optional)",
+        "Allowed widget IDs (comma separated)": "Allowed widget IDs (comma separated)",
+        "Denied widget IDs (comma separated)": "Denied widget IDs (comma separated)",
+        "Delete role permission for \"{group}\"?": "Delete role permission for \"{group}\"?",
+        "Name": "Name"
     }
 }

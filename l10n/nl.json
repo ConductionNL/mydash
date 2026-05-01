@@ -182,7 +182,6 @@
         "**%1$s** is now yours": "**%1$s** is nu van u",
         "%1$s is now yours": "%1$s is nu van u",
         "Ownership transferred after the previous owner was removed": "Eigendom overgedragen omdat de vorige eigenaar is verwijderd",
-        "Access denied": "Toegang geweigerd",
         "Invalid shareType": "Ongeldig deeltype",
         "shareWith is required": "shareWith is verplicht",
         "Invalid permissionLevel": "Ongeldig rechtenniveau",
@@ -198,6 +197,18 @@
         "Create": "Aanmaken",
         "Creating…": "Aanmaken…",
         "Failed to create document": "Document aanmaken mislukt",
-        "Please enter a file name": "Voer een bestandsnaam in"
+        "Please enter a file name": "Voer een bestandsnaam in",
+        "Role-based widget permissions": "Rol-gebaseerde widget-rechten",
+        "Restrict which widgets each Nextcloud group can add to their dashboard. Empty list = full catalogue (legacy).": "Beperk welke widgets elke Nextcloud-groep aan hun dashboard kan toevoegen. Lege lijst = volledige catalogus (legacy).",
+        "No role permissions configured": "Geen rolrechten geconfigureerd",
+        "Add a role-permission row to start filtering the widget catalogue per Nextcloud group.": "Voeg een rolregel toe om de widget-catalogus per Nextcloud-groep te filteren.",
+        "Add role permission": "Rolrecht toevoegen",
+        "Edit role permission": "Rolrecht bewerken",
+        "Nextcloud group ID": "Nextcloud-groep-ID",
+        "Description (optional)": "Beschrijving (optioneel)",
+        "Allowed widget IDs (comma separated)": "Toegestane widget-ID's (kommagescheiden)",
+        "Denied widget IDs (comma separated)": "Verboden widget-ID's (kommagescheiden)",
+        "Delete role permission for \"{group}\"?": "Rolrecht voor \"{group}\" verwijderen?",
+        "Name": "Naam"
     }
 }
