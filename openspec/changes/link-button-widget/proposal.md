@@ -2,7 +2,7 @@
 
 ## Why
 
-MyDash today has no first-class action button. Users cannot drop a styled clickable tile on a dashboard to open an external URL in a new tab, kick off a registered in-app workflow, or create a fresh document in their Files app. Sendent-era code shipped an ad-hoc "internal action" placeholder with auto-detect-from-extension semantics that proved fragile (a `.docx` URL meant "create file" but a `.html` URL meant "open external", indistinguishable for opaque links). This change formalises a typed `link` widget with three explicit action types, a runtime-mutable registry of named internal actions, and a strictly-validated server endpoint for file creation, so the action set can grow safely without regressing the existing widget contract.
+MyDash today has no first-class action button. Users cannot drop a styled clickable tile on a dashboard to open an external URL in a new tab, kick off a registered in-app workflow, or create a fresh document in their Files app. An earlier prototype shipped an ad-hoc "internal action" placeholder with auto-detect-from-extension semantics that proved fragile (a `.docx` URL meant "create file" but a `.html` URL meant "open external", indistinguishable for opaque links). This change formalises a typed `link` widget with three explicit action types, a runtime-mutable registry of named internal actions, and a strictly-validated server endpoint for file creation, so the action set can grow safely without regressing the existing widget contract.
 
 ## What Changes
 
