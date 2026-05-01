@@ -327,7 +327,6 @@ class AdminTemplateService
         return null;
     }//end pickFirstMatch()
 
-
     /**
      * Generate a UUID v4.
      *
