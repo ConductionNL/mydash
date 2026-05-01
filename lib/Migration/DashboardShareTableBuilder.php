@@ -91,6 +91,11 @@ class DashboardShareTableBuilder
             typeName: Types::DATETIME,
             options: ['notnull' => true]
         );
+        $table->addColumn(
+            name: 'updated_at',
+            typeName: Types::DATETIME,
+            options: ['notnull' => false]
+        );
 
         $table->setPrimaryKey(columnNames: ['id']);
         $table->addIndex(
