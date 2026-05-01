@@ -17,10 +17,11 @@ The system MUST track dashboard publication state via three new database columns
 - GIVEN a MyDash instance with existing dashboards before the publication-state migration
 - WHEN the migration `VersionXXXXDate2026...AddPublicationState.php` is applied
 - THEN the schema MUST add three columns to `oc_mydash_dashboards`:
-  - `publicationStatus ENUM('draft','published','scheduled') NOT NULL DEFAULT 'draft'`
+  - `publicationStatus ENUM('draft','published','scheduled') NOT NULL DEFAULT 'published'`
   - `publishAt TIMESTAMP NULL`
   - `publishedAt TIMESTAMP NULL`
 - AND all existing dashboard rows MUST be backfilled with `publicationStatus = 'published'` to preserve visibility behaviour
+- NOTE: The column default is `'published'` (not `'draft'`). Existing rows acquire `'published'` automatically from the column default when the column is materialised — no explicit UPDATE backfill statement is needed. New dashboards created after the migration default to `'draft'` via application logic in `DashboardService::createDashboard()`, not via the column default.
 - AND a composite index `idx_mydash_dash_user_pubstatus` on `(userId, publicationStatus)` MUST be created
 - AND the migration MUST be reversible via `postSchemaChange` rollback
 
@@ -260,9 +261,9 @@ The system MUST ensure that all dashboards created before this change are treate
 
 - GIVEN a MyDash instance with 100 existing dashboards before the migration
 - WHEN the migration `VersionXXXXDate2026...AddPublicationState.php` is applied
-- THEN the `publicationStatus` column MUST be added with `DEFAULT 'draft'`
-- AND the migration MUST backfill ALL existing rows with `publicationStatus = 'published'` via explicit UPDATE statement
+- THEN the `publicationStatus` column MUST be added with `DEFAULT 'published'`
 - AND existing visibility rules MUST be preserved (all pre-existing dashboards remain visible to their intended audience)
+- NOTE: No explicit `UPDATE … SET publicationStatus = 'published'` backfill statement is required. The `DEFAULT 'published'` on the column causes the database engine to materialise existing rows as `'published'` automatically, eliminating partial-update risk on large tables. New dashboards created after migration receive `publicationStatus = 'draft'` via application logic in `DashboardService::createDashboard()` — not via the column default.
 
 #### Scenario: Backfill only affects pre-existing rows
 

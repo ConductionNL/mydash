@@ -35,6 +35,8 @@ Invariant: if `dashboardFooterMode = 'custom'`, then `dashboardFooterHtml` MUST 
 
 Administrators MUST be able to globally enable or disable the footer on all dashboards via the `footer_enabled` setting.
 
+> NOTE (MyDash vs source — D1): The source application stores footer content as a single per-language file (`{lang}/footer.json`) on the filesystem. MyDash deliberately departs from this pattern: all five footer settings (`footer_enabled`, `footer_html`, `footer_config`, `footer_background_color`, `footer_text_color`) are stored as admin settings keys, not in the filesystem. This is because MyDash dashboards may be backed by either the database or a GroupFolder; a filesystem-only path is not a universal anchor. Admin settings provide a single authoritative store regardless of the active storage backend (source-confirmed: `FooterService.php:81-168` takes no `pageId` argument and operates on one global footer per language).
+
 #### Scenario: Footer disabled by default
 - GIVEN a fresh MyDash installation
 - WHEN any user views a dashboard
@@ -184,6 +186,8 @@ The footer MUST be rendered below the dashboard grid when enabled globally and n
 
 HTML MUST be sanitised according to a strict allowlist before storage and rendering.
 
+> NOTE (shared allow-list — D4): The sanitisation allow-list used for footer HTML is the same list used by the text-display widget — it is a single canonical definition, not duplicated. This means the footer allow-list is intentionally narrow: `<a>` (href only), `<p>`, `<strong>`, `<em>`, `<br>`, `<ul>`, `<ol>`, `<li>`, `<img>` (src only, no `srcset`, no `onerror`, no data URIs). Layout tags `<table>` and `<div>` are NOT added to the footer allow-list; layout is provided by the structured config's `layoutMode` field instead. External `<a>` tags automatically receive `rel="noopener noreferrer"`.
+
 #### Scenario: Sanitiser strips forbidden attributes
 - GIVEN input HTML: `<p class='danger' data-value='test'>Text</p>`
 - WHEN sanitised
@@ -213,6 +217,8 @@ HTML MUST be sanitised according to a strict allowlist before storage and render
 ### Requirement: REQ-FTR-006 Per-Dashboard Footer Override
 
 Dashboard owners MUST be able to override the global footer on their own dashboard using three modes: inherit (global), hidden (no footer), or custom (dashboard-specific HTML).
+
+> NOTE (MyDash addition — D2): This entire requirement is a MyDash-original feature with no counterpart in the source. The source application has no per-page footer concept; `FooterController.php` `get()` and `save()` accept no `pageId` or `uniqueId` parameter, and `PageService.php` explicitly excludes `footer.json` from page listings. The two new columns (`dashboardFooterMode VARCHAR(16)` default `'inherit'`, `dashboardFooterHtml MEDIUMTEXT NULL`) are stored on `oc_mydash_dashboards`. Write permission for the override is controlled by dashboard ownership (not GroupFolder ACL — the source's `$languageFolder->isUpdateable()` ACL pattern does not apply here because MyDash write permission is governed by the `admin-roles` capability for global settings and dashboard ownership for per-dashboard fields).
 
 #### Scenario: Dashboard with inherit mode (default)
 - GIVEN a dashboard with `dashboardFooterMode = 'inherit'` (or NULL)
@@ -253,7 +259,13 @@ Dashboard owners MUST be able to override the global footer on their own dashboa
 
 ### Requirement: REQ-FTR-007 Multi-Language Support
 
-Footer content MUST support language-tagged variants. The footer renderer MUST select the matching variant based on the viewer's Nextcloud locale.
+Footer content MUST support language-tagged variants. The footer renderer MUST select the matching variant using a three-step fallback chain (D3):
+
+1. Viewer's NC locale, retrieved via `getUserValue($uid, 'core', 'lang')`.
+2. Dashboard's primary language (the `primaryLanguage` field from the `dashboard-language-content` capability), if the viewer's locale key is absent from the variant map.
+3. First key in the variant map, if neither step 1 nor step 2 yields a match.
+
+> NOTE (source-confirmed fallback — D3): The source application stores a single `footer.json` per language root with no multi-language variant map inside it. The three-step fallback chain above is therefore a MyDash addition. Steps 1–3 are the authoritative resolution order; implementations MUST NOT skip step 2 and fall directly to step 3.
 
 #### Scenario: Single-language footer (default)
 - GIVEN `footer_html = "<p>Welcome</p>"` (plain string, not a map)
@@ -265,10 +277,21 @@ Footer content MUST support language-tagged variants. The footer renderer MUST s
 - WHEN a user with NC locale `nl` views the dashboard
 - THEN the footer MUST render the `nl` variant: `<p>Welkom</p>`
 
-#### Scenario: Locale fallback (no match)
+#### Scenario: Locale fallback — step 2 then step 3
 - GIVEN `footer_html = {en: "<p>English</p>", fr: "<p>Français</p>"}`
-- WHEN a user with NC locale `de` (no matching key) views the dashboard
-- THEN the footer MUST fall back to the first key in the map (language order is implementation-defined; typically `en`)
+- AND the dashboard has `primaryLanguage = "fr"` (from the `dashboard-language-content` capability)
+- WHEN a user with NC locale `de` (no matching key in the map) views the dashboard
+- THEN the footer MUST first check step 2: the dashboard's primary language (`fr`) IS present in the map
+- AND the footer MUST render the `fr` variant: `<p>Français</p>`
+- NOTE: Step 3 (first-key fallback) is only reached when BOTH the viewer's locale (step 1) AND the dashboard's primary language (step 2) are absent from the variant map
+
+#### Scenario: Locale fallback — step 3 (first key)
+- GIVEN `footer_html = {fr: "<p>Français</p>", nl: "<p>Welkom</p>"}`
+- AND the dashboard has `primaryLanguage = "de"` (not present in the variant map)
+- WHEN a user with NC locale `ja` (also not present) views the dashboard
+- THEN step 1 (`ja`) misses, step 2 (`de`) misses
+- AND the footer MUST render the first key in the map: `<p>Français</p>`
+- AND the result MUST be deterministic (first key in insertion order)
 
 #### Scenario: Language variants in structured config
 - GIVEN `footer_config = {organisation: {en: "ACME", nl: "ACME NL"}, layoutMode: "columns"}`

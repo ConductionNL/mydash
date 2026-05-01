@@ -64,6 +64,10 @@ The system MUST register a class `\OCA\MyDash\Activity\Extension` that implement
 
 The system MUST define exactly 13 event-type constants on `\OCA\MyDash\Activity\Extension`, grouped in a static `ALL_EVENTS` array, covering the full set of trackable MyDash actions. No event type may be emitted by `ActivityPublisher` unless it is declared in `ALL_EVENTS`.
 
+NOTE: The 13 types split into two groups by origin. Five are direct ports of source-application event types, renamed to the `dashboard_*` prefix: `dashboard_created`, `dashboard_updated`, `dashboard_deleted`, `dashboard_commented`, `dashboard_reacted`. Eight are MyDash-native additions that emerge from sibling capabilities with no source-app counterpart: `dashboard_published`, `dashboard_unpublished`, `dashboard_scheduled` (from `dashboard-draft-published`), `dashboard_shared` (from `dashboard-sharing`), `dashboard_public_share_created` (from `dashboard-public-share`), `dashboard_restored` (from `dashboard-versioning`), `dashboard_lock_overridden` (from `dashboard-locking`), `dashboard_role_changed` (from `admin-roles`). The catalogue is intentionally larger than the source; the additions are deliberate product extensions, not gaps or errors.
+
+NOTE: `dashboard_viewed` is NOT in the catalogue and MUST NOT be added. View tracking is owned exclusively by the `dashboard-view-analytics` capability. Publishing view events to the Activity stream would flood notification inboxes on widely-shared dashboards with passive, non-actionable data.
+
 #### Scenario: All 13 constants present and non-empty
 
 - GIVEN `Extension::ALL_EVENTS` is inspected at runtime
@@ -123,6 +127,17 @@ The system MUST provide `\OCA\MyDash\Activity\ActivityPublisher` as the sole ent
 ### Requirement: REQ-ACT-004 Audience Targeting — Personal Dashboards
 
 For events on `user`-type dashboards, the system MUST emit exactly one activity row per event occurrence, addressed to the dashboard owner. The owner receives their own events so they appear in their personal activity stream.
+
+NOTE: REQ-ACT-004 through REQ-ACT-006 and REQ-ACT-008 together implement the normative four-scope audience rule. The recipient set for any event is determined by the dashboard's scope at emit-time:
+
+| Scope | Recipients |
+|---|---|
+| `user` (personal) | Owner only |
+| User-to-user share | Owner + every named share recipient |
+| `group_shared` | All current members of the target group (resolved via `IGroupManager` at emit-time) |
+| Default-group (`groupId = 'default'`) | All authenticated NC users (via `IUserManager::callForAllUsers`), subject to debounce (see REQ-ACT-008) |
+
+NOTE: Group membership MUST be resolved at emit-time, not at read-time. This matches NC core's own pattern and keeps `oc_activity` queries simple. For personal-scope events, the guard on `dashboard->getType()` MUST prevent any `IGroupManager` call.
 
 #### Scenario: Self-action on personal dashboard — single row for owner
 
@@ -212,7 +227,7 @@ For events on `group_shared`-type dashboards, the system MUST emit one activity 
 
 ### Requirement: REQ-ACT-007 Debounce — Reaction Events
 
-The system MUST apply a 15-minute debounce per `(actorUserId, dashboardUuid)` pair to `dashboard_reacted` events. At most one reaction activity row per actor per dashboard per 15-minute window MUST be written.
+The system MUST apply a debounce per `(actorUserId, dashboardUuid)` pair to `dashboard_reacted` events using an APCu key with a TTL of exactly 900 seconds (15 minutes). At most one reaction activity row per actor per dashboard per 900-second window MUST be written.
 
 #### Scenario: First reaction within window is published
 
@@ -246,7 +261,7 @@ The system MUST apply a 15-minute debounce per `(actorUserId, dashboardUuid)` pa
 
 ### Requirement: REQ-ACT-008 Debounce — Global (Default-Group) Fan-Out
 
-For events on dashboards with `groupId = 'default'`, the system MUST apply a 15-minute debounce per `(dashboardUuid, eventType)` before performing the full user-enumeration fan-out. When the debounce window is active, the entire fan-out MUST be skipped silently (no rows written, no exception).
+For events on dashboards with `groupId = 'default'`, the system MUST apply a debounce per `(dashboardUuid, eventType)` using an APCu key with a TTL of exactly 900 seconds (15 minutes) before performing the full user-enumeration fan-out. This debounce applies to high-frequency types (`dashboard_updated`, `dashboard_commented`). When the debounce window is active, the entire fan-out MUST be skipped silently (no rows written, no exception).
 
 #### Scenario: First global event triggers full fan-out
 

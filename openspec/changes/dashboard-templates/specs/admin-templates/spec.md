@@ -6,11 +6,28 @@ status: draft
 
 # Admin Templates — Delta from change `dashboard-templates`
 
+> NOTE (D1 — Storage divergence): MyDash stores templates as `type='admin_template'` rows in
+> `oc_mydash_dashboards`. This is a **deliberate and permanent divergence** from the reference
+> implementation's `/{lang}/_templates/` filesystem-folder convention. Reasons: (1) the existing
+> REQ-TMPL-001..011 capability is already shipped — switching storage models is a breaking change;
+> (2) `WHERE type='admin_template'` is a single indexed query; the filesystem approach requires a
+> full page-tree walk with path-segment string-matching; (3) DB enum cleanly separates kind from
+> location; (4) MyDash supports DB-backed dashboards that have no GroupFolder and therefore no
+> `_templates/` folder — a cross-backend representation requires the DB type column; (5) ACL
+> equivalence is already provided by the `dashboard-sharing` capability. Do not attempt to converge
+> on the filesystem-folder approach.
+
 ## ADDED Requirements
 
 ### Requirement: REQ-TMPL-012 Template Gallery Endpoint
 
 The system MUST expose a read-only gallery endpoint that lists all `admin_template` dashboards with metadata suitable for discovery and instantiation.
+
+> NOTE (D2 — Index): The `WHERE type='admin_template' AND templateCategory=?` filter path MUST be
+> backed by a composite index on `(type, templateCategory)`. The migration adding the three new
+> metadata columns MUST also add this composite index to keep the optional category-filter query
+> indexed at scale. The base `WHERE type='admin_template'` path already benefits from the existing
+> index on `type`.
 
 #### Scenario: List all templates in gallery
 
@@ -51,6 +68,13 @@ The system MUST expose a read-only gallery endpoint that lists all `admin_templa
 ### Requirement: REQ-TMPL-013 Save-as-template Action
 
 Any dashboard owner MUST be able to convert their current dashboard into a reusable admin template, creating a snapshot with a fresh UUID and a deep-copied widget tree.
+
+> NOTE (D3 — Deep-copy semantics): `save-as-template` creates a **deep copy**, not a link or
+> reference. All widget placements are duplicated into a new row. The source dashboard is not
+> modified. The new template row MUST have `basedOnTemplate = null` — templates do not chain and
+> do not inherit lineage from the source dashboard. Edits to the source after save-as-template MUST
+> NOT propagate to the template; this is consistent with the independence guarantee already provided
+> by REQ-TMPL-006 for user copies.
 
 #### Scenario: Save a personal dashboard as a template
 
@@ -137,6 +161,14 @@ Admin templates MUST support three new metadata fields for categorization and di
 ### Requirement: REQ-TMPL-015 Preview Image Upload Endpoint
 
 Administrators MUST be able to upload a preview image for a template via multipart form, persisted using the existing dashboard-icons upload pattern.
+
+> NOTE (D4 — custom-icon-upload-pattern reuse): The `POST /api/admin/templates/{uuid}/preview-image`
+> endpoint MUST follow the **exact same endpoint shape** as defined in
+> `openspec/changes/custom-icon-upload-pattern/` — same multipart field name (`file`), same
+> file-type validation (PNG, JPG, GIF, WebP, SVG), same Nextcloud Files storage path convention,
+> and same public-share URL return contract (`{"previewImage": "<url>"}`). Do not introduce a
+> parallel image-persistence mechanism; the custom-icon-upload pattern already covers file-type
+> validation, Nextcloud Files storage, and public-share URL generation.
 
 #### Scenario: Upload preview image for a template
 

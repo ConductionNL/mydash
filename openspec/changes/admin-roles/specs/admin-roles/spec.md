@@ -29,12 +29,14 @@ Each role assignment is stored in the `oc_mydash_role_assignments` table with th
 
 A Dashboard Admin MUST have full administrative access to MyDash, equivalent to Nextcloud admin status but scoped to MyDash only. A Dashboard Admin MUST be able to manage all dashboards, install demo data, edit organization-level navigation, and define new metadata fields.
 
+NOTE: Admin-roles is a net-new MyDash capability with no source counterpart. The source app has no named-role concept and resolves all permissions from the GroupFolder ACL bitmask alone. The three role names echo the source app's seeded group names for customer recognition, but the underlying mechanism is entirely different — MyDash does not read from those groups at runtime.
+
 #### Scenario: NC admin automatically has Dashboard Admin role
 - GIVEN a Nextcloud admin user (admin flag = true)
 - WHEN the system resolves the user's effective MyDash role
 - THEN the user's effective role MUST be "admin"
 - AND the role source MUST be "nc-admin"
-- NOTE: No explicit assignment record is created; NC admin status is the implicit grant
+- NOTE: NC admin status is an implicit grant — no explicit assignment record is created in `oc_mydash_role_assignments`
 
 #### Scenario: Non-admin user assigned Dashboard Admin role
 - GIVEN a non-admin Nextcloud user "alice"
@@ -194,48 +196,58 @@ Role assignments MUST be stored durably in the `oc_mydash_role_assignments` tabl
 
 ### Requirement: REQ-ROLE-005 Resolve Effective Role Per User
 
-The system MUST resolve a user's effective MyDash role by consulting Nextcloud admin status, direct user assignments, and all group assignments. When multiple roles are applicable, the highest privilege wins.
+The system MUST resolve a user's effective MyDash role using the following deterministic algorithm:
+
+1. If the user is a Nextcloud admin → effective role is "admin", source is "nc-admin". No assignment lookup required.
+2. Otherwise, check for a direct user assignment (`userId = <user>`). If one exists, it is used as-is — group assignments are NOT consulted, regardless of their rank.
+3. If no direct user assignment exists, collect all group assignments for groups the user is a member of. Map roles to numeric rank: "admin"=2, "editor"=1, "viewer"=0. Effective role is the assignment with the highest rank ("highest privilege wins").
+4. If no assignments exist → effective role is null; the user falls back to `permissions` capability behavior.
+
+NOTE: Direct user assignment is the canonical explicit override — if an admin assigns a user "viewer" directly, that intent is honored and is not silently overridden by group memberships. Group assignments only participate in resolution when no direct user assignment is present.
 
 #### Scenario: NC admin always has admin role
 - GIVEN a Nextcloud admin user "alice"
 - WHEN the system calls `getEffectiveRole("alice")`
 - THEN the return value MUST be "admin"
-- AND no assignment lookup is necessary (NC admin overrides)
+- AND the role source MUST be "nc-admin"
+- AND no assignment lookup is performed (NC admin is an unconditional override)
 
 #### Scenario: Non-admin with direct user assignment
 - GIVEN a non-admin user "bob" with assignment `userId = "bob"`, `role = "editor"`
 - WHEN the system calls `getEffectiveRole("bob")`
 - THEN the return value MUST be "editor"
-- AND the role source is "user-assigned"
+- AND the role source MUST be "user-assigned"
+- AND group assignments are NOT consulted
 
 #### Scenario: Multiple group memberships, highest role wins
 - GIVEN a user "charlie" who is a member of groups "engineering" and "sales"
 - AND an assignment `groupId = "engineering"`, `role = "editor"`
 - AND an assignment `groupId = "sales"`, `role = "viewer"`
+- AND no direct user assignment for charlie
 - WHEN the system calls `getEffectiveRole("charlie")`
 - THEN the return value MUST be "editor"
-- AND the role source is "group-assigned:engineering"
-- NOTE: "editor" is higher privilege than "viewer"; if both are present, "editor" wins. If sources are equally privileged, implementation may return any; spec does not mandate specific tie-breaking.
+- AND the role source MUST be "group-assigned:engineering"
+- NOTE: "editor" (rank 1) is higher privilege than "viewer" (rank 0); highest-rank group assignment wins. If sources are equally ranked, implementation may return any; spec does not mandate specific tie-breaking.
 
-#### Scenario: Direct user assignment overrides group assignment
+#### Scenario: Direct user assignment used as-is, group assignments skipped
 - GIVEN a user "david" who is a member of group "engineering"
 - AND an assignment `userId = "david"`, `role = "admin"`
 - AND an assignment `groupId = "engineering"`, `role = "editor"`
 - WHEN the system calls `getEffectiveRole("david")`
 - THEN the return value MUST be "admin"
-- AND the role source is "user-assigned"
-- NOTE: Direct user assignment takes precedence over any group assignment
+- AND the role source MUST be "user-assigned"
+- NOTE: The direct user assignment is used as-is. Group assignments are not consulted when a direct user assignment exists.
 
 #### Scenario: No assignment, user has no role
 - GIVEN a user "eve" with no role assignment and not an NC admin
 - WHEN the system calls `getEffectiveRole("eve")`
 - THEN the return value MUST be null
-- AND the role source is null
+- AND the role source MUST be null
 - AND the user falls back to existing `permissions` capability behavior
 
 #### Scenario: Admin role is highest in privilege hierarchy
-- GIVEN role hierarchy: "admin" > "editor" > "viewer"
-- WHEN the system resolves effective role from ["viewer", "admin", "editor"]
+- GIVEN role hierarchy: "admin" (rank 2) > "editor" (rank 1) > "viewer" (rank 0)
+- WHEN the system resolves effective role from group assignments ["viewer", "admin", "editor"]
 - THEN the effective role MUST be "admin"
 
 ### Requirement: REQ-ROLE-006 Get Current User's Role and Source
@@ -370,15 +382,18 @@ A Dashboard Viewer MUST NOT be able to perform any mutation on dashboards or MyD
 
 ### Requirement: REQ-ROLE-009 Group vs. User Precedence
 
-When a user has both a direct user assignment and one or more group assignments, the direct user assignment MUST take precedence. If a user has assignments from multiple groups, the highest-privilege role MUST be selected.
+When a user has a direct user assignment, that assignment MUST be used as-is and group assignments MUST NOT be consulted. If a user has no direct user assignment but has assignments from multiple groups, the highest-privilege group role MUST be selected.
 
-#### Scenario: Direct user assignment overrides group
+NOTE: This "direct-assignment-wins" rule is not a rank comparison — a direct "viewer" assignment beats a group "admin" assignment because the direct assignment is the sole source when present. Group assignments only participate in resolution when no direct user assignment exists. See REQ-ROLE-005 for the full resolution algorithm.
+
+#### Scenario: Direct user assignment used as-is regardless of group rank
 - GIVEN a user "bob"
 - AND assignment `userId = "bob"`, `role = "viewer"`
 - AND assignment `groupId = "engineering"`, `role = "admin"` (bob is member of engineering)
 - WHEN the system resolves bob's effective role
 - THEN the role MUST be "viewer"
 - AND the source MUST be "user-assigned"
+- NOTE: The direct user assignment is used as-is. The system does NOT compare its rank against group assignments — group assignments are skipped entirely because a direct user assignment is present. A "viewer" direct assignment intentionally overrides a "admin" group assignment.
 
 #### Scenario: Highest group role wins
 - GIVEN a user "charlie" who is a member of groups "engineering" and "sales"
@@ -399,6 +414,8 @@ When a user has both a direct user assignment and one or more group assignments,
 ### Requirement: REQ-ROLE-010 Cascade on User Deletion
 
 When a Nextcloud user is deleted, all role assignments where `userId = <deleted-user>` MUST be automatically removed. No cross-deletion: deleting a role assignment does NOT affect the user or group.
+
+NOTE: This cascade MUST be implemented via a `UserDeletedListener` that extends the listener infrastructure provided by the `dashboard-cascade-events` capability. Implementers MUST reference that capability's listener registration pattern rather than registering a standalone Nextcloud event listener.
 
 #### Scenario: User deletion removes direct assignments
 - GIVEN a role assignment `userId = "bob"`, `role = "editor"`
@@ -422,6 +439,8 @@ When a Nextcloud user is deleted, all role assignments where `userId = <deleted-
 ### Requirement: REQ-ROLE-011 Cascade on Group Deletion
 
 When a Nextcloud group is deleted, all role assignments where `groupId = <deleted-group>` MUST be automatically removed. No cross-deletion: deleting a role assignment does NOT affect the group or its members.
+
+NOTE: This cascade MUST be implemented via a `GroupDeletedListener` that extends the listener infrastructure provided by the `dashboard-cascade-events` capability. Implementers MUST reference that capability's listener registration pattern rather than registering a standalone Nextcloud event listener.
 
 #### Scenario: Group deletion removes group assignments
 - GIVEN a role assignment `groupId = "engineering"`, `role = "editor"`

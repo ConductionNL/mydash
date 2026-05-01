@@ -51,6 +51,8 @@ The system MUST track dashboard view events in a dedicated relational table with
 
 The system MUST expose an authenticated endpoint that records a view event when a user loads a dashboard.
 
+> **NOTE (MyDash-deliberate):** Unique-viewer deduplication uses a per-`(dashboardUuid, viewerHash)` cache key stored in Nextcloud `ICache`. The cache TTL is set to the number of seconds remaining until the next UTC midnight at the time the entry is written (i.e. `TTL = seconds_until_next_UTC_midnight()`), not a fixed 86400 seconds. This ensures the cache entry expires exactly when the daily salt rotates, keeping cache and salt lifetimes aligned. See REQ-ANLT-003 for the salt approach.
+
 #### Scenario: Authenticated user records a view event
 
 - GIVEN a logged-in user "alice" loads a dashboard with UUID "uuid-101"
@@ -58,6 +60,14 @@ The system MUST expose an authenticated endpoint that records a view event when 
 - THEN the system MUST return HTTP 204 (No Content)
 - AND the system MUST increment the view counter in the `oc_mydash_dashboard_views` row for today
 - AND no response body is returned
+
+#### Scenario: Dedup cache key is per dashboard and viewer hash
+
+- GIVEN user "alice" (userId: 1) posts a view event for dashboard "uuid-101" on 2026-05-01
+- WHEN the system checks for a duplicate within the same UTC day
+- THEN the system MUST use a cache key of the form `mydash_anlt_{dashboardUuid}_{viewerHash}`
+- AND the cache entry TTL MUST be set to the number of seconds remaining until the next UTC midnight
+- AND the system MUST NOT use a fixed 86400-second TTL
 
 #### Scenario: Unauthenticated user is rejected
 
@@ -84,6 +94,8 @@ The system MUST expose an authenticated endpoint that records a view event when 
 
 The system MUST count unique viewers per day using privacy-preserving hashing with a salt that rotates daily, preventing cross-day user correlation.
 
+> **NOTE (MyDash-deliberate — diverges from static-secret approach):** This requirement intentionally departs from the pattern of computing `sha256(userId || instanceSecret)` using the static Nextcloud instance secret as a salt. A static salt means the same user produces an identical hash for every day, forever; a leak of the analytics table combined with a separate config leak would allow full cross-day re-identification. MyDash instead uses a 32-byte random salt generated at 00:00 UTC by `SaltRotationJob`, stored in `IConfig` under `mydash.analytics_dailysalt`, and **overwritten** (not appended) at each rotation. No salt history is retained. The result: viewer hashes from different days are computationally uncorrelated, and cross-day re-identification from the analytics table alone is infeasible. Same-day unique-viewer counting is unaffected. This is a deliberate privacy improvement, not a limitation.
+
 #### Scenario: Same user on same day increments viewCount but not uniqueViewerCount twice
 
 - GIVEN user "alice" (userId: 1) loads a dashboard "uuid-103" at 10:00 AM on 2026-05-01
@@ -98,12 +110,13 @@ The system MUST count unique viewers per day using privacy-preserving hashing wi
 - GIVEN user "bob" (userId: 2) loads a dashboard on 2026-05-01 at 11:00 PM
 - AND loads the same dashboard again on 2026-05-02 at 12:00 AM (next day)
 - WHEN the system computes unique-viewer hashes:
-  - On 2026-05-01, hash = SHA256("userId=2" + "salt-2026-05-01")
-  - On 2026-05-02, hash = SHA256("userId=2" + "salt-2026-05-02")
-- THEN the two hashes MUST be different
-- AND the system MUST NOT be able to correlate bob's viewing across days
+  - On 2026-05-01, hash = SHA256(userId || dailySalt_2026-05-01)
+  - On 2026-05-02, hash = SHA256(userId || dailySalt_2026-05-02)
+  - where `dailySalt_2026-05-01` and `dailySalt_2026-05-02` are independent 32-byte random values
+- THEN the two hashes MUST be different (with overwhelming probability)
+- AND the system MUST NOT be able to correlate bob's viewing across days from the analytics table alone
 - AND `uniqueViewerCount` for 2026-05-01 is 1, and for 2026-05-02 is 1 (independent counts)
-- NOTE: Salt rotates at UTC midnight; implementations MUST use UTC date for bucket, not local time
+- NOTE: Salt rotates at UTC midnight; implementations MUST use UTC date for view bucket, not local time
 
 #### Scenario: Different users on same day increment uniqueViewerCount separately
 
@@ -117,10 +130,21 @@ The system MUST count unique viewers per day using privacy-preserving hashing wi
 - GIVEN user "diana" (userId: 4) posts a view event for dashboard "uuid-105" on 2026-05-01
 - WHEN the system increments uniqueViewerCount
 - THEN the system MUST:
-  - Compute hash = SHA256("userId=4" + "salt-2026-05-01")
-  - Store hash in Nextcloud ICache with TTL = 86400 seconds (24 hours, until next UTC midnight)
+  - Read `mydash.analytics_dailysalt` from `IConfig` (populated by `SaltRotationJob`)
+  - Compute hash = SHA256(userId || dailySalt)
+  - Store hash in Nextcloud `ICache` with TTL = seconds until next UTC midnight
   - NOT store the raw userId or hash in `oc_mydash_dashboard_views`
-  - Increment uniqueViewerCount only if hash is NOT already in cache
+  - Increment `uniqueViewerCount` only if hash is NOT already in cache
+
+#### Scenario: Salt rotation discards previous salt with no history retained
+
+- GIVEN `SaltRotationJob` ran on 2026-05-01 and stored `dailySalt_A` in `mydash.analytics_dailysalt`
+- AND viewer hashes for 2026-05-01 were computed using `dailySalt_A`
+- WHEN `SaltRotationJob` runs at 00:00 UTC on 2026-05-02
+- THEN `mydash.analytics_dailysalt` MUST be overwritten with a new 32-byte random value `dailySalt_B`
+- AND `dailySalt_A` MUST NOT be stored anywhere (no history table, no backup key, no log entry)
+- AND the system MUST NOT be able to reproduce the 2026-05-01 viewer hashes after rotation
+- NOTE: The loss of salt history is deliberate — it makes cross-day re-identification from the analytics table computationally infeasible even if an attacker later obtains the current salt
 
 ### Requirement: REQ-ANLT-004 Per-User Analytics Opt-Out
 
@@ -298,6 +322,8 @@ The system MUST expose an admin-only endpoint that returns aggregate statistics 
 ### Requirement: REQ-ANLT-009 Analytics Data Retention and Purge
 
 The system MUST automatically purge view-count rows older than a configurable retention period to prevent unbounded database growth.
+
+> **NOTE:** Default retention is **365 days** (supporting year-over-year comparisons). The valid range is **30–3650 days** inclusive (minimum preserves meaningful chart windows; maximum covers decade-scale compliance without permitting unbounded growth by default). Values outside this range MUST be clamped by the system — implementation may reject or silently clamp, but the effective retention used by `PurgeViewsJob` MUST always fall within [30, 3650]. Table: `oc_mydash_dashboard_views`.
 
 #### Scenario: Default retention is 365 days
 

@@ -29,6 +29,8 @@ Wizard progress (per-step completion status) is derived heuristically from the s
 
 The system MUST detect whether a MyDash instance is being initialized for the first time by consulting the `mydash.setup_wizard_complete` boolean flag. When the flag is `false`, the admin section MUST display a banner prompting the admin to run the wizard.
 
+> NOTE: This is a net-new MyDash capability with no counterpart in the source app. The source ships CLI-only setup via `intravox:setup`; no frontend first-run detection, wizard route, or onboarding component exists in the source. MyDash adds this flag and banner on top of the same underlying service primitives.
+
 #### Scenario: Fresh instance shows banner
 - GIVEN a freshly installed MyDash with `mydash.setup_wizard_complete = false`
 - WHEN an NC admin opens `/apps/mydash/admin/dashboards`
@@ -60,6 +62,8 @@ The system MUST detect whether a MyDash instance is being initialized for the fi
 ### Requirement: REQ-WIZ-002 Multi-Step Wizard Flow with 7 Steps
 
 The wizard MUST guide the admin through a linear, skippable sequence of 7 steps, each with Skip / Back / Next buttons. Only the "Finish" button on Step 7 marks the wizard complete.
+
+> NOTE: Steps 2–6 each embed the canonical admin UI component from the corresponding sibling capability (`groupfolder-storage-backend`, `group-priority-order`, `demo-data-showcases`, `admin-roles`, `footer-customization`). The wizard is a thin orchestrator — it owns step sequencing and the completion flag; each sibling capability owns its own settings persistence. No settings surfaces are duplicated.
 
 #### Scenario: Wizard starts at Step 1
 - GIVEN the banner's "Run setup wizard" button is clicked
@@ -281,6 +285,8 @@ Step 6 MUST allow the admin to optionally open and configure the footer using th
 
 The system MUST expose a `GET /api/admin/setup-wizard/state` endpoint that returns the wizard's completion status, current recommended step for re-runs, and per-step status.
 
+> NOTE: Auto-launch behaviour (opening the wizard automatically when `setup_wizard_complete = false`) is intentionally SHOULD/MAY, not MUST. CLI-provisioned installs may set settings incrementally mid-`occ` run, meaning an admin who views the page before the CLI command finishes would see `complete = false` with settings partially applied. The banner-link fallback is always available and is the reliable path; auto-launch is a UX convenience for fresh browser sessions only.
+
 #### Scenario: Endpoint returns complete state on fresh instance
 - GIVEN a fresh MyDash instance with `mydash.setup_wizard_complete = false`
 - WHEN an NC admin calls `GET /api/admin/setup-wizard/state`
@@ -357,6 +363,8 @@ The system MUST expose a `POST /api/admin/setup-wizard/complete` endpoint that i
 ### Requirement: REQ-WIZ-010 CLI Command for Non-Interactive Setup (IaC-Friendly)
 
 The system MUST expose a CLI command `php occ mydash:setup` that accepts a `--config=/path/setup.yaml` argument to perform wizard setup non-interactively, ideal for Infrastructure-as-Code deployments.
+
+> NOTE: The YAML config schema (fields: `storage_backend`, `group_priority_order`, `demo_packages`, `admin_role_group`, `footer_config`) is formally defined in the `cli-commands` sibling spec. Optional steps (admin roles, footer) may be omitted from the config file entirely; omitting them is equivalent to skipping those steps in the wizard and does not cause an error.
 
 #### Scenario: CLI command accepts YAML config file
 - GIVEN a YAML file `/tmp/setup.yaml` with content:

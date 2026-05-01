@@ -148,9 +148,9 @@ Password-protected shares MUST require a POST unlock before rendering via the pu
 
 #### Scenario: Unlock is throttled to prevent brute-force
 - GIVEN a public share with a password
-- WHEN an attacker sends 11 failed unlock attempts from IP `203.0.113.100` within 60 minutes
-- THEN the system MUST invoke Nextcloud's `IThrottler` service
-- AND return HTTP 503 (Service Unavailable) on the 11th attempt with `Retry-After` header
+- WHEN an attacker sends 11 failed unlock attempts from IP `203.0.113.100` within 60 seconds
+- THEN the system MUST invoke Nextcloud's `IThrottler` service with action `mydash_share_password` (limit: 10 per 60 s, IP-global)
+- AND return HTTP 429 (Too Many Requests) on the 11th attempt with `Retry-After` header
 
 #### Scenario: Query param password alternative to header
 - GIVEN a password-protected share
@@ -228,22 +228,25 @@ Shares with `expiresAt < now()` OR `revokedAt IS NOT NULL` MUST return HTTP 404 
 
 Failed unlock attempts MUST be throttled via Nextcloud's `IThrottler` to prevent password guessing.
 
-#### Scenario: 10 failed unlocks per hour allowed
+#### Scenario: 10 failed unlocks per 60 seconds allowed
 - GIVEN a public share with a password
 - WHEN an attacker sends unlock requests with wrong passwords from IP `203.0.113.50`
 - THEN the first 10 attempts MUST return HTTP 401
-- AND the 11th attempt within the 60-minute window MUST return HTTP 503
+- AND the 11th attempt within the 60-second window MUST return HTTP 429
+- NOTE: The throttle action is `mydash_share_password` with limit 10 per 60 s, tracked IP-globally (not per-share). The IThrottler action string contains no token component.
 
-#### Scenario: Throttle is per-IP per-share
-- GIVEN two different public shares
-- WHEN IP `203.0.113.50` sends 10 failed unlocks against share A and 10 failed unlocks against share B
-- THEN the throttle counter SHOULD be tracked per-share (implementation may vary)
+#### Scenario: Throttle is IP-global across all shares
+- GIVEN two different public shares A and B
+- WHEN IP `203.0.113.50` sends 10 failed unlocks against share A
+- THEN the throttle counter for `mydash_share_password` is IP-global: those 10 attempts count toward share B as well
+- AND a subsequent failed unlock attempt against share B from the same IP MUST return HTTP 429
+- NOTE: There is no per-share scoping of the throttle. An attacker trying many tokens from the same IP hits the ceiling across all shares simultaneously.
 
 #### Scenario: Throttle resets after time window
 - GIVEN IP `203.0.113.50` exhausted 10 failed attempts
-- AND 60+ minutes pass with no new attempts
+- AND 60+ seconds pass with no new attempts
 - WHEN they send another unlock attempt
-- THEN the system MUST accept it (not return 503)
+- THEN the system MUST accept it (not return 429)
 
 ### Requirement: REQ-PSHR-010 Service-Account File Read for GroupFolder Content
 
@@ -254,6 +257,7 @@ Public shares referencing dashboards with GroupFolder-backed content MUST use a 
 - WHEN an anonymous user renders the dashboard via a public share token
 - THEN the system MUST use a service-account file-read context (NOT the anonymous user's non-existent session)
 - AND the GroupFolder backend's ACL bypass mechanism MUST allow the render
+- NOTE: The service-account context MUST be obtained before any GroupFolder filesystem call. The anonymous viewer's session (which does not exist) MUST NOT be passed to the GroupFolder ACL evaluator. Passing a null or non-existent user context causes reads to fail silently or return empty widget data.
 
 #### Scenario: Widget data accessible via service account
 - GIVEN a GroupFolder resource is readable only by members of group "Engineering"

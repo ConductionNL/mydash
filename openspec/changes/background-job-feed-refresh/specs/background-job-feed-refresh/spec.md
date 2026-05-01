@@ -167,6 +167,10 @@ The job MUST use HTTP conditional-get headers (`If-None-Match`, `If-Modified-Sin
 
 On HTTP 200, the job MUST parse RSS 2.0 and Atom 1.0 feed XML and normalise items to the schema defined by the `news-widget` capability.
 
+> NOTE: Parsing is performed by PHP's built-in `simplexml_load_string()` called with flags `LIBXML_NOCDATA | LIBXML_NONET`. `LIBXML_NONET` disables external entity loading (XXE prevention); `LIBXML_NOCDATA` coerces CDATA sections to plain strings. Parsing logic is encapsulated behind a `FeedParserInterface` so the implementation can be swapped to an alternative library in a follow-up without touching the job or service layer. There is no third-party RSS parsing dependency in `composer.json`.
+
+> NOTE: Feed response bodies larger than 10 MB (`MAX_RESPONSE_SIZE = 10 * 1024 * 1024`) MUST be rejected before parsing. The feed MUST be recorded as failed with `lastFailureReason = "response too large"` and existing `itemsJson` MUST remain unchanged.
+
 #### Scenario: RSS 2.0 item fields mapped to schema
 
 - GIVEN an RSS 2.0 feed with items containing `<title>`, `<description>`, `<link>`, `<pubDate>`, `<guid>`, and `<enclosure type="image/...">`
@@ -206,6 +210,8 @@ On HTTP 200, the job MUST parse RSS 2.0 and Atom 1.0 feed XML and normalise item
 
 A failure to fetch or parse one feed MUST NOT prevent the job from processing the remaining feeds.
 
+> NOTE: All outbound HTTP requests MUST use Nextcloud's `IClientService` (not raw cURL). The connect timeout MUST be 10 seconds and the total request timeout MUST be 30 seconds. Each feed fetch and parse MUST be wrapped in its own `try/catch` block so that a failure on one feed does not prevent subsequent feeds from being processed.
+
 #### Scenario: Single feed timeout does not block others
 
 - GIVEN a job is processing feeds `[A, B, C]` and feed B times out after 10 seconds
@@ -233,8 +239,8 @@ A failure to fetch or parse one feed MUST NOT prevent the job from processing th
 #### Scenario: Malformed XML does not crash the job
 
 - GIVEN a feed server returns HTTP 200 with body `<rss><channel>TRUNCATED`
-- WHEN `\SimpleXMLElement` (or simplepie) attempts to parse the body
-- THEN the parse exception MUST be caught within a try/catch block
+- WHEN `simplexml_load_string()` with `LIBXML_NOCDATA | LIBXML_NONET` attempts to parse the body
+- THEN the parse failure MUST be caught within a try/catch block
 - AND `lastFailureReason` MUST be set to `"parse error: <exception message>"`
 - AND `itemsJson` MUST remain at its previous value
 

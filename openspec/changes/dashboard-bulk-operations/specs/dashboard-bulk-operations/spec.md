@@ -8,12 +8,16 @@ status: draft
 
 ### Requirement: REQ-BULK-001 Bulk Delete Dashboards
 
-Administrators MUST be able to soft-delete multiple dashboards in a single API request, with idempotent handling of already-deleted dashboards.
+Administrators MUST be able to hard-delete multiple dashboards in a single API request, with idempotent handling of already-deleted dashboards. Cascade to child dashboards is opt-in: attempting to delete a parent that has children without `?cascade=true` returns HTTP 409.
+
+NOTE: Delete is a hard delete executed via `$folder->delete()` on the Nextcloud filesystem node. There is no soft-delete flag, no `deleted_at` column, and no grace period. Recovery is only possible through Nextcloud's system-wide trash bin if it is enabled on the installation. Soft-delete is deferred to a future capability.
+
+NOTE: The `cascade` parameter defaults to `false` to prevent accidental recursive deletion of child dashboards. This deliberately diverges from the source implementation (which defaults to `true`) and aligns with the `dashboard-tree` capability's existing opt-in cascade convention (REQ-DASH-016 area).
 
 #### Scenario: Delete three valid dashboards
 - GIVEN an admin user with dashboard-admin or full-admin permissions
 - WHEN she sends POST /api/admin/dashboards/bulk-delete with body `{"dashboardUuids": ["uuid-1", "uuid-2", "uuid-3"]}`
-- THEN the system MUST soft-delete each dashboard (set isDeleted flag or equivalent soft-delete marker)
+- THEN the system MUST hard-delete each dashboard by calling `delete()` on the Nextcloud filesystem node for each dashboard
 - AND the response MUST return HTTP 200 with `{deletedCount: 3, skippedCount: 0, errors: []}`
 - AND the deleted dashboards MUST NOT appear in GET /api/dashboards list for any user
 - AND no Nextcloud Activity event for each individual dashboard deletion — only ONE bulk operation event MUST be emitted
@@ -21,8 +25,22 @@ Administrators MUST be able to soft-delete multiple dashboards in a single API r
 #### Scenario: Bulk delete with one already-deleted dashboard
 - GIVEN admin has permission to delete all three dashboards, but "uuid-2" is already deleted
 - WHEN she sends the same bulk-delete request
-- THEN the system MUST skip the already-deleted dashboard
+- THEN the system MUST skip the already-deleted dashboard (hard delete on a non-existent row is absorbed silently)
 - AND the response MUST return `{deletedCount: 2, skippedCount: 1, errors: [{uuid: "uuid-2", reason: "already_deleted"}]}`
+
+#### Scenario: Bulk delete parent with children and cascade=false (default)
+- GIVEN dashboard "parent-uuid" has 5 child dashboards
+- WHEN admin sends POST /api/admin/dashboards/bulk-delete with body `{"dashboardUuids": ["parent-uuid"]}` (no `?cascade=true`)
+- THEN the system MUST return HTTP 409 (Conflict)
+- AND the response body MUST contain `{error: "has_children", childCount: 5}`
+- AND NO mutations MUST occur — the parent and all children MUST remain intact
+
+#### Scenario: Bulk delete parent with children and cascade=true (opt-in)
+- GIVEN dashboard "parent-uuid" has 5 child dashboards
+- WHEN admin sends POST /api/admin/dashboards/bulk-delete?cascade=true with body `{"dashboardUuids": ["parent-uuid"]}`
+- THEN the system MUST hard-delete the parent and all 5 children recursively
+- AND the response MUST return HTTP 200 with `{deletedCount: 6, skippedCount: 0, errors: []}`
+- AND none of the 6 dashboards MUST appear in GET /api/dashboards list for any user
 
 #### Scenario: Bulk delete with insufficient permissions
 - GIVEN admin user "alice" but "uuid-3" belongs to a private dashboard that "alice" cannot delete
@@ -39,7 +57,7 @@ Administrators MUST be able to soft-delete multiple dashboards in a single API r
 
 #### Scenario: Dry-run bulk delete
 - GIVEN admin sends POST /api/admin/dashboards/bulk-delete?dryRun=true with three valid uuids
-- THEN the system MUST NOT soft-delete any dashboard
+- THEN the system MUST NOT hard-delete any dashboard
 - AND the response MUST return `{wouldDeleteCount: 3, wouldSkipCount: 0, errors: []}`
 - AND GET /api/dashboards MUST still list all three dashboards
 
@@ -172,6 +190,8 @@ Administrators MUST be able to re-index multiple dashboards for unified search i
 
 Dashboard bulk operations MUST guarantee atomicity at the per-dashboard level (each dashboard's database write is transactional), but NOT across the entire batch. Partial failure is reported and safe.
 
+NOTE: The permission pre-check (REQ-BULK-011) is all-or-nothing and runs before any mutation begins. Database-level atomicity (per-dashboard transactions) only applies after the permission pre-check passes. These are two distinct layers: the permission layer is batch-wide and fail-fast; the execution layer is per-dashboard with continue-on-error semantics.
+
 #### Scenario: One dashboard transaction fails in a batch of three
 - GIVEN three dashboards, each in its own database transaction for bulk-delete
 - WHEN the transaction for "uuid-2" fails (e.g., foreign key constraint)
@@ -190,6 +210,8 @@ Dashboard bulk operations MUST guarantee atomicity at the per-dashboard level (e
 ### Requirement: REQ-BULK-006 Request Size Cap (Max 500 Dashboards per Request)
 
 All bulk endpoints MUST enforce a maximum number of dashboardUuids per request, configurable via admin settings.
+
+NOTE: All four bulk endpoints MUST also apply `#[UserRateThrottle(limit: 5, period: 60)]` — five requests per 60-second window per user. This is enforced at the controller layer and complements (does not replace) the per-request size cap.
 
 #### Scenario: Request within cap is accepted
 - GIVEN admin sends bulk-delete with 500 uuids (exactly at cap)
@@ -222,9 +244,9 @@ All bulk endpoints MUST enforce a maximum number of dashboardUuids per request, 
 Bulk operations MUST handle idempotent cases gracefully: deleting already-deleted dashboards, moving to the same parent, and setting to the same status result in no-op entries in the response, not errors.
 
 #### Scenario: Delete already-deleted dashboard
-- GIVEN dashboard "uuid-1" is already soft-deleted
+- GIVEN dashboard "uuid-1" is already deleted (row no longer exists in `oc_mydash_dashboards`)
 - WHEN admin sends bulk-delete with that uuid
-- THEN the system MUST NOT return an error, but rather count it as `skippedCount`
+- THEN the system MUST NOT return an error, but rather count it as `skippedCount` (hard delete on a non-existent row is absorbed silently)
 - AND the response MUST include `{uuid: "uuid-1", reason: "already_deleted"}` in the errors array (for auditability, not rejection)
 
 #### Scenario: Move to same parent
@@ -298,6 +320,8 @@ Each bulk operation MUST emit exactly ONE Nextcloud Activity event (of type `das
 - WHEN the system returns HTTP 403
 - THEN the system MUST still emit ONE activity event (for auditability)
 - AND the event MUST indicate the reason for failure (e.g., `reason: "permission_denied"`)
+
+NOTE: Audit events MUST be emitted for ALL terminal outcomes: successful completion, dry-run completion (with `dryRun: true` in the payload), and rejected requests (with the failure reason). No bulk operation outcome should be silent from an audit perspective.
 
 ### Requirement: REQ-BULK-010 Frontend Multi-Select Checkbox Column and Actions Dropdown
 
