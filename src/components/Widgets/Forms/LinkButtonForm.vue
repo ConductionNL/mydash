@@ -3,271 +3,186 @@
   - SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
-<!--
-	LinkButtonForm — sub-form for AddWidgetModal (REQ-LBN-006)
-
-	Exposes six fields:
-	  label         — required text
-	  actionType    — select: external | internal | createFile
-	  url           — required; placeholder swaps with actionType
-	  icon          — optional via IconPicker
-	  backgroundColor — optional colour picker
-	  textColor       — optional colour picker
-
-	Emits `update:content` on every change so the parent modal can track
-	the live content blob. Exposes `validate()` which returns a non-empty
-	error array when label or url is missing.
-
-	Pre-fills from `editingWidget.content` on mount.
--->
-
 <template>
 	<div class="link-button-form">
-		<!-- Label (required) -->
-		<div class="link-button-form__field">
-			<label :for="labelInputId" class="link-button-form__label">
-				{{ tt('Label') }} <span aria-hidden="true">*</span>
-			</label>
+		<NcTextField
+			:value="label"
+			:label="t('mydash', 'Label')"
+			:placeholder="t('mydash', 'Label')"
+			required
+			@update:value="updateField('label', $event)" />
+
+		<NcSelect
+			:value="actionType"
+			:options="actionTypeOptions"
+			:input-label="t('mydash', 'Action Type')"
+			:reduce="(option) => option.value"
+			label="label"
+			:clearable="false"
+			@input="updateField('actionType', $event)" />
+
+		<NcTextField
+			:value="url"
+			:label="t('mydash', 'URL')"
+			:placeholder="urlPlaceholder"
+			required
+			@update:value="updateField('url', $event)" />
+
+		<NcTextField
+			:value="icon"
+			:label="t('mydash', 'Upload Icon (optional)')"
+			:placeholder="t('mydash', 'Icon')"
+			@update:value="updateField('icon', $event)" />
+
+		<label class="link-button-form__color-label">
+			{{ t('mydash', 'Background Color') }}
 			<input
-				:id="labelInputId"
-				v-model="form.label"
-				type="text"
-				class="link-button-form__input"
-				@input="emitUpdate">
-		</div>
-
-		<!-- Action type select -->
-		<div class="link-button-form__field">
-			<label :for="actionTypeSelectId" class="link-button-form__label">
-				{{ tt('Action Type') }}
-			</label>
-			<select
-				:id="actionTypeSelectId"
-				v-model="form.actionType"
-				class="link-button-form__select"
-				@change="emitUpdate">
-				<option value="external">
-					{{ tt('External Link') }}
-				</option>
-				<option value="internal">
-					{{ tt('Internal Function') }}
-				</option>
-				<option value="createFile">
-					{{ tt('Create File') }}
-				</option>
-			</select>
-		</div>
-
-		<!-- URL / action-ID / extension (required) -->
-		<div class="link-button-form__field">
-			<label :for="urlInputId" class="link-button-form__label">
-				{{ urlLabel }} <span aria-hidden="true">*</span>
-			</label>
-			<input
-				:id="urlInputId"
-				v-model="form.url"
-				type="text"
-				class="link-button-form__input"
-				:placeholder="urlPlaceholder"
-				@input="emitUpdate">
-		</div>
-
-		<!-- Icon picker (optional) -->
-		<div class="link-button-form__field">
-			<label class="link-button-form__label">
-				{{ tt('Upload Icon (optional)') }}
-			</label>
-			<IconPicker
-				:value="form.icon"
-				@input="onIconChange" />
-		</div>
-
-		<!-- Background colour -->
-		<div class="link-button-form__field link-button-form__field--row">
-			<label :for="bgColorInputId" class="link-button-form__label">
-				{{ tt('Background Color') }}
-			</label>
-			<input
-				:id="bgColorInputId"
-				v-model="form.backgroundColor"
 				type="color"
+				:value="backgroundColor || '#0070c0'"
 				class="link-button-form__color"
-				@input="emitUpdate">
-		</div>
+				@input="updateField('backgroundColor', $event.target.value)">
+		</label>
 
-		<!-- Text colour -->
-		<div class="link-button-form__field link-button-form__field--row">
-			<label :for="textColorInputId" class="link-button-form__label">
-				{{ tt('Text Color') }}
-			</label>
+		<label class="link-button-form__color-label">
+			{{ t('mydash', 'Text Color') }}
 			<input
-				:id="textColorInputId"
-				v-model="form.textColor"
 				type="color"
+				:value="textColor || '#ffffff'"
 				class="link-button-form__color"
-				@input="emitUpdate">
-		</div>
-
-		<!-- Validation error summary -->
-		<div
-			v-if="errors.length > 0"
-			class="link-button-form__errors"
-			role="alert">
-			<p
-				v-for="(err, i) in errors"
-				:key="i"
-				class="link-button-form__error">
-				{{ err }}
-			</p>
-		</div>
+				@input="updateField('textColor', $event.target.value)">
+		</label>
 	</div>
 </template>
 
 <script>
-import IconPicker from '../../Dashboard/IconPicker.vue'
+import { NcTextField, NcSelect } from '@conduction/nextcloud-vue'
 
-const DEFAULTS = {
+const ACTION_TYPES = Object.freeze({
+	EXTERNAL: 'external',
+	INTERNAL: 'internal',
+	CREATE_FILE: 'createFile',
+})
+
+const DEFAULT_CONTENT = Object.freeze({
 	label: '',
-	actionType: 'external',
 	url: '',
 	icon: '',
+	actionType: ACTION_TYPES.EXTERNAL,
 	backgroundColor: '',
 	textColor: '',
-}
+})
 
-let uidCounter = 0
-
+/**
+ * LinkButtonForm — sub-form for the AddWidgetModal when the user is
+ * creating or editing a `link` placement (REQ-LBN-006).
+ *
+ * Six fields: `label`, `actionType`, `url`, `icon`, `backgroundColor`,
+ * `textColor`. The `url` placeholder swaps with `actionType`
+ * (`https://...`, `action-id`, `docx`). `validate()` requires both
+ * `label` AND `url` non-empty and returns a non-empty error array
+ * otherwise. The form pre-fills from `editingWidget.content` when
+ * editing an existing widget.
+ */
 export default {
 	name: 'LinkButtonForm',
 
 	components: {
-		IconPicker,
+		NcTextField,
+		NcSelect,
 	},
 
 	props: {
 		/**
-		 * The widget being edited, or null for a new widget.
-		 * Pre-fills form when provided.
+		 * The placement being edited, or `null` in create mode.
 		 */
 		editingWidget: {
 			type: Object,
 			default: null,
+		},
+		/**
+		 * Initial content values — used when not editing and the
+		 * parent supplies registry defaults.
+		 */
+		value: {
+			type: Object,
+			default: () => ({ ...DEFAULT_CONTENT }),
 		},
 	},
 
 	emits: ['update:content'],
 
 	data() {
+		const initial = this.editingWidget?.content || this.value || {}
 		return {
-			uid: ++uidCounter,
-			form: { ...DEFAULTS },
-			errors: [],
+			label: initial.label ?? DEFAULT_CONTENT.label,
+			url: initial.url ?? DEFAULT_CONTENT.url,
+			icon: initial.icon ?? DEFAULT_CONTENT.icon,
+			actionType: initial.actionType ?? DEFAULT_CONTENT.actionType,
+			backgroundColor: initial.backgroundColor ?? DEFAULT_CONTENT.backgroundColor,
+			textColor: initial.textColor ?? DEFAULT_CONTENT.textColor,
 		}
 	},
 
 	computed: {
-		labelInputId() {
-			return `lbf-label-${this.uid}`
+		actionTypeOptions() {
+			return [
+				{ value: ACTION_TYPES.EXTERNAL, label: t('mydash', 'External Link') },
+				{ value: ACTION_TYPES.INTERNAL, label: t('mydash', 'Internal Function') },
+				{ value: ACTION_TYPES.CREATE_FILE, label: t('mydash', 'Create File') },
+			]
 		},
 
-		actionTypeSelectId() {
-			return `lbf-action-${this.uid}`
-		},
-
-		urlInputId() {
-			return `lbf-url-${this.uid}`
-		},
-
-		bgColorInputId() {
-			return `lbf-bg-${this.uid}`
-		},
-
-		textColorInputId() {
-			return `lbf-tc-${this.uid}`
-		},
-
-		/** Label above the URL/ID/extension field, swaps with actionType. */
-		urlLabel() {
-			if (this.form.actionType === 'internal') {
-				return this.tt('Internal Function')
-			}
-
-			if (this.form.actionType === 'createFile') {
-				return this.tt('Create File')
-			}
-
-			return 'URL'
-		},
-
-		/** Placeholder for the url field, swaps with actionType (REQ-LBN-006). */
 		urlPlaceholder() {
-			if (this.form.actionType === 'internal') {
+			switch (this.actionType) {
+			case ACTION_TYPES.INTERNAL:
 				return 'action-id'
-			}
-
-			if (this.form.actionType === 'createFile') {
+			case ACTION_TYPES.CREATE_FILE:
 				return 'docx'
+			case ACTION_TYPES.EXTERNAL:
+			default:
+				return 'https://...'
 			}
-
-			return 'https://...'
 		},
-	},
 
-	mounted() {
-		const content = this.editingWidget?.content || {}
-		this.form = {
-			label: typeof content.label === 'string' ? content.label : DEFAULTS.label,
-			actionType: ['external', 'internal', 'createFile'].includes(content.actionType)
-				? content.actionType
-				: DEFAULTS.actionType,
-			url: typeof content.url === 'string' ? content.url : DEFAULTS.url,
-			icon: typeof content.icon === 'string' ? content.icon : DEFAULTS.icon,
-			backgroundColor: typeof content.backgroundColor === 'string'
-				? content.backgroundColor
-				: DEFAULTS.backgroundColor,
-			textColor: typeof content.textColor === 'string'
-				? content.textColor
-				: DEFAULTS.textColor,
-		}
+		assembledContent() {
+			return {
+				label: this.label,
+				url: this.url,
+				icon: this.icon,
+				actionType: this.actionType,
+				backgroundColor: this.backgroundColor,
+				textColor: this.textColor,
+			}
+		},
 	},
 
 	methods: {
-		tt(key) {
-			if (typeof t === 'function') {
-				return t('mydash', key)
-			}
-
-			return key
-		},
-
-		emitUpdate() {
-			this.$emit('update:content', { ...this.form })
-		},
-
-		onIconChange(value) {
-			this.form.icon = value || ''
-			this.emitUpdate()
+		/**
+		 * Set a field and notify the parent.
+		 *
+		 * @param {string} field one of: label, url, icon, actionType, backgroundColor, textColor
+		 * @param {string} value new value
+		 */
+		updateField(field, value) {
+			this[field] = value
+			this.$emit('update:content', this.assembledContent)
 		},
 
 		/**
-		 * Validate the form. Returns an array of localised error strings.
-		 * Empty array means the form is valid (REQ-LBN-006).
+		 * REQ-LBN-006: validate() requires both `label` AND `url`
+		 * non-empty and returns a non-empty error array otherwise.
 		 *
-		 * @return {string[]} Array of error messages.
+		 * @return {string[]} validation errors
 		 */
 		validate() {
-			const errs = []
-
-			if (!this.form.label || this.form.label.trim() === '') {
-				errs.push(this.tt('Label text is required'))
+			const errors = []
+			if (typeof this.label !== 'string' || this.label.trim() === '') {
+				errors.push(t('mydash', 'Label is required'))
 			}
-
-			if (!this.form.url || this.form.url.trim() === '') {
-				errs.push(this.tt('Please enter a file name'))
+			if (typeof this.url !== 'string' || this.url.trim() === '') {
+				errors.push(t('mydash', 'URL is required'))
 			}
-
-			this.errors = errs
-			return errs
+			return errors
 		},
 	},
 }
@@ -277,55 +192,24 @@ export default {
 .link-button-form {
 	display: flex;
 	flex-direction: column;
-	gap: 14px;
+	gap: 12px;
 }
 
-.link-button-form__field {
+.link-button-form__color-label {
 	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.link-button-form__field--row {
-	flex-direction: row;
 	align-items: center;
-	gap: 8px;
-}
-
-.link-button-form__label {
-	font-weight: bold;
-	font-size: 13px;
-}
-
-.link-button-form__input,
-.link-button-form__select {
-	width: 100%;
-	padding: 6px 8px;
-	border: 1px solid var(--color-border);
-	border-radius: 4px;
+	justify-content: space-between;
+	gap: 12px;
 	font-size: 14px;
-	box-sizing: border-box;
 }
 
 .link-button-form__color {
-	width: 40px;
+	width: 48px;
 	height: 32px;
 	padding: 0;
 	border: 1px solid var(--color-border);
-	border-radius: 4px;
+	border-radius: var(--border-radius);
 	cursor: pointer;
-}
-
-.link-button-form__errors {
-	margin-top: 4px;
-}
-
-.link-button-form__error {
-	margin: 0 0 4px;
-	padding: 4px 8px;
-	font-size: 12px;
-	color: var(--color-error);
-	background-color: rgba(192, 0, 0, 0.1);
-	border-radius: 2px;
+	background: transparent;
 }
 </style>

@@ -3,9 +3,10 @@
 /**
  * InvalidFilenameException
  *
- * Raised when the supplied filename fails the strict regex validation
- * or contains path-traversal characters. Maps to HTTP 400 + error code
- * `invalid_filename`.
+ * Raised when the supplied filename for `POST /api/files/create` fails the
+ * strict regex validation (REQ-LBN-004): empty, too long, contains `..`,
+ * `/`, `\`, null byte, or fails the `^[a-zA-Z0-9_\-. ]+$` pattern. Maps
+ * to HTTP 400 + error code `invalid_filename`.
  *
  * @category  Exception
  * @package   OCA\MyDash\Exception
@@ -24,7 +25,7 @@ declare(strict_types=1);
 namespace OCA\MyDash\Exception;
 
 /**
- * Supplied filename is empty, too long, or contains disallowed characters.
+ * Filename failed strict validation (empty, too long, or disallowed characters).
  */
 class InvalidFilenameException extends ResourceException
 {

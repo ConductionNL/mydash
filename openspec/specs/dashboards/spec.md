@@ -324,6 +324,413 @@ Dashboard objects MUST be consistently serialized across all API responses.
 - WHEN the dashboard is serialized
 - THEN timestamps MUST be in "Y-m-d H:i:s" format (e.g., "2026-03-20 14:30:00")
 
+### Requirement: REQ-DASH-011 Group-shared dashboard type
+
+The system MUST support a third dashboard type `group_shared` in addition to `user` and `admin_template`. A group-shared dashboard is owned by an administrator, scoped to one Nextcloud group via a `groupId` field, and rendered live (not copied) to every member of that group. Edits made by an administrator MUST be visible to all group members on their next page load.
+
+#### Scenario: Create a group-shared dashboard
+
+- GIVEN a logged-in administrator "admin" and a Nextcloud group "marketing"
+- WHEN admin sends `POST /api/dashboards/group/marketing` with body `{"name": "Marketing Overview"}`
+- THEN the system MUST create a dashboard record with `type = 'group_shared'`, `groupId = 'marketing'`, and `userId = null`
+- AND the response MUST return HTTP 201 with the new dashboard
+
+#### Scenario: Non-admin cannot create a group-shared dashboard
+
+- GIVEN a logged-in user "alice" who is not an administrator
+- WHEN she sends `POST /api/dashboards/group/marketing` with any body
+- THEN the system MUST return HTTP 403
+
+#### Scenario: Group-shared dashboard appears for every group member
+
+- GIVEN admin has created a group-shared dashboard `D1` with `groupId = 'marketing'`
+- AND user "bob" is a member of group "marketing"
+- WHEN bob calls `GET /api/dashboards/visible`
+- THEN the response MUST include `D1`
+
+#### Scenario: Group-shared dashboards are read-only for non-admins
+
+- GIVEN bob (non-admin) is viewing group-shared dashboard `D1`
+- WHEN he sends `PUT /api/dashboards/group/marketing/{D1.uuid}` with any body
+- THEN the system MUST return HTTP 403
+- AND the dashboard MUST NOT be modified
+
+#### Scenario: Direct mutation via personal endpoint is rejected
+
+- GIVEN bob (non-admin) is viewing group-shared dashboard `D1` (owner type `group_shared`)
+- WHEN he sends `PUT /api/dashboard/{D1.id}` (the personal endpoint)
+- THEN the system MUST return HTTP 403 (ownership check fails — `D1.userId` is null, not bob)
+
+#### Scenario: Invariant — `group_shared` requires `groupId`
+
+- GIVEN any caller attempts to insert a dashboard row with `type='group_shared'` and `groupId IS NULL`
+- THEN the system MUST throw `\InvalidArgumentException` (enforced by `DashboardFactory::create()`)
+- AND no row MUST be persisted
+
+#### Scenario: Invariant — non-`group_shared` types must not have a `groupId`
+
+- GIVEN any caller attempts to insert a dashboard with `type='user'` and `groupId='marketing'`
+- THEN the system MUST throw `\InvalidArgumentException`
+- AND no row MUST be persisted
+
+### Requirement: REQ-DASH-012 Default-group sentinel
+
+The system MUST recognise the literal `groupId = 'default'` as a synthetic group meaning "visible to all users", regardless of their actual group membership. Group-shared dashboards with `groupId = 'default'` MUST be returned by every user's `/api/dashboards/visible` query in addition to the dashboards from groups they belong to.
+
+#### Scenario: Default-group dashboard visible to user with no matching groups
+
+- GIVEN admin has created group-shared dashboards: `D-default` with `groupId='default'` and `D-eng` with `groupId='engineering'`
+- AND user "carol" belongs only to group "support"
+- WHEN she calls `GET /api/dashboards/visible`
+- THEN the response MUST include `D-default`
+- AND MUST NOT include `D-eng`
+
+#### Scenario: 'default' is not a real Nextcloud group
+
+- GIVEN admin sends `POST /api/dashboards/group/default` with body `{"name": "Welcome"}`
+- THEN the system MUST accept the request even when no Nextcloud group with id "default" exists
+- AND the dashboard MUST be created with `groupId = 'default'`
+
+#### Scenario: Default-group dashboard carries `source: 'default'` not `source: 'group'`
+
+- GIVEN a default-group dashboard `D-default` exists
+- AND user "alice" is also a member of a real group (so `D-default` could in theory be tagged either way)
+- WHEN she calls `GET /api/dashboards/visible`
+- THEN `D-default` MUST appear in the response with `source: 'default'`
+- AND MUST NOT appear with `source: 'group'`
+
+### Requirement: REQ-DASH-013 Visible-to-user resolution
+
+The system MUST expose `GET /api/dashboards/visible` that returns the union of three dashboard sets, deduplicated by UUID, in this priority order:
+
+1. Personal `user`-type dashboards owned by the current user
+2. `group_shared` dashboards whose `groupId` matches one of the user's Nextcloud groups
+3. `group_shared` dashboards whose `groupId = 'default'`
+
+Each returned dashboard MUST carry an additional `source` field with values `'user'`, `'group'`, or `'default'` so the frontend can route subsequent edits to the correct endpoint.
+
+#### Scenario: Source field discriminates origin
+
+- GIVEN user "alice" has 1 personal dashboard, 2 group-shared dashboards in groups she belongs to, and 1 default-group dashboard exists
+- WHEN she calls `GET /api/dashboards/visible`
+- THEN the response MUST contain 4 dashboards
+- AND each MUST carry exactly one of `source: 'user' | 'group' | 'default'`
+- AND the personal dashboard MUST have `source: 'user'`
+
+#### Scenario: Deduplication by UUID
+
+- GIVEN a group-shared dashboard exists where the user is a member of the targeted group AND that same dashboard's UUID also appears in another result set (rare edge case from a future multi-group support or a misconfigured fixture)
+- WHEN she calls `GET /api/dashboards/visible`
+- THEN it MUST appear only once in the response
+
+#### Scenario: User with no personal dashboards still gets visible result
+
+- GIVEN user "dave" has zero personal dashboards
+- AND he is a member of group "engineering" which has 1 group-shared dashboard
+- AND 1 default-group dashboard exists
+- WHEN he calls `GET /api/dashboards/visible`
+- THEN the response MUST contain 2 dashboards (the engineering one with `source='group'`, the default one with `source='default'`)
+
+#### Scenario: User with no groups and no defaults gets only personal
+
+- GIVEN user "eve" has 1 personal dashboard
+- AND she belongs to no groups
+- AND no default-group dashboards exist
+- WHEN she calls `GET /api/dashboards/visible`
+- THEN the response MUST contain exactly 1 dashboard with `source='user'`
+
+#### Scenario: Admin gets group-shared dashboards as `source='group'` even though they own them
+
+- GIVEN admin "root" created group-shared dashboard `D1` in group "marketing"
+- AND admin "root" is a member of group "marketing"
+- WHEN admin "root" calls `GET /api/dashboards/visible`
+- THEN `D1` MUST appear with `source='group'` (not `source='user'`)
+- NOTE: ownership of `group_shared` dashboards is admin-collective, not per-user — the `userId` column is null on these rows
+
+### Requirement: REQ-DASH-014 Group-shared dashboard mutation endpoints
+
+The system MUST expose CRUD endpoints scoped to a group:
+
+- `GET /api/dashboards/group/{groupId}` — list group-shared dashboards in that group (any logged-in user can list)
+- `POST /api/dashboards/group/{groupId}` — create a new one (admin only)
+- `GET /api/dashboards/group/{groupId}/{uuid}` — get one (any logged-in user)
+- `PUT /api/dashboards/group/{groupId}/{uuid}` — update name/layout/icon (admin only)
+- `DELETE /api/dashboards/group/{groupId}/{uuid}` — remove (admin only)
+
+#### Scenario: Update propagates immediately
+
+- GIVEN admin updates the layout of group-shared dashboard `D1`
+- WHEN any group member next loads the workspace page
+- THEN the new layout MUST be served (no per-user copy interferes)
+
+#### Scenario: Group-shared dashboard cannot be deleted while it is the last one in the group
+
+- GIVEN group "marketing" has exactly one group-shared dashboard `D1`
+- WHEN admin sends `DELETE /api/dashboards/group/marketing/D1.uuid`
+- THEN the system MUST return HTTP 400 with `{error: 'Cannot delete the only dashboard in the group'}`
+- NOTE: Personal dashboards do NOT have this guard — REQ-DASH-005 deletion remains unrestricted for `user`-type
+
+#### Scenario: Default group is exempt from the last-in-group delete guard
+
+- GIVEN the `default` group has exactly one group-shared dashboard `D-default`
+- WHEN admin sends `DELETE /api/dashboards/group/default/D-default.uuid`
+- THEN the system MUST delete the dashboard
+- AND return HTTP 200
+- NOTE: the default group is curated, not user-bound — admins can intentionally clear it
+
+#### Scenario: Update on a group-shared dashboard rejects userId field changes
+
+- GIVEN admin sends `PUT /api/dashboards/group/marketing/D1.uuid` with body `{"userId": "alice"}`
+- THEN the system MUST ignore the `userId` field
+- AND `D1.userId` MUST remain null
+- AND `D1.type` MUST remain `'group_shared'`
+
+#### Scenario: GroupId mismatch between path and record returns 404
+
+- GIVEN dashboard `D1` has `groupId='marketing'`
+- WHEN admin sends `GET /api/dashboards/group/engineering/D1.uuid`
+- THEN the system MUST return HTTP 404 (the dashboard does not belong to the group named in the path)
+
+#### Scenario: GET /api/dashboards remains backward-compatible
+
+- GIVEN user "alice" has 2 personal dashboards
+- AND admin has created 3 group-shared dashboards visible to her
+- WHEN she sends `GET /api/dashboards` (the legacy listing endpoint)
+- THEN the response MUST contain only her 2 personal dashboards
+- AND MUST NOT contain any of the group-shared ones
+- NOTE: clients wanting the union must call `GET /api/dashboards/visible`; this preserves REQ-DASH-002 semantics for older API consumers
+
+#### Scenario: Group-shared dashboard serialisation includes `groupId`
+
+- GIVEN a group-shared dashboard `D1` is returned via any endpoint
+- WHEN the JSON payload is inspected
+- THEN it MUST contain `groupId` equal to the dashboard's group ID (a non-null string)
+- AND personal / admin_template dashboards in any payload MUST contain `groupId: null`
+
+### Requirement: REQ-DASH-015 Single default group-shared dashboard per group
+
+Within each group (including the synthetic `'default'` group), at most one `group_shared` dashboard MAY have `isDefault = 1`. Switching a dashboard to default MUST atomically clear the flag on any other dashboard in the same group. The transition MUST run inside a single database transaction so concurrent calls cannot leave two dashboards with `isDefault = 1` in the same group.
+
+#### Scenario: Setting default flips others off
+
+- GIVEN group "marketing" has 3 group-shared dashboards: `A` (`isDefault=1`), `B`, `C`
+- WHEN admin sends `POST /api/dashboards/group/marketing/default` with body `{"uuid": "<C.uuid>"}`
+- THEN `C.isDefault` MUST become `1`
+- AND `A.isDefault` MUST become `0`
+- AND `B.isDefault` MUST remain `0`
+
+#### Scenario: Default cannot be set across groups
+
+- GIVEN dashboard `D1` has `groupId = 'marketing'`
+- WHEN admin sends `POST /api/dashboards/group/sales/default` with body `{"uuid": "<D1.uuid>"}`
+- THEN the system MUST return HTTP 404
+- AND no `isDefault` flag MUST be modified on any dashboard
+
+#### Scenario: Setting non-existent dashboard as default
+
+- GIVEN group "marketing" exists with no dashboards (or no dashboard with the given uuid)
+- WHEN admin sends `POST /api/dashboards/group/marketing/default` with a uuid that does not match any dashboard in the group
+- THEN the system MUST return HTTP 404
+
+#### Scenario: Non-admin cannot set default
+
+- GIVEN user "alice" who is not an administrator
+- WHEN she sends `POST /api/dashboards/group/marketing/default` with any body
+- THEN the system MUST return HTTP 403
+- AND no `isDefault` flag MUST be modified
+
+#### Scenario: Transaction safety under concurrent calls
+
+- GIVEN group "marketing" has 3 group-shared dashboards `A`, `B`, `C` with `A.isDefault=1`
+- WHEN two admins concurrently send `POST /api/dashboards/group/marketing/default` with body `{"uuid": "<B.uuid>"}` and `{"uuid": "<C.uuid>"}` respectively
+- THEN exactly one of `B` or `C` MUST end up with `isDefault=1`
+- AND the other two dashboards in the group MUST have `isDefault=0`
+- AND no row MUST be left with `isDefault=1` for two different uuids in the same group
+
+### Requirement: REQ-DASH-016 New group-shared dashboards default to non-default
+
+When a `group_shared` dashboard is created via `POST /api/dashboards/group/{groupId}`, the system MUST set `isDefault = 0` regardless of any `isDefault` field present in the request body. Promoting a dashboard to default requires an explicit `POST /api/dashboards/group/{groupId}/default` call.
+
+#### Scenario: Create-then-no-default
+
+- GIVEN group "marketing" has no dashboards
+- WHEN admin sends `POST /api/dashboards/group/marketing` with body `{"name": "First"}`
+- THEN the resulting dashboard MUST have `isDefault = 0`
+- AND no other dashboard MUST be created with `isDefault = 1`
+
+#### Scenario: Create payload cannot smuggle isDefault
+
+- GIVEN group "marketing" has no dashboards
+- WHEN admin sends `POST /api/dashboards/group/marketing` with body `{"name": "Sneaky", "isDefault": 1}`
+- THEN the resulting dashboard MUST have `isDefault = 0`
+- AND the `isDefault` field in the request body MUST be ignored by `DashboardService::saveGroupShared`
+
+#### Scenario: First dashboard in a group is not auto-promoted
+
+- GIVEN group "engineering" has zero group-shared dashboards
+- WHEN admin creates the first group-shared dashboard `D1` via `POST /api/dashboards/group/engineering`
+- THEN `D1.isDefault` MUST be `0`
+- AND the active-dashboard resolution chain MUST fall through to "first by sortOrder" semantics rather than implicitly promoting `D1`
+
+### Requirement: REQ-DASH-017 Default flag survives admin edits
+
+Updates to a group-shared dashboard via `PUT /api/dashboards/group/{groupId}/{uuid}` MUST NOT change the `isDefault` flag, regardless of payload contents. The flag is only mutated by the dedicated `POST /api/dashboards/group/{groupId}/default` endpoint.
+
+#### Scenario: PUT cannot flip the default off
+
+- GIVEN dashboard `A` has `isDefault = 1`
+- WHEN admin sends `PUT /api/dashboards/group/marketing/<A.uuid>` with body `{"name": "Renamed", "isDefault": 0}`
+- THEN `A.name` MUST become "Renamed"
+- AND `A.isDefault` MUST remain `1`
+
+#### Scenario: PUT cannot flip the default on
+
+- GIVEN dashboard `B` has `isDefault = 0`
+- AND dashboard `A` in the same group has `isDefault = 1`
+- WHEN admin sends `PUT /api/dashboards/group/marketing/<B.uuid>` with body `{"name": "Renamed", "isDefault": 1}`
+- THEN `B.name` MUST become "Renamed"
+- AND `B.isDefault` MUST remain `0`
+- AND `A.isDefault` MUST remain `1`
+
+### Requirement: REQ-DASH-018 Active-dashboard resolution chain (multi-scope)
+
+When the workspace page renders for a user, the system MUST resolve which dashboard is "active" by walking the following precedence and stopping at the first match:
+
+1. The dashboard whose UUID equals the user's `active_dashboard_uuid` preference, IF that dashboard is currently visible to the user (per REQ-DASH-013).
+2. The `group_shared` dashboard with `isDefault = 1` in the user's primary group (per REQ-DASH-015).
+3. The `group_shared` dashboard with `isDefault = 1` in the synthetic `'default'` group.
+4. The first `group_shared` dashboard (by `sortOrder` ascending, then `createdAt`) in the user's primary group.
+5. The first `group_shared` dashboard in the `'default'` group.
+6. The user's first personal `user`-type dashboard (by `sortOrder`, then `createdAt`).
+7. `null` — the workspace page MUST then render an empty-state with a "Create your first dashboard" affordance.
+
+The resolver MUST attach a `source` field to the returned dashboard descriptor with one of `'user'`, `'group'`, `'default'`. REQ-DASH-018 supersedes REQ-DASH-009 for the workspace boot path; REQ-DASH-009 remains in force for personal-only callers (e.g. `GET /api/dashboard`).
+
+#### Scenario: Honoured user preference
+
+- GIVEN user "alice" has `active_dashboard_uuid` set to `<X.uuid>`
+- AND `X` is a personal dashboard owned by alice
+- WHEN she opens the workspace page
+- THEN the resolved active dashboard MUST be `X` with `source = 'user'`
+
+#### Scenario: Stale preference is silently cleared
+
+- GIVEN user "alice" has `active_dashboard_uuid` set to `<Y.uuid>`
+- AND `Y` has been deleted (or is no longer visible to alice)
+- WHEN she opens the workspace page
+- THEN the resolver MUST clear her `active_dashboard_uuid` preference (set to empty string or unset)
+- AND MUST proceed down the precedence chain
+- AND the response MUST NOT raise an error to the user
+
+#### Scenario: Group default wins over default-group default
+
+- GIVEN user "bob" belongs to group "engineering"
+- AND group "engineering" has a default dashboard `E`
+- AND the `'default'` group also has a default dashboard `D`
+- AND bob has no `active_dashboard_uuid` preference
+- WHEN he opens the workspace page
+- THEN the resolved dashboard MUST be `E` with `source = 'group'`
+
+#### Scenario: Falls through to default group when primary group has no dashboards
+
+- GIVEN user "carol" belongs to group "support" which has zero group-shared dashboards
+- AND the `'default'` group has one default dashboard `D`
+- WHEN she opens the workspace page
+- THEN the resolved dashboard MUST be `D` with `source = 'default'`
+
+#### Scenario: Empty state when no dashboards exist anywhere
+
+- GIVEN a brand-new MyDash install with no dashboards of any type
+- WHEN any user opens the workspace page
+- THEN the resolver MUST return `null`
+- AND the response MUST include `activeDashboardId: ''` in initial state
+- AND the page MUST render the empty-state UI
+
+### Requirement: REQ-DASH-019 Persist active-dashboard preference
+
+The system MUST expose `POST /api/dashboards/active` accepting `{uuid: string}`. On success it MUST persist the value to the user's `active_dashboard_uuid` preference (stored in `oc_preferences` via `IConfig::setUserValue`).
+
+#### Scenario: Save preference
+
+- GIVEN user "alice" is logged in
+- WHEN she sends `POST /api/dashboards/active` with body `{"uuid": "abc-123"}`
+- THEN her `active_dashboard_uuid` preference MUST become `"abc-123"`
+- AND the response MUST be HTTP 200 `{status: 'success'}`
+
+#### Scenario: Empty uuid clears the preference
+
+- GIVEN alice has a saved preference
+- WHEN she sends `POST /api/dashboards/active` with body `{"uuid": ""}`
+- THEN her `active_dashboard_uuid` preference MUST be cleared (next page load falls through the chain from step 2)
+
+#### Scenario: No existence check on write
+
+- GIVEN alice sends `POST /api/dashboards/active` with body `{"uuid": "does-not-exist"}`
+- THEN the system MUST accept the write (HTTP 200)
+- NOTE: The resolver's stale-preference path (REQ-DASH-018 scenario "stale preference is silently cleared") will silently clear it on next render. We deliberately do not validate on write to keep the endpoint cheap.
+
+### Requirement: REQ-DASH-020 Fork any visible dashboard as a personal copy
+
+The system MUST expose `POST /api/dashboards/{uuid}/fork` that creates a new `user`-type dashboard owned by the calling user, deep-copying all widget placements from the source. The new dashboard MUST become the user's active dashboard. Forking MUST be gated on the admin setting `allow_user_dashboards = '1'`; otherwise the endpoint MUST return HTTP 403.
+
+#### Scenario: Fork a group-shared dashboard
+
+- GIVEN admin setting `allow_user_dashboards = '1'`
+- AND user "alice" can read group-shared dashboard `S` (groupId='marketing') containing 4 widget placements
+- WHEN she sends `POST /api/dashboards/{S.uuid}/fork` with body `{"name": "My Marketing"}`
+- THEN the system MUST create a new dashboard `F` with `userId = 'alice'`, `type = 'user'`, `groupId = null`, `isDefault = 0`, `isActive = 1` (and all other alice-owned dashboards deactivated), `gridColumns = S.gridColumns`, and `name = "My Marketing"`
+- AND `F` MUST contain 4 widget placements that are byte-for-byte clones of `S`'s placements (same gridX/Y/W/H, customTitle, styleConfig, tile fields) with new placement IDs and `dashboardId = F.id`
+- AND `S` MUST remain unchanged
+- AND the response MUST be HTTP 201 with the full `F` payload
+
+#### Scenario: Fork uses a default name when none provided
+
+- GIVEN dashboard `S` has `name = "Marketing Overview"`
+- WHEN alice sends `POST /api/dashboards/{S.uuid}/fork` with empty body
+- THEN the new dashboard's `name` MUST be `"My copy of Marketing Overview"` (translated string `t('My copy of {name}', {name: S.name})`)
+
+#### Scenario: Fork is gated on admin setting
+
+- GIVEN admin setting `allow_user_dashboards = '0'`
+- WHEN alice sends `POST /api/dashboards/{S.uuid}/fork` with any body
+- THEN the system MUST return HTTP 403 with the stable error envelope `{status: 'error', error: 'personal_dashboards_disabled', message: 'Personal dashboards are not enabled by your administrator'}` (REQ-ASET-003 cross-reference)
+
+#### Scenario: Cannot fork a dashboard you cannot read
+
+- GIVEN group-shared dashboard `T` exists in group "executives" and alice does NOT belong to that group
+- WHEN alice sends `POST /api/dashboards/{T.uuid}/fork`
+- THEN the system MUST return HTTP 404 (do not leak existence)
+
+#### Scenario: Forking a personal dashboard creates an independent duplicate
+
+- GIVEN alice already has personal dashboard `P` with 2 placements
+- WHEN she sends `POST /api/dashboards/{P.uuid}/fork`
+- THEN the system MUST create a new dashboard `P2` that is a deep clone of `P`
+- AND mutating `P2` MUST NOT affect `P` (and vice versa)
+
+### Requirement: REQ-DASH-021 Fork is transactional
+
+The fork operation MUST execute inside a single database transaction. If any part fails (placement insert, deactivation of other dashboards, etc.) the entire fork MUST be rolled back and HTTP 500 returned.
+
+#### Scenario: Partial-failure rollback
+
+- GIVEN any database error occurs while inserting cloned placements
+- WHEN the fork endpoint catches the error
+- THEN the new dashboard row MUST also be removed (transaction rolled back)
+- AND `S`'s placements MUST remain visible to alice
+- AND alice's previously active dashboard (if any) MUST remain active
+
+### Requirement: REQ-DASH-022 Fork does not duplicate uploaded resources
+
+When cloned placements reference uploaded resources (e.g. `tileIcon` URLs starting with `/apps/mydash/resource/...`, or widget content fields with similar URLs), the fork MUST keep the same URL — it MUST NOT duplicate the underlying resource bytes. Both dashboards then reference the shared resource record.
+
+#### Scenario: Shared resource reference
+
+- GIVEN dashboard `S` has a tile placement with `tileIcon = '/apps/mydash/resource/abc123.png'`
+- WHEN alice forks `S`
+- THEN `F`'s corresponding placement MUST have `tileIcon = '/apps/mydash/resource/abc123.png'` (same URL)
+- AND no new file MUST be created in app data
+
 ## Non-Functional Requirements
 
 - **Performance**: GET /api/dashboards MUST return within 500ms for users with up to 50 dashboards. GET /api/dashboard MUST return within 1 second including template distribution if needed.
@@ -342,6 +749,11 @@ Dashboard objects MUST be consistently serialized across all API responses.
 - REQ-DASH-006 (Activate Dashboard): `DashboardService::activateDashboard()` via `DashboardMapper::setActive()`.
 - REQ-DASH-008 (Dashboard Type Enforcement): Admin templates via `AdminController`, user dashboards via `DashboardFactory`.
 - REQ-DASH-009 (Dashboard Resolution Chain): Full chain implemented in `DashboardService::getEffectiveDashboard()`.
+- REQ-DASH-018 (Active-dashboard resolution chain — multi-scope): `DashboardService::resolveActiveDashboard()` + 7-step chain, called from `PageController::index` and mirrored client-side in `useDashboardStore.resolveActive`.
+- REQ-DASH-019 (Persist active-dashboard preference): `POST /api/dashboards/active` → `DashboardApiController::setActiveDashboard()` → `DashboardService::setActivePreference()`. Preference stored under `oc_preferences` key `active_dashboard_uuid`.
+- REQ-DASH-020 (Fork as Personal): `DashboardService::forkAsPersonal()` wraps `WidgetPlacementMapper::cloneToDashboard()` in a single `IDBConnection::beginTransaction` — gated via `assertPersonalDashboardsAllowed()` (REQ-ASET-003) and resolved against the visible-to-user chain (REQ-DASH-013). Endpoint: `POST /api/dashboards/{uuid}/fork` on `DashboardApiController::fork`.
+- REQ-DASH-021 (Fork is transactional): rollback covered by the wide `Throwable` catch in `forkAsPersonal()` — exercised by `DashboardServiceForkTest::testForkRollsBackOnPlacementCloneFailure`.
+- REQ-DASH-022 (Shared resource references): `WidgetPlacementMapper::cloneToDashboard()` copies `tileIcon` and other `/apps/mydash/resource/...` URLs verbatim — no resource bytes are duplicated. Cross-references the resource-uploads change.
 
 **Not yet implemented:**
 - REQ-DASH-001/007 validation: No name or gridColumns validation.

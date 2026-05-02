@@ -216,10 +216,13 @@ class AdminController extends Controller
     /**
      * Update admin settings.
      *
-     * @param string|null $defaultPermLevel Default permission level.
-     * @param bool|null   $allowUserDash    Allow user dashboards.
-     * @param bool|null   $allowMultiDash   Allow multiple dashboards.
-     * @param int|null    $defaultGridCols  Default grid columns.
+     * @param string|null $defaultPermLevel   Default permission level.
+     * @param bool|null   $allowUserDash      Allow user dashboards.
+     * @param bool|null   $allowMultiDash     Allow multiple dashboards.
+     * @param int|null    $defaultGridCols    Default grid columns.
+     * @param array|null  $linkCreateFileExts link-button-widget createFile
+     *                                        extension allow-list
+     *                                        (REQ-LBN-004).
      *
      * @return JSONResponse The update confirmation.
      */
@@ -227,14 +230,16 @@ class AdminController extends Controller
         ?string $defaultPermLevel=null,
         ?bool $allowUserDash=null,
         ?bool $allowMultiDash=null,
-        ?int $defaultGridCols=null
+        ?int $defaultGridCols=null,
+        ?array $linkCreateFileExts=null
     ): JSONResponse {
         try {
             $this->settingsService->updateSettings(
                 defaultPermLevel: $defaultPermLevel,
                 allowUserDash: $allowUserDash,
                 allowMultiDash: $allowMultiDash,
-                defaultGridCols: $defaultGridCols
+                defaultGridCols: $defaultGridCols,
+                linkCreateFileExts: $linkCreateFileExts
             );
 
             return ResponseHelper::success(data: ['status' => 'ok']);

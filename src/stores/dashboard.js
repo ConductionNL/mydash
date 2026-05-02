@@ -4,7 +4,25 @@
  */
 
 import { defineStore } from 'pinia'
+import { showError } from '@nextcloud/dialogs'
+import { translate as t } from '@nextcloud/l10n'
+
 import { api } from '../services/api.js'
+import {
+	placeNewWidget,
+	DEFAULT_W,
+	DEFAULT_H,
+} from '../composables/useGridManager.js'
+
+/**
+ * Stable backend error code returned by `POST /api/dashboard` when the admin
+ * setting `allow_user_dashboards` is `false` (REQ-ASET-003). Surfaced as a
+ * localised toast so the UI stays coherent even when the user reaches the
+ * endpoint via a stale-cached affordance or a direct API call.
+ *
+ * @type {string}
+ */
+const ERR_PERSONAL_DASHBOARDS_DISABLED = 'personal_dashboards_disabled'
 
 /**
  * The supported source values returned by GET /api/dashboards/visible.
@@ -17,10 +35,19 @@ export const SOURCE_DEFAULT = 'default'
 
 export const useDashboardStore = defineStore('dashboard', {
 	state: () => ({
+		// `dashboards` carries every dashboard visible to the user
+		// (REQ-DASH-013). Each row carries a `source` field set by the
+		// `/api/dashboards/visible` endpoint: `'user' | 'group' | 'default'`.
+		// The frontend uses the source to route subsequent edit calls
+		// to the correct backend endpoint (personal vs group-scoped).
 		dashboards: [],
 		activeDashboard: null,
 		widgetPlacements: [],
 		permissionLevel: 'full',
+		// User's primary group id — read from initial state by the
+		// workspace bootstrap. Used by `resolveActive` to mirror the
+		// backend 7-step precedence (REQ-DASH-018).
+		primaryGroup: '',
 		loading: false,
 		saving: false,
 	}),
@@ -36,19 +63,106 @@ export const useDashboardStore = defineStore('dashboard', {
 			return state.widgetPlacements.filter(p => p.isCompulsory)
 		},
 
-		// REQ-DASH-013 — group-shared dashboards bound to a real group.
+		// REQ-DASH-013 — personal user-owned dashboards. Backed by the
+		// `/api/dashboards/visible` payload.
+		userDashboards: (state) => {
+			return state.dashboards.filter(d => d.source === SOURCE_USER)
+		},
+
+		// REQ-DASH-013 — personal user-owned dashboards (alias for
+		// userDashboards; matches the dev-branch naming).
+		personalDashboards: (state) => {
+			return state.dashboards.filter(d => d.source === SOURCE_USER)
+		},
+
+		// REQ-DASH-014 — group-matching shared dashboards (`source ===
+		// 'group'`).
 		groupSharedDashboards: (state) => {
 			return state.dashboards.filter(d => d.source === SOURCE_GROUP)
 		},
 
-		// REQ-DASH-013 — group-shared dashboards bound to the 'default' sentinel.
+		// REQ-DASH-012 — default-group shared dashboards (`source ===
+		// 'default'`).
 		defaultGroupDashboards: (state) => {
 			return state.dashboards.filter(d => d.source === SOURCE_DEFAULT)
 		},
 
-		// REQ-DASH-013 — personal user-owned dashboards.
-		personalDashboards: (state) => {
-			return state.dashboards.filter(d => d.source === SOURCE_USER)
+		/**
+		 * Mirror of the backend 7-step resolver (REQ-DASH-018) for purely
+		 * client-side fallback after store mutations (e.g. dashboard delete,
+		 * group dashboards refreshed). The order is identical to the PHP
+		 * resolver so the next page load picks the same dashboard:
+		 *
+		 *   1. activeDashboard if still in the visible list
+		 *   2. group-shared isDefault=1 in primaryGroup (state.primaryGroup)
+		 *   3. default-group isDefault=1
+		 *   4. first group-shared in primaryGroup
+		 *   5. first default-group dashboard
+		 *   6. first personal dashboard
+		 *   7. null  → caller renders the empty-state UI
+		 *
+		 * Returns the dashboard descriptor (the row from state.dashboards)
+		 * or null. Source is read off `descriptor.source`.
+		 *
+		 * @param {object} state The Pinia store state.
+		 * @return {object|null} The resolved dashboard row, or null.
+		 */
+		resolveActive: (state) => {
+			const list = state.dashboards || []
+			if (list.length === 0) {
+				return null
+			}
+
+			// Step 1: honour the currently-active dashboard if still visible.
+			const activeId = state.activeDashboard?.id
+			if (activeId !== undefined && activeId !== null) {
+				const stillVisible = list.find(d => d.id === activeId || d.uuid === activeId)
+				if (stillVisible !== undefined) {
+					return stillVisible
+				}
+			}
+
+			const primary = state.primaryGroup || ''
+			const inPrimary = (d) => d.source === SOURCE_GROUP && d.groupId === primary
+			const inDefault = (d) => d.source === SOURCE_DEFAULT
+			const isDefault = (d) => Number(d.isDefault) === 1
+
+			// Step 2: primary-group default.
+			if (primary !== '') {
+				const groupDefault = list.find(d => inPrimary(d) && isDefault(d))
+				if (groupDefault !== undefined) {
+					return groupDefault
+				}
+			}
+
+			// Step 3: default-group default.
+			const defaultDefault = list.find(d => inDefault(d) && isDefault(d))
+			if (defaultDefault !== undefined) {
+				return defaultDefault
+			}
+
+			// Step 4: first group-shared in primary group.
+			if (primary !== '') {
+				const firstInGroup = list.find(d => inPrimary(d))
+				if (firstInGroup !== undefined) {
+					return firstInGroup
+				}
+			}
+
+			// Step 5: first default-group dashboard.
+			const firstInDefault = list.find(d => inDefault(d))
+			if (firstInDefault !== undefined) {
+				return firstInDefault
+			}
+
+			// Step 6: first personal dashboard.
+			const firstPersonal = list.find(d => d.source === SOURCE_USER)
+			if (firstPersonal !== undefined) {
+				return firstPersonal
+			}
+
+			// Step 7: nothing.
+			return null
 		},
 	},
 
@@ -56,19 +170,33 @@ export const useDashboardStore = defineStore('dashboard', {
 		async loadDashboards() {
 			this.loading = true
 			try {
-				// REQ-DASH-013 — primary listing now hits /visible so the
-				// page sees personal + group + default in one payload.
-				const response = await api.getVisibleDashboards()
+				// REQ-DASH-013: prefer the `/visible` endpoint so the store
+				// receives the source-tagged union of personal + group +
+				// default-group dashboards. Older clients that only know
+				// `/api/dashboards` keep working server-side, but the
+				// listing UI uses the unioned source of truth.
+				let response
+				try {
+					response = await api.getVisibleDashboards()
+				} catch (visibleError) {
+					console.warn('Falling back to /api/dashboards (visible endpoint failed):', visibleError)
+					response = await api.getDashboards()
+				}
+				// Defensive default — older backends may not tag rows.
 				this.dashboards = (response.data || []).map(d => ({
 					...d,
-					// Defensive default — older backends may not tag rows.
 					source: d.source ?? SOURCE_USER,
 				}))
 
 				// Load the active dashboard
 				const activeResponse = await api.getActiveDashboard()
 				if (activeResponse.data) {
-					this.activeDashboard = activeResponse.data.dashboard
+					this.activeDashboard = {
+						...activeResponse.data.dashboard,
+						// getActive only returns the user's own dashboards.
+						isOwner: true,
+						sharedBy: null,
+					}
 					this.widgetPlacements = activeResponse.data.placements || []
 					this.permissionLevel = activeResponse.data.permissionLevel || 'full'
 				}
@@ -82,11 +210,31 @@ export const useDashboardStore = defineStore('dashboard', {
 		async switchDashboard(dashboardId) {
 			this.loading = true
 			try {
-				await api.activateDashboard(dashboardId)
-				const response = await api.getActiveDashboard()
-				this.activeDashboard = response.data.dashboard
+				const target = this.dashboards.find(d => d.id === dashboardId)
+				const isOwned = target?.isOwner !== false
+
+				if (isOwned) {
+					// Persist the active flag for owned dashboards.
+					await api.activateDashboard(dashboardId)
+				}
+
+				// Always load full dashboard data via the by-id endpoint;
+				// it returns placements + the user's effective permission
+				// level for both owned and shared dashboards.
+				const response = await api.getDashboardById(dashboardId)
+				this.activeDashboard = {
+					...response.data.dashboard,
+					isOwner: response.data.isOwner,
+					sharedBy: response.data.sharedBy,
+				}
 				this.widgetPlacements = response.data.placements || []
 				this.permissionLevel = response.data.permissionLevel || 'full'
+
+				// REQ-DASH-019: persist the user's choice so subsequent
+				// page loads honour it via the backend resolver. Fire and
+				// forget — failure here is logged but does not block the
+				// UI; the resolver tolerates a missing pref.
+				this.persistActivePreference(this.activeDashboard?.uuid || dashboardId)
 			} catch (error) {
 				console.error('Failed to switch dashboard:', error)
 			} finally {
@@ -94,18 +242,99 @@ export const useDashboardStore = defineStore('dashboard', {
 			}
 		},
 
-		async createDashboard(name = 'My Dashboard') {
+		/**
+		 * Persist the active-dashboard preference (REQ-DASH-019).
+		 *
+		 * Fire-and-forget: a network error here is logged but does NOT
+		 * surface as a toast or block the UI. The backend tolerates a
+		 * missing pref — the resolver just falls through to step 2.
+		 *
+		 * @param {string} uuid The dashboard UUID, or empty string to clear.
+		 * @return {void}
+		 */
+		persistActivePreference(uuid) {
+			api.setActiveDashboardPreference(uuid || '').catch((error) => {
+				console.warn('Failed to persist active dashboard preference:', error)
+			})
+		},
+
+		async createDashboard(payload = 'My Dashboard') {
+			// Accept either a plain name string or an object with
+			// name/description/icon (legacy callers may pass a string).
+			const data = typeof payload === 'string'
+				? { name: payload }
+				: {
+					name: payload.name || 'My Dashboard',
+					description: payload.description,
+					// Optional registry key from the `dashboard-icons`
+					// capability — null/undefined skips the field server-side.
+					icon: payload.icon ?? null,
+				}
 			this.loading = true
 			try {
-				const response = await api.createDashboard({ name })
+				const response = await api.createDashboard(data)
 				this.dashboards.push({
 					...response.data.dashboard,
-					source: SOURCE_USER,
+					// Tag as user-scope so the source-aware getters work.
+					source: response.data.dashboard.source ?? SOURCE_USER,
 				})
 				this.activeDashboard = response.data.dashboard
 				this.widgetPlacements = []
 			} catch (error) {
+				// REQ-ASET-003 (extended): when the backend returns the
+				// stable `personal_dashboards_disabled` envelope, surface
+				// a localised toast — the UI may have offered a stale
+				// affordance or the call may bypass the UI altogether.
+				if (error?.response?.status === 403
+					&& error?.response?.data?.error === ERR_PERSONAL_DASHBOARDS_DISABLED) {
+					showError(t('mydash', 'Personal dashboards are not enabled by your administrator'))
+				}
 				console.error('Failed to create dashboard:', error)
+				throw error
+			} finally {
+				this.loading = false
+			}
+		},
+
+		// REQ-DASH-020: fork any dashboard the user can see (personal,
+		// group, or default-group sentinel) into a brand-new personal
+		// copy. The new dashboard becomes the user's active dashboard
+		// — we push it onto `dashboards` (tagged `source: 'user'` so
+		// the source-aware getters keep working) and pin
+		// `activeDashboard` so the UI rerenders without a reload.
+		async forkDashboard(sourceUuid, name) {
+			this.loading = true
+			try {
+				const response = await api.forkDashboard(sourceUuid, name)
+				const fork = response.data?.dashboard
+				if (fork) {
+					// Tag as `user`-source so `userDashboards` getter
+					// surfaces it without waiting for a /visible refresh.
+					this.dashboards.push({ ...fork, source: 'user', isOwner: true, sharedBy: null })
+					this.activeDashboard = { ...fork, isOwner: true, sharedBy: null }
+					// Placements come back via the next switchDashboard /
+					// loadDashboards round-trip — fork is a brand-new
+					// active dashboard but the by-id endpoint is the
+					// canonical source of truth for placements.
+					this.widgetPlacements = []
+					this.permissionLevel = 'full'
+				}
+				return fork
+			} catch (error) {
+				// REQ-ASET-003 (extended): surface the localised toast
+				// for the gating envelope. Other errors (404 source
+				// not visible, 500 rollback) are surfaced via the
+				// caller; we just log here.
+				if (error?.response?.status === 403
+					&& error?.response?.data?.error === ERR_PERSONAL_DASHBOARDS_DISABLED) {
+					showError(t('mydash', 'Personal dashboards are not enabled by your administrator'))
+				} else if (error?.response?.status === 404) {
+					showError(t('mydash', 'Dashboard not found'))
+				} else {
+					showError(t('mydash', 'Failed to fork dashboard'))
+				}
+				console.error('Failed to fork dashboard:', error)
+				throw error
 			} finally {
 				this.loading = false
 			}
@@ -149,35 +378,121 @@ export const useDashboardStore = defineStore('dashboard', {
 			}
 		},
 
+		/**
+		 * Add a widget to the active dashboard. Routes through
+		 * `placeNewWidget` (REQ-GRID-014) so the placement algorithm
+		 * (REQ-GRID-006: try autoPosition, fall back to top-left + push
+		 * down) is the single source of truth for "where does this go?".
+		 *
+		 * Position-only callers (e.g. legacy code that passed a fully
+		 * computed `{x, y, w, h}`) MAY still supply a `position` object;
+		 * if it includes both `x` AND `y` we honour the explicit choice
+		 * and skip the auto-placement path. Otherwise we delegate to
+		 * `placeNewWidget` and apply any push-down side effects via the
+		 * existing batch-update path (REQ-WDG-008, debounce 300 ms).
+		 *
+		 * @param {string|object} widgetId widget identifier OR a `{type, content}` payload from AddWidgetModal
+		 * @param {object|null} [position] explicit `{x, y, w, h}` (skips auto-placement) or partial spec to seed the helper
+		 */
 		async addWidgetToDashboard(widgetId, position = null) {
 			try {
+				const placement = (position && Number.isFinite(position.x) && Number.isFinite(position.y))
+					? {
+						x: position.x,
+						y: position.y,
+						w: position.w ?? DEFAULT_W,
+						h: position.h ?? DEFAULT_H,
+						pushed: [],
+					}
+					: placeNewWidget(
+						{ w: position?.w, h: position?.h },
+						this.widgetPlacements,
+						{ gridColumns: this.activeDashboard?.gridColumns },
+					)
+
 				const response = await api.addWidget(this.activeDashboard.id, {
 					widgetId,
-					gridX: position?.x ?? 0,
-					gridY: position?.y ?? 0,
-					gridWidth: position?.w ?? 4,
-					gridHeight: position?.h ?? 4,
+					gridX: placement.x,
+					gridY: placement.y,
+					gridWidth: placement.w,
+					gridHeight: placement.h,
 				})
 				this.widgetPlacements.push(response.data)
+
+				if (placement.pushed.length > 0) {
+					await this.applyPushedPlacements(placement.pushed)
+				}
 			} catch (error) {
 				console.error('Failed to add widget:', error)
 			}
 		},
 
+		/**
+		 * Add a tile to the active dashboard. Tiles default to a smaller
+		 * 2×2 footprint than regular widgets but still funnel through
+		 * `placeNewWidget` so the auto-placement + fallback algorithm is
+		 * applied consistently (REQ-GRID-006 / REQ-GRID-014).
+		 *
+		 * @param {object} tileData tile payload (title/icon/colours/link)
+		 * @param {object|null} [position] explicit `{x, y, w, h}` (skips auto-placement) or partial spec to seed the helper
+		 */
 		async addTileToDashboard(tileData, position = null) {
 			try {
+				const placement = (position && Number.isFinite(position.x) && Number.isFinite(position.y))
+					? {
+						x: position.x,
+						y: position.y,
+						w: position.w ?? 2,
+						h: position.h ?? 2,
+						pushed: [],
+					}
+					: placeNewWidget(
+						{ w: position?.w ?? 2, h: position?.h ?? 2 },
+						this.widgetPlacements,
+						{ gridColumns: this.activeDashboard?.gridColumns },
+					)
+
 				const response = await api.addTile(this.activeDashboard.id, {
 					...tileData,
-					gridX: position?.x ?? 0,
-					gridY: position?.y ?? 0,
-					gridWidth: position?.w ?? 2,
-					gridHeight: position?.h ?? 2,
+					gridX: placement.x,
+					gridY: placement.y,
+					gridWidth: placement.w,
+					gridHeight: placement.h,
 				})
 				this.widgetPlacements.push(response.data)
+
+				if (placement.pushed.length > 0) {
+					await this.applyPushedPlacements(placement.pushed)
+				}
 			} catch (error) {
 				console.error('Failed to add tile:', error)
 				throw error
 			}
+		},
+
+		/**
+		 * Apply the push-down side effects produced by `placeNewWidget`
+		 * via the existing batch-update path (REQ-GRID-005). The new
+		 * `gridY` values are merged into the in-memory placement list and
+		 * the whole list is sent in a single round-trip — preserves the
+		 * REQ-WDG-008 single-batch contract (no per-widget PUT storm) and
+		 * inherits the 300 ms debounce already in `updatePlacements`.
+		 *
+		 * @param {Array<{id: any, gridY: number}>} pushed list of push-down side effects from `placeNewWidget`
+		 */
+		async applyPushedPlacements(pushed) {
+			if (!pushed || pushed.length === 0) {
+				return
+			}
+			const pushIndex = new Map(pushed.map(p => [String(p.id), p.gridY]))
+			const merged = this.widgetPlacements.map(p => {
+				const newY = pushIndex.get(String(p.id))
+				if (newY !== undefined) {
+					return { ...p, gridY: newY }
+				}
+				return p
+			})
+			await this.updatePlacements(merged)
 		},
 
 		async removeWidgetFromDashboard(placementId) {
@@ -192,6 +507,47 @@ export const useDashboardStore = defineStore('dashboard', {
 				this.widgetPlacements = this.widgetPlacements.filter(p => p.id !== placementId)
 			} catch (error) {
 				console.error('Failed to remove widget:', error)
+			}
+		},
+
+		/**
+		 * Promote a group-shared dashboard to the group's default
+		 * (REQ-DASH-015). Optimistically flips `isDefault` to 1 on the
+		 * target row and to 0 on every other row in the same group, then
+		 * calls the backend. On 4xx/5xx the snapshot is restored so the
+		 * UI never lies.
+		 *
+		 * @param {string} groupId The dashboard's group id.
+		 * @param {string} uuid The target dashboard's uuid.
+		 * @return {Promise<void>}
+		 */
+		async setGroupDashboardDefault(groupId, uuid) {
+			// Snapshot the affected rows so we can roll back on failure.
+			const snapshot = this.dashboards
+				.filter(d => d.groupId === groupId && d.source !== 'user')
+				.map(d => ({ id: d.id, uuid: d.uuid, isDefault: d.isDefault }))
+
+			// Optimistic update: target → 1, every other row in group → 0.
+			this.dashboards = this.dashboards.map(d => {
+				if (d.groupId !== groupId || d.source === 'user') {
+					return d
+				}
+				return { ...d, isDefault: d.uuid === uuid ? 1 : 0 }
+			})
+
+			try {
+				await api.setGroupDashboardDefault(groupId, uuid)
+			} catch (error) {
+				// Roll back the snapshot — restore every flipped row.
+				this.dashboards = this.dashboards.map(d => {
+					const prev = snapshot.find(s => s.uuid === d.uuid)
+					if (prev === undefined) {
+						return d
+					}
+					return { ...d, isDefault: prev.isDefault }
+				})
+				console.error('Failed to set group default dashboard:', error)
+				throw error
 			}
 		},
 

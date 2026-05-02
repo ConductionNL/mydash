@@ -5,46 +5,49 @@
 
 <template>
 	<div
-		:class="{ visible: isOpen }"
-		class="sidebar-backdrop"
+		class="mydash-sidebar-backdrop sidebar-backdrop"
+		role="presentation"
 		@click="$emit('close')" />
 </template>
 
 <script>
+/**
+ * SidebarBackdrop — a fixed-position click trap rendered behind the
+ * dashboard-switcher slide-in sidebar (REQ-SHELL-006). Clicks anywhere
+ * in the backdrop area emit `close` so the host can drop `sidebarOpen`.
+ *
+ * Starts at `top: 50px` to clear the Nextcloud header chrome and spans
+ * the rest of the viewport. The sidebar panel itself sits ON TOP of this
+ * element with `@click.stop`, so clicks inside the sidebar never reach
+ * here (REQ-SHELL-006 click-on-sidebar-itself scenario).
+ *
+ * Emits:
+ *  - `close`: backdrop click — host drops `sidebarOpen`.
+ *
+ * NOTE: this is the canonical backdrop. The sibling
+ * `dashboard-switcher-sidebar` capability owns the slide-in panel itself;
+ * this backdrop is paired with it but lives in the shell because the
+ * shell owns the `sidebarOpen` state.
+ *
+ * The element carries both `mydash-sidebar-backdrop` (canonical class
+ * used by the shell) and `sidebar-backdrop` (legacy class still
+ * referenced by the standalone unit test).
+ */
 export default {
 	name: 'SidebarBackdrop',
-
-	props: {
-		/**
-		 * Whether the backdrop should be visible
-		 */
-		isOpen: {
-			type: Boolean,
-			default: false,
-		},
-	},
-
 	emits: ['close'],
 }
 </script>
 
-<style scoped lang="scss">
-.sidebar-backdrop {
+<style scoped>
+.mydash-sidebar-backdrop {
 	position: fixed;
-	top: 0;
+	top: 50px;
 	left: 0;
-	width: 100%;
-	height: 100%;
-	background: rgba(0, 0, 0, 0);
-	z-index: 1499;
-	opacity: 0;
-	pointer-events: none;
-	transition: opacity 0.25s ease;
-
-	&.visible {
-		background: rgba(0, 0, 0, 0.3);
-		opacity: 1;
-		pointer-events: auto;
-	}
+	right: 0;
+	bottom: 0;
+	z-index: 999;
+	background: rgba(0, 0, 0, 0.2);
+	cursor: pointer;
 }
 </style>

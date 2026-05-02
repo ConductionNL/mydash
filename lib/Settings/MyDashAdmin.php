@@ -3,11 +3,11 @@
 /**
  * MyDashAdmin
  *
- * Admin settings page for MyDash. The admin initial-state payload is built
- * via {@see \OCA\MyDash\Service\InitialStateBuilder} per REQ-INIT-001 of the
- * `initial-state-contract` spec — direct calls to
- * IInitialState::provideInitialState are forbidden and enforced by a grep
- * lint test.
+ * Admin settings page for MyDash. Wires the typed admin initial-state
+ * contract via {@see \OCA\MyDash\Service\InitialStateBuilder} (REQ-INIT-001,
+ * REQ-INIT-002). Direct calls to
+ * {@see \OCP\AppFramework\Services\IInitialState::provideInitialState()}
+ * are forbidden here by the `lint:initial-state` CI guard.
  *
  * @category  Settings
  * @package   OCA\MyDash\Settings
@@ -16,6 +16,9 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
+ *
+ * SPDX-FileCopyrightText: 2024 MyDash Contributors
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -23,12 +26,15 @@ declare(strict_types=1);
 namespace OCA\MyDash\Settings;
 
 use OCA\MyDash\AppInfo\Application;
+use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Service\AdminSettingsService;
+use OCA\MyDash\Service\DashboardService;
+use OCA\MyDash\Service\FileService;
+use OCA\MyDash\Service\InitialState\Page;
 use OCA\MyDash\Service\InitialStateBuilder;
-use OCA\MyDash\Service\Page;
+use OCA\MyDash\Service\WidgetService;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IInitialState;
-use OCP\Dashboard\IManager as IDashboardManager;
 use OCP\IGroupManager;
 use OCP\Settings\ISettings;
 use OCP\Util;
@@ -36,26 +42,39 @@ use OCP\Util;
 class MyDashAdmin implements ISettings
 {
     /**
-     * Constructor
+     * Constructor.
      *
-     * @param IInitialState        $initialState     Nextcloud initial-state service.
-     * @param IDashboardManager    $dashboardManager Dashboard widget manager.
-     * @param IGroupManager        $groupManager     Group lookup.
-     * @param AdminSettingsService $adminSettings    MyDash admin settings.
+     * @param IInitialState        $initialState     The Nextcloud initial-state service.
+     * @param IGroupManager        $groupManager     Group manager (full group list).
+     * @param WidgetService        $widgetService    Available-widgets descriptor formatter.
+     * @param AdminSettingMapper   $settingMapper    Admin settings store
+     *                                               (legacy configured-groups list).
+     * @param AdminSettingsService $settingsService  Admin-settings service exposing
+     *                                               the `group_order` setting
+     *                                               (REQ-ASET-012).
+     * @param DashboardService     $dashboardService Dashboard service exposing
+     *                                               the `allow_user_dashboards`
+     *                                               flag (REQ-ASET-003).
+     * @param FileService          $fileService      link-button-widget extension
+     *                                               allow-list reader.
      */
     public function __construct(
         private readonly IInitialState $initialState,
-        private readonly IDashboardManager $dashboardManager,
         private readonly IGroupManager $groupManager,
-        private readonly AdminSettingsService $adminSettings,
+        private readonly WidgetService $widgetService,
+        private readonly AdminSettingMapper $settingMapper,
+        private readonly AdminSettingsService $settingsService,
+        private readonly DashboardService $dashboardService,
+        private readonly FileService $fileService,
     ) {
     }//end __construct()
 
     /**
      * Get the admin settings form.
      *
-     * Builds the admin initial-state payload via InitialStateBuilder
-     * (REQ-INIT-001) before rendering the template.
+     * Wires the full admin initial-state contract (REQ-INIT-002) before
+     * rendering the template — every required key is set on the builder
+     * so the page never renders with a partial payload.
      *
      * @return TemplateResponse The template response.
      */
@@ -66,18 +85,47 @@ class MyDashAdmin implements ISettings
             file: 'mydash-admin'
         );
 
-        $settings = $this->adminSettings->getSettings();
+        $allGroups = [];
+        foreach ($this->groupManager->search(search: '') as $group) {
+            $allGroups[] = [
+                'id'          => $group->getGID(),
+                'displayName' => $group->getDisplayName(),
+            ];
+        }
 
-        $builder = new InitialStateBuilder(
+        // REQ-ASET-012: prefer the new `group_order` setting (defensive
+        // read returns []). Falls back to the legacy `configured_groups`
+        // key for installs that wrote it before the cutover so the
+        // initial render still shows the admin's previous selection.
+        $configuredGroups = $this->settingsService->getGroupOrder();
+        if ($configuredGroups === []) {
+            $legacy = $this->settingMapper->getValue(
+                key: 'configured_groups',
+                default: []
+            );
+            if (is_array($legacy) === true) {
+                $filtered         = array_filter(
+                    array: $legacy,
+                    callback: static function ($entry) {
+                        return is_string($entry) === true && $entry !== '';
+                    }
+                );
+                $configuredGroups = array_values(array: $filtered);
+            }
+        }
+
+        $allowUserDashboards = $this->dashboardService->getAllowUserDashboards();
+
+        (new InitialStateBuilder(
             initialState: $this->initialState,
             page: Page::ADMIN
-        );
-        $builder
-            ->setAllGroups(allGroups: $this->describeGroups())
-            ->setConfiguredGroups(configuredGroups: [])
-            ->setWidgets(widgets: $this->describeWidgets())
-            ->setAllowUserDashboards(
-                allowUserDashboards: (bool) ($settings['allowUserDashboards'] ?? false)
+        ))
+            ->setAllGroups($allGroups)
+            ->setConfiguredGroups($configuredGroups)
+            ->setWidgets($this->widgetService->getAvailableWidgets())
+            ->setAllowUserDashboards($allowUserDashboards)
+            ->setLinkCreateFileExtensions(
+                $this->fileService->getAllowedExtensions()
             )
             ->apply();
 
@@ -106,43 +154,4 @@ class MyDashAdmin implements ISettings
     {
         return 10;
     }//end getPriority()
-
-    /**
-     * Build serialisable group descriptors for the admin initial-state.
-     *
-     * @return array<int, array{id:string,displayName:string}>
-     */
-    private function describeGroups(): array
-    {
-        $descriptors = [];
-        foreach ($this->groupManager->search(search: '') as $group) {
-            $descriptors[] = [
-                'id'          => $group->getGID(),
-                'displayName' => $group->getDisplayName(),
-            ];
-        }
-
-        return $descriptors;
-    }//end describeGroups()
-
-    /**
-     * Build serialisable widget descriptors for the admin initial-state.
-     *
-     * @return array<int, array{id:string,title:string,iconClass:string,iconUrl:string,url:?string}>
-     */
-    private function describeWidgets(): array
-    {
-        $descriptors = [];
-        foreach ($this->dashboardManager->getWidgets() as $id => $widget) {
-            $descriptors[] = [
-                'id'        => $id,
-                'title'     => $widget->getTitle(),
-                'iconClass' => $widget->getIconClass(),
-                'iconUrl'   => '',
-                'url'       => $widget->getUrl(),
-            ];
-        }
-
-        return $descriptors;
-    }//end describeWidgets()
 }//end class

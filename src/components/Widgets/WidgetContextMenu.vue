@@ -1,142 +1,112 @@
 <!--
-  - SPDX-FileCopyrightText: 2024 MyDash Contributors
+  - SPDX-FileCopyrightText: 2026 MyDash Contributors
   - SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
 <template>
-	<transition name="fade">
-		<div
-			v-if="show"
-			class="widget-context-menu"
-			:style="{
-				top: clampedY + 'px',
-				left: clampedX + 'px',
-			}"
-			@click.stop>
-			<NcButton
-				type="tertiary"
-				size="small"
-				@click="handleEdit">
-				<template #icon>
-					<Pencil :size="16" />
-				</template>
-				{{ t('mydash', 'Edit') }}
-			</NcButton>
-			<NcButton
-				type="tertiary"
-				size="small"
-				@click="handleRemove">
-				<template #icon>
-					<Delete :size="16" />
-				</template>
-				{{ t('mydash', 'Remove') }}
-			</NcButton>
-			<NcButton
-				type="tertiary"
-				size="small"
-				@click="handleCancel">
-				{{ t('mydash', 'Cancel') }}
-			</NcButton>
-		</div>
-	</transition>
+	<div
+		class="widget-context-menu"
+		role="menu"
+		:style="positionStyle"
+		@click.stop>
+		<button
+			type="button"
+			class="widget-context-menu__item"
+			role="menuitem"
+			@click="onEdit">
+			{{ t('mydash', 'Edit') }}
+		</button>
+		<button
+			type="button"
+			class="widget-context-menu__item widget-context-menu__item--danger"
+			role="menuitem"
+			@click="onRemove">
+			{{ t('mydash', 'Remove') }}
+		</button>
+		<button
+			type="button"
+			class="widget-context-menu__item"
+			role="menuitem"
+			@click="onCancel">
+			{{ t('mydash', 'Cancel') }}
+		</button>
+	</div>
 </template>
 
 <script>
-import { NcButton } from '@conduction/nextcloud-vue'
 import { t } from '@nextcloud/l10n'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
-import Delete from 'vue-material-design-icons/Delete.vue'
 
+/**
+ * WidgetContextMenu — small right-click popover offering Edit / Remove /
+ * Cancel for a widget placement (REQ-WDG-015..017). The component is
+ * controlled: the parent owns `top` / `left` (computed from cursor +
+ * viewport-clamping in the composable) and toggles visibility via
+ * `v-if`. Each click emits the matching event AND closes via the parent's
+ * `closeContextMenu()` so the popover is always single-instance.
+ *
+ * Styling: absolute positioning, `min-width: 150px`, `z-index: 10000`
+ * (REQ-WDG-017 — sits above the grid and shares the modal layer; clicking
+ * a popover item closes the popover before any subsequent modal opens).
+ *
+ * Props:
+ *  - `top` (number): clamped pixel offset from the viewport top
+ *  - `left` (number): clamped pixel offset from the viewport left
+ *
+ * Emits:
+ *  - `edit`: user clicked Edit — parent should open `AddWidgetModal` with
+ *    the selected widget passed as `editingWidget`
+ *  - `remove`: user clicked Remove — parent should hit the placement-delete
+ *    path of REQ-WDG-005 (`DELETE /api/placements/{id}`)
+ *  - `close`: user clicked Cancel — no-op close
+ */
 export default {
 	name: 'WidgetContextMenu',
 
-	components: {
-		NcButton,
-		Pencil,
-		Delete,
-	},
-
 	props: {
-		show: {
-			type: Boolean,
-			default: false,
-		},
-		x: {
+		top: {
 			type: Number,
-			default: 0,
+			required: true,
 		},
-		y: {
+		left: {
 			type: Number,
-			default: 0,
-		},
-		widget: {
-			type: Object,
-			default: null,
+			required: true,
 		},
 	},
 
 	emits: ['edit', 'remove', 'close'],
 
-	data() {
-		return {
-			windowWidth: typeof window !== 'undefined' ? window.innerWidth : 0,
-			windowHeight: typeof window !== 'undefined' ? window.innerHeight : 0,
-		}
-	},
-
 	computed: {
-		clampedX() {
-			const menuWidth = 150 // min-width from CSS
-			if (this.x + menuWidth > this.windowWidth) {
-				return Math.max(0, this.windowWidth - menuWidth)
-			}
-			return this.x
-		},
-
-		clampedY() {
-			const menuHeight = 120 // Approximate height for 3 buttons
-			if (this.y + menuHeight > this.windowHeight) {
-				return Math.max(0, this.windowHeight - menuHeight)
-			}
-			return this.y
-		},
-	},
-
-	watch: {
-		show(newVal) {
-			if (newVal) {
-				this.updateViewportSize()
+		/**
+		 * Absolute positioning + the fixed look (z-index, min-width) lives
+		 * here so the parent only has to pass coordinates. Position is
+		 * `fixed` (not `absolute`) so viewport-relative clientX/clientY
+		 * values from the right-click event map cleanly without having to
+		 * account for scroll offsets.
+		 *
+		 * @return {object}
+		 */
+		positionStyle() {
+			return {
+				top: `${this.top}px`,
+				left: `${this.left}px`,
 			}
 		},
-	},
-
-	mounted() {
-		window.addEventListener('resize', this.updateViewportSize)
-	},
-
-	beforeDestroy() {
-		window.removeEventListener('resize', this.updateViewportSize)
 	},
 
 	methods: {
 		t,
 
-		updateViewportSize() {
-			this.windowWidth = window.innerWidth
-			this.windowHeight = window.innerHeight
-		},
-
-		handleEdit() {
-			this.$emit('edit', this.widget)
+		onEdit() {
+			this.$emit('edit')
 			this.$emit('close')
 		},
 
-		handleRemove() {
-			this.$emit('remove', this.widget)
+		onRemove() {
+			this.$emit('remove')
 			this.$emit('close')
 		},
 
-		handleCancel() {
+		onCancel() {
 			this.$emit('close')
 		},
 	},
@@ -146,39 +116,35 @@ export default {
 <style scoped>
 .widget-context-menu {
 	position: fixed;
-	background: var(--color-main-background);
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius-large);
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-	z-index: 10000;
 	min-width: 150px;
+	z-index: 10000;
+	background: var(--color-main-background, #fff);
+	color: var(--color-main-text, #222);
+	border: 1px solid var(--color-border, #ddd);
+	border-radius: var(--border-radius, 6px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	padding: 4px 0;
 	display: flex;
 	flex-direction: column;
-	overflow: hidden;
 }
 
-.widget-context-menu :deep(.nc-button) {
-	justify-content: flex-start;
-	padding: 8px 12px;
-	border-radius: 0;
-	border-bottom: 1px solid var(--color-border);
+.widget-context-menu__item {
+	background: transparent;
+	border: 0;
+	padding: 8px 16px;
+	text-align: left;
+	cursor: pointer;
+	font: inherit;
+	color: inherit;
 }
 
-.widget-context-menu :deep(.nc-button:last-child) {
-	border-bottom: none;
+.widget-context-menu__item:hover,
+.widget-context-menu__item:focus {
+	background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
+	outline: none;
 }
 
-.widget-context-menu :deep(.nc-button:hover) {
-	background: var(--color-background-hover);
-}
-
-.fade-enter-active,
-.fade-leave-active {
-	transition: opacity 0.15s ease;
-}
-
-.fade-enter,
-.fade-leave-to {
-	opacity: 0;
+.widget-context-menu__item--danger {
+	color: var(--color-error, #d32f2f);
 }
 </style>

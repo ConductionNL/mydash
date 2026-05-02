@@ -11,7 +11,7 @@ context: |
 
   Architecture:
     Pattern: Full-stack — MyDash owns its data model (5 database tables)
-    Grid engine: GridStack 10.3.1 (12-column, 80px cell height, drag-and-drop)
+    Grid engine: GridStack 12.x (12-column at >=1400px, 60px cell height, 8px margin, responsive breakpoints 1400/1100/768/480, drag-and-drop)
     Widget bridge: Nextcloud Dashboard Widget API v1/v2 (IManager::getWidgets())
     Frontend: Vue 2.7 + Pinia stores + GridStack integration
     Backend: Controllers → Services → Mappers/Entities (Nextcloud ORM)

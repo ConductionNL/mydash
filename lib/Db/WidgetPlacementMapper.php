@@ -222,58 +222,69 @@ class WidgetPlacementMapper extends QBMapper
     }//end updatePositions()
 
     /**
-     * Clone all placements from a source dashboard into a target dashboard.
+     * Clone all placements from one dashboard to another.
      *
-     * Fetches every placement row belonging to `$sourceDashboardId` and
-     * inserts fresh copies under `$targetDashboardId` with new auto-
-     * generated IDs and reset `createdAt`/`updatedAt` timestamps. All
-     * other fields — gridX/Y/W/H, widgetId, customTitle, styleConfig,
-     * showTitle, isCompulsory, isVisible, sortOrder, tileType, tileTitle,
-     * tileIcon, tileIconType, tileBackgroundColor, tileTextColor,
-     * tileLinkType, tileLinkValue, customIcon — are copied verbatim so
-     * the fork is a true visual clone. Resource URLs (e.g. tileIcon) are
-     * NOT duplicated; both dashboards reference the same URL (REQ-DASH-022).
+     * Reads the source rows via {@see self::findByDashboardId()} and
+     * inserts a new row per source under `$targetDashboardId`. All
+     * widget-, tile-, style- and grid-fields are byte-for-byte copied
+     * (REQ-DASH-020) — including resource URL fields like `tileIcon`
+     * which intentionally point at the same shared resource record
+     * (REQ-DASH-022). The new rows receive fresh `id`, `dashboardId`
+     * pointing at the target, and `createdAt` / `updatedAt` set to now.
+     *
+     * Used by {@see \OCA\MyDash\Service\DashboardService::forkAsPersonal()}
+     * inside a single transaction — any DB exception thrown here MUST
+     * be left to bubble so the caller can roll back.
      *
      * @param int $sourceDashboardId The source dashboard ID.
-     * @param int $targetDashboardId The target (new) dashboard ID.
+     * @param int $targetDashboardId The destination dashboard ID.
      *
-     * @return void
+     * @return int The number of placements cloned.
      */
     public function cloneToDashboard(
         int $sourceDashboardId,
         int $targetDashboardId
-    ): void {
-        $now        = (new DateTime())->format(format: 'Y-m-d H:i:s');
-        $placements = $this->findByDashboardId(dashboardId: $sourceDashboardId);
+    ): int {
+        $rows  = $this->findByDashboardId(dashboardId: $sourceDashboardId);
+        $now   = (new DateTime())->format(format: 'Y-m-d H:i:s');
+        $count = 0;
 
-        foreach ($placements as $source) {
+        foreach ($rows as $row) {
             $clone = new WidgetPlacement();
+            // Force the new dashboard id — the rest of the fields below
+            // are byte-for-byte copies of the source row.
             $clone->setDashboardId($targetDashboardId);
-            $clone->setWidgetId($source->getWidgetId());
-            $clone->setGridX($source->getGridX());
-            $clone->setGridY($source->getGridY());
-            $clone->setGridWidth($source->getGridWidth());
-            $clone->setGridHeight($source->getGridHeight());
-            $clone->setIsCompulsory($source->getIsCompulsory());
-            $clone->setIsVisible($source->getIsVisible());
-            $clone->setStyleConfig($source->getStyleConfig());
-            $clone->setCustomTitle($source->getCustomTitle());
-            $clone->setCustomIcon($source->getCustomIcon());
-            $clone->setShowTitle($source->getShowTitle());
-            $clone->setSortOrder($source->getSortOrder());
-            $clone->setTileType($source->getTileType());
-            $clone->setTileTitle($source->getTileTitle());
-            $clone->setTileIcon($source->getTileIcon());
-            $clone->setTileIconType($source->getTileIconType());
-            $clone->setTileBackgroundColor($source->getTileBackgroundColor());
-            $clone->setTileTextColor($source->getTileTextColor());
-            $clone->setTileLinkType($source->getTileLinkType());
-            $clone->setTileLinkValue($source->getTileLinkValue());
+            $clone->setWidgetId($row->getWidgetId());
+            $clone->setGridX($row->getGridX());
+            $clone->setGridY($row->getGridY());
+            $clone->setGridWidth($row->getGridWidth());
+            $clone->setGridHeight($row->getGridHeight());
+            $clone->setIsCompulsory($row->getIsCompulsory());
+            $clone->setIsVisible($row->getIsVisible());
+            $clone->setStyleConfig($row->getStyleConfig());
+            $clone->setCustomTitle($row->getCustomTitle());
+            $clone->setCustomIcon($row->getCustomIcon());
+            $clone->setShowTitle($row->getShowTitle());
+            $clone->setSortOrder($row->getSortOrder());
+            $clone->setTileType($row->getTileType());
+            $clone->setTileTitle($row->getTileTitle());
+            // REQ-DASH-022: same `/apps/mydash/resource/...` URL — no
+            // file is duplicated in app data, both dashboards reference
+            // the shared resource record.
+            $clone->setTileIcon($row->getTileIcon());
+            $clone->setTileIconType($row->getTileIconType());
+            $clone->setTileBackgroundColor($row->getTileBackgroundColor());
+            $clone->setTileTextColor($row->getTileTextColor());
+            $clone->setTileLinkType($row->getTileLinkType());
+            $clone->setTileLinkValue($row->getTileLinkValue());
             $clone->setCreatedAt($now);
             $clone->setUpdatedAt($now);
 
             $this->insert(entity: $clone);
+            $count++;
         }//end foreach
+
+        return $count;
     }//end cloneToDashboard()
 
     /**

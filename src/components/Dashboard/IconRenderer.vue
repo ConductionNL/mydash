@@ -67,8 +67,10 @@ export default {
 		},
 
 		/**
-		 * Alt text for `<img>` elements (custom URLs). Falls back to 'icon'
-		 * if not supplied.
+		 * Alt text for `<img>` elements (custom URL inputs). Falls back
+		 * to a non-empty default (`'icon'`) so screen readers always
+		 * have something to announce. Ignored for built-in MDI icons,
+		 * which are decorative SVG.
 		 */
 		alt: {
 			type: String,

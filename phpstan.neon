@@ -9,19 +9,68 @@ parameters:
         - phpstan-bootstrap.php
     excludePaths:
         - vendor
+    # nextcloud/ocp ships stubs without an autoload section, so list the
+    # namespace roots explicitly. Keep both OCP (public API) and NCU
+    # (unstable internal API) reachable for symbol resolution.
+    scanDirectories:
+        - vendor/nextcloud/ocp/OCP
+        - vendor/nextcloud/ocp/NCU
     reportUnmatchedIgnoredErrors: false
     ignoreErrors:
         # Nextcloud internal classes that PHPStan might not recognize
         - '#Call to an undefined method OC::#'
         - '#Class OC not found#'
         - '#Access to static property \$server on an unknown class OC#'
-        # Doctrine DBAL is provided by Nextcloud at runtime but not in composer require
-        - '#unknown class Doctrine\\DBAL\\#'
-        - '#Doctrine\\DBAL\\[a-zA-Z\\]+.*not found#'
-        - '#on an unknown class Doctrine\\DBAL\\#'
-        - '#invalid type Doctrine\\DBAL\\#'
-        # Dynamic HTTP status codes from business rule validation results
-        - '#Parameter \$statusCode of class OCP\\AppFramework\\Http\\JSONResponse constructor expects#'
+        # Doctrine\DBAL\Schema\Table is provided by Nextcloud server's
+        # 3rdparty bundle, not by our app's vendor/. Migration table
+        # builders type-hint the class but PHPStan cannot resolve it
+        # locally; they are exercised at runtime under Nextcloud.
+        -
+            message: '#unknown class Doctrine\\DBAL\\Schema\\Table#'
+            path: lib/Migration/*
+        -
+            message: '#has invalid type Doctrine\\DBAL\\Schema\\Table#'
+            path: lib/Migration/*
+        # JSONResponse uses a strict status-code union; a plain int parameter
+        # widens that. Both call sites already constrain via Http::STATUS_*
+        # defaults at the public boundary, so the runtime behaviour is sound.
+        -
+            message: '#Parameter \$statusCode of class OCP\\AppFramework\\Http\\JSONResponse constructor#'
+            path: lib/Controller/ResponseHelper.php
+        # Same JSONResponse status-code union widening — ResourceController
+        # builds the int from typed exceptions whose `getHttpStatus()` only
+        # ever returns members of the literal union (verified by tests).
+        -
+            message: '#Parameter \$statusCode of class OCP\\AppFramework\\Http\\JSONResponse constructor#'
+            path: lib/Controller/ResourceController.php
+        # Same JSONResponse status-code union widening — FileController
+        # forwards an HTTP status int from typed createFile exceptions.
+        -
+            message: '#Parameter \$statusCode of class OCP\\AppFramework\\Http\\JSONResponse constructor#'
+            path: lib/Controller/FileController.php
+        # DataResponse declares a `T of DataResponseType` template parameter
+        # whose union does not cover plain associative arrays. Every call
+        # site here passes a JSON-serialisable array — runtime is sound;
+        # the type system cannot narrow `array<string, X>` into the
+        # template union without a generic helper. Suppressing here keeps
+        # the controller readable until Nextcloud upstream loosens the
+        # generic bound.
+        -
+            message: '#Parameter \$data of class OCP\\AppFramework\\Http\\DataResponse constructor#'
+            path: lib/Controller/DashboardShareApiController.php
+        # `getimagesizefromstring` shape from PHPStan's stubs already
+        # guarantees the `mime` key exists; the `??` is intentional defence
+        # in depth for older runtimes / stubs.
+        -
+            message: "#Offset 'mime' on .* on left side of \\?\\? always exists#"
+            path: lib/Service/ImageMimeValidator.php
+        # Entity types implement JsonSerializable on the concrete subclass;
+        # the OCP stub for Entity does not declare jsonSerialize() so PHPStan
+        # cannot statically prove the call. The only callers wrap entities
+        # that always define it.
+        -
+            message: '#Call to an undefined method OCP\\AppFramework\\Db\\Entity::jsonSerialize\(\)#'
+            path: lib/Db/EntitySerializer.php
         # registerRepairStep / getLanguage exist on server but not in nextcloud/ocp stub
         - '#Call to an undefined method OCP\\AppFramework\\Bootstrap\\IRegistrationContext::registerRepairStep#'
         - '#Call to an undefined method OCP\\IUser::getLanguage#'

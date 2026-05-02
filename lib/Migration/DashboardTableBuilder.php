@@ -86,6 +86,17 @@ class DashboardTableBuilder
                 'notnull' => false,
             ]
         );
+        // Owned by the frontend `dashboard-icons` capability — see
+        // `lib/Db/Dashboard.php::$icon` for the legal value classes.
+        $table->addColumn(
+            name: 'icon',
+            typeName: Types::STRING,
+            options: [
+                'notnull' => false,
+                'length'  => 2000,
+                'comment' => 'Dashboard icon: registry key (dashboard-icons) or upload URL; NULL = default.',
+            ]
+        );
         $table->addColumn(
             name: 'type',
             typeName: Types::STRING,

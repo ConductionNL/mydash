@@ -317,7 +317,47 @@ The frontend MUST use a layered rendering architecture: `DashboardGrid` -> `Widg
 
 ### REQ-WDG-010: Widget Picker
 
-Users MUST be able to browse and select widgets to add to their dashboard.
+The widget picker MUST be implemented as a single modal that handles both creation and editing flows. The modal MUST present a type selector at the top (unless a type was preselected by the caller) followed by the per-type configuration sub-form for the currently selected type. Submit MUST emit `{type, content}` where `content` carries only the fields relevant to the selected type — fields belonging to other types MUST NOT be included.
+
+#### Scenario: Open in create mode without preselected type
+
+- GIVEN no widget is being edited and no type was preselected
+- WHEN the user opens the modal with `show=true, preselectedType=null, editingWidget=null`
+- THEN the modal MUST render a `<select>` listing every registered widget type
+- AND the form area MUST render the sub-form for the first type (alphabetical or registry order)
+- AND the action button MUST read `t('Add')`
+
+#### Scenario: Open in create mode with preselected type
+
+- GIVEN the toolbar dropdown invoked the modal with a specific type
+- WHEN the user opens the modal with `show=true, preselectedType='text', editingWidget=null`
+- THEN the type `<select>` MUST NOT be visible
+- AND the form area MUST render the text sub-form
+- AND the action button MUST read `t('Add')`
+
+#### Scenario: Open in edit mode
+
+- GIVEN an existing widget placement is being edited
+- WHEN the user opens the modal with `editingWidget={type:'image', content:{url:'/img/x.png', alt:'X', fit:'cover'}}`
+- THEN the type `<select>` MUST be hidden (cannot change a placement's type via edit)
+- AND the image sub-form's fields MUST be pre-filled from the editing widget's `content`
+- AND the action button MUST read `t('Save')`
+- AND the modal title MUST read `t('Edit Widget')` instead of `t('Add Widget')`
+
+#### Scenario: Switching type resets form state
+
+- GIVEN the modal is open in create mode with `text` type and the user has typed text
+- WHEN the user switches the type to `image` via the `<select>`
+- THEN the form MUST swap to the image sub-form
+- AND any previously-entered text MUST NOT leak into the image sub-form
+- AND switching back to `text` MUST reset its fields to defaults (no recovery of the lost input — explicit trade-off)
+
+#### Scenario: Submit emits only relevant fields
+
+- GIVEN the user fills the text sub-form with `{text: "Hello", fontSize: "16px"}`
+- WHEN they click `Add`
+- THEN the modal MUST emit `submit({type: 'text', content: {text: 'Hello', fontSize: '16px'}})`
+- AND `content` MUST NOT contain image fields like `url`, `alt`, etc.
 
 #### Scenario: Widget picker displays available widgets
 - GIVEN the user wants to add a widget
@@ -364,6 +404,266 @@ Users MUST be able to customize widget appearance through a style editor.
 - THEN PUT /api/widgets/{placementId} MUST be sent with updated `styleConfig`
 - AND the widget MUST immediately reflect the new style
 
+### REQ-WDG-012: Per-type validation contract
+
+Each per-type sub-form component MUST expose a `validate(): string[]` method that returns an array of human-readable error messages (empty array = valid). The modal MUST disable its primary action button when the active sub-form's `validate()` returns a non-empty array. The button MUST re-enable as soon as `validate()` returns empty (reactive on form input).
+
+#### Scenario: Required field empty disables submit
+
+- GIVEN the text sub-form requires `text` to be non-empty
+- AND the user has not entered any text
+- WHEN the modal renders
+- THEN the `Add` button MUST be disabled
+- AND tooltip / aria-describedby MAY surface the validation message (UX choice)
+
+#### Scenario: Filling required field enables submit
+
+- GIVEN the `Add` button is disabled because text is empty
+- WHEN the user types `Hello`
+- THEN the button MUST become enabled within the next render cycle
+
+### REQ-WDG-013: Modal close discipline
+
+The modal MUST close on three triggers:
+
+1. Click on the cancel button (emit `close`)
+2. Click on the backdrop overlay (emit `close`)
+3. Press the `Escape` key while the modal is focused (emit `close`)
+
+Closing the modal MUST NOT submit. Reopening after a close MUST reset all form state to defaults (or re-load `editingWidget` if still set).
+
+#### Scenario: Backdrop click closes without submit
+
+- GIVEN the modal is open with valid form state
+- WHEN the user clicks the backdrop
+- THEN the modal MUST emit `close` only
+- AND MUST NOT emit `submit`
+
+#### Scenario: Esc key closes modal
+
+- GIVEN the modal is open
+- WHEN the user presses `Escape`
+- THEN the modal MUST emit `close`
+- AND focus MUST return to the element that triggered the open
+
+#### Scenario: Cancel button closes without submit
+
+- GIVEN the modal is open with valid form state
+- WHEN the user clicks the cancel button
+- THEN the modal MUST emit `close` only
+- AND MUST NOT emit `submit`
+
+### REQ-WDG-014: Sub-form registry
+
+The set of supported widget types MUST come from a single in-frontend registry that maps `type → { component, label, defaults }`. The toolbar dropdown, the modal type selector, and the grid renderer MUST all consult the same registry.
+
+#### Scenario: Adding a new widget type
+
+- GIVEN a developer needs to register a new widget type
+- WHEN they add a new entry to the widget registry (`{component, label, defaults}`)
+- THEN the new type MUST automatically appear in the toolbar dropdown
+- AND the modal type selector MUST list it
+- AND the grid renderer MUST render placements of the new type
+- AND no other UI code MUST need to be changed to support the new type
+
+#### Scenario: Registry is the single source of truth
+
+- GIVEN the widget registry contains exactly 5 entries (`text`, `label`, `image`, `linkButton`, `ncDashboardProxy`)
+- WHEN any consumer (toolbar, modal, renderer) enumerates widget types
+- THEN it MUST list those 5 types
+- AND MUST NOT hard-code any type name elsewhere in the codebase
+
+### REQ-WDG-015: Right-click context menu in edit mode
+
+When the user is in edit mode (per REQ-SHELL-002 `canEdit === true`), right-clicking any widget placement on the grid MUST open a small popover at the cursor position offering at least these three actions: **Edit**, **Remove**, **Cancel**. The popover MUST suppress the browser's native context menu via `event.preventDefault()`. In view mode the right-click MUST fall through to native behaviour (no popover).
+
+#### Scenario: Right-click in edit mode opens popover
+
+- GIVEN `canEdit === true` and a widget placement is rendered at coordinates (300, 400) on screen
+- WHEN the user right-clicks anywhere within that widget's content area
+- THEN the system MUST emit a popover at the click position (300, 400)
+- AND the popover MUST contain three buttons: `t('Edit')`, `t('Remove')`, `t('Cancel')`
+- AND the browser's native context menu MUST NOT appear
+
+#### Scenario: Right-click in view mode does nothing
+
+- GIVEN `canEdit === false`
+- WHEN the user right-clicks any widget
+- THEN the popover MUST NOT open
+- AND the browser's native context menu MUST appear normally
+
+#### Scenario: Edit click opens the add/edit modal
+
+- GIVEN the popover is open for widget `W`
+- WHEN the user clicks `Edit`
+- THEN the system MUST close the popover
+- AND MUST open the add/edit modal (REQ-WDG-010) with `editingWidget = W`
+
+#### Scenario: Remove click deletes the placement
+
+- GIVEN the popover is open for widget `W`
+- WHEN the user clicks `Remove`
+- THEN the system MUST close the popover
+- AND MUST trigger the placement deletion path of REQ-WDG-005 (DELETE `/api/placements/{id}`)
+- AND on success MUST remove the widget's DOM via GridStack `removeWidget`
+
+#### Scenario: Cancel click closes without action
+
+- GIVEN the popover is open
+- WHEN the user clicks `Cancel`
+- THEN the popover MUST close
+- AND no API call MUST fire
+- AND no widget state MUST change
+
+### REQ-WDG-016: Auto-close on outside interaction
+
+The popover MUST close when the user clicks anywhere outside its bounding box (including on another widget). Right-clicking a different widget while the popover is open MUST close the current popover and open a new one at the new cursor position. Closing on outside click MUST be wired via a single document-level listener that the grid composable manages on mount/unmount.
+
+#### Scenario: Click outside closes
+
+- GIVEN the popover is open
+- WHEN the user clicks anywhere not inside `.widget-context-menu`
+- THEN the popover MUST close
+
+#### Scenario: Right-click another widget switches popover
+
+- GIVEN the popover is open for widget `W1`
+- WHEN the user right-clicks widget `W2`
+- THEN the popover MUST close for `W1` and reopen for `W2` at the new cursor position
+- AND only one popover MUST be visible at a time
+
+#### Scenario: Listener cleanup on unmount
+
+- GIVEN the workspace shell unmounts
+- WHEN the unmount lifecycle runs
+- THEN the document-level `click` listener MUST be removed
+- AND no popover state MUST leak into a subsequent mount
+
+### REQ-WDG-017: Position constraints
+
+The popover MUST be absolutely positioned at the click coordinates with `min-width: 150px`. If the popover would overflow the viewport on the right or bottom edge, the system SHOULD shift it left/up so it remains fully visible. Z-index MUST be `10000` (above grid, level with modals — popover-then-modal interaction is acceptable since clicking a popover item closes it before the modal opens).
+
+#### Scenario: Popover stays within viewport on right edge
+
+- GIVEN the user right-clicks at `(viewportWidth - 50, 200)` (50 px from right edge)
+- AND the popover's `min-width` is 150 px
+- WHEN the popover renders
+- THEN its `right` edge MUST NOT exceed `viewportWidth`
+- AND its rendered `left` MUST be adjusted to keep it on-screen
+
+#### Scenario: Popover stays within viewport on bottom edge
+
+- GIVEN the user right-clicks at `(400, viewportHeight - 20)` (20 px from bottom edge)
+- WHEN the popover renders
+- THEN its `bottom` edge MUST NOT exceed `viewportHeight`
+- AND its rendered `top` MUST be adjusted upward so the popover is fully visible
+
+#### Scenario: Z-index sits at 10000
+
+- GIVEN the popover is open over a widget
+- WHEN computed styles are inspected
+- THEN the popover element MUST have `z-index: 10000`
+- AND MUST have `min-width: 150px`
+
+### REQ-WDG-018: nc-widget placement type
+
+The widget registry MUST include the type `nc-widget` representing a Nextcloud Dashboard widget rendered inside MyDash. Its persisted content shape MUST be:
+
+```jsonc
+{
+  "type": "nc-widget",
+  "content": {
+    "widgetId": "string (required, e.g. 'weather_status')",
+    "displayMode": "'vertical' | 'horizontal' (default 'vertical')"
+  }
+}
+```
+
+The renderer MUST be `NcDashboardWidget.vue`. The form MUST present (a) a `<select>` populated from `IManager::getWidgets()` (REQ-WDG-001 — passed in via initial state) and (b) a display-mode `<select>`.
+
+#### Scenario: Form picker lists discovered widgets
+
+- GIVEN initial state `widgets = [{id:'weather_status', title:'Weather'}, {id:'recommendations', title:'Recommended'}]`
+- WHEN the user opens the nc-widget sub-form
+- THEN the picker `<select>` MUST list both options
+- AND validation MUST require a widgetId before Add is enabled
+
+### REQ-WDG-019: Two-mode rendering with bridge polling
+
+The renderer MUST attempt native-callback rendering (REQ-LWB-002 mountWidget) immediately on mount. If no callback is registered for the `widgetId`, the renderer MUST fall back to the API list path (REQ-WDG-002 widget items) AND start a polling watcher that re-checks for the callback every 200 ms for up to 15 retries (~3 s total). If the callback registers within the polling window, the renderer MUST switch to native-callback mode (cancelling the in-flight or completed API render).
+
+#### Scenario: Native callback already registered at mount
+
+- GIVEN a Nextcloud widget bundle has registered its callback before the workspace mounts
+- AND a placement of type `nc-widget` with `widgetId = 'notes'` mounts
+- WHEN the renderer's `onMounted` runs
+- THEN it MUST mount via `widgetBridge.mountWidget('notes', containerEl, {...})`
+- AND it MUST NOT issue any `GET /api/widgets/items` request
+
+#### Scenario: Callback registers late within the polling window
+
+- GIVEN no callback for `'notes'` is registered when the renderer mounts
+- AND the `notes` bundle finishes loading 1 second later and registers
+- WHEN the renderer mounts
+- THEN it MUST start the API fallback (issue the items request)
+- AND simultaneously start the 200-ms polling loop
+- WHEN the poll detects the registration on the next tick
+- THEN the renderer MUST switch to native-callback mode (mount via `widgetBridge.mountWidget`)
+- AND any pending or completed API list MUST be hidden (no flicker between modes)
+
+#### Scenario: Callback never registers full API fallback
+
+- GIVEN no callback for `'weather_status'` is registered within 3 seconds
+- WHEN the polling loop reaches retry 15 (~3 s elapsed)
+- THEN polling MUST stop
+- AND the API list MUST remain rendered as the final state
+- AND no further callback checks MUST occur
+
+### REQ-WDG-020: Display modes
+
+The API list MUST render in one of two display modes:
+
+- **`vertical`** — flex-column list, 32 px square icon left, title + subtitle right; ellipsis overflow; 8 px gap between rows.
+- **`horizontal`** — flex-row wrap, 120 px square cards, 44 px icon top, centred title + subtitle below; 12 px gap.
+
+The header (above the list area) MUST always render the widget's title + iconUrl from `widgetMeta` (the `IManager::getWidgets()` descriptor).
+
+#### Scenario: Vertical mode list rendering
+
+- GIVEN content `{widgetId: 'recommendations', displayMode: 'vertical'}` and the API returns 4 items
+- WHEN the API fallback renders
+- THEN the list MUST be a flex-column with 4 `<a>` rows
+- AND each row MUST show its icon at 32 px on the left and title/subtitle on the right
+- AND long titles MUST be truncated with ellipsis
+
+#### Scenario: Horizontal mode card rendering
+
+- GIVEN the same content but `displayMode: 'horizontal'`
+- WHEN the API fallback renders
+- THEN the list MUST be a flex-row wrap with 4 cards of approximately 120 px width
+- AND each card MUST show a 44 px icon top + centred text below
+
+### REQ-WDG-021: API call shape
+
+When falling back to the API path, the renderer MUST issue exactly:
+
+`GET /ocs/v2.php/apps/mydash/api/widgets/items?widgets[]={widgetId}&limit=7`
+
+The response MUST be parsed as `{items: {[widgetId]: WidgetItem[]}, meta: {[widgetId]: {iconUrl}}}` (the existing REQ-WDG-002 contract). When the response shape is malformed, the renderer MUST display the empty-state `t('No items available')` and MUST NOT throw.
+
+#### Scenario: Default item limit is 7
+
+- GIVEN any nc-widget renders via API fallback
+- WHEN it issues the items request
+- THEN the URL MUST include `limit=7`
+
+#### Scenario: Empty-list state
+
+- GIVEN the items response contains an empty array for the widgetId
+- WHEN the API fallback renders
+- THEN the cell MUST display `t('No items available')` centred
+- AND no `<a>` items MUST render
+
 ## Non-Functional Requirements
 
 - **Performance**: GET /api/widgets MUST return within 1 second even with 50+ registered widgets. Widget item fetching SHOULD be parallelized across widget types.
@@ -386,6 +686,7 @@ Users MUST be able to customize widget appearance through a style editor.
 - REQ-WDG-009 (Rendering Architecture): `DashboardGrid.vue` -> `WidgetWrapper.vue` -> `WidgetRenderer.vue` chain. `TileWidget.vue` for tile placements.
 - REQ-WDG-010 (Widget Picker): `WidgetPicker.vue` component exists.
 - REQ-WDG-011 (Widget Style Editor): `WidgetStyleEditor.vue` component exists.
+- REQ-WDG-015..017 (Right-click context menu, auto-close, position constraints): `WidgetContextMenu.vue` + `useGridManager.js` composable; wired in `Views.vue` via `DashboardGrid`'s `widget-right-click` event.
 
 **Not yet implemented:**
 - REQ-WDG-003 grid bounds validation: No server-side validation for gridX + gridWidth <= gridColumns.

@@ -1,20 +1,30 @@
 <?php
 
 /**
- * AdminTemplateService Test
+ * AdminTemplateServiceTest
  *
- * Covers the primary-group resolver introduced by REQ-TMPL-012 / REQ-TMPL-013.
- * The resolver is the single routing authority for picking which Nextcloud
- * group a user's workspace renders for; these tests pin the algorithm and
- * its tolerance for stale / empty / missing inputs.
+ * Unit tests for the primary-group routing resolver added by the
+ * `group-routing` change. Covers:
+ *   - REQ-TMPL-012: `resolvePrimaryGroup` algorithm scenarios
+ *     (priority order, empty list, no match, configured-but-not-member,
+ *     stale-group tolerance).
+ *   - The static `pickFirstMatch` helper directly (empty inputs, no
+ *     overlap, multiple overlaps).
+ *   - `getUserGroupIdsFor` defensive behaviour (unknown user → []).
+ *   - `resolvePrimaryGroupDisplayName` (sentinel → 'Default', real
+ *     group → display name, deleted group → group ID fallback).
+ *
+ * The grep-guard test (REQ-TMPL-013) lives in
+ * {@see AdminTemplateServiceGrepGuardTest} so it can fail loud without
+ * the resolver scenarios masking it.
  *
  * @category  Test
  * @package   OCA\MyDash\Tests\Unit\Service
  * @author    Conduction b.v. <info@conduction.nl>
- * @copyright 2024 Conduction b.v.
+ * @copyright 2026 Conduction b.v.
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
+ * SPDX-FileCopyrightText: 2026 MyDash Contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
@@ -27,222 +37,81 @@ use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCA\MyDash\Service\AdminSettingsService;
 use OCA\MyDash\Service\AdminTemplateService;
+use OCP\IGroup;
 use OCP\IGroupManager;
 use OCP\IUser;
 use OCP\IUserManager;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Tests for AdminTemplateService routing resolver (REQ-TMPL-012).
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects) Mirrors constructor.
+ */
 class AdminTemplateServiceTest extends TestCase
 {
 
+    /** @var DashboardMapper&MockObject */
+    private $dashboardMapper;
+
+    /** @var WidgetPlacementMapper&MockObject */
+    private $placementMapper;
+
+    /** @var AdminSettingsService&MockObject */
+    private $settingsService;
+
+    /** @var IGroupManager&MockObject */
+    private $groupManager;
+
+    /** @var IUserManager&MockObject */
+    private $userManager;
+
     private AdminTemplateService $service;
 
-    private DashboardMapper $dashboardMapper;
-
-    private WidgetPlacementMapper $placementMapper;
-
-    private AdminSettingsService $adminSettings;
-
-    private IGroupManager $groupManager;
-
-    private IUserManager $userManager;
-
+    /**
+     * @return void
+     */
     protected function setUp(): void
     {
+        parent::setUp();
+
         $this->dashboardMapper = $this->createMock(DashboardMapper::class);
         $this->placementMapper = $this->createMock(WidgetPlacementMapper::class);
-        $this->adminSettings   = $this->createMock(AdminSettingsService::class);
+        $this->settingsService = $this->createMock(AdminSettingsService::class);
         $this->groupManager    = $this->createMock(IGroupManager::class);
         $this->userManager     = $this->createMock(IUserManager::class);
 
         $this->service = new AdminTemplateService(
             dashboardMapper: $this->dashboardMapper,
             placementMapper: $this->placementMapper,
-            adminSettings: $this->adminSettings,
+            settingsService: $this->settingsService,
             groupManager: $this->groupManager,
             userManager: $this->userManager,
         );
     }//end setUp()
 
-    /**
-     * Build a mock IUser whose getUID() returns the given ID.
-     */
-    private function mockUser(string $uid): IUser
-    {
-        $user = $this->createMock(IUser::class);
-        $user->method('getUID')->willReturn($uid);
-
-        return $user;
-    }//end mockUser()
+    // ---------------------------------------------------------------
+    // pickFirstMatch — pure helper (REQ-TMPL-012, task 1.2 + 4.3)
+    // ---------------------------------------------------------------
 
     /**
-     * Table-driven cover of every REQ-TMPL-012 scenario.
-     *
-     * @dataProvider provideResolvePrimaryGroupCases
-     *
-     * @param array<int, string> $groupOrder admin-configured priority list
-     * @param array<int, string> $userGroups Nextcloud memberships
-     * @param string             $expected   resolver result
-     * @param string             $caseLabel  human label for failure trace
+     * @return void
      */
-    public function testResolvePrimaryGroup(
-        array $groupOrder,
-        array $userGroups,
-        string $expected,
-        string $caseLabel
-    ): void {
-        $this->adminSettings
-            ->method('getGroupOrder')
-            ->willReturn($groupOrder);
-
-        $user = $this->mockUser('alice');
-        $this->userManager
-            ->method('get')
-            ->with('alice')
-            ->willReturn($user);
-
-        $this->groupManager
-            ->method('getUserGroupIds')
-            ->with($user)
-            ->willReturn($userGroups);
-
-        $this->assertSame(
-            $expected,
-            $this->service->resolvePrimaryGroup('alice'),
-            $caseLabel
-        );
-    }//end testResolvePrimaryGroup()
-
-    public function testResolvePrimaryGroupReturnsDefaultForUnknownUser(): void
-    {
-        $this->adminSettings
-            ->method('getGroupOrder')
-            ->willReturn(['engineering']);
-
-        $this->userManager
-            ->method('get')
-            ->with('ghost')
-            ->willReturn(null);
-
-        $this->groupManager
-            ->expects($this->never())
-            ->method('getUserGroupIds');
-
-        $this->assertSame(
-            Dashboard::DEFAULT_GROUP_ID,
-            $this->service->resolvePrimaryGroup('ghost'),
-            'unknown user ID must short-circuit to default sentinel without throwing'
-        );
-    }//end testResolvePrimaryGroupReturnsDefaultForUnknownUser()
-
-    /**
-     * @return array<string, array{0: array<int, string>, 1: array<int, string>, 2: string, 3: string}>
-     */
-    public static function provideResolvePrimaryGroupCases(): array
-    {
-        return [
-            'priority order wins over alphabetical'               => [
-                ['engineering', 'all-staff'],
-                ['all-staff', 'engineering', 'marketing'],
-                'engineering',
-                'engineering appears first in group_order, even though all-staff is alphabetically earlier in user groups',
-            ],
-            'configured group not in user memberships is skipped' => [
-                ['executives', 'engineering'],
-                ['engineering', 'support'],
-                'engineering',
-                'executives is configured but bob is not a member, so we fall through to engineering',
-            ],
-            'no overlap returns default sentinel'                 => [
-                ['engineering', 'executives'],
-                ['support'],
-                Dashboard::DEFAULT_GROUP_ID,
-                'carol is in support only — no overlap with group_order, must return default',
-            ],
-            'empty group_order always returns default'            => [
-                [],
-                ['engineering', 'all-staff', 'marketing'],
-                Dashboard::DEFAULT_GROUP_ID,
-                'unconfigured group_order means default regardless of user memberships',
-            ],
-            'user in no groups returns default'                   => [
-                ['engineering', 'executives'],
-                [],
-                Dashboard::DEFAULT_GROUP_ID,
-                'user with zero memberships always falls through to default',
-            ],
-            'stale (deleted) group ID is harmless'                => [
-                ['deleted-group', 'engineering'],
-                ['engineering'],
-                'engineering',
-                'deleted-group remains in group_order but is not in user groups; resolver must skip without error',
-            ],
-            'stale group ID at every position falls to default'   => [
-                ['deleted-a', 'deleted-b'],
-                ['engineering'],
-                Dashboard::DEFAULT_GROUP_ID,
-                'all configured groups are stale — must return default sentinel, not throw',
-            ],
-            'single configured + matching user group'             => [
-                ['engineering'],
-                ['engineering'],
-                'engineering',
-                'simplest happy path',
-            ],
-        ];
-    }//end provideResolvePrimaryGroupCases()
-
-    public function testResolvePrimaryGroupReturnsLiteralDefaultString(): void
-    {
-        // Pin the sentinel string itself so accidental constant rename
-        // (e.g. to 'DEFAULT' or '__default__') is caught — REQ-DASH-012.
-        $this->adminSettings->method('getGroupOrder')->willReturn([]);
-
-        $this->assertSame(
-            'default',
-            $this->service->resolvePrimaryGroup('anyone'),
-            'sentinel must be the literal string "default", not a renamed constant value'
-        );
-        $this->assertSame(
-            'default',
-            Dashboard::DEFAULT_GROUP_ID,
-            'Dashboard::DEFAULT_GROUP_ID must be the literal "default" sentinel'
-        );
-    }//end testResolvePrimaryGroupReturnsLiteralDefaultString()
-
-    public function testResolvePrimaryGroupIsReadOnly(): void
-    {
-        // Resolver MUST NOT write — guard via mock expectations on the only
-        // injected mappers / settings (no setters / setSetting / insert /
-        // update should ever be called).
-        $this->dashboardMapper->expects($this->never())->method($this->anything());
-        $this->placementMapper->expects($this->never())->method($this->anything());
-        $this->adminSettings
-            ->expects($this->never())
-            ->method('updateSettings');
-        $this->adminSettings
-            ->expects($this->never())
-            ->method('setGroupOrder');
-
-        $this->adminSettings->method('getGroupOrder')->willReturn(['engineering']);
-        $user = $this->mockUser('alice');
-        $this->userManager->method('get')->willReturn($user);
-        $this->groupManager->method('getUserGroupIds')->willReturn(['engineering']);
-
-        $this->service->resolvePrimaryGroup('alice');
-    }//end testResolvePrimaryGroupIsReadOnly()
-
-    public function testPickFirstMatchEmptyOrderedReturnsNull(): void
+    public function testPickFirstMatchReturnsNullForEmptyOrderedGroups(): void
     {
         $this->assertNull(
             AdminTemplateService::pickFirstMatch(
                 orderedGroups: [],
-                userGroups: ['engineering', 'all-staff']
+                userGroups: ['engineering']
             )
         );
-    }//end testPickFirstMatchEmptyOrderedReturnsNull()
+    }//end testPickFirstMatchReturnsNullForEmptyOrderedGroups()
 
-    public function testPickFirstMatchEmptyUserGroupsReturnsNull(): void
+    /**
+     * @return void
+     */
+    public function testPickFirstMatchReturnsNullForEmptyUserGroups(): void
     {
         $this->assertNull(
             AdminTemplateService::pickFirstMatch(
@@ -250,19 +119,12 @@ class AdminTemplateServiceTest extends TestCase
                 userGroups: []
             )
         );
-    }//end testPickFirstMatchEmptyUserGroupsReturnsNull()
+    }//end testPickFirstMatchReturnsNullForEmptyUserGroups()
 
-    public function testPickFirstMatchBothEmptyReturnsNull(): void
-    {
-        $this->assertNull(
-            AdminTemplateService::pickFirstMatch(
-                orderedGroups: [],
-                userGroups: []
-            )
-        );
-    }//end testPickFirstMatchBothEmptyReturnsNull()
-
-    public function testPickFirstMatchNoOverlapReturnsNull(): void
+    /**
+     * @return void
+     */
+    public function testPickFirstMatchReturnsNullWhenNoOverlap(): void
     {
         $this->assertNull(
             AdminTemplateService::pickFirstMatch(
@@ -270,29 +132,275 @@ class AdminTemplateServiceTest extends TestCase
                 userGroups: ['support', 'marketing']
             )
         );
-    }//end testPickFirstMatchNoOverlapReturnsNull()
+    }//end testPickFirstMatchReturnsNullWhenNoOverlap()
 
-    public function testPickFirstMatchMultipleOverlapsReturnsFirstByPriority(): void
+    /**
+     * @return void
+     */
+    public function testPickFirstMatchReturnsFirstMatchWhenMultipleOverlap(): void
     {
-        // user is in BOTH engineering and all-staff; engineering comes first
-        // in group_order, so it wins regardless of the user-side ordering.
+        // engineering wins because it appears first in orderedGroups,
+        // even though all-staff is alphabetically first.
         $this->assertSame(
             'engineering',
             AdminTemplateService::pickFirstMatch(
                 orderedGroups: ['engineering', 'all-staff'],
-                userGroups: ['all-staff', 'engineering']
+                userGroups: ['all-staff', 'engineering', 'marketing']
             )
         );
-    }//end testPickFirstMatchMultipleOverlapsReturnsFirstByPriority()
+    }//end testPickFirstMatchReturnsFirstMatchWhenMultipleOverlap()
 
-    public function testPickFirstMatchSkipsLeadingNonMembers(): void
+    /**
+     * @return void
+     */
+    public function testPickFirstMatchSkipsConfiguredGroupsUserIsNotIn(): void
     {
+        // executives is configured first but the user is not a member —
+        // the algorithm walks past it and returns engineering.
         $this->assertSame(
             'engineering',
             AdminTemplateService::pickFirstMatch(
-                orderedGroups: ['executives', 'leadership', 'engineering', 'all-staff'],
-                userGroups: ['engineering', 'all-staff']
+                orderedGroups: ['executives', 'engineering'],
+                userGroups: ['engineering', 'support']
             )
         );
-    }//end testPickFirstMatchSkipsLeadingNonMembers()
+    }//end testPickFirstMatchSkipsConfiguredGroupsUserIsNotIn()
+
+    // ---------------------------------------------------------------
+    // resolvePrimaryGroup — full integration (REQ-TMPL-012, task 4.1)
+    // ---------------------------------------------------------------
+
+    /**
+     * REQ-TMPL-012 scenario: First match wins by admin-configured priority.
+     *
+     * @return void
+     */
+    public function testResolvePrimaryGroupReturnsFirstMatchByPriority(): void
+    {
+        $this->settingsService
+            ->method('getGroupOrder')
+            ->willReturn(['engineering', 'all-staff']);
+
+        $user = $this->createMock(IUser::class);
+        $this->userManager->method('get')->with('alice')->willReturn($user);
+        $this->groupManager
+            ->method('getUserGroupIds')
+            ->with($user)
+            ->willReturn(['all-staff', 'engineering', 'marketing']);
+
+        $this->assertSame(
+            'engineering',
+            $this->service->resolvePrimaryGroup(userId: 'alice')
+        );
+    }//end testResolvePrimaryGroupReturnsFirstMatchByPriority()
+
+    /**
+     * REQ-TMPL-012 scenario: User in no active group falls through.
+     *
+     * @return void
+     */
+    public function testResolvePrimaryGroupReturnsDefaultWhenNoMatch(): void
+    {
+        $this->settingsService
+            ->method('getGroupOrder')
+            ->willReturn(['engineering', 'executives']);
+
+        $user = $this->createMock(IUser::class);
+        $this->userManager->method('get')->with('carol')->willReturn($user);
+        $this->groupManager
+            ->method('getUserGroupIds')
+            ->with($user)
+            ->willReturn(['support']);
+
+        $this->assertSame(
+            Dashboard::DEFAULT_GROUP_ID,
+            $this->service->resolvePrimaryGroup(userId: 'carol')
+        );
+    }//end testResolvePrimaryGroupReturnsDefaultWhenNoMatch()
+
+    /**
+     * REQ-TMPL-012 scenario: Empty group_order always returns default.
+     *
+     * @return void
+     */
+    public function testResolvePrimaryGroupReturnsDefaultWhenGroupOrderEmpty(): void
+    {
+        $this->settingsService
+            ->method('getGroupOrder')
+            ->willReturn([]);
+
+        $user = $this->createMock(IUser::class);
+        $this->userManager->method('get')->with('anyone')->willReturn($user);
+        // The user has groups, but group_order is empty — sentinel wins.
+        $this->groupManager
+            ->method('getUserGroupIds')
+            ->willReturn(['engineering', 'support']);
+
+        $this->assertSame(
+            Dashboard::DEFAULT_GROUP_ID,
+            $this->service->resolvePrimaryGroup(userId: 'anyone')
+        );
+    }//end testResolvePrimaryGroupReturnsDefaultWhenGroupOrderEmpty()
+
+    /**
+     * REQ-TMPL-012 scenario: Configured group user is NOT in is skipped.
+     *
+     * @return void
+     */
+    public function testResolvePrimaryGroupSkipsConfiguredGroupUserIsNotIn(): void
+    {
+        $this->settingsService
+            ->method('getGroupOrder')
+            ->willReturn(['executives', 'engineering']);
+
+        $user = $this->createMock(IUser::class);
+        $this->userManager->method('get')->with('bob')->willReturn($user);
+        $this->groupManager
+            ->method('getUserGroupIds')
+            ->with($user)
+            ->willReturn(['engineering', 'support']);
+
+        $this->assertSame(
+            'engineering',
+            $this->service->resolvePrimaryGroup(userId: 'bob')
+        );
+    }//end testResolvePrimaryGroupSkipsConfiguredGroupUserIsNotIn()
+
+    /**
+     * REQ-TMPL-012 scenario: Stale (deleted) group ID in group_order is
+     * harmless — the resolver simply never matches and walks on.
+     *
+     * @return void
+     */
+    public function testResolvePrimaryGroupToleratesStaleGroupIds(): void
+    {
+        $this->settingsService
+            ->method('getGroupOrder')
+            ->willReturn(['deleted-group', 'engineering']);
+
+        $user = $this->createMock(IUser::class);
+        $this->userManager->method('get')->with('alice')->willReturn($user);
+        // The user is not a member of the deleted group — the resolver
+        // simply never matches it. The fact the group no longer exists
+        // in Nextcloud is irrelevant: the resolver MUST NOT throw.
+        $this->groupManager
+            ->method('getUserGroupIds')
+            ->with($user)
+            ->willReturn(['engineering']);
+
+        $this->assertSame(
+            'engineering',
+            $this->service->resolvePrimaryGroup(userId: 'alice')
+        );
+    }//end testResolvePrimaryGroupToleratesStaleGroupIds()
+
+    /**
+     * REQ-TMPL-012: unknown user → resolver returns the default sentinel
+     * (mirrors the upstream IUserManager `null` path through
+     * `getUserGroupIdsFor`).
+     *
+     * @return void
+     */
+    public function testResolvePrimaryGroupReturnsDefaultForUnknownUser(): void
+    {
+        $this->settingsService
+            ->method('getGroupOrder')
+            ->willReturn(['engineering']);
+
+        $this->userManager->method('get')->with('ghost')->willReturn(null);
+
+        $this->assertSame(
+            Dashboard::DEFAULT_GROUP_ID,
+            $this->service->resolvePrimaryGroup(userId: 'ghost')
+        );
+    }//end testResolvePrimaryGroupReturnsDefaultForUnknownUser()
+
+    // ---------------------------------------------------------------
+    // getUserGroupIdsFor — single-source-of-truth wrapper
+    // ---------------------------------------------------------------
+
+    /**
+     * @return void
+     */
+    public function testGetUserGroupIdsForReturnsEmptyForUnknownUser(): void
+    {
+        $this->userManager->method('get')->with('ghost')->willReturn(null);
+
+        $this->assertSame(
+            [],
+            $this->service->getUserGroupIdsFor(userId: 'ghost')
+        );
+    }//end testGetUserGroupIdsForReturnsEmptyForUnknownUser()
+
+    /**
+     * @return void
+     */
+    public function testGetUserGroupIdsForDelegatesToGroupManager(): void
+    {
+        $user = $this->createMock(IUser::class);
+        $this->userManager->method('get')->with('alice')->willReturn($user);
+        $this->groupManager
+            ->method('getUserGroupIds')
+            ->with($user)
+            ->willReturn(['engineering', 'support']);
+
+        $this->assertSame(
+            ['engineering', 'support'],
+            $this->service->getUserGroupIdsFor(userId: 'alice')
+        );
+    }//end testGetUserGroupIdsForDelegatesToGroupManager()
+
+    // ---------------------------------------------------------------
+    // resolvePrimaryGroupDisplayName
+    // ---------------------------------------------------------------
+
+    /**
+     * @return void
+     */
+    public function testResolvePrimaryGroupDisplayNameReturnsLiteralForSentinel(): void
+    {
+        // Sentinel always renders 'Default' — translated client-side.
+        $this->assertSame(
+            'Default',
+            $this->service->resolvePrimaryGroupDisplayName(
+                groupId: Dashboard::DEFAULT_GROUP_ID
+            )
+        );
+    }//end testResolvePrimaryGroupDisplayNameReturnsLiteralForSentinel()
+
+    /**
+     * @return void
+     */
+    public function testResolvePrimaryGroupDisplayNameLooksUpRealGroup(): void
+    {
+        $group = $this->createMock(IGroup::class);
+        $group->method('getDisplayName')->willReturn('Engineering Team');
+
+        $this->groupManager
+            ->method('get')
+            ->with('engineering')
+            ->willReturn($group);
+
+        $this->assertSame(
+            'Engineering Team',
+            $this->service->resolvePrimaryGroupDisplayName(groupId: 'engineering')
+        );
+    }//end testResolvePrimaryGroupDisplayNameLooksUpRealGroup()
+
+    /**
+     * @return void
+     */
+    public function testResolvePrimaryGroupDisplayNameFallsBackToIdForDeletedGroup(): void
+    {
+        $this->groupManager
+            ->method('get')
+            ->with('deleted-group')
+            ->willReturn(null);
+
+        $this->assertSame(
+            'deleted-group',
+            $this->service->resolvePrimaryGroupDisplayName(groupId: 'deleted-group')
+        );
+    }//end testResolvePrimaryGroupDisplayNameFallsBackToIdForDeletedGroup()
+
 }//end class

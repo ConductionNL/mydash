@@ -159,21 +159,40 @@ class DashboardApiController extends Controller
      *
      * @param mixed       $name        The dashboard name.
      * @param string|null $description The description.
+     * @param string|null $icon        The icon registry key (or NULL/empty to use the default).
      *
      * @return JSONResponse The created dashboard.
      */
     #[NoAdminRequired]
     public function create(
         $name=null,
-        ?string $description=null
+        ?string $description=null,
+        ?string $icon=null
     ): JSONResponse {
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }
 
+        // REQ-ASET-003 (extended): admin gating runs FIRST so the response
+        // envelope is the stable `personal_dashboards_disabled` shape no
+        // matter what the request body looked like.
+        try {
+            $this->dashboardService->assertPersonalDashboardsAllowed();
+        } catch (PersonalDashboardsDisabledException $e) {
+            return new JSONResponse(
+                data: [
+                    'status'  => 'error',
+                    'error'   => $e->getErrorCode(),
+                    'message' => $e->getMessage(),
+                ],
+                statusCode: Http::STATUS_FORBIDDEN
+            );
+        }
+
         $resolved = $this->resolveCreateParams(
             name: $name,
-            description: $description
+            description: $description,
+            icon: $icon
         );
 
         try {
@@ -200,7 +219,8 @@ class DashboardApiController extends Controller
             $dashboard = $this->dashboardService->createDashboard(
                 userId: $this->userId,
                 name: $resolved['name'],
-                description: $resolved['description']
+                description: $resolved['description'],
+                icon: $resolved['icon']
             );
 
             return ResponseHelper::success(
@@ -219,6 +239,7 @@ class DashboardApiController extends Controller
      * @param string|null $name        The name.
      * @param string|null $description The description.
      * @param array|null  $placements  The placements.
+     * @param string|null $icon        The icon registry key, URL, or NULL to leave unchanged.
      *
      * @return JSONResponse The updated dashboard.
      */
@@ -227,15 +248,16 @@ class DashboardApiController extends Controller
         int $id,
         ?string $name=null,
         ?string $description=null,
-        ?array $placements=null
+        ?array $placements=null,
+        ?string $icon=null
     ): JSONResponse {
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }
 
-        // REQ-PERM-007: Metadata-only updates (name, description) are allowed
-        // for all permission levels. Widget/tile/layout changes require
-        // add_only or full permission.
+        // REQ-PERM-007: Metadata-only updates (name, description, icon) are
+        // allowed for all permission levels. Widget/tile/layout changes
+        // require add_only or full permission.
         $isMetadataOnly = $placements === null;
         if ($isMetadataOnly === true) {
             if ($this->permissionService->canEditDashboardMetadata(
@@ -259,7 +281,8 @@ class DashboardApiController extends Controller
             $data = $this->buildUpdateData(
                 name: $name,
                 description: $description,
-                placements: $placements
+                placements: $placements,
+                icon: $icon
             );
 
             $dashboard = $this->dashboardService->updateDashboard(
@@ -651,20 +674,32 @@ class DashboardApiController extends Controller
     }//end setActiveDashboard()
 
     /**
-     * Fork a visible dashboard as a new personal copy.
+     * Fork any visible dashboard into a brand-new personal copy.
      *
-     * Creates a new `user`-type dashboard owned by the calling user,
-     * deep-copying all widget placements from the source dashboard, and
-     * makes it the active dashboard. Gated on `allow_user_dashboards`.
-     * REQ-DASH-020..022.
+     * REQ-DASH-020 / REQ-DASH-021 / REQ-DASH-022. Body shape:
+     * `{name?: string}` — when `name` is absent the system applies the
+     * default `t('My copy of {name}', source.name)` translated via the
+     * caller's active language.
      *
-     * @param string      $uuid The source dashboard UUID (URL parameter).
-     * @param string|null $name Optional override name (JSON body field).
+     * Status mapping:
+     *  - HTTP 201 with the full new dashboard payload on success.
+     *  - HTTP 401 when the session has no user.
+     *  - HTTP 403 with stable error code `personal_dashboards_disabled`
+     *    when the admin flag `allow_user_dashboards` is off — REQ-ASET-003
+     *    runtime gating runs FIRST so the envelope shape is stable
+     *    regardless of body contents.
+     *  - HTTP 404 when the source UUID is not visible to the caller —
+     *    do not leak existence (REQ-DASH-020 scenario "Cannot fork a
+     *    dashboard you cannot read").
+     *  - HTTP 500 when a partial-failure rollback fires — REQ-DASH-021.
+     *    ADR-005: the response carries a stable error code and a generic
+     *    user-facing message; the underlying exception is logged for ops.
      *
-     * @return JSONResponse HTTP 201 + new dashboard on success;
-     *                      403 when personal dashboards are disabled;
-     *                      404 when the source is not visible to the user;
-     *                      500 on unexpected error.
+     * @param string      $uuid The source dashboard UUID from the URL.
+     * @param string|null $name Optional explicit fork name from the body.
+     *
+     * @return JSONResponse The new dashboard payload (201) or an
+     *                      appropriate error envelope.
      */
     #[NoAdminRequired]
     public function fork(
@@ -676,7 +711,7 @@ class DashboardApiController extends Controller
         }
 
         try {
-            $dashboard = $this->dashboardService->forkAsPersonal(
+            $fork = $this->dashboardService->forkAsPersonal(
                 userId: $this->userId,
                 sourceUuid: $uuid,
                 name: $name
@@ -685,7 +720,7 @@ class DashboardApiController extends Controller
             return new JSONResponse(
                 data: [
                     'status'    => 'success',
-                    'dashboard' => $dashboard->jsonSerialize(),
+                    'dashboard' => $fork->jsonSerialize(),
                 ],
                 statusCode: Http::STATUS_CREATED
             );
@@ -698,7 +733,10 @@ class DashboardApiController extends Controller
                 ],
                 statusCode: Http::STATUS_FORBIDDEN
             );
-        } catch (DoesNotExistException $e) {
+        } catch (DoesNotExistException) {
+            // REQ-DASH-020: source not visible — 404 without leaking
+            // existence (use the canonical message rather than echoing
+            // the exception detail).
             return new JSONResponse(
                 data: [
                     'status' => 'error',
@@ -707,6 +745,8 @@ class DashboardApiController extends Controller
                 statusCode: Http::STATUS_NOT_FOUND
             );
         } catch (\Throwable $t) {
+            // REQ-DASH-021 + ADR-005: log the real cause, return a
+            // stable, generic envelope to the client.
             $this->logger->error(
                 message: 'mydash: fork failed for user {user}: {message}',
                 context: [
@@ -730,23 +770,33 @@ class DashboardApiController extends Controller
      *
      * @param mixed       $name        The name parameter.
      * @param string|null $description The description parameter.
+     * @param string|null $icon        The icon parameter.
      *
-     * @return array The resolved name and description.
+     * @return array{name: string, description: ?string, icon: ?string} The resolved values.
      */
     private function resolveCreateParams(
         $name,
-        ?string $description
+        ?string $description,
+        ?string $icon=null
     ): array {
         if (is_array($name) === true) {
+            $bodyIcon     = ($name['icon'] ?? null);
+            $resolvedIcon = null;
+            if (is_string($bodyIcon) === true) {
+                $resolvedIcon = $bodyIcon;
+            }
+
             return [
                 'name'        => $name['name'] ?? 'My Dashboard',
                 'description' => $name['description'] ?? null,
+                'icon'        => $resolvedIcon,
             ];
         }
 
         return [
             'name'        => $name ?? 'My Dashboard',
             'description' => $description,
+            'icon'        => $icon,
         ];
     }//end resolveCreateParams()
 
@@ -790,13 +840,15 @@ class DashboardApiController extends Controller
      * @param string|null $name        The name.
      * @param string|null $description The description.
      * @param array|null  $placements  The placements.
+     * @param string|null $icon        The icon registry key, URL, or NULL/empty.
      *
      * @return array The non-null update data.
      */
     private function buildUpdateData(
         ?string $name,
         ?string $description,
-        ?array $placements
+        ?array $placements,
+        ?string $icon=null
     ): array {
         $fields = [
             'name'        => $name,
@@ -804,12 +856,22 @@ class DashboardApiController extends Controller
             'placements'  => $placements,
         ];
 
-        return array_filter(
+        $data = array_filter(
             array: $fields,
             callback: function ($value) {
                 return $value !== null;
             }
         );
+
+        // Icon explicitly supports NULL/empty (resets to the default
+        // glyph), so it must be merged separately from the array_filter
+        // above. Caller distinguishes "not in payload" via the default
+        // null sentinel.
+        if ($icon !== null) {
+            $data['icon'] = $icon;
+        }
+
+        return $data;
     }//end buildUpdateData()
 
     /**

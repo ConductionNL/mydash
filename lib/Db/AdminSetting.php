@@ -63,12 +63,26 @@ class AdminSetting extends Entity implements JsonSerializable
     public const KEY_DEFAULT_GRID_COLUMNS = 'default_grid_columns';
 
     /**
-     * Setting key for the ordered list of "active" Nextcloud group IDs that
-     * MyDash treats as in scope for workspace routing (REQ-ASET-012).
+     * Setting key for the admin-chosen group priority order
+     * (REQ-ASET-012). Persisted as a JSON string list of Nextcloud
+     * group IDs in the order the admin chose; corrupt JSON resolves
+     * to `[]` at the service layer (defensive read). MyDash treats
+     * these as in scope for workspace routing.
      *
      * @var string
      */
     public const KEY_GROUP_ORDER = 'group_order';
+
+    /**
+     * Setting key for the link-button-widget createFile extension allow-list.
+     *
+     * Stored as a JSON array of lowercase extensions without dots
+     * (e.g. `["txt","md","docx"]`). Default values are returned by
+     * {@see \OCA\MyDash\Service\FileService::getAllowedExtensions()}.
+     *
+     * @var string
+     */
+    public const KEY_LINK_CREATE_FILE_EXTENSIONS = 'link_create_file_extensions';
 
     /**
      * The setting key.

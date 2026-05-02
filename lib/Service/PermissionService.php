@@ -12,6 +12,9 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
+ *
+ * SPDX-FileCopyrightText: 2024 MyDash Contributors
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -28,26 +31,55 @@ use OCA\MyDash\Db\AdminSetting;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IGroupManager;
 
+/**
+ * Service for resolving dashboard permissions across personal,
+ * shared, and group-shared scopes (REQ-DASH-014).
+ *
+ * @SuppressWarnings(PHPMD.TooManyPublicMethods) Twelve methods cover the
+ *                                                three scopes' permission
+ *                                                checks without splitting.
+ */
 class PermissionService
 {
     /**
      * Constructor
      *
-     * @param DashboardMapper       $dashboardMapper Dashboard mapper.
-     * @param WidgetPlacementMapper $placementMapper Widget placement mapper.
-     * @param AdminSettingMapper    $settingMapper   Admin setting mapper.
-     * @param IGroupManager         $groupManager    Group manager.
-     * @param string|null           $currentUserId   The current user ID
-     *                                               (null when unauthenticated).
+     * @param DashboardMapper       $dashboardMapper      Dashboard mapper.
+     * @param WidgetPlacementMapper $placementMapper      Widget placement mapper.
+     * @param AdminSettingMapper    $settingMapper        Admin setting mapper.
+     * @param DashboardShareService $shareService         Share resolution service.
+     * @param IGroupManager         $groupManager         Group manager for the
+     *                                                    `isAdmin` check (group
+     *                                                    membership lookups go
+     *                                                    through the routing
+     *                                                    resolver — REQ-TMPL-013).
+     * @param AdminTemplateService  $adminTemplateService Routing resolver — single
+     *                                                    source of truth for
+     *                                                    `IGroupManager::getUserGroupIds`
+     *                                                    (REQ-TMPL-013).
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
         private readonly WidgetPlacementMapper $placementMapper,
         private readonly AdminSettingMapper $settingMapper,
+        private readonly DashboardShareService $shareService,
         private readonly IGroupManager $groupManager,
-        private readonly ?string $currentUserId=null,
+        private readonly AdminTemplateService $adminTemplateService,
     ) {
     }//end __construct()
+
+    /**
+     * Whether the user can see a dashboard at all (owner OR has any share).
+     *
+     * @param string $userId      The acting user ID.
+     * @param int    $dashboardId The dashboard ID.
+     *
+     * @return bool True when the dashboard is visible to the user.
+     */
+    public function canViewDashboard(string $userId, int $dashboardId): bool
+    {
+        return $this->resolveAccessLevel(userId: $userId, dashboardId: $dashboardId) !== null;
+    }//end canViewDashboard()
 
     /**
      * Check if user can edit a dashboard (widgets, tiles, layout).
@@ -70,18 +102,13 @@ class PermissionService
             return false;
         }
 
-        // User must own the dashboard.
-        if ($dashboard->getUserId() !== $userId) {
+        $level = $this->resolveAccessLevel(userId: $userId, dashboard: $dashboard);
+        if ($level === null) {
             return false;
         }
 
-        // Check permission level.
-        $permissionLevel = $this->getEffectivePermissionLevel(
-            dashboard: $dashboard
-        );
-
         return in_array(
-            needle: $permissionLevel,
+            needle: $level,
             haystack: [
                 Dashboard::PERMISSION_ADD_ONLY,
                 Dashboard::PERMISSION_FULL,
@@ -90,11 +117,7 @@ class PermissionService
     }//end canEditDashboard()
 
     /**
-     * Check if user can edit dashboard metadata (name, description).
-     *
-     * Per REQ-PERM-007, permission levels do NOT restrict editing of
-     * dashboard metadata. All users who own a dashboard can edit its
-     * name and description, regardless of permission level.
+     * Check if user can edit dashboard metadata (name, description). Owner only.
      *
      * @param string $userId      The user ID.
      * @param int    $dashboardId The dashboard ID.
@@ -116,7 +139,7 @@ class PermissionService
             return false;
         }
 
-        // User must own the dashboard.
+        // Only owner can rename / change description.
         return $dashboard->getUserId() === $userId;
     }//end canEditDashboardMetadata()
 
@@ -130,24 +153,13 @@ class PermissionService
      */
     public function canAddWidget(string $userId, int $dashboardId): bool
     {
-        try {
-            $dashboard = $this->dashboardMapper->find(id: $dashboardId);
-        } catch (DoesNotExistException) {
+        $level = $this->resolveAccessLevel(userId: $userId, dashboardId: $dashboardId);
+        if ($level === null) {
             return false;
         }
-
-        // User must own the dashboard.
-        if ($dashboard->getUserId() !== $userId) {
-            return false;
-        }
-
-        // Check permission level.
-        $permissionLevel = $this->getEffectivePermissionLevel(
-            dashboard: $dashboard
-        );
 
         return in_array(
-            needle: $permissionLevel,
+            needle: $level,
             haystack: [
                 Dashboard::PERMISSION_ADD_ONLY,
                 Dashboard::PERMISSION_FULL,
@@ -174,29 +186,21 @@ class PermissionService
             return false;
         }
 
-        // User must own the dashboard.
-        if ($dashboard->getUserId() !== $userId) {
+        $level = $this->resolveAccessLevel(userId: $userId, dashboard: $dashboard);
+        if ($level === null) {
             return false;
         }
 
-        // Check permission level.
-        $permissionLevel = $this->getEffectivePermissionLevel(
-            dashboard: $dashboard
-        );
-
-        // View only users can't remove anything.
-        if ($permissionLevel === Dashboard::PERMISSION_VIEW_ONLY) {
+        if ($level === Dashboard::PERMISSION_VIEW_ONLY) {
             return false;
         }
 
-        // Full permission can remove anything.
-        if ($permissionLevel === Dashboard::PERMISSION_FULL) {
+        if ($level === Dashboard::PERMISSION_FULL) {
             return true;
         }
 
-        // Add only users can't remove compulsory widgets.
-        if ($permissionLevel === Dashboard::PERMISSION_ADD_ONLY) {
-            return $placement->getIsCompulsory() === false;
+        if ($level === Dashboard::PERMISSION_ADD_ONLY) {
+            return $placement->getIsCompulsory() === 0;
         }
 
         return false;
@@ -221,18 +225,13 @@ class PermissionService
             return false;
         }
 
-        // User must own the dashboard.
-        if ($dashboard->getUserId() !== $userId) {
+        $level = $this->resolveAccessLevel(userId: $userId, dashboard: $dashboard);
+        if ($level === null) {
             return false;
         }
 
-        // Check permission level.
-        $permissionLevel = $this->getEffectivePermissionLevel(
-            dashboard: $dashboard
-        );
-
         return in_array(
-            needle: $permissionLevel,
+            needle: $level,
             haystack: [
                 Dashboard::PERMISSION_ADD_ONLY,
                 Dashboard::PERMISSION_FULL,
@@ -249,9 +248,12 @@ class PermissionService
      */
     public function canCreateDashboard(string $userId): bool
     {
-        return $this->settingMapper->getValue(
+        // REQ-ASET-003 (extended): default `false` — when no row exists,
+        // personal dashboard creation MUST be blocked. Defense-in-depth
+        // companion to DashboardService::assertPersonalDashboardsAllowed().
+        return (bool) $this->settingMapper->getValue(
             key: AdminSetting::KEY_ALLOW_USER_DASHBOARDS,
-            default: true
+            default: false
         );
     }//end canCreateDashboard()
 
@@ -271,28 +273,35 @@ class PermissionService
     }//end canHaveMultipleDashboards()
 
     /**
-     * Get the effective permission level for a dashboard.
+     * Get the effective permission level for a dashboard, ignoring sharing.
      *
-     * Group-shared dashboards (REQ-DASH-011) override the persisted
-     * `permissionLevel` field at resolution time:
-     *   - admins always get {@see Dashboard::PERMISSION_FULL}
-     *   - non-admin members always get
-     *     {@see Dashboard::PERMISSION_VIEW_ONLY}
+     * For `group_shared` dashboards (REQ-DASH-014): the resolved level is
+     * always `view_only` for non-admin members and `full` for admins —
+     * the row's own `permissionLevel` field is intentionally ignored so
+     * the read-only-for-members rule lives in one place. Pass `$userId`
+     * to enable the admin override; omit it to keep the legacy "ignore
+     * sharing, return record level" behaviour.
      *
-     * The override is applied here (single source of truth) so that
-     * future widgets / tiles consulting `getEffectivePermissionLevel`
-     * stay consistent with the route-level admin guard. The persisted
-     * column is preserved for forward-compat with per-tile editing.
-     *
-     * @param Dashboard $dashboard The dashboard.
+     * @param Dashboard   $dashboard The dashboard.
+     * @param string|null $userId    The acting user (enables the
+     *                               group-shared admin override). Pass
+     *                               null to fall back to the record's
+     *                               own permission level.
      *
      * @return string The effective permission level.
      */
-    public function getEffectivePermissionLevel(Dashboard $dashboard): string
-    {
-        // Group-shared scope: admin → full, non-admin → view_only.
+    public function getEffectivePermissionLevel(
+        Dashboard $dashboard,
+        ?string $userId=null
+    ): string {
+        // REQ-DASH-014: group-shared dashboards are read-only for
+        // non-admin members and fully editable for admins, regardless of
+        // the row's persisted `permissionLevel` field (which is kept on
+        // the row for forward-compat with future per-tile editing).
         if ($dashboard->getType() === Dashboard::TYPE_GROUP_SHARED) {
-            if ($this->currentUserIsAdmin() === true) {
+            if ($userId !== null
+                && $this->groupManager->isAdmin(userId: $userId) === true
+            ) {
                 return Dashboard::PERMISSION_FULL;
             }
 
@@ -324,22 +333,75 @@ class PermissionService
     }//end getEffectivePermissionLevel()
 
     /**
-     * Test whether the current request actor is a Nextcloud admin.
+     * Resolve the effective permission level a user has on a dashboard:
+     *  - If the user is the owner, returns the dashboard's effective level.
+     *  - If a share applies (direct or via group), returns that share's level.
+     *  - Otherwise returns null (no access).
      *
-     * Returns false on unauthenticated requests rather than throwing,
-     * so callers (including the group-shared resolver) can safely fall
-     * back to the read-only branch.
+     * Pass either a dashboard id or an already-loaded dashboard entity.
      *
-     * @return bool Whether the actor is an admin.
+     * @param string         $userId      The user id.
+     * @param int|null       $dashboardId The dashboard id (optional if $dashboard given).
+     * @param Dashboard|null $dashboard   The dashboard entity (optional if $dashboardId given).
+     *
+     * @return string|null The permission level or null when no access.
      */
-    private function currentUserIsAdmin(): bool
-    {
-        if ($this->currentUserId === null || $this->currentUserId === '') {
-            return false;
+    public function resolveAccessLevel(
+        string $userId,
+        ?int $dashboardId=null,
+        ?Dashboard $dashboard=null
+    ): ?string {
+        if ($dashboard === null) {
+            try {
+                $dashboard = $this->dashboardMapper->find(id: $dashboardId);
+            } catch (DoesNotExistException) {
+                return null;
+            }
         }
 
-        return $this->groupManager->isAdmin(userId: $this->currentUserId);
-    }//end currentUserIsAdmin()
+        // Group-shared dashboards bypass the ownership-vs-share path:
+        // visibility is by group membership, not by per-row sharing.
+        // REQ-DASH-014.
+        if ($dashboard->getType() === Dashboard::TYPE_GROUP_SHARED) {
+            $groupId = (string) $dashboard->getGroupId();
+            if ($groupId === Dashboard::DEFAULT_GROUP_ID) {
+                return $this->getEffectivePermissionLevel(
+                    dashboard: $dashboard,
+                    userId: $userId
+                );
+            }
+
+            $userGroupIds = $this->adminTemplateService->getUserGroupIdsFor(
+                userId: $userId
+            );
+            if (in_array(needle: $groupId, haystack: $userGroupIds, strict: true) === true
+                || $this->groupManager->isAdmin(userId: $userId) === true
+            ) {
+                return $this->getEffectivePermissionLevel(
+                    dashboard: $dashboard,
+                    userId: $userId
+                );
+            }//end if
+
+            return null;
+        }//end if
+
+        if ($dashboard->getUserId() === $userId) {
+            return $this->getEffectivePermissionLevel(
+                dashboard: $dashboard,
+                userId: $userId
+            );
+        }
+
+        $shares = $this->shareService->resolveSharedDashboards(
+            userId: $userId,
+            groupIds: $this->adminTemplateService->getUserGroupIdsFor(
+                userId: $userId
+            )
+        );
+
+        return $shares[$dashboard->getId()] ?? null;
+    }//end resolveAccessLevel()
 
     /**
      * Verify user owns a dashboard.

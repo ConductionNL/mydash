@@ -3,11 +3,14 @@
 /**
  * PageController
  *
- * Controller for rendering the main MyDash workspace page. The workspace
- * initial-state payload is constructed via
- * {@see \OCA\MyDash\Service\InitialStateBuilder} per REQ-INIT-001 — direct
- * calls to IInitialState::provideInitialState are forbidden here (and any
- * other controller) and enforced by a grep lint test.
+ * Controller for rendering the main MyDash workspace page (REQ-INIT-001,
+ * REQ-INIT-002). The page-render path constructs an
+ * {@see \OCA\MyDash\Service\InitialStateBuilder} for
+ * {@see \OCA\MyDash\Service\InitialState\Page::WORKSPACE}, populates every
+ * key declared in the spec's Data Model, and applies — direct calls to
+ * {@see \OCP\AppFramework\Services\IInitialState::provideInitialState()}
+ * are forbidden here (and any other controller) and enforced by the
+ * `lint:initial-state` CI guard.
  *
  * @category  Controller
  * @package   OCA\MyDash\Controller
@@ -24,58 +27,67 @@ namespace OCA\MyDash\Controller;
 
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Db\Dashboard;
-use OCA\MyDash\Service\AdminSettingsService;
 use OCA\MyDash\Service\AdminTemplateService;
 use OCA\MyDash\Service\DashboardService;
+use OCA\MyDash\Service\InitialState\Page;
 use OCA\MyDash\Service\InitialStateBuilder;
-use OCA\MyDash\Service\Page;
+use OCA\MyDash\Service\WidgetService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IInitialState;
-use OCP\Dashboard\IManager as IDashboardManager;
-use OCP\IGroupManager;
+use OCP\Dashboard\IManager;
 use OCP\IRequest;
 use OCP\IUserSession;
 use OCP\Util;
 
+/**
+ * Workspace page controller — wires the typed initial-state contract.
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects) Boot path needs widget,
+ *                                                  dashboard, settings and
+ *                                                  group services to fill
+ *                                                  the contract.
+ */
 class PageController extends Controller
 {
     /**
-     * Constructor
+     * Constructor.
      *
-     * @param IRequest             $request          The request.
-     * @param IInitialState        $initialState     Nextcloud initial-state service.
-     * @param IDashboardManager    $dashboardManager Dashboard widget manager.
-     * @param IUserSession         $userSession      Current user session.
-     * @param IGroupManager        $groupManager     Group membership lookup.
-     * @param AdminSettingsService $adminSettings    MyDash admin settings.
-     * @param DashboardService     $dashboardService Dashboard service (active
-     *                                               resolver —
-     *                                               REQ-DASH-018).
-     * @param AdminTemplateService $templateService  Template service (primary
-     *                                               group resolver —
-     *                                               REQ-TMPL-012).
+     * @param IRequest             $request              The request.
+     * @param IManager             $dashboardManager     Nextcloud dashboard widget manager.
+     * @param IInitialState        $initialState         The Nextcloud initial-state service.
+     * @param IUserSession         $userSession          Active user session.
+     * @param WidgetService        $widgetService        Available-widgets descriptor formatter.
+     * @param DashboardService     $dashboardService     Dashboard listing + resolver
+     *                                                   (also exposes the
+     *                                                   `allow_user_dashboards` flag
+     *                                                   — REQ-ASET-003).
+     * @param AdminTemplateService $adminTemplateService Primary-group routing
+     *                                                   resolver (REQ-TMPL-012,
+     *                                                   REQ-TMPL-013).
      */
     public function __construct(
         IRequest $request,
+        private readonly IManager $dashboardManager,
         private readonly IInitialState $initialState,
-        private readonly IDashboardManager $dashboardManager,
         private readonly IUserSession $userSession,
-        private readonly IGroupManager $groupManager,
-        private readonly AdminSettingsService $adminSettings,
+        private readonly WidgetService $widgetService,
         private readonly DashboardService $dashboardService,
-        private readonly AdminTemplateService $templateService,
+        private readonly AdminTemplateService $adminTemplateService,
     ) {
         parent::__construct(appName: Application::APP_ID, request: $request);
     }//end __construct()
 
     /**
-     * Render the main workspace index page.
+     * Render the workspace page.
      *
-     * Builds the workspace initial-state payload via InitialStateBuilder
-     * (REQ-INIT-001) and applies it before the template is rendered.
+     * Wires the full workspace initial-state contract into the template via
+     * {@see InitialStateBuilder}. Every key declared in REQ-INIT-002 is set
+     * before `apply()` runs; missing keys raise
+     * {@see \OCA\MyDash\Exception\MissingInitialStateException} so the page
+     * never renders with a partial payload.
      *
      * @return TemplateResponse The template response.
      */
@@ -87,71 +99,126 @@ class PageController extends Controller
         Util::addStyle(application: Application::APP_ID, file: 'mydash');
 
         // Load all widget scripts so legacy widgets can register their callbacks.
-        $widgets = $this->loadWidgetScripts();
+        $this->loadWidgetScripts();
 
-        $user    = $this->userSession->getUser();
-        $isAdmin = false;
-        $userId  = null;
+        $user   = $this->userSession->getUser();
+        $userId = '';
         if ($user !== null) {
-            $userId  = $user->getUID();
-            $isAdmin = $this->groupManager->isAdmin(userId: $userId);
+            $userId = $user->getUID();
         }
 
-        // Resolve the primary group via the canonical REQ-TMPL-012 authority.
-        $primaryGroup = Dashboard::DEFAULT_GROUP_ID;
-        if ($userId !== null) {
-            $primaryGroup = $this->templateService->resolvePrimaryGroup(userId: $userId);
-        }
-
-        $primaryGroupName = $primaryGroup;
-        if ($primaryGroup !== 'default'
-            && $this->groupManager->groupExists(gid: $primaryGroup) === true
-        ) {
-            $group = $this->groupManager->get(gid: $primaryGroup);
-            if ($group !== null) {
-                $primaryGroupName = $group->getDisplayName();
-            }
-        }
-
-        // Resolve the active dashboard via the REQ-DASH-018 precedence chain.
-        $activeDashboardId = '';
-        $dashboardSource   = 'group';
-        if ($userId !== null) {
-            $resolved = $this->dashboardService->resolveActiveDashboard(
-                userId: $userId,
-                primaryGroupId: $primaryGroup
+        // Routing resolver — REQ-TMPL-012 / REQ-TMPL-013. The
+        // `AdminTemplateService` walks the admin-configured `group_order`
+        // priority list and returns the first group the user belongs to,
+        // OR the literal `'default'` sentinel when nothing matches. The
+        // display name comes from the same service so the lookup lives in
+        // exactly one place.
+        $primaryGroupId   = Dashboard::DEFAULT_GROUP_ID;
+        $primaryGroupName = $this->adminTemplateService->resolvePrimaryGroupDisplayName(
+            groupId: Dashboard::DEFAULT_GROUP_ID
+        );
+        if ($userId !== '') {
+            $primaryGroupId   = $this->adminTemplateService->resolvePrimaryGroup(
+                userId: $userId
             );
-            if ($resolved !== null) {
-                $activeDashboardId = (string) $resolved['dashboard']->getUuid();
-                $dashboardSource   = $resolved['source'];
-            }
+            $primaryGroupName = $this->adminTemplateService->resolvePrimaryGroupDisplayName(
+                groupId: $primaryGroupId
+            );
         }
 
-        $settings = $this->adminSettings->getSettings();
+        $isAdmin = false;
+        if ($userId !== '') {
+            $isAdmin = $this->dashboardService->isAdmin(userId: $userId);
+        }
+
+        $visible = [];
+        if ($userId !== '') {
+            $visible = $this->dashboardService->getVisibleToUser(userId: $userId);
+        }
+
+        $groupDashboards = [];
+        $userDashboards  = [];
+        foreach ($visible as $entry) {
+            $dashboard = $entry['dashboard'];
+            // Dashboard entity has no icon column today — surface an empty
+            // string so the frontend descriptor shape matches REQ-INIT-002.
+            $descriptor = [
+                'id'     => (string) $dashboard->getUuid(),
+                'name'   => (string) $dashboard->getName(),
+                'icon'   => '',
+                'source' => $entry['source'],
+            ];
+
+            if ($entry['source'] === Dashboard::SOURCE_USER) {
+                unset($descriptor['source']);
+                $userDashboards[] = $descriptor;
+                continue;
+            }
+
+            $groupDashboards[] = $descriptor;
+        }
+
+        $active = null;
+        if ($userId !== '') {
+            $active = $this->dashboardService->resolveActiveDashboard(
+                userId: $userId,
+                primaryGroupId: $primaryGroupId
+            );
+        }
+
+        $activeDashboardId = '';
+        $dashboardSource   = Dashboard::SOURCE_GROUP;
+        $layout            = [];
+        if ($active !== null) {
+            $activeDashboard   = $active['dashboard'];
+            $activeDashboardId = (string) $activeDashboard->getUuid();
+            $dashboardSource   = (string) $active['source'];
+            $placements        = $this->widgetService->getDashboardPlacements(
+                dashboardId: $activeDashboard->getId()
+            );
+            $layout            = array_map(
+                callback: function ($placement) {
+                    return $placement->jsonSerialize();
+                },
+                array: $placements
+            );
+        }
+
+        $allowUserDashboards = $this->dashboardService->getAllowUserDashboards();
 
         $builder = new InitialStateBuilder(
             initialState: $this->initialState,
             page: Page::WORKSPACE
         );
+
         $builder
-            ->setWidgets(widgets: $this->describeWidgets(widgets: $widgets))
-            ->setLayout(layout: [])
-            ->setPrimaryGroup(primaryGroup: $primaryGroup)
-            ->setPrimaryGroupName(primaryGroupName: $primaryGroupName)
-            ->setIsAdmin(isAdmin: $isAdmin)
-            ->setActiveDashboardId(activeDashboardId: $activeDashboardId)
-            ->setDashboardSource(dashboardSource: $dashboardSource)
-            ->setGroupDashboards(groupDashboards: [])
-            ->setUserDashboards(userDashboards: [])
-            ->setAllowUserDashboards(
-                allowUserDashboards: (bool) ($settings['allowUserDashboards'] ?? false)
-            )
+            ->setWidgets($this->widgetService->getAvailableWidgets())
+            ->setLayout($layout)
+            ->setPrimaryGroup($primaryGroupId)
+            ->setPrimaryGroupName($primaryGroupName)
+            ->setIsAdmin($isAdmin)
+            ->setActiveDashboardId($activeDashboardId)
+            ->setDashboardSource($dashboardSource)
+            ->setGroupDashboards($groupDashboards)
+            ->setUserDashboards($userDashboards)
+            ->setAllowUserDashboards($allowUserDashboards)
             ->apply();
 
-        return new TemplateResponse(
+        // REQ-SHELL-001: pass the chrome slot ids so Nextcloud treats
+        // `#app-workspace` as the main content slot and allocates no left
+        // navigation panel (the runtime shell renders its own slide-in
+        // sidebar via `dashboard-switcher-sidebar`). Renderer parameter
+        // names match the Nextcloud chrome conventions.
+        $response = new TemplateResponse(
             appName: Application::APP_ID,
-            templateName: 'index'
+            templateName: 'index',
+            params: [
+                'id-app-content'    => '#app-workspace',
+                'id-app-navigation' => null,
+            ]
         );
+
+        return $response;
     }//end index()
 
     /**
@@ -173,27 +240,4 @@ class PageController extends Controller
 
         return $widgets;
     }//end loadWidgetScripts()
-
-    /**
-     * Build serialisable widget descriptors for the initial-state payload.
-     *
-     * @param array<string, \OCP\Dashboard\IWidget> $widgets Widget map.
-     *
-     * @return array<int, array{id:string,title:string,iconClass:string,iconUrl:string,url:?string}>
-     */
-    private function describeWidgets(array $widgets): array
-    {
-        $descriptors = [];
-        foreach ($widgets as $id => $widget) {
-            $descriptors[] = [
-                'id'        => $id,
-                'title'     => $widget->getTitle(),
-                'iconClass' => $widget->getIconClass(),
-                'iconUrl'   => '',
-                'url'       => $widget->getUrl(),
-            ];
-        }
-
-        return $descriptors;
-    }//end describeWidgets()
 }//end class

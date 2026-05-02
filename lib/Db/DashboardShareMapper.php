@@ -185,6 +185,54 @@ class DashboardShareMapper extends QBMapper
     }//end findShare()
 
     /**
+     * Find every share that grants access to a given user, considering both
+     * direct user shares and group shares. REQ-SHARE-002.
+     *
+     * @param string   $userId   The recipient user id.
+     * @param string[] $groupIds The recipient's group ids.
+     *
+     * @return DashboardShare[] The shares.
+     */
+    public function findForRecipient(string $userId, array $groupIds): array
+    {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select(selects: '*')
+            ->from(from: $this->getTableName());
+
+        $userClause = $qb->expr()->andX(
+            $qb->expr()->eq(
+                x: 'share_type',
+                y: $qb->createNamedParameter(value: DashboardShare::SHARE_TYPE_USER)
+            ),
+            $qb->expr()->eq(
+                x: 'share_with',
+                y: $qb->createNamedParameter(value: $userId)
+            )
+        );
+
+        if (count($groupIds) > 0) {
+            $groupClause = $qb->expr()->andX(
+                $qb->expr()->eq(
+                    x: 'share_type',
+                    y: $qb->createNamedParameter(value: DashboardShare::SHARE_TYPE_GROUP)
+                ),
+                $qb->expr()->in(
+                    x: 'share_with',
+                    y: $qb->createNamedParameter(
+                        value: $groupIds,
+                        type: IQueryBuilder::PARAM_STR_ARRAY
+                    )
+                )
+            );
+            $qb->where($qb->expr()->orX($userClause, $groupClause));
+        } else {
+            $qb->where($userClause);
+        }
+
+        return $this->findEntities(query: $qb);
+    }//end findForRecipient()
+
+    /**
      * Delete all shares for a dashboard.
      *
      * @param int $dashboardId The dashboard ID.

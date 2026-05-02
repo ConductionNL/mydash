@@ -18,8 +18,6 @@ declare(strict_types=1);
 
 namespace OCA\MyDash\Service;
 
-use OCA\MyDash\Db\AdminSetting;
-use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
@@ -35,13 +33,11 @@ class DashboardResolver
      *
      * @param DashboardMapper       $dashboardMapper Dashboard mapper.
      * @param WidgetPlacementMapper $placementMapper Widget placement mapper.
-     * @param AdminSettingMapper    $settingMapper   Admin setting mapper.
      * @param TemplateService       $templateService Template service.
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
         private readonly WidgetPlacementMapper $placementMapper,
-        private readonly AdminSettingMapper $settingMapper,
         private readonly TemplateService $templateService,
     ) {
     }//end __construct()
@@ -93,7 +89,7 @@ class DashboardResolver
             $dashboard->getId(),
             userId: $userId
         );
-        $dashboard->setIsActive(true);
+        $dashboard->setIsActive(1);
 
         $placements = $this->placementMapper->findByDashboardId(
             dashboardId: $dashboard->getId()
@@ -188,14 +184,6 @@ class DashboardResolver
             }
         }
 
-        $level = $dashboard->getPermissionLevel();
-        if ($level !== null) {
-            return $level;
-        }
-
-        return $this->settingMapper->getValue(
-            key: AdminSetting::KEY_DEFAULT_PERMISSION_LEVEL,
-            default: Dashboard::PERMISSION_FULL
-        );
+        return $dashboard->getPermissionLevel();
     }//end getEffectivePermissionLevel()
 }//end class
