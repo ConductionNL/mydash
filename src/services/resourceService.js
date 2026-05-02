@@ -15,8 +15,9 @@
  * - `IconPicker` (custom-icon-upload pattern, dashboard-icons)
  *
  * Keep this module dependency-light — only `@nextcloud/axios` and
- * `@nextcloud/router`. No store, no Pinia, no app-level state. Single
- * exported helper.
+ * `@nextcloud/router`. No store, no Pinia, no app-level state. Two
+ * exported helpers: `uploadDataUrl` (server round-trip) and
+ * `readFileAsDataUrl` (client-side FileReader convenience).
  */
 
 import axios from '@nextcloud/axios'
@@ -96,4 +97,21 @@ export async function uploadDataUrl(dataUrl) {
 	}
 }
 
-export default { uploadDataUrl, ResourceUploadError }
+/**
+ * Read a `File` object as a base64 data URL — convenience wrapper around
+ * `FileReader` that returns a promise so callers can `await` it. Used by
+ * the image-widget form and link-button widget icon picker.
+ *
+ * @param {File|Blob} file File or Blob (typically from an `<input type="file">`).
+ * @return {Promise<string>} Resolves to a `data:<mime>;base64,<payload>` URL.
+ */
+export function readFileAsDataUrl(file) {
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader()
+		reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '')
+		reader.onerror = () => reject(reader.error || new Error('FileReader failed'))
+		reader.readAsDataURL(file)
+	})
+}
+
+export default { uploadDataUrl, ResourceUploadError, readFileAsDataUrl }

@@ -214,7 +214,19 @@ OC.L10N.register(
     "Failed to load group list." : "Kon de groepenlijst niet laden.",
     "Group order saved." : "Groepsvolgorde opgeslagen.",
     "Failed to save group order." : "Kon de groepsvolgorde niet opslaan.",
-    "Your primary group for shared dashboards" : "Je primaire groep voor gedeelde dashboards"
+    "Your primary group for shared dashboards" : "Je primaire groep voor gedeelde dashboards",
+    "No image" : "Geen afbeelding",
+    "Image failed to load" : "Afbeelding kon niet worden geladen",
+    "Upload Image" : "Afbeelding uploaden",
+    "Or enter Image URL" : "Of voer afbeelding-URL in",
+    "Alt Text" : "Alternatieve tekst",
+    "Link (optional)" : "Link (optioneel)",
+    "Fit" : "Passing",
+    "Cover" : "Vullen",
+    "Contain" : "Passen",
+    "Fill" : "Uitrekken",
+    "None" : "Geen",
+    "Image URL is required" : "Afbeelding-URL is verplicht"
 },
 "nplurals=2; plural=(n != 1);"
 );

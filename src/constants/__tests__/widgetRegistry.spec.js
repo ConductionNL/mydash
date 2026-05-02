@@ -86,4 +86,22 @@ describe('widgetRegistry', () => {
 			delete mod.widgetRegistry.__formless_test__
 		}
 	})
+
+	it('REQ-IMG-005: exposes an `image` entry with renderer + form + defaults', async () => {
+		const { widgetRegistry } = await import('../widgetRegistry.js')
+		expect(widgetRegistry.image).toBeDefined()
+		expect(widgetRegistry.image.renderer).toBeTruthy()
+		expect(widgetRegistry.image.form).toBeTruthy()
+		expect(widgetRegistry.image.defaultContent).toEqual({
+			url: '',
+			alt: '',
+			link: '',
+			fit: 'cover',
+		})
+	})
+
+	it('REQ-IMG-005: `image` appears in listWidgetTypes() output', async () => {
+		const { listWidgetTypes } = await import('../widgetRegistry.js')
+		expect(listWidgetTypes()).toContain('image')
+	})
 })

@@ -214,7 +214,19 @@ OC.L10N.register(
     "Failed to load group list." : "Failed to load group list.",
     "Group order saved." : "Group order saved.",
     "Failed to save group order." : "Failed to save group order.",
-    "Your primary group for shared dashboards" : "Your primary group for shared dashboards"
+    "Your primary group for shared dashboards" : "Your primary group for shared dashboards",
+    "No image" : "No image",
+    "Image failed to load" : "Image failed to load",
+    "Upload Image" : "Upload Image",
+    "Or enter Image URL" : "Or enter Image URL",
+    "Alt Text" : "Alt Text",
+    "Link (optional)" : "Link (optional)",
+    "Fit" : "Fit",
+    "Cover" : "Cover",
+    "Contain" : "Contain",
+    "Fill" : "Fill",
+    "None" : "None",
+    "Image URL is required" : "Image URL is required"
 },
 "nplurals=2; plural=(n != 1);"
 );

@@ -37,6 +37,8 @@ import LabelWidget from '../components/Widgets/Renderers/LabelWidget.vue'
 import LabelForm from '../components/Widgets/Forms/LabelForm.vue'
 import TextDisplayWidget from '../components/Widgets/Renderers/TextDisplayWidget.vue'
 import TextDisplayForm from '../components/Widgets/Forms/TextDisplayForm.vue'
+import ImageWidget from '../components/Widgets/Renderers/ImageWidget.vue'
+import ImageForm from '../components/Widgets/Forms/ImageForm.vue'
 
 /**
  * @typedef {object} WidgetRegistryEntry
@@ -76,6 +78,18 @@ export const widgetRegistry = {
 		displayName: t('mydash', 'Text'),
 		icon: 'FormatText',
 	},
+	image: {
+		renderer: ImageWidget,
+		form: ImageForm,
+		defaultContent: {
+			url: '',
+			alt: '',
+			link: '',
+			fit: 'cover',
+		},
+		displayName: t('mydash', 'Image'),
+		icon: 'Camera',
+	},
 }
 
 /**
@@ -83,7 +97,7 @@ export const widgetRegistry = {
  * AddWidgetModal type picker calls this; types without a `form` entry MUST
  * be excluded so the user is never offered a type they cannot configure.
  *
- * Per-widget proposals (text-display-widget, image-widget, link-button-widget,
+ * Per-widget proposals (text-display-widget, link-button-widget,
  * nc-dashboard-widget-proxy) each register their own form when they land —
  * until then those types are renderer-only and stay out of the picker.
  *
