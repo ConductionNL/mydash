@@ -174,7 +174,11 @@ OC.L10N.register(
     "Image content appears to be corrupt" : "De afbeelding lijkt beschadigd te zijn",
     "Use JSON body with base64 field" : "Gebruik een JSON-body met een base64-veld",
     "Failed to store resource" : "Opslaan van resource mislukt",
-    "Maximum image size: 5 MB. Allowed types: jpeg, jpg, png, gif, svg, webp." : "Maximale afbeeldingsgrootte: 5 MB. Toegestane typen: jpeg, jpg, png, gif, svg, webp."
+    "Maximum image size: 5 MB. Allowed types: jpeg, jpg, png, gif, svg, webp." : "Maximale afbeeldingsgrootte: 5 MB. Toegestane typen: jpeg, jpg, png, gif, svg, webp.",
+    "Text" : "Tekst",
+    "No text content" : "Geen tekstinhoud",
+    "Text is required" : "Tekst is verplicht",
+    "Font Size" : "Tekengrootte"
 },
 "nplurals=2; plural=(n != 1);"
 );

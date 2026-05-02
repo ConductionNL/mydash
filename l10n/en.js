@@ -174,7 +174,11 @@ OC.L10N.register(
     "Image content appears to be corrupt" : "Image content appears to be corrupt",
     "Use JSON body with base64 field" : "Use JSON body with base64 field",
     "Failed to store resource" : "Failed to store resource",
-    "Maximum image size: 5 MB. Allowed types: jpeg, jpg, png, gif, svg, webp." : "Maximum image size: 5 MB. Allowed types: jpeg, jpg, png, gif, svg, webp."
+    "Maximum image size: 5 MB. Allowed types: jpeg, jpg, png, gif, svg, webp." : "Maximum image size: 5 MB. Allowed types: jpeg, jpg, png, gif, svg, webp.",
+    "Text" : "Text",
+    "No text content" : "No text content",
+    "Text is required" : "Text is required",
+    "Font Size" : "Font Size"
 },
 "nplurals=2; plural=(n != 1);"
 );

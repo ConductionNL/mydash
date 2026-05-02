@@ -23,6 +23,11 @@
  * `defaultContent` of `{text:'', fontSize:'16px', color:'',
  * backgroundColor:'', fontWeight:'bold', textAlign:'center'}`.
  *
+ * REQ-TXT-005 / REQ-TXT-001..004: The widget type `text` MUST be registered
+ * with a renderer reference to `TextDisplayWidget.vue`, a form reference to
+ * `TextDisplayForm.vue`, and a `defaultContent` of `{text:'',
+ * fontSize:'14px', color:'', backgroundColor:'', textAlign:'left'}`.
+ *
  * REQ-WDG-014: The set of supported widget types MUST come from this single
  * registry. Toolbar dropdown, modal type selector, and grid renderer all
  * consult `listWidgetTypes()` / `getWidgetTypeEntry()`.
@@ -30,6 +35,8 @@
 
 import LabelWidget from '../components/Widgets/Renderers/LabelWidget.vue'
 import LabelForm from '../components/Widgets/Forms/LabelForm.vue'
+import TextDisplayWidget from '../components/Widgets/Renderers/TextDisplayWidget.vue'
+import TextDisplayForm from '../components/Widgets/Forms/TextDisplayForm.vue'
 
 /**
  * @typedef {object} WidgetRegistryEntry
@@ -55,6 +62,19 @@ export const widgetRegistry = {
 		},
 		displayName: t('mydash', 'Label'),
 		icon: 'FormatTitle',
+	},
+	text: {
+		renderer: TextDisplayWidget,
+		form: TextDisplayForm,
+		defaultContent: {
+			text: '',
+			fontSize: '14px',
+			color: '',
+			backgroundColor: '',
+			textAlign: 'left',
+		},
+		displayName: t('mydash', 'Text'),
+		icon: 'FormatText',
 	},
 }
 
