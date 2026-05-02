@@ -6,7 +6,7 @@ status: implemented
 
 ## Purpose
 
-The `resource-uploads` capability owns a small mini file API for binary assets that MyDash widgets reference directly: dashboard icons, image-widget images, link-button icons, etc. Resources are stored in MyDash's app-data folder (NOT the user's Files), addressed by a stable URL, uploaded admin-only via a base64-data-URL JSON request, and served back to any logged-in user via a non-OCS streaming endpoint plus an OCS listing endpoint. SVG sanitisation is specified in the sibling `svg-sanitisation` change.
+The `resource-uploads` capability owns a small mini file API for binary assets that MyDash widgets reference directly: dashboard icons, image-widget images, link-button icons, etc. Resources are stored in MyDash's app-data folder (NOT the user's Files), addressed by a stable URL, uploaded admin-only via a base64-data-URL JSON request, and served back to any logged-in user via a non-OCS streaming endpoint plus an OCS listing endpoint. SVG sanitisation is specified in the sibling `svg-sanitisation` capability.
 
 ## Data Model
 
@@ -124,7 +124,7 @@ Every successful response MUST conform to `{status: 'success', url: <string>, na
 
 #### Scenario: Stable error enum
 
-- GIVEN the documented error codes are `forbidden`, `unsupported_media_type`, `invalid_data_url`, `invalid_image_format`, `file_too_large`, `mime_mismatch`, `corrupt_image`, `storage_failure`
+- GIVEN the documented error codes are `forbidden`, `unsupported_media_type`, `invalid_data_url`, `invalid_image_format`, `file_too_large`, `mime_mismatch`, `corrupt_image`, `invalid_svg`, `storage_failure`
 - WHEN any rejection scenario above triggers
 - THEN the `error` field MUST equal exactly one of those strings (no synonyms, no extras)
 

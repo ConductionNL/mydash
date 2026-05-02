@@ -34,6 +34,18 @@ parameters:
         -
             message: '#Parameter \$statusCode of class OCP\\AppFramework\\Http\\JSONResponse constructor#'
             path: lib/Controller/ResponseHelper.php
+        # Same JSONResponse status-code union widening — ResourceController
+        # builds the int from typed exceptions whose `getHttpStatus()` only
+        # ever returns members of the literal union (verified by tests).
+        -
+            message: '#Parameter \$statusCode of class OCP\\AppFramework\\Http\\JSONResponse constructor#'
+            path: lib/Controller/ResourceController.php
+        # `getimagesizefromstring` shape from PHPStan's stubs already
+        # guarantees the `mime` key exists; the `??` is intentional defence
+        # in depth for older runtimes / stubs.
+        -
+            message: "#Offset 'mime' on .* on left side of \\?\\? always exists#"
+            path: lib/Service/ImageMimeValidator.php
         # Entity types implement JsonSerializable on the concrete subclass;
         # the OCP stub for Entity does not declare jsonSerialize() so PHPStan
         # cannot statically prove the call. The only callers wrap entities
