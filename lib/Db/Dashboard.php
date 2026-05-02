@@ -33,6 +33,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setName(?string $name)
  * @method string|null getDescription()
  * @method void setDescription(?string $description)
+ * @method string|null getIcon()
+ * @method void setIcon(?string $icon)
  * @method string|null getType()
  * @method void setType(?string $type)
  * @method string|null getUserId()
@@ -166,6 +168,24 @@ class Dashboard extends Entity implements JsonSerializable
      * @var string|null
      */
     protected ?string $description = null;
+
+    /**
+     * The dashboard icon.
+     *
+     * Opaque string owned by the frontend `dashboard-icons` capability.
+     * Three legal value classes:
+     *   - NULL or empty string — render the frontend `DEFAULT_ICON`
+     *   - A registry key (e.g. `'ViewDashboard'`, `'Home'`) — looked up
+     *     in `DASHBOARD_ICONS` by the `IconRenderer` component
+     *   - A URL (starts with `/` or `http`) — rendered as `<img>` by the
+     *     sibling `custom-icon-upload-pattern` capability
+     *
+     * The backend never inspects this value; it is stored verbatim and
+     * the discriminator + lookup live in `src/constants/dashboardIcons.js`.
+     *
+     * @var string|null
+     */
+    protected ?string $icon = null;
 
     /**
      * The dashboard type.
@@ -314,6 +334,7 @@ class Dashboard extends Entity implements JsonSerializable
             'uuid'            => $this->uuid,
             'name'            => $this->name,
             'description'     => $this->description,
+            'icon'            => $this->icon,
             'type'            => $this->type,
             'userId'          => $this->userId,
             'groupId'         => $this->groupId,
