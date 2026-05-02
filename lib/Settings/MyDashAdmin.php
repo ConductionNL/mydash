@@ -29,6 +29,7 @@ use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Service\AdminSettingsService;
 use OCA\MyDash\Service\DashboardService;
+use OCA\MyDash\Service\FileService;
 use OCA\MyDash\Service\InitialState\Page;
 use OCA\MyDash\Service\InitialStateBuilder;
 use OCA\MyDash\Service\WidgetService;
@@ -54,6 +55,8 @@ class MyDashAdmin implements ISettings
      * @param DashboardService     $dashboardService Dashboard service exposing
      *                                               the `allow_user_dashboards`
      *                                               flag (REQ-ASET-003).
+     * @param FileService          $fileService      link-button-widget extension
+     *                                               allow-list reader.
      */
     public function __construct(
         private readonly IInitialState $initialState,
@@ -62,6 +65,7 @@ class MyDashAdmin implements ISettings
         private readonly AdminSettingMapper $settingMapper,
         private readonly AdminSettingsService $settingsService,
         private readonly DashboardService $dashboardService,
+        private readonly FileService $fileService,
     ) {
     }//end __construct()
 
@@ -120,6 +124,9 @@ class MyDashAdmin implements ISettings
             ->setConfiguredGroups($configuredGroups)
             ->setWidgets($this->widgetService->getAvailableWidgets())
             ->setAllowUserDashboards($allowUserDashboards)
+            ->setLinkCreateFileExtensions(
+                $this->fileService->getAllowedExtensions()
+            )
             ->apply();
 
         return new TemplateResponse(

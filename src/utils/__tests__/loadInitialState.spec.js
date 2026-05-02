@@ -87,7 +87,7 @@ describe('loadInitialState', () => {
 	})
 
 	it('logs a console warning on schema-version mismatch', async () => {
-		pushedState = { _schemaVersion: 2 }
+		pushedState = { _schemaVersion: 99 }
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
 		const { loadInitialState } = await import('../loadInitialState.js')
@@ -96,12 +96,12 @@ describe('loadInitialState', () => {
 		expect(warn).toHaveBeenCalled()
 		const message = warn.mock.calls[0][0]
 		expect(message).toMatch(/MyDash initial-state schema mismatch/)
-		expect(message).toMatch(/server v2/)
-		expect(message).toMatch(/client v1/)
+		expect(message).toMatch(/server v99/)
+		expect(message).toMatch(/client v2/)
 	})
 
 	it('does not warn when the schema versions match', async () => {
-		pushedState = { _schemaVersion: 1 }
+		pushedState = { _schemaVersion: 2 }
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
 		const { loadInitialState } = await import('../loadInitialState.js')
@@ -230,7 +230,7 @@ describe('loadInitialState', () => {
 	})
 
 	it('fills defaults for every admin key the server omitted', async () => {
-		pushedState = { _schemaVersion: 1 }
+		pushedState = { _schemaVersion: 2 }
 
 		const { loadInitialState } = await import('../loadInitialState.js')
 		const state = loadInitialState('admin')
@@ -239,13 +239,16 @@ describe('loadInitialState', () => {
 		expect(state.configuredGroups).toEqual([])
 		expect(state.widgets).toEqual([])
 		expect(state.allowUserDashboards).toBe(false)
+		// REQ-LBN-004: createFile extension allow-list defaults to the
+		// curated list when the admin has not customised it.
+		expect(state.linkCreateFileExtensions).toEqual(['txt', 'md', 'docx', 'xlsx', 'csv', 'odt'])
 		for (const value of Object.values(state)) {
 			expect(value).not.toBeUndefined()
 		}
 	})
 
-	it('exports INITIAL_STATE_SCHEMA_VERSION matching the PHP constant (1)', async () => {
+	it('exports INITIAL_STATE_SCHEMA_VERSION matching the PHP constant (2)', async () => {
 		const mod = await import('../loadInitialState.js')
-		expect(mod.INITIAL_STATE_SCHEMA_VERSION).toBe(1)
+		expect(mod.INITIAL_STATE_SCHEMA_VERSION).toBe(2)
 	})
 })

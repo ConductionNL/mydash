@@ -226,7 +226,24 @@ OC.L10N.register(
     "Contain" : "Contain",
     "Fill" : "Fill",
     "None" : "None",
-    "Image URL is required" : "Image URL is required"
+    "Image URL is required" : "Image URL is required",
+    "Link Button" : "Link Button",
+    "Action Type" : "Action Type",
+    "External Link" : "External Link",
+    "Internal Function" : "Internal Function",
+    "Create File" : "Create File",
+    "Upload Icon (optional)" : "Upload Icon (optional)",
+    "Create Document" : "Create Document",
+    "File Name" : "File Name",
+    "Enter filename" : "Enter filename",
+    "Create" : "Create",
+    "Creating…" : "Creating…",
+    "Failed to create document" : "Failed to create document",
+    "Please enter a file name" : "Please enter a file name",
+    "Label is required" : "Label is required",
+    "URL is required" : "URL is required",
+    "Allowed file extensions" : "Allowed file extensions",
+    "Comma-separated list of file extensions admins allow link-button widgets to create" : "Comma-separated list of file extensions admins allow link-button widgets to create"
 },
 "nplurals=2; plural=(n != 1);"
 );

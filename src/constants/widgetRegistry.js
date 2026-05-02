@@ -28,6 +28,11 @@
  * `TextDisplayForm.vue`, and a `defaultContent` of `{text:'',
  * fontSize:'14px', color:'', backgroundColor:'', textAlign:'left'}`.
  *
+ * REQ-LBN-001..007: The widget type `link` MUST be registered with a
+ * renderer reference to `LinkButtonWidget.vue`, a form reference to
+ * `LinkButtonForm.vue`, and a `defaultContent` of `{label:'', url:'',
+ * icon:'', actionType:'external', backgroundColor:'', textColor:''}`.
+ *
  * REQ-WDG-014: The set of supported widget types MUST come from this single
  * registry. Toolbar dropdown, modal type selector, and grid renderer all
  * consult `listWidgetTypes()` / `getWidgetTypeEntry()`.
@@ -39,6 +44,8 @@ import TextDisplayWidget from '../components/Widgets/Renderers/TextDisplayWidget
 import TextDisplayForm from '../components/Widgets/Forms/TextDisplayForm.vue'
 import ImageWidget from '../components/Widgets/Renderers/ImageWidget.vue'
 import ImageForm from '../components/Widgets/Forms/ImageForm.vue'
+import LinkButtonWidget from '../components/Widgets/Renderers/LinkButtonWidget.vue'
+import LinkButtonForm from '../components/Widgets/Forms/LinkButtonForm.vue'
 
 /**
  * @typedef {object} WidgetRegistryEntry
@@ -89,6 +96,20 @@ export const widgetRegistry = {
 		},
 		displayName: t('mydash', 'Image'),
 		icon: 'Camera',
+	},
+	link: {
+		renderer: LinkButtonWidget,
+		form: LinkButtonForm,
+		defaultContent: {
+			label: '',
+			url: '',
+			icon: '',
+			actionType: 'external',
+			backgroundColor: '',
+			textColor: '',
+		},
+		displayName: t('mydash', 'Link Button'),
+		icon: 'LinkVariant',
 	},
 }
 

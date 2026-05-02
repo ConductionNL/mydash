@@ -48,6 +48,10 @@ class AdminSettingsServiceTest extends TestCase
         $this->assertFalse($settings['allowUserDashboards']);
         $this->assertTrue($settings['allowMultipleDashboards']);
         $this->assertSame(12, $settings['defaultGridColumns']);
+        $this->assertSame(
+            ['txt', 'md', 'docx', 'xlsx', 'csv', 'odt'],
+            $settings['linkCreateFileExtensions']
+        );
     }
 
     public function testGetSettingsReturnsStoredValues(): void
@@ -120,7 +124,45 @@ class AdminSettingsServiceTest extends TestCase
         $this->assertArrayHasKey('allowUserDashboards', $settings);
         $this->assertArrayHasKey('allowMultipleDashboards', $settings);
         $this->assertArrayHasKey('defaultGridColumns', $settings);
-        $this->assertCount(4, $settings);
+        $this->assertArrayHasKey('linkCreateFileExtensions', $settings);
+        $this->assertCount(5, $settings);
+    }
+
+    public function testUpdateSettingsPersistsLinkCreateFileExtensions(): void
+    {
+        $this->settingMapper->expects($this->once())
+            ->method('setSetting')
+            ->with(
+                AdminSetting::KEY_LINK_CREATE_FILE_EXTENSIONS,
+                ['txt', 'docx']
+            );
+
+        $this->service->updateSettings(
+            linkCreateFileExts: ['txt', '.docx', 'BAD/PATH', '']
+        );
+    }
+
+    public function testUpdateSettingsLinkExtensionsFallsBackToDefaultsWhenEmpty(): void
+    {
+        $this->settingMapper->expects($this->once())
+            ->method('setSetting')
+            ->with(
+                AdminSetting::KEY_LINK_CREATE_FILE_EXTENSIONS,
+                ['txt', 'md', 'docx', 'xlsx', 'csv', 'odt']
+            );
+
+        $this->service->updateSettings(linkCreateFileExts: []);
+    }
+
+    public function testGetSettingsReturnsStoredLinkCreateFileExtensions(): void
+    {
+        $this->settingMapper->method('getAllAsArray')->willReturn([
+            AdminSetting::KEY_LINK_CREATE_FILE_EXTENSIONS => ['txt', 'md'],
+        ]);
+
+        $settings = $this->service->getSettings();
+
+        $this->assertSame(['txt', 'md'], $settings['linkCreateFileExtensions']);
     }
 
     // ----- REQ-ASET-012: getGroupOrder / setGroupOrder -----

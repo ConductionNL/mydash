@@ -76,6 +76,17 @@ class AdminSetting extends Entity implements JsonSerializable
     public const KEY_GROUP_ORDER = 'group_order';
 
     /**
+     * Setting key for the link-button-widget createFile extension allow-list.
+     *
+     * Stored as a JSON array of lowercase extensions without dots
+     * (e.g. `["txt","md","docx"]`). Default values are returned by
+     * {@see \OCA\MyDash\Service\FileService::getAllowedExtensions()}.
+     *
+     * @var string
+     */
+    public const KEY_LINK_CREATE_FILE_EXTENSIONS = 'link_create_file_extensions';
+
+    /**
      * The setting key.
      *
      * @var string

@@ -78,7 +78,8 @@ class InitialStateBuilderTest extends TestCase
             ->setAllGroups([])
             ->setConfiguredGroups([])
             // Deliberately omit setWidgets()
-            ->setAllowUserDashboards(false);
+            ->setAllowUserDashboards(false)
+            ->setLinkCreateFileExtensions(['txt']);
 
         $this->expectException(MissingInitialStateException::class);
         $this->expectExceptionMessageMatches('/page "admin".*"widgets"/');
@@ -135,12 +136,14 @@ class InitialStateBuilderTest extends TestCase
             ->setConfiguredGroups(['admin', 'users'])
             ->setWidgets($widgets)
             ->setAllowUserDashboards(true)
+            ->setLinkCreateFileExtensions(['txt', 'md'])
             ->apply();
 
         $this->assertSame($allGroups, $sink['allGroups']);
         $this->assertSame(['admin', 'users'], $sink['configuredGroups']);
         $this->assertSame($widgets, $sink['widgets']);
         $this->assertTrue($sink['allowUserDashboards']);
+        $this->assertSame(['txt', 'md'], $sink['linkCreateFileExtensions']);
     }
 
     public function testSchemaVersionAlwaysPushedForWorkspace(): void
@@ -180,10 +183,11 @@ class InitialStateBuilderTest extends TestCase
             ->setConfiguredGroups([])
             ->setWidgets([])
             ->setAllowUserDashboards(false)
+            ->setLinkCreateFileExtensions(['txt'])
             ->apply();
 
         $this->assertArrayHasKey(InitialStateBuilder::KEY_SCHEMA_VERSION, $sink);
-        $this->assertSame(1, $sink[InitialStateBuilder::KEY_SCHEMA_VERSION]);
+        $this->assertSame(2, $sink[InitialStateBuilder::KEY_SCHEMA_VERSION]);
     }
 
     public function testMissingFirstKeyExceptionMessageNamesTheFirstMissingKey(): void
