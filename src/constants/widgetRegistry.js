@@ -46,6 +46,8 @@ import ImageWidget from '../components/Widgets/Renderers/ImageWidget.vue'
 import ImageForm from '../components/Widgets/Forms/ImageForm.vue'
 import LinkButtonWidget from '../components/Widgets/Renderers/LinkButtonWidget.vue'
 import LinkButtonForm from '../components/Widgets/Forms/LinkButtonForm.vue'
+import NcDashboardWidget from '../components/Widgets/Renderers/NcDashboardWidget.vue'
+import NcDashboardForm from '../components/Widgets/Forms/NcDashboardForm.vue'
 
 /**
  * @typedef {object} WidgetRegistryEntry
@@ -110,6 +112,16 @@ export const widgetRegistry = {
 		},
 		displayName: t('mydash', 'Link Button'),
 		icon: 'LinkVariant',
+	},
+	'nc-widget': {
+		renderer: NcDashboardWidget,
+		form: NcDashboardForm,
+		defaultContent: {
+			widgetId: '',
+			displayMode: 'vertical',
+		},
+		displayName: t('mydash', 'Nextcloud Widget'),
+		icon: 'ViewDashboard',
 	},
 }
 

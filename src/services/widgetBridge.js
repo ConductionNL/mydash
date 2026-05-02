@@ -6,6 +6,7 @@
  * @spec openspec/changes/archive/2026-04-24-retrofit-legacy-widget-bridge/tasks.md#task-2
  * @spec openspec/changes/archive/2026-04-24-retrofit-legacy-widget-bridge/tasks.md#task-3
  * @spec openspec/changes/archive/2026-04-24-retrofit-legacy-widget-bridge/tasks.md#task-4
+ * @spec openspec/changes/nc-dashboard-widget-proxy/tasks.md#1
  */
 
 /**
@@ -136,6 +137,87 @@ class WidgetBridge {
 	 */
 	getRegisteredWidgetIds() {
 		return Array.from(this.widgetCallbacks.keys())
+	}
+
+	/**
+	 * Poll for late callback registration (REQ-LWB-005).
+	 *
+	 * Periodically checks `hasWidgetCallback(widgetId)` until either a
+	 * callback is registered (resolves true), the maximum retry count is
+	 * exhausted (resolves false), or the caller aborts via the optional
+	 * AbortSignal (resolves false immediately).
+	 *
+	 * Defaults: 200 ms interval × 15 retries (~3 s total).
+	 *
+	 * The first check is synchronous — when the callback is already
+	 * registered no `setInterval` is scheduled and the promise resolves on
+	 * the next microtask. This keeps the polling helper consistent with
+	 * `hasWidgetCallback` (REQ-LWB-006: single source of truth for "is
+	 * registered").
+	 *
+	 * @param {string} widgetId The widget ID (appId) to poll for.
+	 * @param {object} [options] Optional configuration.
+	 * @param {number} [options.intervalMs] Poll interval in milliseconds (default 200).
+	 * @param {number} [options.maxRetries] Maximum number of poll ticks (default 15).
+	 * @param {AbortSignal} [options.signal] Optional abort signal.
+	 * @return {Promise<boolean>} Resolves true when a callback is registered, false otherwise.
+	 *
+	 * @spec openspec/changes/nc-dashboard-widget-proxy/tasks.md#1
+	 */
+	pollForCallback(widgetId, options = {}) {
+		const intervalMs = options.intervalMs ?? 200
+		const maxRetries = options.maxRetries ?? 15
+		const signal = options.signal
+
+		return new Promise((resolve) => {
+			// REQ-LWB-006: synchronous first check via hasWidgetCallback.
+			if (this.hasWidgetCallback(widgetId)) {
+				resolve(true)
+				return
+			}
+
+			// Honour an already-aborted signal up-front.
+			if (signal && signal.aborted) {
+				resolve(false)
+				return
+			}
+
+			let retries = 0
+			let timer = null
+			let abortListener = null
+
+			const cleanup = () => {
+				if (timer !== null) {
+					clearInterval(timer)
+					timer = null
+				}
+				if (signal && abortListener) {
+					signal.removeEventListener('abort', abortListener)
+					abortListener = null
+				}
+			}
+
+			if (signal) {
+				abortListener = () => {
+					cleanup()
+					resolve(false)
+				}
+				signal.addEventListener('abort', abortListener)
+			}
+
+			timer = setInterval(() => {
+				retries += 1
+				if (this.hasWidgetCallback(widgetId)) {
+					cleanup()
+					resolve(true)
+					return
+				}
+				if (retries >= maxRetries) {
+					cleanup()
+					resolve(false)
+				}
+			}, intervalMs)
+		})
 	}
 
 }

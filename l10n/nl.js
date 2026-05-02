@@ -243,7 +243,15 @@ OC.L10N.register(
     "Label is required" : "Label is verplicht",
     "URL is required" : "URL is verplicht",
     "Allowed file extensions" : "Toegestane bestandsextensies",
-    "Comma-separated list of file extensions admins allow link-button widgets to create" : "Door komma's gescheiden lijst van bestandsextensies die linkknop-widgets mogen aanmaken"
+    "Comma-separated list of file extensions admins allow link-button widgets to create" : "Door komma's gescheiden lijst van bestandsextensies die linkknop-widgets mogen aanmaken",
+    "Nextcloud Widget" : "Nextcloud-widget",
+    "Select Widget" : "Widget selecteren",
+    "Choose a widget…" : "Kies een widget…",
+    "Display Mode" : "Weergavemodus",
+    "Vertical (list)" : "Verticaal (lijst)",
+    "Horizontal (cards)" : "Horizontaal (kaarten)",
+    "Loading…" : "Laden…",
+    "No items available" : "Geen items beschikbaar"
 },
 "nplurals=2; plural=(n != 1);"
 );

@@ -243,7 +243,15 @@ OC.L10N.register(
     "Label is required" : "Label is required",
     "URL is required" : "URL is required",
     "Allowed file extensions" : "Allowed file extensions",
-    "Comma-separated list of file extensions admins allow link-button widgets to create" : "Comma-separated list of file extensions admins allow link-button widgets to create"
+    "Comma-separated list of file extensions admins allow link-button widgets to create" : "Comma-separated list of file extensions admins allow link-button widgets to create",
+    "Nextcloud Widget" : "Nextcloud Widget",
+    "Select Widget" : "Select Widget",
+    "Choose a widget…" : "Choose a widget…",
+    "Display Mode" : "Display Mode",
+    "Vertical (list)" : "Vertical (list)",
+    "Horizontal (cards)" : "Horizontal (cards)",
+    "Loading…" : "Loading…",
+    "No items available" : "No items available"
 },
 "nplurals=2; plural=(n != 1);"
 );
