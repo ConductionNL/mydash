@@ -374,7 +374,7 @@ class DashboardShareService
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
             ->setUser($newOwnerId)
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
-            ->setDateTime(new \DateTime())
+            ->setDateTime(new DateTime())
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
             ->setObject('dashboard', (string) $dashboardId)
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
@@ -481,7 +481,7 @@ class DashboardShareService
                 // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
                 ->setUser($recipientId)
                 // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
-                ->setDateTime(new \DateTime())
+                ->setDateTime(new DateTime())
                 // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
                 ->setObject('dashboard', (string) $share->getDashboardId())
                 // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters

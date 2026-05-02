@@ -43,6 +43,7 @@ vi.mock('../../services/api.js', () => ({
 		updateWidgetPlacement: vi.fn(),
 		removeWidget: vi.fn(),
 		setGroupDashboardDefault: vi.fn(),
+		setActiveDashboardPreference: vi.fn(),
 	},
 }))
 
@@ -149,6 +150,146 @@ describe('useDashboardStore — loadDashboards source plumbing', () => {
 		expect(store.dashboards).toHaveLength(2)
 		// Legacy payloads receive `source: 'user'` so getters still work.
 		expect(store.dashboards.every(d => d.source === 'user')).toBe(true)
+	})
+})
+
+describe('useDashboardStore — resolveActive (REQ-DASH-018)', () => {
+	const make = (overrides = {}) => ({
+		id: overrides.id ?? overrides.uuid,
+		uuid: overrides.uuid,
+		source: 'user',
+		isDefault: 0,
+		groupId: null,
+		...overrides,
+	})
+
+	it('returns null when there are no dashboards', async () => {
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+		expect(store.resolveActive).toBeNull()
+	})
+
+	it('step 1: honours the currently-active dashboard if still visible', async () => {
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+		store.dashboards = [
+			make({ uuid: 'a', source: 'user' }),
+			make({ uuid: 'b', source: 'group', groupId: 'eng' }),
+		]
+		store.activeDashboard = { id: 'b' }
+		store.primaryGroup = 'eng'
+		expect(store.resolveActive.uuid).toBe('b')
+	})
+
+	it('step 2: primary-group default beats default-group default', async () => {
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+		store.primaryGroup = 'eng'
+		store.dashboards = [
+			make({ uuid: 'd', source: 'default', groupId: 'default', isDefault: 1 }),
+			make({ uuid: 'g', source: 'group', groupId: 'eng', isDefault: 1 }),
+		]
+		expect(store.resolveActive.uuid).toBe('g')
+	})
+
+	it('step 3: falls through to default-group default when primary group has none', async () => {
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+		store.primaryGroup = 'support'
+		store.dashboards = [
+			make({ uuid: 'd', source: 'default', groupId: 'default', isDefault: 1 }),
+		]
+		expect(store.resolveActive.uuid).toBe('d')
+	})
+
+	it('step 4: first group-shared in primary group when no defaults exist', async () => {
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+		store.primaryGroup = 'eng'
+		store.dashboards = [
+			make({ uuid: 'g1', source: 'group', groupId: 'eng', isDefault: 0 }),
+			make({ uuid: 'g2', source: 'group', groupId: 'eng', isDefault: 0 }),
+		]
+		expect(store.resolveActive.uuid).toBe('g1')
+	})
+
+	it('step 5: first default-group dashboard when nothing in primary group', async () => {
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+		store.primaryGroup = 'orphan'
+		store.dashboards = [
+			make({ uuid: 'd1', source: 'default', groupId: 'default', isDefault: 0 }),
+			make({ uuid: 'd2', source: 'default', groupId: 'default', isDefault: 0 }),
+		]
+		expect(store.resolveActive.uuid).toBe('d1')
+	})
+
+	it('step 6: first personal dashboard when no group/default rows exist', async () => {
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+		store.primaryGroup = ''
+		store.dashboards = [
+			make({ uuid: 'mine', source: 'user' }),
+		]
+		expect(store.resolveActive.uuid).toBe('mine')
+	})
+})
+
+describe('useDashboardStore — persistActivePreference (REQ-DASH-019)', () => {
+	it('POSTs the uuid to /api/dashboards/active fire-and-forget', async () => {
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+		mockApi.setActiveDashboardPreference.mockResolvedValue({ data: { status: 'success' } })
+
+		store.persistActivePreference('uuid-xyz')
+
+		expect(mockApi.setActiveDashboardPreference).toHaveBeenCalledWith('uuid-xyz')
+	})
+
+	it('passes empty string when called with no uuid (clears the preference)', async () => {
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+		mockApi.setActiveDashboardPreference.mockResolvedValue({ data: { status: 'success' } })
+
+		store.persistActivePreference('')
+
+		expect(mockApi.setActiveDashboardPreference).toHaveBeenCalledWith('')
+	})
+
+	it('swallows network errors so a failed POST does not break the UI', async () => {
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+		mockApi.setActiveDashboardPreference.mockRejectedValue(new Error('boom'))
+
+		// Returns void synchronously; rejection is caught internally.
+		const ret = store.persistActivePreference('uuid-xyz')
+		expect(ret).toBeUndefined()
+		// Settle the rejected promise so the test doesn't leak an unhandled rejection.
+		await new Promise(resolve => setTimeout(resolve, 0))
+	})
+})
+
+describe('useDashboardStore — switchDashboard wires the active-pref POST', () => {
+	it('calls setActiveDashboardPreference with the new uuid after a successful switch', async () => {
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+		store.dashboards = [{ id: 'd-1', uuid: 'uuid-1', source: 'user', isOwner: true }]
+
+		mockApi.activateDashboard.mockResolvedValue({ data: { status: 'ok' } })
+		mockApi.getDashboardById.mockResolvedValue({
+			data: {
+				dashboard: { id: 'd-1', uuid: 'uuid-1' },
+				placements: [],
+				permissionLevel: 'full',
+				isOwner: true,
+				sharedBy: null,
+			},
+		})
+		mockApi.setActiveDashboardPreference.mockResolvedValue({ data: { status: 'success' } })
+
+		await store.switchDashboard('d-1')
+
+		expect(mockApi.setActiveDashboardPreference).toHaveBeenCalledWith('uuid-1')
 	})
 })
 

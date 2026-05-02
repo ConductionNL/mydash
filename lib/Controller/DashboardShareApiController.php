@@ -89,7 +89,7 @@ class DashboardShareApiController extends Controller
                 userId: $this->userId
             );
             $serialized = array_map(
-                callback: static fn($s) => $s->jsonSerialize(),
+                callback: static fn($share) => $share->jsonSerialize(),
                 array: $shares
             );
             return new DataResponse(data: $serialized);
@@ -225,7 +225,7 @@ class DashboardShareApiController extends Controller
                 userId: $this->userId
             );
             $serialized = array_map(
-                callback: static fn($s) => $s->jsonSerialize(),
+                callback: static fn($share) => $share->jsonSerialize(),
                 array: $newShares
             );
             return new DataResponse(data: $serialized);
