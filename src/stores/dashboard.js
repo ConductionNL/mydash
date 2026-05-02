@@ -5,6 +5,11 @@
 
 import { defineStore } from 'pinia'
 import { api } from '../services/api.js'
+import {
+	placeNewWidget,
+	DEFAULT_W,
+	DEFAULT_H,
+} from '../composables/useGridManager.js'
 
 export const useDashboardStore = defineStore('dashboard', {
 	state: () => ({
@@ -131,35 +136,121 @@ export const useDashboardStore = defineStore('dashboard', {
 			}
 		},
 
+		/**
+		 * Add a widget to the active dashboard. Routes through
+		 * `placeNewWidget` (REQ-GRID-014) so the placement algorithm
+		 * (REQ-GRID-006: try autoPosition, fall back to top-left + push
+		 * down) is the single source of truth for "where does this go?".
+		 *
+		 * Position-only callers (e.g. legacy code that passed a fully
+		 * computed `{x, y, w, h}`) MAY still supply a `position` object;
+		 * if it includes both `x` AND `y` we honour the explicit choice
+		 * and skip the auto-placement path. Otherwise we delegate to
+		 * `placeNewWidget` and apply any push-down side effects via the
+		 * existing batch-update path (REQ-WDG-008, debounce 300 ms).
+		 *
+		 * @param {string|object} widgetId widget identifier OR a `{type, content}` payload from AddWidgetModal
+		 * @param {object|null} [position] explicit `{x, y, w, h}` (skips auto-placement) or partial spec to seed the helper
+		 */
 		async addWidgetToDashboard(widgetId, position = null) {
 			try {
+				const placement = (position && Number.isFinite(position.x) && Number.isFinite(position.y))
+					? {
+						x: position.x,
+						y: position.y,
+						w: position.w ?? DEFAULT_W,
+						h: position.h ?? DEFAULT_H,
+						pushed: [],
+					}
+					: placeNewWidget(
+						{ w: position?.w, h: position?.h },
+						this.widgetPlacements,
+						{ gridColumns: this.activeDashboard?.gridColumns },
+					)
+
 				const response = await api.addWidget(this.activeDashboard.id, {
 					widgetId,
-					gridX: position?.x ?? 0,
-					gridY: position?.y ?? 0,
-					gridWidth: position?.w ?? 4,
-					gridHeight: position?.h ?? 4,
+					gridX: placement.x,
+					gridY: placement.y,
+					gridWidth: placement.w,
+					gridHeight: placement.h,
 				})
 				this.widgetPlacements.push(response.data)
+
+				if (placement.pushed.length > 0) {
+					await this.applyPushedPlacements(placement.pushed)
+				}
 			} catch (error) {
 				console.error('Failed to add widget:', error)
 			}
 		},
 
+		/**
+		 * Add a tile to the active dashboard. Tiles default to a smaller
+		 * 2×2 footprint than regular widgets but still funnel through
+		 * `placeNewWidget` so the auto-placement + fallback algorithm is
+		 * applied consistently (REQ-GRID-006 / REQ-GRID-014).
+		 *
+		 * @param {object} tileData tile payload (title/icon/colours/link)
+		 * @param {object|null} [position] explicit `{x, y, w, h}` (skips auto-placement) or partial spec to seed the helper
+		 */
 		async addTileToDashboard(tileData, position = null) {
 			try {
+				const placement = (position && Number.isFinite(position.x) && Number.isFinite(position.y))
+					? {
+						x: position.x,
+						y: position.y,
+						w: position.w ?? 2,
+						h: position.h ?? 2,
+						pushed: [],
+					}
+					: placeNewWidget(
+						{ w: position?.w ?? 2, h: position?.h ?? 2 },
+						this.widgetPlacements,
+						{ gridColumns: this.activeDashboard?.gridColumns },
+					)
+
 				const response = await api.addTile(this.activeDashboard.id, {
 					...tileData,
-					gridX: position?.x ?? 0,
-					gridY: position?.y ?? 0,
-					gridWidth: position?.w ?? 2,
-					gridHeight: position?.h ?? 2,
+					gridX: placement.x,
+					gridY: placement.y,
+					gridWidth: placement.w,
+					gridHeight: placement.h,
 				})
 				this.widgetPlacements.push(response.data)
+
+				if (placement.pushed.length > 0) {
+					await this.applyPushedPlacements(placement.pushed)
+				}
 			} catch (error) {
 				console.error('Failed to add tile:', error)
 				throw error
 			}
+		},
+
+		/**
+		 * Apply the push-down side effects produced by `placeNewWidget`
+		 * via the existing batch-update path (REQ-GRID-005). The new
+		 * `gridY` values are merged into the in-memory placement list and
+		 * the whole list is sent in a single round-trip — preserves the
+		 * REQ-WDG-008 single-batch contract (no per-widget PUT storm) and
+		 * inherits the 300 ms debounce already in `updatePlacements`.
+		 *
+		 * @param {Array<{id: any, gridY: number}>} pushed list of push-down side effects from `placeNewWidget`
+		 */
+		async applyPushedPlacements(pushed) {
+			if (!pushed || pushed.length === 0) {
+				return
+			}
+			const pushIndex = new Map(pushed.map(p => [String(p.id), p.gridY]))
+			const merged = this.widgetPlacements.map(p => {
+				const newY = pushIndex.get(String(p.id))
+				if (newY !== undefined) {
+					return { ...p, gridY: newY }
+				}
+				return p
+			})
+			await this.updatePlacements(merged)
 		},
 
 		async removeWidgetFromDashboard(placementId) {
