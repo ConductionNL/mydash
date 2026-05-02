@@ -210,7 +210,8 @@ OC.L10N.register(
     "Loading group list…" : "Loading group list…",
     "Failed to load group list." : "Failed to load group list.",
     "Group order saved." : "Group order saved.",
-    "Failed to save group order." : "Failed to save group order."
+    "Failed to save group order." : "Failed to save group order.",
+    "Your primary group for shared dashboards" : "Your primary group for shared dashboards"
 },
 "nplurals=2; plural=(n != 1);"
 );

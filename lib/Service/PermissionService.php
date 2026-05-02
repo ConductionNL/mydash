@@ -30,7 +30,6 @@ use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Db\AdminSetting;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IGroupManager;
-use OCP\IUserManager;
 
 /**
  * Service for resolving dashboard permissions across personal,
@@ -45,12 +44,19 @@ class PermissionService
     /**
      * Constructor
      *
-     * @param DashboardMapper       $dashboardMapper Dashboard mapper.
-     * @param WidgetPlacementMapper $placementMapper Widget placement mapper.
-     * @param AdminSettingMapper    $settingMapper   Admin setting mapper.
-     * @param DashboardShareService $shareService    Share resolution service.
-     * @param IGroupManager         $groupManager    Group manager for resolving recipient groups.
-     * @param IUserManager          $userManager     User manager (used by share resolution).
+     * @param DashboardMapper       $dashboardMapper      Dashboard mapper.
+     * @param WidgetPlacementMapper $placementMapper      Widget placement mapper.
+     * @param AdminSettingMapper    $settingMapper        Admin setting mapper.
+     * @param DashboardShareService $shareService         Share resolution service.
+     * @param IGroupManager         $groupManager         Group manager for the
+     *                                                    `isAdmin` check (group
+     *                                                    membership lookups go
+     *                                                    through the routing
+     *                                                    resolver — REQ-TMPL-013).
+     * @param AdminTemplateService  $adminTemplateService Routing resolver — single
+     *                                                    source of truth for
+     *                                                    `IGroupManager::getUserGroupIds`
+     *                                                    (REQ-TMPL-013).
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
@@ -58,7 +64,7 @@ class PermissionService
         private readonly AdminSettingMapper $settingMapper,
         private readonly DashboardShareService $shareService,
         private readonly IGroupManager $groupManager,
-        private readonly IUserManager $userManager,
+        private readonly AdminTemplateService $adminTemplateService,
     ) {
     }//end __construct()
 
@@ -365,7 +371,9 @@ class PermissionService
                 );
             }
 
-            $userGroupIds = $this->getUserGroupIds(userId: $userId);
+            $userGroupIds = $this->adminTemplateService->getUserGroupIdsFor(
+                userId: $userId
+            );
             if (in_array(needle: $groupId, haystack: $userGroupIds, strict: true) === true
                 || $this->groupManager->isAdmin(userId: $userId) === true
             ) {
@@ -387,7 +395,9 @@ class PermissionService
 
         $shares = $this->shareService->resolveSharedDashboards(
             userId: $userId,
-            groupIds: $this->getUserGroupIds(userId: $userId)
+            groupIds: $this->adminTemplateService->getUserGroupIdsFor(
+                userId: $userId
+            )
         );
 
         return $shares[$dashboard->getId()] ?? null;
@@ -438,21 +448,4 @@ class PermissionService
 
         return $placement;
     }//end verifyPlacementOwnership()
-
-    /**
-     * Resolve the group ids a user belongs to.
-     *
-     * @param string $userId The user id.
-     *
-     * @return string[] Group ids.
-     */
-    public function getUserGroupIds(string $userId): array
-    {
-        $user = $this->userManager->get(uid: $userId);
-        if ($user === null) {
-            return [];
-        }
-
-        return $this->groupManager->getUserGroupIds(user: $user);
-    }//end getUserGroupIds()
 }//end class

@@ -29,6 +29,7 @@ namespace OCA\MyDash\Controller;
 
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Db\Dashboard;
+use OCA\MyDash\Service\AdminTemplateService;
 use OCA\MyDash\Service\DashboardService;
 use OCA\MyDash\Service\InitialState\Page;
 use OCA\MyDash\Service\InitialStateBuilder;
@@ -39,7 +40,6 @@ use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IInitialState;
 use OCP\Dashboard\IManager;
-use OCP\IGroupManager;
 use OCP\IRequest;
 use OCP\IUserSession;
 use OCP\Util;
@@ -57,25 +57,27 @@ class PageController extends Controller
     /**
      * Constructor.
      *
-     * @param IRequest         $request          The request.
-     * @param IManager         $dashboardManager Nextcloud dashboard widget manager.
-     * @param IInitialState    $initialState     The Nextcloud initial-state service.
-     * @param IUserSession     $userSession      Active user session.
-     * @param IGroupManager    $groupManager     Group manager (admin + primary).
-     * @param WidgetService    $widgetService    Available-widgets descriptor formatter.
-     * @param DashboardService $dashboardService Dashboard listing + resolver
-     *                                           (also exposes the
-     *                                           `allow_user_dashboards` flag
-     *                                           — REQ-ASET-003).
+     * @param IRequest             $request              The request.
+     * @param IManager             $dashboardManager     Nextcloud dashboard widget manager.
+     * @param IInitialState        $initialState         The Nextcloud initial-state service.
+     * @param IUserSession         $userSession          Active user session.
+     * @param WidgetService        $widgetService        Available-widgets descriptor formatter.
+     * @param DashboardService     $dashboardService     Dashboard listing + resolver
+     *                                                   (also exposes the
+     *                                                   `allow_user_dashboards` flag
+     *                                                   — REQ-ASET-003).
+     * @param AdminTemplateService $adminTemplateService Primary-group routing
+     *                                                   resolver (REQ-TMPL-012,
+     *                                                   REQ-TMPL-013).
      */
     public function __construct(
         IRequest $request,
         private readonly IManager $dashboardManager,
         private readonly IInitialState $initialState,
         private readonly IUserSession $userSession,
-        private readonly IGroupManager $groupManager,
         private readonly WidgetService $widgetService,
         private readonly DashboardService $dashboardService,
+        private readonly AdminTemplateService $adminTemplateService,
     ) {
         parent::__construct(appName: Application::APP_ID, request: $request);
     }//end __construct()
@@ -107,15 +109,23 @@ class PageController extends Controller
             $userId = $user->getUID();
         }
 
+        // Routing resolver — REQ-TMPL-012 / REQ-TMPL-013. The
+        // `AdminTemplateService` walks the admin-configured `group_order`
+        // priority list and returns the first group the user belongs to,
+        // OR the literal `'default'` sentinel when nothing matches. The
+        // display name comes from the same service so the lookup lives in
+        // exactly one place.
         $primaryGroupId   = Dashboard::DEFAULT_GROUP_ID;
-        $primaryGroupName = '';
-        if ($user !== null) {
-            $userGroups = $this->groupManager->getUserGroups(user: $user);
-            if ($userGroups !== []) {
-                $firstGroup       = reset($userGroups);
-                $primaryGroupId   = $firstGroup->getGID();
-                $primaryGroupName = $firstGroup->getDisplayName();
-            }
+        $primaryGroupName = $this->adminTemplateService->resolvePrimaryGroupDisplayName(
+            groupId: Dashboard::DEFAULT_GROUP_ID
+        );
+        if ($userId !== '') {
+            $primaryGroupId   = $this->adminTemplateService->resolvePrimaryGroup(
+                userId: $userId
+            );
+            $primaryGroupName = $this->adminTemplateService->resolvePrimaryGroupDisplayName(
+                groupId: $primaryGroupId
+            );
         }
 
         $isAdmin = false;

@@ -30,6 +30,7 @@ use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCA\MyDash\Exception\PersonalDashboardsDisabledException;
+use OCA\MyDash\Service\AdminTemplateService;
 use OCA\MyDash\Service\DashboardFactory;
 use OCA\MyDash\Service\DashboardResolver;
 use OCA\MyDash\Service\DashboardService;
@@ -37,7 +38,6 @@ use OCA\MyDash\Service\TemplateService;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
-use OCP\IUserManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -75,15 +75,15 @@ class DashboardServicePersonalGatingTest extends TestCase
         /** @var DashboardResolver&MockObject $dashResolver */
         $dashResolver        = $this->createMock(DashboardResolver::class);
         /** @var IGroupManager&MockObject $groupManager */
-        $groupManager        = $this->createMock(IGroupManager::class);
-        /** @var IUserManager&MockObject $userManager */
-        $userManager         = $this->createMock(IUserManager::class);
+        $groupManager         = $this->createMock(IGroupManager::class);
+        /** @var AdminTemplateService&MockObject $adminTemplateService */
+        $adminTemplateService = $this->createMock(AdminTemplateService::class);
         /** @var IDBConnection&MockObject $db */
-        $db                  = $this->createMock(IDBConnection::class);
+        $db                   = $this->createMock(IDBConnection::class);
         /** @var IConfig&MockObject $config */
-        $config              = $this->createMock(IConfig::class);
+        $config               = $this->createMock(IConfig::class);
         /** @var LoggerInterface&MockObject $logger */
-        $logger              = $this->createMock(LoggerInterface::class);
+        $logger               = $this->createMock(LoggerInterface::class);
 
         $this->service = new DashboardService(
             dashboardMapper: $dashboardMapper,
@@ -93,7 +93,7 @@ class DashboardServicePersonalGatingTest extends TestCase
             dashboardFactory: new DashboardFactory(),
             dashResolver: $dashResolver,
             groupManager: $groupManager,
-            userManager: $userManager,
+            adminTemplateService: $adminTemplateService,
             db: $db,
             config: $config,
             logger: $logger,

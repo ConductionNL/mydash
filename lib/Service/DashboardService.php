@@ -36,7 +36,6 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
-use OCP\IUserManager;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -92,20 +91,28 @@ class DashboardService
     /**
      * Constructor
      *
-     * @param DashboardMapper       $dashboardMapper  Dashboard mapper.
-     * @param WidgetPlacementMapper $placementMapper  Widget placement mapper.
-     * @param AdminSettingMapper    $settingMapper    Admin setting mapper.
-     * @param TemplateService       $templateService  Template service.
-     * @param DashboardFactory      $dashboardFactory Dashboard factory.
-     * @param DashboardResolver     $dashResolver     Dashboard resolver.
-     * @param IGroupManager         $groupManager     Group manager.
-     * @param IUserManager          $userManager      User manager.
-     * @param IDBConnection         $db               DB connection (for the
-     *                                                transactional default
-     *                                                flip — REQ-DASH-015).
-     * @param IConfig               $config           Nextcloud per-user
-     *                                                preference storage.
-     * @param LoggerInterface       $logger           PSR logger.
+     * @param DashboardMapper       $dashboardMapper      Dashboard mapper.
+     * @param WidgetPlacementMapper $placementMapper      Widget placement mapper.
+     * @param AdminSettingMapper    $settingMapper        Admin setting mapper.
+     * @param TemplateService       $templateService      Template service.
+     * @param DashboardFactory      $dashboardFactory     Dashboard factory.
+     * @param DashboardResolver     $dashResolver         Dashboard resolver.
+     * @param IGroupManager         $groupManager         Group manager (used for
+     *                                                    `isAdmin` only — group
+     *                                                    membership lookups go
+     *                                                    through the routing
+     *                                                    resolver per
+     *                                                    REQ-TMPL-013).
+     * @param AdminTemplateService  $adminTemplateService Routing resolver — single
+     *                                                    source of truth for
+     *                                                    `IGroupManager::getUserGroupIds`
+     *                                                    (REQ-TMPL-013).
+     * @param IDBConnection         $db                   DB connection (for the
+     *                                                    transactional default
+     *                                                    flip — REQ-DASH-015).
+     * @param IConfig               $config               Nextcloud per-user
+     *                                                    preference storage.
+     * @param LoggerInterface       $logger               PSR logger.
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
@@ -115,7 +122,7 @@ class DashboardService
         private readonly DashboardFactory $dashboardFactory,
         private readonly DashboardResolver $dashResolver,
         private readonly IGroupManager $groupManager,
-        private readonly IUserManager $userManager,
+        private readonly AdminTemplateService $adminTemplateService,
         private readonly IDBConnection $db,
         private readonly IConfig $config,
         private readonly LoggerInterface $logger,
@@ -542,9 +549,11 @@ class DashboardService
     /**
      * Get all dashboards visible to a user, source-tagged.
      *
-     * Wires `IGroupManager::getUserGroupIds()` into the mapper's union
-     * query and returns the deduplicated list with `source` set per row.
-     * REQ-DASH-013.
+     * Resolves the user's full group memberships through
+     * {@see AdminTemplateService::getUserGroupIdsFor()} (REQ-TMPL-013 —
+     * single source of truth for `IGroupManager::getUserGroupIds`) and
+     * wires the result into the mapper's union query. Returns the
+     * deduplicated list with `source` set per row. REQ-DASH-013.
      *
      * @param string $userId The user ID.
      *
@@ -553,12 +562,9 @@ class DashboardService
      */
     public function getVisibleToUser(string $userId): array
     {
-        $user = $this->userManager->get(uid: $userId);
-        if ($user === null) {
-            return [];
-        }
-
-        $userGroupIds = $this->groupManager->getUserGroupIds(user: $user);
+        $userGroupIds = $this->adminTemplateService->getUserGroupIdsFor(
+            userId: $userId
+        );
 
         return $this->dashboardMapper->findVisibleToUser(
             userId: $userId,
