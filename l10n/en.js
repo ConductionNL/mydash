@@ -152,7 +152,9 @@ OC.L10N.register(
     "Widget title" : "Widget title",
     "Widget type" : "Widget type",
     "Widgets" : "Widgets",
-    "https://example.com or /apps/files" : "https://example.com or /apps/files"
+    "https://example.com or /apps/files" : "https://example.com or /apps/files",
+    "SVG could not be parsed or contained no allowed content" : "SVG could not be parsed or contained no allowed content",
+    "Resource exceeds the 5 MB serving cap" : "Resource exceeds the 5 MB serving cap"
 },
 "nplurals=2; plural=(n != 1);"
 );

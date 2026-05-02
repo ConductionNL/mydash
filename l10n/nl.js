@@ -152,7 +152,9 @@ OC.L10N.register(
     "Widget title" : "Widgettitel",
     "Widget type" : "Widgettype",
     "Widgets" : "Widgets",
-    "https://example.com or /apps/files" : "https://voorbeeld.nl of /apps/files"
+    "https://example.com or /apps/files" : "https://voorbeeld.nl of /apps/files",
+    "SVG could not be parsed or contained no allowed content" : "SVG kon niet worden ontleed of bevat geen toegestane inhoud",
+    "Resource exceeds the 5 MB serving cap" : "Bestand overschrijdt de limiet van 5 MB"
 },
 "nplurals=2; plural=(n != 1);"
 );

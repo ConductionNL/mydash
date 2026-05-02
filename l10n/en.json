@@ -150,6 +150,8 @@
         "Wallet": "Wallet",
         "Widget": "Widget",
         "Widget type": "Widget type",
-        "Widgets": "Widgets"
+        "Widgets": "Widgets",
+        "SVG could not be parsed or contained no allowed content": "SVG could not be parsed or contained no allowed content",
+        "Resource exceeds the 5 MB serving cap": "Resource exceeds the 5 MB serving cap"
     }
 }

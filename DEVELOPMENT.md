@@ -54,3 +54,16 @@ npm start            # Dev server at http://localhost:3000 with hot reload
 ### Adding documentation
 
 Simply add or edit Markdown files in the `docs/` folder. The sidebar is auto-generated from the folder structure. Changes will appear on the product page after pushing to `development`.
+
+## Security review checklist
+
+### Extending the SVG sanitiser whitelist
+
+`lib/Service/SvgSanitiser.php` enforces a deliberately conservative whitelist of allowed SVG element and attribute names (REQ-RES-010 / REQ-RES-011 in `openspec/specs/resource-uploads/spec.md`). Every uploaded SVG is parsed via `DOMDocument` with `LIBXML_NONET | LIBXML_NOENT` and the resulting tree is filtered against `ALLOWED_ELEMENTS` and `ALLOWED_ATTRIBUTES`. Anything not on those lists is removed before persistence, and the persisted bytes (NOT the original) are what subsequently get served back to other users' browsers.
+
+If you propose adding a new element name to `ALLOWED_ELEMENTS` or a new attribute to `ALLOWED_ATTRIBUTES`:
+
+- A security review is required before merge (XSS surface change).
+- Verify the new element / attribute cannot carry executable payloads in any browser SVG renderer (e.g. `<animate>` `attributeName` injection, `<set>` event triggering, etc.).
+- Add a PHPUnit scenario covering the new surface, plus a negative scenario showing that a known-bad construct involving the new name is still rejected.
+- Update REQ-RES-010 / REQ-RES-011 in the canonical spec to reflect the new whitelist size and add the element / attribute name explicitly.
