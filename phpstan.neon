@@ -40,6 +40,11 @@ parameters:
         -
             message: '#Parameter \$statusCode of class OCP\\AppFramework\\Http\\JSONResponse constructor#'
             path: lib/Controller/ResourceController.php
+        # Same JSONResponse status-code union widening — FileController
+        # forwards an HTTP status int from typed createFile exceptions.
+        -
+            message: '#Parameter \$statusCode of class OCP\\AppFramework\\Http\\JSONResponse constructor#'
+            path: lib/Controller/FileController.php
         # DataResponse declares a `T of DataResponseType` template parameter
         # whose union does not cover plain associative arrays. Every call
         # site here passes a JSON-serialisable array — runtime is sound;

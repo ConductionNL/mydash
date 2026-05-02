@@ -197,7 +197,11 @@ class AdminSettingsService
      * are tolerated by design (REQ-ASET-014) — the runtime resolver in
      * `group-routing` drops them.
      *
-     * @param string[] $groupIds The ordered group IDs.
+     * @param array<int, mixed> $groupIds The ordered group IDs (mixed so the
+     *                                     runtime defensive check has work
+     *                                     to do; static analysis cannot
+     *                                     reach the IGroupManager → service
+     *                                     payload origin).
      *
      * @return void
      *
