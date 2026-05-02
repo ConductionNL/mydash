@@ -79,12 +79,6 @@ module.exports = {
 	resolve: {
 		alias: [
 			{ find: '@', replacement: path.resolve(__dirname, 'src') },
-			// `@nextcloud/axios` is ESM-only and its `exports` field
-			// confuses Vite's module resolver under unit tests; redirect
-			// every import to a tiny stub that exports the default `axios`
-			// without any Nextcloud-specific CSRF wiring (test code that
-			// actually exercises HTTP calls already uses `vi.mock(...)`).
-			{ find: /^@nextcloud\/axios$/, replacement: path.resolve(__dirname, 'tests/vitest/stubs/nextcloud-axios.js') },
 			// `@conduction/nextcloud-vue` ships a CJS bundle that
 			// `require()`s `.vue` files which Vite's transform pipeline
 			// cannot consume. Tests that need the actual component
