@@ -1,7 +1,36 @@
 <template>
 	<div id="mydash-app">
+		<!-- Slide-in sidebar (REQ-SWITCH-001..007). Wired with Vue 2's
+		     v-model rebind (model: { prop: 'isOpen', event: 'update:open' })
+		     so this template can use plain `v-model` while the sidebar
+		     emits the `update:open(boolean)` event mandated by the spec.
+		     Once `runtime-shell` ships and replaces this view with
+		     `WorkspaceApp.vue`, the same binding shape applies. -->
+		<DashboardSwitcherSidebar
+			v-model="sidebarOpen"
+			:group-name="primaryGroupName"
+			:group-dashboards="sidebarGroupDashboards"
+			:user-dashboards="sidebarUserDashboards"
+			:active-dashboard-id="activeDashboard?.id"
+			:allow-user-dashboards="allowUserDashboards"
+			@switch="onSidebarSwitch"
+			@create-dashboard="onSidebarCreateDashboard"
+			@delete-dashboard="onSidebarDeleteDashboard" />
+		<SidebarBackdrop
+			v-if="sidebarOpen"
+			@click="sidebarOpen = false" />
+
 		<!-- Floating controls in top right -->
 		<div class="mydash-floating-controls">
+			<NcButton
+				type="tertiary"
+				:aria-label="t('mydash', 'Dashboards')"
+				class="mydash-sidebar-toggle"
+				@click="sidebarOpen = !sidebarOpen">
+				<template #icon>
+					<MenuIcon :size="20" />
+				</template>
+			</NcButton>
 			<DashboardSwitcher
 				v-if="dashboards.length > 1"
 				:dashboards="dashboards"
@@ -105,6 +134,7 @@ import { t } from '@nextcloud/l10n'
 
 // Icons
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
+import MenuIcon from 'vue-material-design-icons/Menu.vue'
 
 // Components
 import DashboardGrid from '../components/DashboardGrid.vue'
@@ -115,6 +145,8 @@ import DashboardSwitcher from '../components/DashboardSwitcher.vue'
 import DashboardConfigMenu from '../components/DashboardConfigMenu.vue'
 import DashboardConfigModal from '../components/DashboardConfigModal.vue'
 import AddWidgetModal from '../components/Widgets/AddWidgetModal.vue'
+import DashboardSwitcherSidebar from '../components/Workspace/DashboardSwitcherSidebar.vue'
+import SidebarBackdrop from '../components/Workspace/SidebarBackdrop.vue'
 
 // Stores
 import { useDashboardStore } from '../stores/dashboard.js'
@@ -128,6 +160,7 @@ export default {
 		NcButton,
 		NcEmptyContent,
 		ViewDashboard,
+		MenuIcon,
 		DashboardGrid,
 		WidgetPickerModal,
 		WidgetStyleEditor,
@@ -136,6 +169,16 @@ export default {
 		DashboardConfigMenu,
 		DashboardConfigModal,
 		AddWidgetModal,
+		DashboardSwitcherSidebar,
+		SidebarBackdrop,
+	},
+	// Inject the typed initial-state snapshot pushed from `src/main.js`
+	// (REQ-INIT-003..005). Defaults match the reader contract so the
+	// sidebar still mounts when running under tests that don't set a
+	// provider (e.g. Vitest harness) — see DashboardSwitcherSidebar specs.
+	inject: {
+		primaryGroupName: { default: '' },
+		allowUserDashboards: { default: false },
 	},
 	data() {
 		return {
@@ -153,6 +196,9 @@ export default {
 			isCustomWidgetModalOpen: false,
 			customWidgetPreselectedType: null,
 			customWidgetEditing: null,
+			// `dashboard-switcher` capability state — controlled here, the
+			// sidebar emits update:open(boolean) via its v-model rebind.
+			sidebarOpen: false,
 		}
 	},
 	computed: {
@@ -162,6 +208,9 @@ export default {
 			'widgetPlacements',
 			'permissionLevel',
 			'loading',
+			'userDashboards',
+			'groupSharedDashboards',
+			'defaultGroupDashboards',
 		]),
 		...mapState(useWidgetStore, ['availableWidgets']),
 		...mapState(useTileStore, ['tiles']),
@@ -171,6 +220,26 @@ export default {
 		},
 		placedWidgetIds() {
 			return this.widgetPlacements.map(p => p.widgetId)
+		},
+		/**
+		 * Combined input for the sidebar's `groupDashboards` prop —
+		 * primary-group + default-group rows, each carrying their `source`
+		 * discriminator from `/api/dashboards/visible` (REQ-DASH-013).
+		 *
+		 * @return {Array<object>} Concatenated group + default dashboards.
+		 */
+		sidebarGroupDashboards() {
+			return [...this.groupSharedDashboards, ...this.defaultGroupDashboards]
+		},
+		/**
+		 * Personal dashboards for the sidebar's `userDashboards` prop.
+		 * Aliased so the sidebar's prop name reads naturally in the
+		 * template even if the store getter is renamed later.
+		 *
+		 * @return {Array<object>} Dashboards with `source === 'user'`.
+		 */
+		sidebarUserDashboards() {
+			return this.userDashboards
 		},
 	},
 	async created() {
@@ -390,6 +459,59 @@ export default {
 				console.error('Failed to delete dashboard:', error)
 			}
 		},
+		/**
+		 * Handle a switch emitted by `DashboardSwitcherSidebar`. The sidebar
+		 * passes the row's `source` discriminator alongside the id so we
+		 * can pick the correct API endpoint per REQ-DASH-013/REQ-DASH-014:
+		 *
+		 *   - `'user'`    → personal dashboard endpoint (already the
+		 *                   default in `dashboardStore.switchDashboard`)
+		 *   - `'group'`   → primary group endpoint
+		 *   - `'default'` → default group endpoint
+		 *
+		 * The store currently fetches via `getDashboardById`, which works
+		 * for every visible-to-user record regardless of source — the
+		 * group/default branches stay identical for now and exist to make
+		 * the source contract visible to readers (and to keep the fan-out
+		 * easy when source-specific endpoints land).
+		 *
+		 * @param {string|number} id Dashboard id from the clicked row.
+		 * @param {'group'|'default'|'user'} source Section discriminator.
+		 */
+		// eslint-disable-next-line no-unused-vars
+		async onSidebarSwitch(id, source) {
+			// `source` is currently informational — `switchDashboard`
+			// resolves any visible dashboard via /api/dashboard/{id}. The
+			// signature is kept explicit so per-source behaviour can land
+			// without re-touching this view (and so the load-bearing
+			// REQ-SWITCH-002 contract is visible at the call site).
+			await this.switchDashboard(id)
+		},
+		/**
+		 * Sidebar `+ New Dashboard` row handler — opens the create
+		 * dashboard modal flow already used by the topbar config menu.
+		 */
+		onSidebarCreateDashboard() {
+			this.openCreateDashboardModal()
+		},
+		/**
+		 * Sidebar personal-row delete handler. Mirrors the topbar
+		 * deletion flow (confirm → API → reload) but operates on an
+		 * arbitrary id rather than the active dashboard.
+		 *
+		 * @param {string|number} id Personal dashboard id to delete.
+		 */
+		async onSidebarDeleteDashboard(id) {
+			if (!confirm(this.t('mydash', 'Are you sure you want to delete this dashboard?'))) {
+				return
+			}
+			try {
+				await api.deleteDashboard(id)
+				await this.loadDashboards()
+			} catch (error) {
+				console.error('Failed to delete dashboard:', error)
+			}
+		},
 	},
 }
 </script>
@@ -409,6 +531,12 @@ export default {
 	gap: 8px;
 	align-items: center;
 	z-index: 1000;
+}
+
+.mydash-sidebar-toggle {
+	/* Hint that the sidebar opens from the left even though the toggle
+	   itself lives in the top-right cluster. */
+	margin-right: auto;
 }
 
 /* Strip the visible text on the menu trigger button — we want icon-only.
