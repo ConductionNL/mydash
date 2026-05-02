@@ -55,6 +55,11 @@
 				</div>
 			</div>
 
+			<!-- Group priority order (REQ-ASET-012/013/014) -->
+			<div class="mydash-admin__section">
+				<GroupPriorityOrder :initial-active="configuredGroups" />
+			</div>
+
 			<!-- Template Management -->
 			<div class="mydash-admin__section">
 				<div class="mydash-admin__section-header">
@@ -237,6 +242,7 @@ import {
 } from '@nextcloud/vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
+import GroupPriorityOrder from './GroupPriorityOrder.vue'
 import { api } from '../../services/api.js'
 
 export default {
@@ -244,6 +250,7 @@ export default {
 
 	components: {
 		CnSettingsSection,
+		GroupPriorityOrder,
 		NcButton,
 		NcSelect,
 		NcSelectTags,
@@ -264,6 +271,12 @@ export default {
 		allowUserDashboards: {
 			from: 'allowUserDashboards',
 			default: false,
+		},
+		// Initial seed for the group-priority component (REQ-ASET-013).
+		// `GroupPriorityOrder.loadGroups()` overwrites with API truth.
+		configuredGroups: {
+			from: 'configuredGroups',
+			default: () => [],
 		},
 	},
 

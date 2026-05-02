@@ -27,6 +27,7 @@ namespace OCA\MyDash\Settings;
 
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Db\AdminSettingMapper;
+use OCA\MyDash\Service\AdminSettingsService;
 use OCA\MyDash\Service\DashboardService;
 use OCA\MyDash\Service\InitialState\Page;
 use OCA\MyDash\Service\InitialStateBuilder;
@@ -42,20 +43,24 @@ class MyDashAdmin implements ISettings
     /**
      * Constructor.
      *
-     * @param IInitialState      $initialState     The Nextcloud initial-state service.
-     * @param IGroupManager      $groupManager     Group manager (full group list).
-     * @param WidgetService      $widgetService    Available-widgets descriptor formatter.
-     * @param AdminSettingMapper $settingMapper    Admin settings store
-     *                                             (configured-groups list).
-     * @param DashboardService   $dashboardService Dashboard service exposing
-     *                                             the `allow_user_dashboards`
-     *                                             flag (REQ-ASET-003).
+     * @param IInitialState        $initialState     The Nextcloud initial-state service.
+     * @param IGroupManager        $groupManager     Group manager (full group list).
+     * @param WidgetService        $widgetService    Available-widgets descriptor formatter.
+     * @param AdminSettingMapper   $settingMapper    Admin settings store
+     *                                               (legacy configured-groups list).
+     * @param AdminSettingsService $settingsService  Admin-settings service exposing
+     *                                               the `group_order` setting
+     *                                               (REQ-ASET-012).
+     * @param DashboardService     $dashboardService Dashboard service exposing
+     *                                               the `allow_user_dashboards`
+     *                                               flag (REQ-ASET-003).
      */
     public function __construct(
         private readonly IInitialState $initialState,
         private readonly IGroupManager $groupManager,
         private readonly WidgetService $widgetService,
         private readonly AdminSettingMapper $settingMapper,
+        private readonly AdminSettingsService $settingsService,
         private readonly DashboardService $dashboardService,
     ) {
     }//end __construct()
@@ -84,12 +89,25 @@ class MyDashAdmin implements ISettings
             ];
         }
 
-        $configuredGroups = $this->settingMapper->getValue(
-            key: 'configured_groups',
-            default: []
-        );
-        if (is_array($configuredGroups) === false) {
-            $configuredGroups = [];
+        // REQ-ASET-012: prefer the new `group_order` setting (defensive
+        // read returns []). Falls back to the legacy `configured_groups`
+        // key for installs that wrote it before the cutover so the
+        // initial render still shows the admin's previous selection.
+        $configuredGroups = $this->settingsService->getGroupOrder();
+        if ($configuredGroups === []) {
+            $legacy = $this->settingMapper->getValue(
+                key: 'configured_groups',
+                default: []
+            );
+            if (is_array($legacy) === true) {
+                $filtered         = array_filter(
+                    array: $legacy,
+                    callback: static function ($entry) {
+                        return is_string($entry) === true && $entry !== '';
+                    }
+                );
+                $configuredGroups = array_values(array: $filtered);
+            }
         }
 
         $allowUserDashboards = $this->dashboardService->getAllowUserDashboards();

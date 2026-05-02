@@ -122,4 +122,111 @@ class AdminSettingsServiceTest extends TestCase
         $this->assertArrayHasKey('defaultGridColumns', $settings);
         $this->assertCount(4, $settings);
     }
+
+    // ----- REQ-ASET-012: getGroupOrder / setGroupOrder -----
+
+    public function testGetGroupOrderReturnsEmptyWhenRowAbsent(): void
+    {
+        // REQ-ASET-012 — defensive read: row missing → []
+        $this->settingMapper
+            ->method('getValue')
+            ->with(AdminSetting::KEY_GROUP_ORDER, null)
+            ->willReturn(null);
+
+        $this->assertSame([], $this->service->getGroupOrder());
+    }
+
+    public function testGetGroupOrderReturnsEmptyOnCorruptValue(): void
+    {
+        // REQ-ASET-012 — corrupt JSON resolves to []. The mapper's
+        // `getValue` returns whatever `json_decode` produced; a string
+        // (or any non-array) is treated as corrupt by the service.
+        $this->settingMapper
+            ->method('getValue')
+            ->with(AdminSetting::KEY_GROUP_ORDER, null)
+            ->willReturn('{not-json');
+
+        $this->assertSame([], $this->service->getGroupOrder());
+    }
+
+    public function testGetGroupOrderFiltersNonStringEntries(): void
+    {
+        // Hand-edited DB rows could carry mixed payloads — drop them.
+        $this->settingMapper
+            ->method('getValue')
+            ->with(AdminSetting::KEY_GROUP_ORDER, null)
+            ->willReturn(['engineering', 42, '', null, 'marketing']);
+
+        $this->assertSame(
+            ['engineering', 'marketing'],
+            $this->service->getGroupOrder()
+        );
+    }
+
+    public function testGetGroupOrderPreservesOrder(): void
+    {
+        $this->settingMapper
+            ->method('getValue')
+            ->with(AdminSetting::KEY_GROUP_ORDER, null)
+            ->willReturn(['zebra', 'alpha', 'marigold']);
+
+        $this->assertSame(
+            ['zebra', 'alpha', 'marigold'],
+            $this->service->getGroupOrder()
+        );
+    }
+
+    public function testSetGroupOrderDeduplicatesPreservingOrder(): void
+    {
+        // REQ-ASET-014 — first occurrence wins, duplicates removed.
+        $captured = null;
+        $this->settingMapper
+            ->expects($this->once())
+            ->method('setSetting')
+            ->with(
+                $this->equalTo(AdminSetting::KEY_GROUP_ORDER),
+                $this->callback(function ($value) use (&$captured) {
+                    $captured = $value;
+                    return true;
+                })
+            );
+
+        $this->service->setGroupOrder(['a', 'b', 'a', 'c', 'b']);
+        $this->assertSame(['a', 'b', 'c'], $captured);
+    }
+
+    public function testSetGroupOrderRejectsNonStringElements(): void
+    {
+        $this->settingMapper->expects($this->never())->method('setSetting');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->service->setGroupOrder(['engineering', 42, 'marketing']);
+    }
+
+    public function testSetGroupOrderRejectsEmptyStringElements(): void
+    {
+        $this->settingMapper->expects($this->never())->method('setSetting');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->service->setGroupOrder(['engineering', '']);
+    }
+
+    public function testSetGroupOrderEmptyArrayPersisted(): void
+    {
+        // REQ-ASET-012 — empty list is the documented "clear active" case.
+        $captured = null;
+        $this->settingMapper
+            ->expects($this->once())
+            ->method('setSetting')
+            ->with(
+                $this->equalTo(AdminSetting::KEY_GROUP_ORDER),
+                $this->callback(function ($value) use (&$captured) {
+                    $captured = $value;
+                    return true;
+                })
+            );
+
+        $this->service->setGroupOrder([]);
+        $this->assertSame([], $captured);
+    }
 }

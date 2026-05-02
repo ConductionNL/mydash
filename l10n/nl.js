@@ -193,7 +193,24 @@ OC.L10N.register(
     "Loading group dashboards…" : "Groepsdashboards laden…",
     "No group-shared dashboards in this group yet." : "Nog geen groepsgedeelde dashboards in deze groep.",
     "Set as default" : "Als standaard instellen",
-    "Failed to set the group default dashboard" : "Kon het standaarddashboard van de groep niet instellen"
+    "Failed to set the group default dashboard" : "Kon het standaarddashboard van de groep niet instellen",
+    "Group priority order" : "Groepsvolgorde",
+    "Drag groups between the columns to control which Nextcloud groups MyDash uses, and in what order. The first active group becomes the user's primary workspace." : "Sleep groepen tussen de kolommen om te bepalen welke Nextcloud-groepen MyDash gebruikt en in welke volgorde. De eerste actieve groep wordt de primaire werkruimte van de gebruiker.",
+    "Active groups" : "Actieve groepen",
+    "Inactive groups" : "Inactieve groepen",
+    "Filter active groups" : "Actieve groepen filteren",
+    "Filter inactive groups" : "Inactieve groepen filteren",
+    "Filter" : "Filter",
+    "Move to inactive" : "Naar inactief verplaatsen",
+    "Move to active" : "Naar actief verplaatsen",
+    "(removed)" : "(verwijderd)",
+    "No matches." : "Geen resultaten.",
+    "No active groups. Drag groups here from the inactive column." : "Geen actieve groepen. Sleep groepen hierheen vanuit de inactieve kolom.",
+    "No inactive groups." : "Geen inactieve groepen.",
+    "Loading group list…" : "Groepenlijst laden…",
+    "Failed to load group list." : "Kon de groepenlijst niet laden.",
+    "Group order saved." : "Groepsvolgorde opgeslagen.",
+    "Failed to save group order." : "Kon de groepsvolgorde niet opslaan."
 },
 "nplurals=2; plural=(n != 1);"
 );

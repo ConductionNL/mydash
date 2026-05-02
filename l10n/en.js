@@ -193,7 +193,24 @@ OC.L10N.register(
     "Loading group dashboards…" : "Loading group dashboards…",
     "No group-shared dashboards in this group yet." : "No group-shared dashboards in this group yet.",
     "Set as default" : "Set as default",
-    "Failed to set the group default dashboard" : "Failed to set the group default dashboard"
+    "Failed to set the group default dashboard" : "Failed to set the group default dashboard",
+    "Group priority order" : "Group priority order",
+    "Drag groups between the columns to control which Nextcloud groups MyDash uses, and in what order. The first active group becomes the user's primary workspace." : "Drag groups between the columns to control which Nextcloud groups MyDash uses, and in what order. The first active group becomes the user's primary workspace.",
+    "Active groups" : "Active groups",
+    "Inactive groups" : "Inactive groups",
+    "Filter active groups" : "Filter active groups",
+    "Filter inactive groups" : "Filter inactive groups",
+    "Filter" : "Filter",
+    "Move to inactive" : "Move to inactive",
+    "Move to active" : "Move to active",
+    "(removed)" : "(removed)",
+    "No matches." : "No matches.",
+    "No active groups. Drag groups here from the inactive column." : "No active groups. Drag groups here from the inactive column.",
+    "No inactive groups." : "No inactive groups.",
+    "Loading group list…" : "Loading group list…",
+    "Failed to load group list." : "Failed to load group list.",
+    "Group order saved." : "Group order saved.",
+    "Failed to save group order." : "Failed to save group order."
 },
 "nplurals=2; plural=(n != 1);"
 );

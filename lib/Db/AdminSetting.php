@@ -66,6 +66,16 @@ class AdminSetting extends Entity implements JsonSerializable
     public const KEY_DEFAULT_GRID_COLUMNS = 'default_grid_columns';
 
     /**
+     * Setting key for the admin-chosen group priority order
+     * (REQ-ASET-012). Persisted as a JSON string list of Nextcloud
+     * group IDs in the order the admin chose; corrupt JSON resolves
+     * to `[]` at the service layer (defensive read).
+     *
+     * @var string
+     */
+    public const KEY_GROUP_ORDER = 'group_order';
+
+    /**
      * The setting key.
      *
      * @var string
