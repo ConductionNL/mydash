@@ -12,9 +12,6 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -25,6 +22,7 @@ use InvalidArgumentException;
 use OCA\MyDash\Db\AdminSetting;
 use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Db\Dashboard;
+use OCP\AppFramework\Db\DoesNotExistException;
 
 /**
  * Service for managing admin settings.
@@ -182,7 +180,7 @@ class AdminSettingsService
             }
         }
 
-        return $result;
+        return array_values(array_unique($result));
     }//end getGroupOrder()
 
     /**

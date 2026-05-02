@@ -12,9 +12,6 @@
  * @license   https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12 EUPL-1.2
  * @version   GIT:auto
  * @link      https://conduction.nl
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -69,7 +66,8 @@ class AdminSetting extends Entity implements JsonSerializable
      * Setting key for the admin-chosen group priority order
      * (REQ-ASET-012). Persisted as a JSON string list of Nextcloud
      * group IDs in the order the admin chose; corrupt JSON resolves
-     * to `[]` at the service layer (defensive read).
+     * to `[]` at the service layer (defensive read). MyDash treats
+     * these as in scope for workspace routing.
      *
      * @var string
      */
@@ -143,6 +141,10 @@ class AdminSetting extends Entity implements JsonSerializable
      */
     public function setValueEncoded(mixed $value): void
     {
+        // Entity setters resolve via __call which forwards $args[0]; named
+        // parameters MUST NOT be used here (Entity __call would receive
+        // $args = ['paramName' => $value] and use the wrong key).
+        // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
         $this->setSettingValue(json_encode($value));
     }//end setValueEncoded()
 

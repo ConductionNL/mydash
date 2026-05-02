@@ -48,7 +48,7 @@
 		"phpmetrics": "./vendor/bin/phpmetrics --report-html=phpmetrics lib/",
 		"phpmetrics:violations": "./vendor/bin/phpmetrics --violations-xml=phpmetrics/violations.xml lib/",
 		"psalm": "./vendor/bin/psalm --threads=1 --no-cache || echo 'Psalm not installed, skipping...'",
-		"phpstan": "./vendor/bin/phpstan analyse --memory-limit=1G || echo 'PHPStan not installed, skipping...'",
+		"phpstan": "./vendor/bin/phpstan analyse --memory-limit=1G",
 		"test": "phpunit --configuration phpunit-unit.xml",
 		"test:unit": "./vendor/bin/phpunit --configuration phpunit-unit.xml --colors=always || echo 'Tests require Nextcloud environment, skipping...'",
 		"test:all": "./vendor/bin/phpunit --configuration phpunit-unit.xml --colors=always || echo 'Tests require Nextcloud environment, skipping...'",

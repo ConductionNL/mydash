@@ -67,3 +67,4 @@ If you propose adding a new element name to `ALLOWED_ELEMENTS` or a new attribut
 - Verify the new element / attribute cannot carry executable payloads in any browser SVG renderer (e.g. `<animate>` `attributeName` injection, `<set>` event triggering, etc.).
 - Add a PHPUnit scenario covering the new surface, plus a negative scenario showing that a known-bad construct involving the new name is still rejected.
 - Update REQ-RES-010 / REQ-RES-011 in the canonical spec to reflect the new whitelist size and add the element / attribute name explicitly.
+- The sanitiser runs server-side BEFORE the size cap (REQ-RES-009), so an over-permissive whitelist becomes stored XSS the moment a sanitised-looking SVG is rendered back into a logged-in user's browser.

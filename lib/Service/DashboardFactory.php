@@ -13,9 +13,6 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -45,15 +42,19 @@ class DashboardFactory
      *                                     `TYPE_ADMIN_TEMPLATE`.
      * @param string      $name            The dashboard name.
      * @param string|null $description     The dashboard description.
-     * @param string      $type            The dashboard type
-     *                                     (default
+     * @param string      $type            The dashboard type (default
      *                                     {@see Dashboard::TYPE_USER}).
      * @param string|null $groupId         The group ID — required when
      *                                     `type === TYPE_GROUP_SHARED`,
      *                                     forbidden otherwise.
      * @param int         $gridColumns     The grid column count.
-     * @param string      $permissionLevel The permission level (default
-     *                                     `Dashboard::PERMISSION_FULL`).
+     * @param string      $permissionLevel The owner's permission level on
+     *                                     this dashboard. Defaults to
+     *                                     {@see Dashboard::PERMISSION_FULL};
+     *                                     callers may pass a more restrictive
+     *                                     level when forking a shared
+     *                                     dashboard or creating a read-only
+     *                                     template.
      *
      * @return Dashboard The created dashboard entity (not yet persisted).
      *

@@ -24,6 +24,15 @@ import {
  */
 const ERR_PERSONAL_DASHBOARDS_DISABLED = 'personal_dashboards_disabled'
 
+/**
+ * The supported source values returned by GET /api/dashboards/visible.
+ * Matches Dashboard::SOURCE_USER / SOURCE_GROUP / SOURCE_DEFAULT on the
+ * backend (REQ-DASH-013).
+ */
+export const SOURCE_USER = 'user'
+export const SOURCE_GROUP = 'group'
+export const SOURCE_DEFAULT = 'default'
+
 export const useDashboardStore = defineStore('dashboard', {
 	state: () => ({
 		// `dashboards` carries every dashboard visible to the user
@@ -54,22 +63,28 @@ export const useDashboardStore = defineStore('dashboard', {
 			return state.widgetPlacements.filter(p => p.isCompulsory)
 		},
 
-		// Personal (`source === 'user'`) dashboards. Backed by the
-		// `/api/dashboards/visible` payload (REQ-DASH-013).
+		// REQ-DASH-013 — personal user-owned dashboards. Backed by the
+		// `/api/dashboards/visible` payload.
 		userDashboards: (state) => {
-			return state.dashboards.filter(d => d.source === 'user')
+			return state.dashboards.filter(d => d.source === SOURCE_USER)
 		},
 
-		// Group-matching shared dashboards (`source === 'group'`)
-		// — REQ-DASH-014.
+		// REQ-DASH-013 — personal user-owned dashboards (alias for
+		// userDashboards; matches the dev-branch naming).
+		personalDashboards: (state) => {
+			return state.dashboards.filter(d => d.source === SOURCE_USER)
+		},
+
+		// REQ-DASH-014 — group-matching shared dashboards (`source ===
+		// 'group'`).
 		groupSharedDashboards: (state) => {
-			return state.dashboards.filter(d => d.source === 'group')
+			return state.dashboards.filter(d => d.source === SOURCE_GROUP)
 		},
 
-		// Default-group shared dashboards (`source === 'default'`)
-		// — REQ-DASH-012.
+		// REQ-DASH-012 — default-group shared dashboards (`source ===
+		// 'default'`).
 		defaultGroupDashboards: (state) => {
-			return state.dashboards.filter(d => d.source === 'default')
+			return state.dashboards.filter(d => d.source === SOURCE_DEFAULT)
 		},
 
 		/**
@@ -108,8 +123,8 @@ export const useDashboardStore = defineStore('dashboard', {
 			}
 
 			const primary = state.primaryGroup || ''
-			const inPrimary = (d) => d.source === 'group' && d.groupId === primary
-			const inDefault = (d) => d.source === 'default'
+			const inPrimary = (d) => d.source === SOURCE_GROUP && d.groupId === primary
+			const inDefault = (d) => d.source === SOURCE_DEFAULT
 			const isDefault = (d) => Number(d.isDefault) === 1
 
 			// Step 2: primary-group default.
@@ -141,7 +156,7 @@ export const useDashboardStore = defineStore('dashboard', {
 			}
 
 			// Step 6: first personal dashboard.
-			const firstPersonal = list.find(d => d.source === 'user')
+			const firstPersonal = list.find(d => d.source === SOURCE_USER)
 			if (firstPersonal !== undefined) {
 				return firstPersonal
 			}
@@ -166,13 +181,12 @@ export const useDashboardStore = defineStore('dashboard', {
 				} catch (visibleError) {
 					console.warn('Falling back to /api/dashboards (visible endpoint failed):', visibleError)
 					response = await api.getDashboards()
-					// Tag legacy payloads as user-scope so getters still work.
-					response.data = (response.data || []).map(d => ({
-						...d,
-						source: d.source || 'user',
-					}))
 				}
-				this.dashboards = response.data || []
+				// Defensive default — older backends may not tag rows.
+				this.dashboards = (response.data || []).map(d => ({
+					...d,
+					source: d.source ?? SOURCE_USER,
+				}))
 
 				// Load the active dashboard
 				const activeResponse = await api.getActiveDashboard()
@@ -259,7 +273,11 @@ export const useDashboardStore = defineStore('dashboard', {
 			this.loading = true
 			try {
 				const response = await api.createDashboard(data)
-				this.dashboards.push(response.data.dashboard)
+				this.dashboards.push({
+					...response.data.dashboard,
+					// Tag as user-scope so the source-aware getters work.
+					source: response.data.dashboard.source ?? SOURCE_USER,
+				})
 				this.activeDashboard = response.data.dashboard
 				this.widgetPlacements = []
 			} catch (error) {
@@ -340,9 +358,18 @@ export const useDashboardStore = defineStore('dashboard', {
 				}))
 				console.log('[DashboardStore] Sending placements to API:', JSON.stringify(placementsData, null, 2))
 
-				await api.updateDashboard(this.activeDashboard.id, {
-					placements: placementsData,
-				})
+				// REQ-DASH-013 — route the PUT to the correct endpoint
+				// based on the active dashboard's source.
+				const active = this.activeDashboard
+				if (active && (active.source === SOURCE_GROUP || active.source === SOURCE_DEFAULT)) {
+					await api.updateGroupDashboard(active.groupId, active.uuid, {
+						placements: placementsData,
+					})
+				} else {
+					await api.updateDashboard(active.id, {
+						placements: placementsData,
+					})
+				}
 				console.log('[DashboardStore] Successfully saved placements')
 			} catch (error) {
 				console.error('Failed to save placements:', error)

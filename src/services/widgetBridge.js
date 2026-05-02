@@ -7,6 +7,8 @@
  * @spec openspec/changes/archive/2026-04-24-retrofit-legacy-widget-bridge/tasks.md#task-3
  * @spec openspec/changes/archive/2026-04-24-retrofit-legacy-widget-bridge/tasks.md#task-4
  * @spec openspec/changes/nc-dashboard-widget-proxy/tasks.md#1
+ * @spec openspec/changes/nc-dashboard-widget-proxy/specs/legacy-widget-bridge/spec.md#req-lwb-005
+ * @spec openspec/changes/nc-dashboard-widget-proxy/specs/legacy-widget-bridge/spec.md#req-lwb-006
  */
 
 /**
@@ -162,7 +164,8 @@ class WidgetBridge {
 	 * @param {AbortSignal} [options.signal] Optional abort signal.
 	 * @return {Promise<boolean>} Resolves true when a callback is registered, false otherwise.
 	 *
-	 * @spec openspec/changes/nc-dashboard-widget-proxy/tasks.md#1
+	 * @spec openspec/changes/nc-dashboard-widget-proxy/specs/legacy-widget-bridge/spec.md#req-lwb-005
+	 * @spec openspec/changes/nc-dashboard-widget-proxy/specs/legacy-widget-bridge/spec.md#req-lwb-006
 	 */
 	pollForCallback(widgetId, options = {}) {
 		const intervalMs = options.intervalMs ?? 200

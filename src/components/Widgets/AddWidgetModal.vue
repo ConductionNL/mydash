@@ -74,7 +74,7 @@
 </template>
 
 <script>
-import { NcModal, NcButton } from '@nextcloud/vue'
+import { NcModal, NcButton } from '@conduction/nextcloud-vue'
 import { t } from '@nextcloud/l10n'
 
 import {

@@ -161,7 +161,7 @@
 <script>
 import Vue from 'vue'
 import { mapState, mapActions } from 'pinia'
-import { NcButton, NcEmptyContent } from '@nextcloud/vue'
+import { NcButton, NcEmptyContent } from '@conduction/nextcloud-vue'
 import { t } from '@nextcloud/l10n'
 
 // Icons

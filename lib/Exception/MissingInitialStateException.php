@@ -6,7 +6,9 @@
  * Raised by {@see \OCA\MyDash\Service\InitialStateBuilder::apply()} when a
  * required initial-state key was not set for the chosen page before the
  * builder was applied. The exception message names the page and the
- * missing key, so the failure is actionable in dev and CI alike.
+ * missing key, so the failure is actionable in dev and CI alike. Catching
+ * this at apply() time guarantees the frontend never renders against a
+ * half-populated initial-state payload.
  *
  * Maps to HTTP 500 in production (the page cannot render without its
  * boot snapshot); the CI test suite catches the same condition earlier

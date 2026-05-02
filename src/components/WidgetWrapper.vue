@@ -51,7 +51,7 @@
 </template>
 
 <script>
-import { NcButton } from '@nextcloud/vue'
+import { NcButton } from '@conduction/nextcloud-vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import WidgetRenderer from './WidgetRenderer.vue'
 

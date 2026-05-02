@@ -17,7 +17,7 @@
 </template>
 
 <script>
-import { NcSelect } from '@nextcloud/vue'
+import { NcSelect } from '@conduction/nextcloud-vue'
 
 export default {
 	name: 'DashboardSwitcher',

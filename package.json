@@ -17,10 +17,12 @@
 		"stylelint": "stylelint src/**/*.vue src/**/*.scss src/**/*.css",
 		"stylelint:fix": "stylelint src/**/*.vue src/**/*.scss src/**/*.css --fix",
 		"test": "vitest run",
-		"test:watch": "vitest"
+		"test:watch": "vitest",
+		"test:ui": "vitest --ui",
+		"test:coverage": "vitest run --coverage"
 	},
 	"dependencies": {
-		"@conduction/nextcloud-vue": "^0.1.0-beta.1",
+		"@conduction/nextcloud-vue": "^0.1.0-beta.17",
 		"@mdi/js": "^7.4.47",
 		"@nextcloud/axios": "^2.5.0",
 		"@nextcloud/dialogs": "^6.1.1",
@@ -28,7 +30,7 @@
 		"@nextcloud/l10n": "^3.2.0",
 		"@nextcloud/router": "^3.1.0",
 		"@nextcloud/vue": "^8.16.0",
-		"dompurify": "^3.2.4",
+		"dompurify": "^3.4.1",
 		"gridstack": "^12.2.1",
 		"pinia": "^2.1.7",
 		"vue": "^2.7.16",

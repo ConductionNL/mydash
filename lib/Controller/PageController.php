@@ -9,7 +9,8 @@
  * {@see \OCA\MyDash\Service\InitialState\Page::WORKSPACE}, populates every
  * key declared in the spec's Data Model, and applies — direct calls to
  * {@see \OCP\AppFramework\Services\IInitialState::provideInitialState()}
- * are forbidden here by the `lint:initial-state` CI guard.
+ * are forbidden here (and any other controller) and enforced by the
+ * `lint:initial-state` CI guard.
  *
  * @category  Controller
  * @package   OCA\MyDash\Controller
@@ -18,9 +19,6 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -225,11 +223,13 @@ class PageController extends Controller
 
     /**
      * Load scripts for all available dashboard widgets.
-     * This ensures legacy widgets can register their callbacks via OCA.Dashboard.register.
      *
-     * @return void
+     * This ensures legacy widgets can register their callbacks via
+     * OCA.Dashboard.register.
+     *
+     * @return array<string, \OCP\Dashboard\IWidget> Map of widget id to widget.
      */
-    private function loadWidgetScripts(): void
+    private function loadWidgetScripts(): array
     {
         $widgets = $this->dashboardManager->getWidgets();
 
@@ -237,5 +237,7 @@ class PageController extends Controller
             // Call the widget's load() method to inject its scripts.
             $widget->load();
         }
+
+        return $widgets;
     }//end loadWidgetScripts()
 }//end class

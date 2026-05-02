@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace OCA\MyDash\Exception;
 
 /**
- * Directory failed strict validation.
+ * Directory failed strict validation (path-traversal or null byte).
  */
 class InvalidDirectoryException extends ResourceException
 {
@@ -48,9 +48,8 @@ class InvalidDirectoryException extends ResourceException
      *
      * @param string $message Display message.
      */
-    public function __construct(
-        string $message='Invalid directory'
-    ) {
+    public function __construct(string $message='Invalid directory')
+    {
         parent::__construct(message: $message);
     }//end __construct()
 }//end class

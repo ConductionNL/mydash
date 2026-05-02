@@ -14,9 +14,6 @@ declare(strict_types=1);
  * @license   https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12 EUPL-1.2
  * @version   GIT:auto
  * @link      https://conduction.nl
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
- * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 namespace OCA\MyDash\Db;
@@ -149,6 +146,9 @@ class ConditionalRule extends Entity implements JsonSerializable
      */
     public function setRuleConfigArray(array $config): void
     {
+        // Entity setters resolve via __call which uses $args[0]; named args
+        // would break the magic forwarding (see project memory).
+        // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
         $this->setRuleConfig(json_encode($config));
     }//end setRuleConfigArray()
 

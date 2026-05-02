@@ -68,7 +68,7 @@ Vrij en open source onder de EUPL-1.2-licentie.
 
 	<dependencies>
 		<php min-version="8.1"/>
-		<nextcloud min-version="28" max-version="33"/>
+		<nextcloud min-version="28" max-version="34"/>
 	</dependencies>
 
 	<settings>

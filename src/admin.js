@@ -30,6 +30,7 @@ Vue.use(PiniaVuePlugin)
 const pinia = createPinia()
 
 // Load the typed initial-state snapshot for the admin page (REQ-INIT-002).
+// Plain (non-reactive) values; descendants `inject(key, default)` to read.
 const initialState = loadInitialState('admin')
 
 const app = new Vue({

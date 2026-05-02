@@ -51,7 +51,7 @@
 </template>
 
 <script>
-import { NcButton } from '@nextcloud/vue'
+import { NcButton } from '@conduction/nextcloud-vue'
 import { generateUrl } from '@nextcloud/router'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Close from 'vue-material-design-icons/Close.vue'

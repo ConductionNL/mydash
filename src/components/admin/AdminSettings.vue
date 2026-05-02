@@ -230,8 +230,8 @@
 </template>
 
 <script>
-import { CnSettingsSection } from '@conduction/nextcloud-vue'
 import {
+	CnSettingsSection,
 	NcButton,
 	NcSelect,
 	NcSelectTags,
@@ -239,7 +239,7 @@ import {
 	NcCheckboxRadioSwitch,
 	NcEmptyContent,
 	NcModal,
-} from '@nextcloud/vue'
+} from '@conduction/nextcloud-vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
 import GroupPriorityOrder from './GroupPriorityOrder.vue'

@@ -55,7 +55,7 @@
 </template>
 
 <script>
-import { NcTextField, NcSelect } from '@nextcloud/vue'
+import { NcTextField, NcSelect } from '@conduction/nextcloud-vue'
 
 const ACTION_TYPES = Object.freeze({
 	EXTERNAL: 'external',

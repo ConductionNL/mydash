@@ -140,9 +140,9 @@ class Notifier implements INotifier
      *
      * Subject parameters: [sharerUserId, dashboardName, permissionLevel].
      *
-     * @param INotification   $notification The notification.
-     * @param IL10N $l            The L10N instance.
-     * @param string          $url          The deep-link URL.
+     * @param INotification $notification The notification.
+     * @param IL10N         $l            The L10N instance.
+     * @param string        $url          The deep-link URL.
      *
      * @return INotification The prepared notification.
      */
@@ -188,9 +188,9 @@ class Notifier implements INotifier
      *
      * Subject parameters: [dashboardName].
      *
-     * @param INotification   $notification The notification.
-     * @param IL10N $l            The L10N instance.
-     * @param string          $url          The deep-link URL.
+     * @param INotification $notification The notification.
+     * @param IL10N         $l            The L10N instance.
+     * @param string        $url          The deep-link URL.
      *
      * @return INotification The prepared notification.
      */
@@ -262,8 +262,8 @@ class Notifier implements INotifier
     /**
      * Return the human-readable label for a permission level.
      *
-     * @param IL10N $l     The L10N instance.
-     * @param string          $level The permission level identifier.
+     * @param IL10N  $l     The L10N instance.
+     * @param string $level The permission level identifier.
      *
      * @return string The translated label.
      */

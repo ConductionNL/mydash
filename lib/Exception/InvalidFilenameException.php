@@ -25,7 +25,7 @@ declare(strict_types=1);
 namespace OCA\MyDash\Exception;
 
 /**
- * Filename failed strict validation.
+ * Filename failed strict validation (empty, too long, or disallowed characters).
  */
 class InvalidFilenameException extends ResourceException
 {
@@ -49,9 +49,8 @@ class InvalidFilenameException extends ResourceException
      *
      * @param string $message Display message.
      */
-    public function __construct(
-        string $message='Invalid filename'
-    ) {
+    public function __construct(string $message='Invalid filename')
+    {
         parent::__construct(message: $message);
     }//end __construct()
 }//end class

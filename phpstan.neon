@@ -1,9 +1,12 @@
+includes:
+    - phpstan-baseline.neon
+
 parameters:
     level: 5
     paths:
         - lib
     bootstrapFiles:
-        - vendor/autoload.php
+        - phpstan-bootstrap.php
     excludePaths:
         - vendor
     # nextcloud/ocp ships stubs without an autoload section, so list the
@@ -68,3 +71,8 @@ parameters:
         -
             message: '#Call to an undefined method OCP\\AppFramework\\Db\\Entity::jsonSerialize\(\)#'
             path: lib/Db/EntitySerializer.php
+        # registerRepairStep / getLanguage exist on server but not in nextcloud/ocp stub
+        - '#Call to an undefined method OCP\\AppFramework\\Bootstrap\\IRegistrationContext::registerRepairStep#'
+        - '#Call to an undefined method OCP\\IUser::getLanguage#'
+        # OCP\AppFramework\Db\Entity implements JsonSerializable at runtime but stub omits it
+        - '#Call to an undefined method OCP\\AppFramework\\Db\\Entity::jsonSerialize#'

@@ -64,6 +64,7 @@ module.exports = {
 				// `ERR_UNKNOWN_FILE_EXTENSION`.
 				inline: [
 					/@nextcloud\/vue/,
+					/@conduction\/nextcloud-vue/,
 					/@nextcloud\/dialogs/,
 					/vue-material-design-icons/,
 					/vue-select/,

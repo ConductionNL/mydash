@@ -62,7 +62,7 @@
 </template>
 
 <script>
-import { NcTextField } from '@nextcloud/vue'
+import { NcTextField } from '@conduction/nextcloud-vue'
 import {
 	uploadDataUrl,
 	readFileAsDataUrl,

@@ -1,47 +1,65 @@
-# Dependencies
-/node_modules/
-/node_modules/*
-node_modules/
-/vendor/
-/vendor/*
-vendor/
+# IDE
+/.idea/
+/*.iml
+*.Identifier
+.vscode/
 
-# Build artifacts
-/js/
-/docs/node_modules/
-/docs/build/
-/docs/.docusaurus/
-/docusaurus/
-
-# Development
+# OS
 .DS_Store
 Thumbs.db
+
+# Editor swap / temp files
 *.swp
 *.swo
 *~
-.idea/
-.vscode/
 *.log
+
+# Claude Code
+.claude/worktrees/
+
+# Dependencies
+/vendor/
+/node_modules/
+
+# Build artifacts
+/js/
+
+# Documentation
+/docs/node_modules/
+/docs/build/
+/docs/.docusaurus/
+/docusaurus/node_modules/
+/docusaurus/build/
+/docusaurus/.docusaurus/
+
+# Testing & Quality
+/phpunit.xml
+/.php-cs-fixer.cache
+/tests/.phpunit.cache
+/.phpunit.cache/
+.phpunit.cache/
+.phpunit.result.cache
+/coverage/
+/coverage-frontend/
+/phpmetrics/
+/phpqa/
+/quality-reports/
 
 # PHP
 /composer.phar
 
-# Testing
-/phpunit.xml
-/coverage/
-/phpqa/
-
-.phpunit.cache/
-phpmetrics/
-
 # Environment
 .env
 .env.local
-node_modules
 
-# Test/build artifacts
-.phpunit.cache
-.phpunit.result.cache
+# Nextcloud (when running from a checkout inside a Nextcloud server tree)
+/custom_apps/
+/config/
+
+# SBOM is published as release asset (see SECURITY.md), not stored in repo
+sbom.cdx.json
+bom-php.cdx.json
+bom-npm.cdx.json
 
 # Research notes (local-only)
 /docs/sendent-analysis.md

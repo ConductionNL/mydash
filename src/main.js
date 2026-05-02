@@ -42,7 +42,7 @@ const pinia = createPinia()
 const initialState = loadInitialState('workspace')
 
 const app = new Vue({
-	el: '#mydash-app',
+	el: '#workspace-vue',
 	pinia,
 	provide: { ...initialState },
 	render: h => h(App),

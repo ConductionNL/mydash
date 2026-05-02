@@ -38,6 +38,16 @@
 				</div>
 			</div>
 		</div>
+
+		<!-- Widget context menu popover -->
+		<WidgetContextMenu
+			:show="contextMenu.show"
+			:x="contextMenu.x"
+			:y="contextMenu.y"
+			:widget="contextMenu.widget"
+			@edit="onContextEdit"
+			@remove="onContextRemove"
+			@close="closeContextMenu" />
 	</div>
 </template>
 
@@ -52,6 +62,8 @@ import {
 } from '../composables/useGridManager.js'
 import WidgetWrapper from './WidgetWrapper.vue'
 import TileWidget from './TileWidget.vue'
+import WidgetContextMenu from './Widgets/WidgetContextMenu.vue'
+import { placeNewWidget } from '../utils/widgetPlacement.js'
 
 export default {
 	name: 'DashboardGrid',
@@ -59,6 +71,7 @@ export default {
 	components: {
 		WidgetWrapper,
 		TileWidget,
+		WidgetContextMenu,
 	},
 
 	props: {
@@ -92,6 +105,13 @@ export default {
 	data() {
 		return {
 			grid: null,
+			viewportRows: 8,
+			contextMenu: {
+				show: false,
+				x: 0,
+				y: 0,
+				widget: null,
+			},
 		}
 	},
 
@@ -118,12 +138,17 @@ export default {
 
 	mounted() {
 		this.initGrid()
+		this.computeViewportRows()
+		window.addEventListener('resize', this.computeViewportRows)
+		document.addEventListener('click', this.handleDocumentClick)
 	},
 
 	beforeDestroy() {
 		if (this.grid) {
 			this.grid.destroy(false)
 		}
+		window.removeEventListener('resize', this.computeViewportRows)
+		document.removeEventListener('click', this.handleDocumentClick)
 	},
 
 	methods: {
@@ -139,6 +164,30 @@ export default {
 		 */
 		onItemContextMenu(event, placement) {
 			this.$emit('widget-right-click', event, placement)
+		},
+
+		/**
+		 * Place a new widget using the collision placement algorithm
+		 * (REQ-GRID-006, REQ-GRID-014). Returns the placement position
+		 * `{x, y, w, h}` for the new widget. Caller MUST persist this
+		 * position via the standard updatePlacements API.
+		 *
+		 * @param {object} spec widget spec with optional {w, h} dimensions
+		 * @return {object} placement position {x, y, w, h}
+		 */
+		placeWidget(spec) {
+			return placeNewWidget(spec, this.placements, this.grid, this.viewportRows)
+		},
+
+		/**
+		 * Compute viewport rows from the grid container height.
+		 * Called on mount and resize events.
+		 */
+		computeViewportRows() {
+			if (!this.$refs.gridContainer) return
+			const containerHeight = this.$refs.gridContainer.offsetHeight
+			const rowHeight = CELL_HEIGHT + GRID_MARGIN
+			this.viewportRows = Math.ceil(containerHeight / rowHeight)
 		},
 
 		getPlacementKey(placement) {
@@ -253,6 +302,76 @@ export default {
 					this.grid.removeWidget(el, false)
 				}
 			}
+		},
+
+		/**
+		 * Handle right-click on a grid item (REQ-WDG-015).
+		 * Only open context menu in edit mode.
+		 *
+		 * @param {MouseEvent} event right-click event
+		 * @param {object} placement widget placement object
+		 */
+		onWidgetRightClick(event, placement) {
+			if (!this.editMode) {
+				// In view mode, let the browser native menu appear
+				return
+			}
+
+			event.preventDefault()
+
+			this.contextMenu.show = true
+			this.contextMenu.x = event.clientX
+			this.contextMenu.y = event.clientY
+			this.contextMenu.widget = placement
+		},
+
+		/**
+		 * Close the context menu (REQ-WDG-016).
+		 */
+		closeContextMenu() {
+			this.contextMenu.show = false
+			this.contextMenu.widget = null
+		},
+
+		/**
+		 * Handle context menu "Edit" click (REQ-WDG-015).
+		 * Emits widget-edit event to parent.
+		 *
+		 * @param {object} placement widget placement object
+		 */
+		onContextEdit(placement) {
+			this.$emit('widget-edit', placement)
+		},
+
+		/**
+		 * Handle context menu "Remove" click (REQ-WDG-015).
+		 * Emits widget-remove event to parent.
+		 *
+		 * @param {object} placement widget placement object
+		 */
+		onContextRemove(placement) {
+			this.$emit('widget-remove', placement.id)
+		},
+
+		/**
+		 * Document-level click handler to close context menu on outside click (REQ-WDG-016).
+		 *
+		 * @param {MouseEvent} event click event
+		 */
+		handleDocumentClick(event) {
+			if (!this.contextMenu.show) {
+				return
+			}
+
+			// Check if click is inside the context menu
+			const menu = document.querySelector('.widget-context-menu')
+			if (menu && menu.contains(event.target)) {
+				// Click is inside the menu, let the menu's handlers deal with it
+				return
+			}
+
+			// Click is outside the menu, close it
+			this.closeContextMenu()
 		},
 	},
 }

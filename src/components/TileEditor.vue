@@ -133,7 +133,7 @@
 </template>
 
 <script>
-import { NcModal, NcButton, NcTextField, NcSelect, NcColorPicker } from '@nextcloud/vue'
+import { NcModal, NcButton, NcTextField, NcSelect, NcColorPicker } from '@conduction/nextcloud-vue'
 import {
 	mdiFile,
 	mdiFolder,
