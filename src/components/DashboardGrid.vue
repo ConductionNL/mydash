@@ -16,7 +16,8 @@
 				:gs-w="placement.gridWidth"
 				:gs-h="placement.gridHeight"
 				:gs-min-w="2"
-				:gs-min-h="2">
+				:gs-min-h="2"
+				@contextmenu="onItemContextMenu($event, placement)">
 				<div class="grid-stack-item-content">
 					<!-- Render Tile directly for tile placements. -->
 					<TileWidget
@@ -72,7 +73,14 @@ export default {
 		},
 	},
 
-	emits: ['update:placements', 'widget-remove', 'widget-style', 'tile-edit', 'widget-edit'],
+	emits: [
+		'update:placements',
+		'widget-remove',
+		'widget-style',
+		'tile-edit',
+		'widget-edit',
+		'widget-right-click',
+	],
 
 	data() {
 		return {
@@ -112,6 +120,20 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Forward right-click events on a grid item up to the workspace
+		 * shell (REQ-WDG-015). The shell is responsible for deciding
+		 * whether to swallow the native menu (edit mode) or let it through
+		 * (view mode) — this component MUST NOT call `preventDefault()`
+		 * itself, otherwise view-mode loses the browser's native menu.
+		 *
+		 * @param {MouseEvent} event the contextmenu event
+		 * @param {object} placement the placement under the cursor
+		 */
+		onItemContextMenu(event, placement) {
+			this.$emit('widget-right-click', event, placement)
+		},
+
 		getPlacementKey(placement) {
 			// Generate a key that changes when placement properties update.
 			// Include updatedAt or stringify relevant properties to force re-render.

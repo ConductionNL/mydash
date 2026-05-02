@@ -120,6 +120,7 @@ OC.L10N.register(
     "Person" : "Persoon",
     "Phone" : "Telefoon",
     "Picture" : "Afbeelding",
+    "Remove" : "Verwijderen",
     "Reset" : "Herstellen",
     "Save" : "Opslaan",
     "Search" : "Zoeken",

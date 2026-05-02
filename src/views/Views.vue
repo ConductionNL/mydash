@@ -33,6 +33,7 @@
 				@update:placements="updatePlacements"
 				@widget-remove="removeWidget"
 				@widget-edit="openStyleEditor"
+				@widget-right-click="onWidgetRightClick"
 				@tile-edit="openTileEditorForEdit" />
 
 			<div v-else class="mydash-empty">
@@ -95,10 +96,24 @@
 			@close="closeTileEditor"
 			@save="saveTile"
 			@delete="deleteTile" />
+
+		<!-- Widget right-click context menu (REQ-WDG-015..017). The
+		     popover renders only in edit mode, anchored at the cursor.
+		     Clicking Edit reuses AddWidgetModal with the placement set
+		     as `editingWidget`; Remove calls the placement-delete path
+		     of REQ-WDG-005; Cancel is a no-op close. -->
+		<WidgetContextMenu
+			v-if="grid.state.contextMenuOpen"
+			:top="grid.state.contextMenuPosition.y"
+			:left="grid.state.contextMenuPosition.x"
+			@edit="grid.triggerEdit()"
+			@remove="grid.triggerRemove()"
+			@close="grid.closeContextMenu()" />
 	</div>
 </template>
 
 <script>
+import Vue from 'vue'
 import { mapState, mapActions } from 'pinia'
 import { NcButton, NcEmptyContent } from '@nextcloud/vue'
 import { t } from '@nextcloud/l10n'
@@ -115,12 +130,16 @@ import DashboardSwitcher from '../components/DashboardSwitcher.vue'
 import DashboardConfigMenu from '../components/DashboardConfigMenu.vue'
 import DashboardConfigModal from '../components/DashboardConfigModal.vue'
 import AddWidgetModal from '../components/Widgets/AddWidgetModal.vue'
+import WidgetContextMenu from '../components/Widgets/WidgetContextMenu.vue'
 
 // Stores
 import { useDashboardStore } from '../stores/dashboard.js'
 import { useWidgetStore } from '../stores/widgets.js'
 import { useTileStore } from '../stores/tiles.js'
 import { api } from '../services/api.js'
+
+// Composables
+import { useGridManager } from '../composables/useGridManager.js'
 
 export default {
 	name: 'Views',
@@ -136,6 +155,36 @@ export default {
 		DashboardConfigMenu,
 		DashboardConfigModal,
 		AddWidgetModal,
+		WidgetContextMenu,
+	},
+	setup() {
+		// Reactive `canEdit` proxy handed to the grid manager composable.
+		// Wrapped in Vue.observable so the composable's
+		// `onWidgetRightClick` early-return tracks the live value without
+		// re-creating the composable on every edit-mode toggle. When the
+		// runtime-shell capability ships, this will be replaced by the
+		// typed provide/inject contract and removed from local state.
+		const canEditRef = Vue.observable({ value: false })
+
+		// `selectedWidget` from the popover may live in either of two
+		// edit paths. The host-side callbacks resolve which one to use
+		// (custom-type widgets → AddWidgetModal; nextcloud-widget tiles →
+		// WidgetStyleEditor) and the placement-delete path is the same
+		// `removeWidgetFromDashboard` action used by the existing remove
+		// flow. The host wires these via methods after instantiation so
+		// `this` is bound to the component when the callbacks fire.
+		const grid = useGridManager({
+			canEdit: canEditRef,
+			onEdit(widget) {
+				// `this` is the Vue instance once we bind in `created()`.
+				grid._host?.handleContextMenuEdit(widget)
+			},
+			onRemove(widget) {
+				grid._host?.handleContextMenuRemove(widget)
+			},
+		})
+
+		return { canEditRef, grid }
 	},
 	data() {
 		return {
@@ -169,11 +218,45 @@ export default {
 		canEdit() {
 			return this.permissionLevel !== 'view_only'
 		},
+		/**
+		 * Whether the right-click context menu (REQ-WDG-015) should open
+		 * for the current dashboard. Requires both the user permission
+		 * gate and the workspace shell's edit-mode toggle. View mode
+		 * intentionally falls through to the browser's native menu.
+		 *
+		 * @return {boolean}
+		 */
+		canEditForContextMenu() {
+			return this.canEdit && this.isEditMode
+		},
 		placedWidgetIds() {
 			return this.widgetPlacements.map(p => p.widgetId)
 		},
 	},
+	watch: {
+		/**
+		 * Mirror the combined edit-mode / permission gate into the
+		 * Vue.observable proxy the grid manager composable owns. The
+		 * proxy is the only thing the composable reads, so this watcher
+		 * is what keeps the right-click guard live.
+		 *
+		 * @param {boolean} value the new combined edit/permission value
+		 */
+		canEditForContextMenu: {
+			immediate: true,
+			handler(value) {
+				if (this.canEditRef) {
+					this.canEditRef.value = !!value
+				}
+			},
+		},
+	},
 	async created() {
+		// Bind the host onto the grid composable so its onEdit / onRemove
+		// callbacks can delegate to component methods. The composable was
+		// instantiated in `setup()` which has no access to `this`.
+		this.grid._host = this
+
 		const dashboardStore = useDashboardStore()
 		const widgetStore = useWidgetStore()
 		const tileStore = useTileStore()
@@ -183,6 +266,17 @@ export default {
 			widgetStore.loadAvailableWidgets(),
 			tileStore.loadTiles(),
 		])
+	},
+	mounted() {
+		// Attach the document-level click listener (REQ-WDG-016 outside-
+		// click closes popover). Detached in beforeDestroy so we never
+		// leak a listener across mounts.
+		this.grid.attach()
+	},
+	beforeDestroy() {
+		this.grid.detach()
+		// Drop the host pointer to avoid retaining the Vue instance.
+		this.grid._host = null
 	},
 	methods: {
 		t,
@@ -203,6 +297,58 @@ export default {
 			if (!this.isEditMode) {
 				this.closeWidgetModal()
 				this.closeStyleEditor()
+				// Leaving edit mode also dismisses any open right-click
+				// popover so view mode never carries an edit-only surface.
+				this.grid.closeContextMenu()
+			}
+		},
+
+		/**
+		 * DashboardGrid forwards every right-click on a placement here
+		 * (REQ-WDG-015). The composable owns the early-return + viewport
+		 * clamp + state mutation; we just forward the event so view mode
+		 * never calls `preventDefault()`.
+		 *
+		 * @param {MouseEvent} event the contextmenu event
+		 * @param {object} placement the placement under the cursor
+		 */
+		onWidgetRightClick(event, placement) {
+			this.grid.onWidgetRightClick(event, placement)
+		},
+
+		/**
+		 * Edit click from the popover (REQ-WDG-015 edit scenario). Custom-
+		 * type placements (label, text, image, link-button, …) reuse the
+		 * unified AddWidgetModal with `editingWidget` set (REQ-WDG-010);
+		 * all other placements fall through to the legacy style editor so
+		 * the popover is useful for stock Nextcloud widgets too.
+		 *
+		 * @param {object} placement the placement to edit
+		 */
+		handleContextMenuEdit(placement) {
+			if (placement && placement.type) {
+				this.openCustomWidgetEdit(placement)
+				return
+			}
+			this.openStyleEditor(placement)
+		},
+
+		/**
+		 * Remove click from the popover (REQ-WDG-015 remove scenario).
+		 * Routes through the same store action as the existing remove
+		 * flow so the placement-delete path of REQ-WDG-005 (DELETE
+		 * `/api/placements/{id}`) remains the single source of truth.
+		 *
+		 * @param {object} placement the placement to delete
+		 */
+		async handleContextMenuRemove(placement) {
+			if (!placement?.id) {
+				return
+			}
+			try {
+				await this.removeWidget(placement.id)
+			} catch (error) {
+				console.error('[Views] Failed to remove widget via context menu:', error)
 			}
 		},
 		openWidgetModal() {

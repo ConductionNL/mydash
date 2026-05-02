@@ -120,6 +120,7 @@ OC.L10N.register(
     "Person" : "Person",
     "Phone" : "Phone",
     "Picture" : "Picture",
+    "Remove" : "Remove",
     "Reset" : "Reset",
     "Save" : "Save",
     "Search" : "Search",
