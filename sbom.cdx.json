@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:d7ebafe2-455e-4202-8423-2998c9cdb975",
+  "serialNumber": "urn:uuid:e850b57c-e89d-4ebc-bfa6-0bf9a99b1392",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-04-30T21:14:30Z",
+    "timestamp": "2026-05-02T14:50:04Z",
     "tools": [
       {
         "name": "composer",
@@ -82,10 +82,10 @@
       }
     ],
     "component": {
-      "bom-ref": "mydash/mydash-dev-feature/replica-spec-proposals",
+      "bom-ref": "mydash/mydash-dev-feature/openspec-merged",
       "type": "application",
       "name": "mydash",
-      "version": "dev-feature/replica-spec-proposals",
+      "version": "dev-feature/openspec-merged",
       "group": "mydash",
       "description": "Enhanced dashboard with grid layout and admin controls for Nextcloud",
       "author": "MyDash Contributors",
@@ -96,15 +96,15 @@
           }
         }
       ],
-      "purl": "pkg:composer/mydash/mydash@dev-feature/replica-spec-proposals",
+      "purl": "pkg:composer/mydash/mydash@dev-feature/openspec-merged",
       "properties": [
         {
           "name": "cdx:composer:package:distReference",
-          "value": "9e204d5345b3f299ab40c7ac4f211bb6fc6b4b71"
+          "value": "6a2581113e19d494b6407a00296154560c6497a8"
         },
         {
           "name": "cdx:composer:package:sourceReference",
-          "value": "9e204d5345b3f299ab40c7ac4f211bb6fc6b4b71"
+          "value": "6a2581113e19d494b6407a00296154560c6497a8"
         },
         {
           "name": "cdx:composer:package:type",
@@ -2329,65 +2329,6 @@
               "value": "node_modules/@nextcloud/vue/node_modules/p-timeout"
             }
           ]
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "name": "parseargs",
-      "group": "@pkgjs",
-      "version": "0.11.0",
-      "bom-ref": "mydash@1.0.0|@pkgjs/parseargs@0.11.0",
-      "description": "Polyfill of future proposal for `util.parseArgs()`",
-      "scope": "optional",
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ],
-      "purl": "pkg:npm/%40pkgjs/parseargs@0.11.0",
-      "externalReferences": [
-        {
-          "url": "git+ssh://git@github.com/pkgjs/parseargs.git",
-          "type": "vcs",
-          "comment": "as detected from PackageJson property \"repository.url\""
-        },
-        {
-          "url": "https://github.com/pkgjs/parseargs#readme",
-          "type": "website",
-          "comment": "as detected from PackageJson property \"homepage\""
-        },
-        {
-          "url": "https://github.com/pkgjs/parseargs/issues",
-          "type": "issue-tracker",
-          "comment": "as detected from PackageJson property \"bugs.url\""
-        },
-        {
-          "url": "https://registry.npmjs.org/@pkgjs/parseargs/-/parseargs-0.11.0.tgz",
-          "type": "distribution",
-          "hashes": [
-            {
-              "alg": "SHA-512",
-              "content": "fb55648dd0f44012cfa1d1ab2547aa6ab1fc54022f40e0c86f087d5e93f94b28ac7fb628420b0928f345a2aa8b425bbe550fed552b21311ea5a0f327f14f9d3e"
-            }
-          ],
-          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\""
-        }
-      ],
-      "properties": [
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        },
-        {
-          "name": "cdx:npm:package:extraneous",
-          "value": "true"
-        },
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/@pkgjs/parseargs"
         }
       ]
     },
@@ -4844,8 +4785,8 @@
     {
       "type": "library",
       "name": "acorn",
-      "version": "8.15.0",
-      "bom-ref": "mydash@1.0.0|acorn@8.15.0",
+      "version": "8.16.0",
+      "bom-ref": "mydash@1.0.0|acorn@8.16.0",
       "description": "ECMAScript parser",
       "licenses": [
         {
@@ -4854,7 +4795,7 @@
           }
         }
       ],
-      "purl": "pkg:npm/acorn@8.15.0",
+      "purl": "pkg:npm/acorn@8.16.0",
       "externalReferences": [
         {
           "url": "git+https://github.com/acornjs/acorn.git",
@@ -4872,12 +4813,12 @@
           "comment": "as detected from PackageJson property \"bugs.url\""
         },
         {
-          "url": "https://registry.npmjs.org/acorn/-/acorn-8.15.0.tgz",
+          "url": "https://registry.npmjs.org/acorn/-/acorn-8.16.0.tgz",
           "type": "distribution",
           "hashes": [
             {
               "alg": "SHA-512",
-              "content": "359c896ab05f2fb9d6c08abe1432fa669ff21c485e3cc3679c9d32dea7e2782ae636f61cb7cbafb62578d54be549ee9aa407e4d1f63515b5b1f8dc1f9a9bed4e"
+              "content": "51527213d32db4eb014080cac35b246fd9c0c10b91e70b860f7fbcd8ae89809966fd8f8a23dda836c30d199098743b15b511d26a4d29715e439e8e7ee2387db3"
             }
           ],
           "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\""
@@ -9061,8 +9002,8 @@
     {
       "type": "library",
       "name": "gridstack",
-      "version": "10.3.1",
-      "bom-ref": "mydash@1.0.0|gridstack@10.3.1",
+      "version": "12.6.0",
+      "bom-ref": "mydash@1.0.0|gridstack@12.6.0",
       "author": "Alain Dumesny",
       "description": "TypeScript/JS lib for dashboard layout and creation, responsive, mobile support, no external dependencies, with many wrappers (React, Angular, Vue, Ember, knockout...)",
       "licenses": [
@@ -9072,7 +9013,7 @@
           }
         }
       ],
-      "purl": "pkg:npm/gridstack@10.3.1",
+      "purl": "pkg:npm/gridstack@12.6.0",
       "externalReferences": [
         {
           "url": "git+https://github.com/gridstack/gridstack.js.git",
@@ -9090,12 +9031,12 @@
           "comment": "as detected from PackageJson property \"bugs.url\""
         },
         {
-          "url": "https://registry.npmjs.org/gridstack/-/gridstack-10.3.1.tgz",
+          "url": "https://registry.npmjs.org/gridstack/-/gridstack-12.6.0.tgz",
           "type": "distribution",
           "hashes": [
             {
               "alg": "SHA-512",
-              "content": "45af3693ff3c81d7a2bb764fe3408e4b86c8e2c1a135095901a010eaccdf3dfafaf33569b17c62c8b2abe7361c4e9297e238dcc3236c34d75c575b4325cef57c"
+              "content": "754aeab28ae64b26c59ffd8fe03cfc020a6b7ed283e5efc8895ed4982d172d053e1befd6b6401e16209234ba001a13c35e827f3bad57b63de096363f0ecf37c9"
             }
           ],
           "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\""
@@ -17823,7 +17764,7 @@
   ],
   "dependencies": [
     {
-      "ref": "mydash/mydash-dev-feature/replica-spec-proposals"
+      "ref": "mydash/mydash-dev-feature/openspec-merged"
     }
   ]
 }
