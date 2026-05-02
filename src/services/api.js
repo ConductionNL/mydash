@@ -164,6 +164,17 @@ export const api = {
 		return axios.put(`${baseUrl}/api/admin/settings`, data)
 	},
 
+	// Admin group-priority order (REQ-ASET-012/013/014).
+	// Both endpoints are admin-only on the server side; the UI gates
+	// rendering of the section behind the same admin check.
+	getAdminGroups() {
+		return axios.get(`${baseUrl}/api/admin/groups`)
+	},
+
+	updateAdminGroupOrder(groups) {
+		return axios.post(`${baseUrl}/api/admin/groups`, { groups })
+	},
+
 	// Tile endpoints
 	getTiles() {
 		return axios.get(`${baseUrl}/api/tiles`)

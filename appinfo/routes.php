@@ -78,5 +78,11 @@ return [
 		['name' => 'admin#deleteTemplate', 'url' => '/api/admin/templates/{id}', 'verb' => 'DELETE'],
 		['name' => 'admin#getSettings', 'url' => '/api/admin/settings', 'verb' => 'GET'],
 		['name' => 'admin#updateSettings', 'url' => '/api/admin/settings', 'verb' => 'PUT'],
+
+		// Admin group-priority order endpoints (REQ-ASET-012,
+		// REQ-ASET-013, REQ-ASET-014). Both admin-only via runtime
+		// `IGroupManager::isAdmin` check inside the controller.
+		['name' => 'admin_settings#listGroups', 'url' => '/api/admin/groups', 'verb' => 'GET'],
+		['name' => 'admin_settings#updateGroupOrder', 'url' => '/api/admin/groups', 'verb' => 'POST'],
 	],
 ];

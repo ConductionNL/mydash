@@ -154,7 +154,25 @@ OC.L10N.register(
     "Widget title" : "Widget title",
     "Widget type" : "Widget type",
     "Widgets" : "Widgets",
-    "https://example.com or /apps/files" : "https://example.com or /apps/files"
+    "https://example.com or /apps/files" : "https://example.com or /apps/files",
+    "Group priority order" : "Group priority order",
+    "Drag groups between the columns to control which Nextcloud groups MyDash uses, and in what order. The first active group becomes the user's primary workspace." : "Drag groups between the columns to control which Nextcloud groups MyDash uses, and in what order. The first active group becomes the user's primary workspace.",
+    "Active groups" : "Active groups",
+    "Inactive groups" : "Inactive groups",
+    "Filter active groups" : "Filter active groups",
+    "Filter inactive groups" : "Filter inactive groups",
+    "Filter" : "Filter",
+    "Move to inactive" : "Move to inactive",
+    "Move to active" : "Move to active",
+    "(removed)" : "(removed)",
+    "No matches." : "No matches.",
+    "No active groups. Drag groups here from the inactive column." : "No active groups. Drag groups here from the inactive column.",
+    "No inactive groups." : "No inactive groups.",
+    "Loading group list…" : "Loading group list…",
+    "Saving…" : "Saving…",
+    "Failed to load group list." : "Failed to load group list.",
+    "Group order saved." : "Group order saved.",
+    "Failed to save group order." : "Failed to save group order."
 },
 "nplurals=2; plural=(n != 1);"
 );
