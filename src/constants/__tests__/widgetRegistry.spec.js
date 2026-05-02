@@ -45,4 +45,28 @@ describe('widgetRegistry', () => {
 		expect(a).toEqual(b)
 		expect(a).not.toBe(b)
 	})
+
+	it('REQ-WDG-014: listWidgetTypes() omits entries without a registered form', async () => {
+		// Per-widget proposals (text, image, link-button, nc-dashboard-proxy)
+		// each register their sub-form when they ship. Until then those
+		// entries either don't exist or carry `form: null` — the picker
+		// MUST exclude them so the user is never offered an unconfigurable
+		// type. We simulate the situation by mutating the registry in
+		// place and asserting the filter behaviour, then reset.
+		const mod = await import('../widgetRegistry.js')
+		mod.widgetRegistry.__formless_test__ = {
+			renderer: {},
+			form: null,
+			defaultContent: {},
+			displayName: 'Formless',
+			icon: 'X',
+		}
+		try {
+			const types = mod.listWidgetTypes()
+			expect(types).toContain('label')
+			expect(types).not.toContain('__formless_test__')
+		} finally {
+			delete mod.widgetRegistry.__formless_test__
+		}
+	})
 })

@@ -4,6 +4,8 @@
         "Add": "Add",
         "Add only": "Add only",
         "Add to dashboard": "Add to dashboard",
+        "Add Widget": "Add Widget",
+        "Add custom widget…": "Add custom widget…",
         "Airplane": "Airplane",
         "All users": "All users",
         "Allow users to create custom dashboards": "Allow users to create custom dashboards",
@@ -43,6 +45,7 @@
         "Edit tile": "Edit tile",
         "Edit dashboard": "Edit dashboard",
         "Edit template": "Edit template",
+        "Edit Widget": "Edit Widget",
         "Enter tile title": "Enter tile title",
         "Full customization": "Full customization",
         "Light bulb": "Light bulb",
@@ -58,6 +61,7 @@
         "No dashboard yet": "No dashboard yet",
         "No dashboards yet": "No dashboards yet",
         "No templates yet": "No templates yet",
+        "No widget types available": "No widget types available",
         "No widgets found": "No widgets found",
         "Not logged in": "Not logged in",
         "Optional description": "Optional description",
@@ -141,6 +145,7 @@
         "Video": "Video",
         "Wallet": "Wallet",
         "Widget": "Widget",
+        "Widget type": "Widget type",
         "Widgets": "Widgets"
     }
 }

@@ -18,7 +18,8 @@
 				@toggle-edit="toggleEditMode"
 				@open-config="openConfigModal"
 				@add-tile="openTileEditor()"
-				@add-widget="openWidgetModal" />
+				@add-widget="openWidgetModal"
+				@add-custom-widget="openCustomWidgetModal()" />
 		</div>
 
 		<!-- Main dashboard grid -->
@@ -57,6 +58,16 @@
 			:placed-widget-ids="placedWidgetIds"
 			@close="closeWidgetModal"
 			@add="addWidget" />
+
+		<!-- Custom widget add/edit modal — registry-driven host for label,
+		     text, image, link-button, etc. (REQ-WDG-010..014). The modal does
+		     no API calls itself; this view persists the emitted payload. -->
+		<AddWidgetModal
+			:show="isCustomWidgetModalOpen"
+			:preselected-type="customWidgetPreselectedType"
+			:editing-widget="customWidgetEditing"
+			@close="closeCustomWidgetModal"
+			@submit="saveCustomWidget" />
 
 		<!-- Dashboard configuration modal (also used for creating a new dashboard) -->
 		<DashboardConfigModal
@@ -103,6 +114,7 @@ import TileEditor from '../components/TileEditor.vue'
 import DashboardSwitcher from '../components/DashboardSwitcher.vue'
 import DashboardConfigMenu from '../components/DashboardConfigMenu.vue'
 import DashboardConfigModal from '../components/DashboardConfigModal.vue'
+import AddWidgetModal from '../components/Widgets/AddWidgetModal.vue'
 
 // Stores
 import { useDashboardStore } from '../stores/dashboard.js'
@@ -123,6 +135,7 @@ export default {
 		DashboardSwitcher,
 		DashboardConfigMenu,
 		DashboardConfigModal,
+		AddWidgetModal,
 	},
 	data() {
 		return {
@@ -134,6 +147,12 @@ export default {
 			editingPlacement: null,
 			isTileEditorOpen: false,
 			editingTile: null,
+			// Custom widget add/edit modal state. `customWidgetEditing`
+			// non-null = edit mode; `customWidgetPreselectedType` non-null =
+			// type-specific deep-link from the toolbar.
+			isCustomWidgetModalOpen: false,
+			customWidgetPreselectedType: null,
+			customWidgetEditing: null,
 		}
 	},
 	computed: {
@@ -194,6 +213,68 @@ export default {
 		},
 		closeWidgetModal() {
 			this.isWidgetModalOpen = false
+		},
+		/**
+		 * Open the registry-driven custom widget modal in create mode.
+		 * Pass a `type` to deep-link to a specific sub-form (REQ-WDG-010
+		 * preselected-type scenario); omit it for the type-picker flow.
+		 *
+		 * @param {string|null} type registry key, or null for picker flow
+		 */
+		openCustomWidgetModal(type = null) {
+			if (!this.isEditMode) {
+				this.isEditMode = true
+			}
+			this.customWidgetPreselectedType = type
+			this.customWidgetEditing = null
+			this.isCustomWidgetModalOpen = true
+		},
+		/**
+		 * Open the modal in edit mode for an existing custom-type
+		 * placement. The placement's type is immutable in edit mode
+		 * (REQ-WDG-010), so the type select is hidden.
+		 *
+		 * @param {object} placement existing placement record with type+content
+		 */
+		openCustomWidgetEdit(placement) {
+			this.customWidgetEditing = placement
+			this.customWidgetPreselectedType = null
+			this.isCustomWidgetModalOpen = true
+		},
+		closeCustomWidgetModal() {
+			this.isCustomWidgetModalOpen = false
+			this.customWidgetPreselectedType = null
+			this.customWidgetEditing = null
+		},
+		/**
+		 * Persist the `{type, content}` payload emitted by AddWidgetModal.
+		 * In create mode we route through `addWidgetToDashboard` (which
+		 * the per-widget proposals will extend to accept custom-type
+		 * payloads); in edit mode we route through `updateWidgetPlacement`.
+		 *
+		 * The per-widget capability proposals own the actual API contract
+		 * — this view simply forwards the payload, mirroring how the tile
+		 * editor and style editor work today.
+		 *
+		 * @param {{type: string, content: object}} payload the widget add/edit payload from AddWidgetModal
+		 */
+		async saveCustomWidget(payload) {
+			try {
+				if (this.customWidgetEditing?.id) {
+					await this.updateWidgetPlacement(
+						this.customWidgetEditing.id,
+						{ content: payload.content },
+					)
+				} else {
+					await this.addWidgetToDashboard({
+						type: payload.type,
+						content: payload.content,
+					})
+				}
+				this.closeCustomWidgetModal()
+			} catch (error) {
+				console.error('[Views] Failed to save custom widget:', error)
+			}
 		},
 		openConfigModal() {
 			this.configModalMode = 'edit'

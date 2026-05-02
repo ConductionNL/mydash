@@ -12,12 +12,20 @@
  * grid uses it to pick the right renderer for a placement.
  *
  * Adding a new widget type means adding an entry here plus the matching
- * Renderer + Form Vue components — no other wiring is required.
+ * Renderer + Form Vue components — no other wiring is required. The registry
+ * tolerates entries with `form: null` (renderer only) — `listWidgetTypes()`
+ * filters those out so the AddWidgetModal type picker only shows types the
+ * user can actually configure. Per-widget proposals that haven't yet shipped
+ * their sub-form should not appear in the picker.
  *
  * REQ-LBL-007: The widget type `label` MUST be registered with a renderer
  * reference to `LabelWidget.vue`, a form reference to `LabelForm.vue`, and a
  * `defaultContent` of `{text:'', fontSize:'16px', color:'',
  * backgroundColor:'', fontWeight:'bold', textAlign:'center'}`.
+ *
+ * REQ-WDG-014: The set of supported widget types MUST come from this single
+ * registry. Toolbar dropdown, modal type selector, and grid renderer all
+ * consult `listWidgetTypes()` / `getWidgetTypeEntry()`.
  */
 
 import LabelWidget from '../components/Widgets/Renderers/LabelWidget.vue'
@@ -26,7 +34,7 @@ import LabelForm from '../components/Widgets/Forms/LabelForm.vue'
 /**
  * @typedef {object} WidgetRegistryEntry
  * @property {object} renderer Vue component reference for the dashboard grid
- * @property {object} form Vue component reference for the AddWidgetModal sub-form
+ * @property {object|null} form Vue component reference for the AddWidgetModal sub-form, or null if no form is registered yet
  * @property {object} defaultContent Initial `content` payload for new placements
  * @property {string} displayName Human-readable type name for the type picker
  * @property {string} icon Material Design icon name used in the type picker
@@ -51,14 +59,20 @@ export const widgetRegistry = {
 }
 
 /**
- * List every registered widget type — used by the AddWidgetModal type picker
- * to render selectable options distinct from the Nextcloud-discovered widget
- * set (REQ-LBL-007 second scenario).
+ * List every registered widget type that has a usable form component. The
+ * AddWidgetModal type picker calls this; types without a `form` entry MUST
+ * be excluded so the user is never offered a type they cannot configure.
  *
- * @return {string[]} list of registered type keys
+ * Per-widget proposals (text-display-widget, image-widget, link-button-widget,
+ * nc-dashboard-widget-proxy) each register their own form when they land —
+ * until then those types are renderer-only and stay out of the picker.
+ *
+ * @return {string[]} list of registered type keys with a non-null form
  */
 export function listWidgetTypes() {
-	return Object.keys(widgetRegistry)
+	return Object.keys(widgetRegistry).filter(
+		(type) => widgetRegistry[type] && widgetRegistry[type].form !== null && widgetRegistry[type].form !== undefined,
+	)
 }
 
 /**

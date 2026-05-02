@@ -76,6 +76,19 @@
 			</template>
 			{{ t('mydash', 'Add widget…') }}
 		</NcActionButton>
+		<!-- Custom widget types (label, text, image, link-button…) come from
+		     widgetRegistry.js — REQ-WDG-014. Only shown when the registry has
+		     at least one type with a usable form, so the menu never offers an
+		     option that opens an empty modal. -->
+		<NcActionButton
+			v-if="canEdit && hasCustomWidgetTypes"
+			:close-after-click="true"
+			@click="$emit('add-custom-widget')">
+			<template #icon>
+				<ShapePolygonPlus :size="20" />
+			</template>
+			{{ t('mydash', 'Add custom widget…') }}
+		</NcActionButton>
 
 		<NcActionSeparator />
 
@@ -139,8 +152,11 @@ import Tune from 'vue-material-design-icons/Tune.vue'
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
 import ViewModule from 'vue-material-design-icons/ViewModule.vue'
 import ShapeRectanglePlus from 'vue-material-design-icons/ShapeRectanglePlus.vue'
+import ShapePolygonPlus from 'vue-material-design-icons/ShapePolygonPlus.vue'
 import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
 import AccountGroup from 'vue-material-design-icons/AccountGroup.vue'
+
+import { listWidgetTypes } from '../constants/widgetRegistry.js'
 
 export default {
 	name: 'DashboardConfigMenu',
@@ -160,6 +176,7 @@ export default {
 		ViewDashboard,
 		ViewModule,
 		ShapeRectanglePlus,
+		ShapePolygonPlus,
 		BookOpenVariantOutline,
 		AccountGroup,
 	},
@@ -194,6 +211,7 @@ export default {
 		'open-config',
 		'add-tile',
 		'add-widget',
+		'add-custom-widget',
 	],
 
 	computed: {
@@ -202,6 +220,19 @@ export default {
 		},
 		conductionLogo() {
 			return generateFilePath('mydash', 'img', 'conduction-logo.png')
+		},
+
+		/**
+		 * Whether the registry has at least one custom widget type with a
+		 * usable form. Hides the "Add custom widget…" entry when no
+		 * per-type sub-form is registered yet (REQ-WDG-014 — the menu is
+		 * registry-driven and never offers an option that would open an
+		 * empty modal).
+		 *
+		 * @return {boolean}
+		 */
+		hasCustomWidgetTypes() {
+			return listWidgetTypes().length > 0
 		},
 	},
 

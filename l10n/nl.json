@@ -4,6 +4,8 @@
         "Add": "Toevoegen",
         "Add only": "Alleen toevoegen",
         "Add to dashboard": "Toevoegen aan dashboard",
+        "Add Widget": "Widget toevoegen",
+        "Add custom widget…": "Aangepaste widget toevoegen…",
         "Airplane": "Vliegtuig",
         "All users": "Alle gebruikers",
         "Allow users to create custom dashboards": "Gebruikers toestaan aangepaste dashboards te maken",
@@ -43,6 +45,7 @@
         "Edit tile": "Tegel bewerken",
         "Edit dashboard": "Dashboard bewerken",
         "Edit template": "Sjabloon bewerken",
+        "Edit Widget": "Widget bewerken",
         "Enter tile title": "Voer tegeltitel in",
         "Full customization": "Volledige aanpassing",
         "Light bulb": "Gloeilamp",
@@ -58,6 +61,7 @@
         "No dashboard yet": "Nog geen dashboard",
         "No dashboards yet": "Nog geen dashboards",
         "No templates yet": "Nog geen sjablonen",
+        "No widget types available": "Geen widgettypes beschikbaar",
         "No widgets found": "Geen widgets gevonden",
         "Not logged in": "Niet ingelogd",
         "Optional description": "Optionele beschrijving",
@@ -141,6 +145,7 @@
         "Video": "Video",
         "Wallet": "Portemonnee",
         "Widget": "Widget",
+        "Widget type": "Widgettype",
         "Widgets": "Widgets"
     }
 }
