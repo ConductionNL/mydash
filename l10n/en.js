@@ -154,7 +154,20 @@ OC.L10N.register(
     "Widgets" : "Widgets",
     "https://example.com or /apps/files" : "https://example.com or /apps/files",
     "SVG could not be parsed or contained no allowed content" : "SVG could not be parsed or contained no allowed content",
-    "Resource exceeds the 5 MB serving cap" : "Resource exceeds the 5 MB serving cap"
+    "Resource exceeds the 5 MB serving cap" : "Resource exceeds the 5 MB serving cap",
+    "No image" : "No image",
+    "Image failed to load" : "Image failed to load",
+    "Upload Image" : "Upload Image",
+    "Or enter Image URL" : "Or enter Image URL",
+    "Alt Text" : "Alt Text",
+    "Link (optional)" : "Link (optional)",
+    "Fit" : "Fit",
+    "Cover" : "Cover",
+    "Contain" : "Contain",
+    "Fill" : "Fill",
+    "None" : "None",
+    "Failed to upload image" : "Failed to upload image",
+    "Image URL is required" : "Image URL is required"
 },
 "nplurals=2; plural=(n != 1);"
 );

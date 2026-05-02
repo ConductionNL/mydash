@@ -152,6 +152,19 @@
         "Widget type": "Widgettype",
         "Widgets": "Widgets",
         "SVG could not be parsed or contained no allowed content": "SVG kon niet worden ontleed of bevat geen toegestane inhoud",
-        "Resource exceeds the 5 MB serving cap": "Bestand overschrijdt de limiet van 5 MB"
+        "Resource exceeds the 5 MB serving cap": "Bestand overschrijdt de limiet van 5 MB",
+        "No image": "Geen afbeelding",
+        "Image failed to load": "Afbeelding kon niet worden geladen",
+        "Upload Image": "Afbeelding uploaden",
+        "Or enter Image URL": "Of voer afbeelding-URL in",
+        "Alt Text": "Alternatieve tekst",
+        "Link (optional)": "Link (optioneel)",
+        "Fit": "Passing",
+        "Cover": "Vullen",
+        "Contain": "Passen",
+        "Fill": "Uitrekken",
+        "None": "Geen",
+        "Failed to upload image": "Uploaden van afbeelding mislukt",
+        "Image URL is required": "Afbeelding-URL is verplicht"
     }
 }
