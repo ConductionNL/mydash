@@ -46,6 +46,23 @@ describe('widgetRegistry', () => {
 		expect(a).not.toBe(b)
 	})
 
+	it('REQ-TXT-004/005: exposes a `text` entry with the proper defaultContent', async () => {
+		const { widgetRegistry } = await import('../widgetRegistry.js')
+		expect(widgetRegistry.text).toBeDefined()
+		expect(widgetRegistry.text.defaultContent).toEqual({
+			text: '',
+			fontSize: '14px',
+			color: '',
+			backgroundColor: '',
+			textAlign: 'left',
+		})
+	})
+
+	it('REQ-TXT-004: `text` appears in listWidgetTypes() output', async () => {
+		const { listWidgetTypes } = await import('../widgetRegistry.js')
+		expect(listWidgetTypes()).toContain('text')
+	})
+
 	it('REQ-WDG-014: listWidgetTypes() omits entries without a registered form', async () => {
 		// Per-widget proposals (text, image, link-button, nc-dashboard-proxy)
 		// each register their sub-form when they ship. Until then those

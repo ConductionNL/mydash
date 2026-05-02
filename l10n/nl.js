@@ -148,6 +148,10 @@ OC.L10N.register(
     "Widget title" : "Widgettitel",
     "Widget type" : "Widgettype",
     "Widgets" : "Widgets",
+    "Text" : "Tekst",
+    "No text content" : "Geen tekstinhoud",
+    "Text is required" : "Tekst is verplicht",
+    "Font Size" : "Tekengrootte",
     "https://example.com or /apps/files" : "https://voorbeeld.nl of /apps/files"
 },
 "nplurals=2; plural=(n != 1);"

@@ -146,6 +146,12 @@
         "Wallet": "Wallet",
         "Widget": "Widget",
         "Widget type": "Widget type",
-        "Widgets": "Widgets"
+        "Widgets": "Widgets",
+        "Text": "Text",
+        "No text content": "No text content",
+        "Text is required": "Text is required",
+        "Font Size": "Font Size",
+        "Text Color": "Text Color",
+        "Background Color": "Background Color"
     }
 }

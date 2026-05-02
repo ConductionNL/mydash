@@ -146,6 +146,12 @@
         "Wallet": "Portemonnee",
         "Widget": "Widget",
         "Widget type": "Widgettype",
-        "Widgets": "Widgets"
+        "Widgets": "Widgets",
+        "Text": "Tekst",
+        "No text content": "Geen tekstinhoud",
+        "Text is required": "Tekst is verplicht",
+        "Font Size": "Tekengrootte",
+        "Text Color": "Tekstkleur",
+        "Background Color": "Achtergrondkleur"
     }
 }
