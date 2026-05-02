@@ -70,6 +70,11 @@ return [
         ['name' => 'rule_api#updateRule', 'url' => '/api/rules/{ruleId}', 'verb' => 'PUT'],
         ['name' => 'rule_api#deleteRule', 'url' => '/api/rules/{ruleId}', 'verb' => 'DELETE'],
 
+        // File creation endpoint (REQ-LBN-004) — link-button-widget
+        // createFile flow. POST-only; validates filename, dir, and the
+        // admin-configured extension allow-list before touching storage.
+        ['name' => 'file#createFile', 'url' => '/api/files/create', 'verb' => 'POST'],
+
         // Resource endpoints (REQ-RES-001..008).
         // Specific routes precede the wildcard `/resource/{filename}`
         // route so that any future addition of `/resource/...` paths

@@ -32,10 +32,12 @@
  *  - allowUserDashboards — admin flag toggling the personal-dashboards UI
  *
  * Admin page (`#mydash-admin-settings`) keys:
- *  - allGroups           — every Nextcloud group, for the ordering UI
- *  - configuredGroups    — group ids the admin has explicitly ordered
- *  - widgets             — every available dashboard widget descriptor
- *  - allowUserDashboards — current value of the personal-dashboards admin flag
+ *  - allGroups                — every Nextcloud group, for the ordering UI
+ *  - configuredGroups         — group ids the admin has explicitly ordered
+ *  - widgets                  — every available dashboard widget descriptor
+ *  - allowUserDashboards      — current value of the personal-dashboards admin flag
+ *  - linkCreateFileExtensions — admin-configurable allow-list for the
+ *                                link-button-widget createFile flow (REQ-LBN-004)
  *
  * Both payloads always carry `_schemaVersion`.
  *
@@ -79,7 +81,7 @@ class InitialStateBuilder
      *
      * @var integer
      */
-    public const INITIAL_STATE_SCHEMA_VERSION = 1;
+    public const INITIAL_STATE_SCHEMA_VERSION = 2;
 
     /**
      * Reserved payload key carrying the schema version.
@@ -112,6 +114,7 @@ class InitialStateBuilder
             'configuredGroups',
             'widgets',
             'allowUserDashboards',
+            'linkCreateFileExtensions',
         ],
     ];
 
@@ -292,6 +295,25 @@ class InitialStateBuilder
         $this->values['configuredGroups'] = $configuredGroups;
         return $this;
     }//end setConfiguredGroups()
+
+    /**
+     * Set the link-button-widget createFile extension allow-list (admin).
+     *
+     * Backed by the `link_create_file_extensions` admin setting
+     * (REQ-LBN-004). When the admin has not customised the list the
+     * caller passes the default values, so the renderer always sees
+     * a non-empty array.
+     *
+     * @param array $extensions Lowercase extensions without dots,
+     *                          e.g. `["txt","md","docx"]`.
+     *
+     * @return self Fluent.
+     */
+    public function setLinkCreateFileExtensions(array $extensions): self
+    {
+        $this->values['linkCreateFileExtensions'] = $extensions;
+        return $this;
+    }//end setLinkCreateFileExtensions()
 
     /**
      * Validate required keys then push every buffered pair plus the

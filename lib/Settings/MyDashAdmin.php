@@ -28,6 +28,7 @@ namespace OCA\MyDash\Settings;
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Db\AdminSetting;
 use OCA\MyDash\Db\AdminSettingMapper;
+use OCA\MyDash\Service\FileService;
 use OCA\MyDash\Service\InitialState\Page;
 use OCA\MyDash\Service\InitialStateBuilder;
 use OCA\MyDash\Service\WidgetService;
@@ -46,12 +47,14 @@ class MyDashAdmin implements ISettings
      * @param IGroupManager      $groupManager  Group manager (full group list).
      * @param WidgetService      $widgetService Available-widgets descriptor formatter.
      * @param AdminSettingMapper $settingMapper Admin settings store.
+     * @param FileService        $fileService   link-button-widget extension allow-list reader.
      */
     public function __construct(
         private readonly IInitialState $initialState,
         private readonly IGroupManager $groupManager,
         private readonly WidgetService $widgetService,
         private readonly AdminSettingMapper $settingMapper,
+        private readonly FileService $fileService,
     ) {
     }//end __construct()
 
@@ -100,6 +103,9 @@ class MyDashAdmin implements ISettings
             ->setConfiguredGroups($configuredGroups)
             ->setWidgets($this->widgetService->getAvailableWidgets())
             ->setAllowUserDashboards($allowUserDashboards)
+            ->setLinkCreateFileExtensions(
+                $this->fileService->getAllowedExtensions()
+            )
             ->apply();
 
         return new TemplateResponse(

@@ -152,6 +152,23 @@
         "Widget type": "Widgettype",
         "Widgets": "Widgets",
         "SVG could not be parsed or contained no allowed content": "SVG kon niet worden ontleed of bevat geen toegestane inhoud",
-        "Resource exceeds the 5 MB serving cap": "Bestand overschrijdt de limiet van 5 MB"
+        "Resource exceeds the 5 MB serving cap": "Bestand overschrijdt de limiet van 5 MB",
+        "Link Button": "Linkknop",
+        "Action Type": "Actietype",
+        "External Link": "Externe link",
+        "Internal Function": "Interne functie",
+        "Create File": "Bestand aanmaken",
+        "Upload Icon (optional)": "Pictogram uploaden (optioneel)",
+        "Create Document": "Document aanmaken",
+        "File Name": "Bestandsnaam",
+        "Enter filename": "Voer bestandsnaam in",
+        "Create": "Aanmaken",
+        "Creating…": "Bezig met aanmaken…",
+        "Failed to create document": "Document aanmaken mislukt",
+        "Please enter a file name": "Voer een bestandsnaam in",
+        "Label is required": "Label is verplicht",
+        "URL is required": "URL is verplicht",
+        "Allowed file extensions": "Toegestane bestandsextensies",
+        "Comma-separated list of file extensions admins allow link-button widgets to create": "Door komma's gescheiden lijst van bestandsextensies die linkknop-widgets mogen aanmaken"
     }
 }

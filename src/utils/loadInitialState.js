@@ -21,7 +21,7 @@ import { loadState } from '@nextcloud/initial-state'
  * server-pushed `_schemaVersion`; mismatch logs a console warning so
  * deploy-skew between PHP and JS surfaces (REQ-INIT-002).
  */
-export const INITIAL_STATE_SCHEMA_VERSION = 1
+export const INITIAL_STATE_SCHEMA_VERSION = 2
 
 /**
  * Reserved key carrying the schema version on the wire.
@@ -50,6 +50,7 @@ const PAGE_KEYS = {
 		configuredGroups: [],
 		widgets: [],
 		allowUserDashboards: false,
+		linkCreateFileExtensions: ['txt', 'md', 'docx', 'xlsx', 'csv', 'odt'],
 	},
 }
 

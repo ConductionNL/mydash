@@ -33,6 +33,24 @@ describe('widgetRegistry', () => {
 		expect(listWidgetTypes()).toContain('label')
 	})
 
+	it('REQ-LBN-001..007: exposes a `link` entry with the proper defaultContent', async () => {
+		const { widgetRegistry } = await import('../widgetRegistry.js')
+		expect(widgetRegistry.link).toBeDefined()
+		expect(widgetRegistry.link.defaultContent).toEqual({
+			label: '',
+			url: '',
+			icon: '',
+			actionType: 'external',
+			backgroundColor: '',
+			textColor: '',
+		})
+	})
+
+	it('REQ-LBN-001..007: `link` appears in listWidgetTypes() output', async () => {
+		const { listWidgetTypes } = await import('../widgetRegistry.js')
+		expect(listWidgetTypes()).toContain('link')
+	})
+
 	it('getWidgetTypeEntry returns null for unknown type', async () => {
 		const { getWidgetTypeEntry } = await import('../widgetRegistry.js')
 		expect(getWidgetTypeEntry('does-not-exist')).toBeNull()
