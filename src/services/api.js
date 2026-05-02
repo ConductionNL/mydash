@@ -38,6 +38,34 @@ export const api = {
 		return axios.get(`${baseUrl}/api/dashboard/${id}`)
 	},
 
+	// Visible-to-user resolution endpoint (REQ-DASH-013).
+	// Returns deduplicated union of personal + group + default-group
+	// dashboards, each tagged with `source: 'user' | 'group' | 'default'`.
+	getVisibleDashboards() {
+		return axios.get(`${baseUrl}/api/dashboards/visible`)
+	},
+
+	// Group-shared dashboard CRUD (REQ-DASH-014).
+	listGroupDashboards(groupId) {
+		return axios.get(`${baseUrl}/api/dashboards/group/${encodeURIComponent(groupId)}`)
+	},
+
+	createGroupDashboard(groupId, data) {
+		return axios.post(`${baseUrl}/api/dashboards/group/${encodeURIComponent(groupId)}`, data)
+	},
+
+	getGroupDashboard(groupId, uuid) {
+		return axios.get(`${baseUrl}/api/dashboards/group/${encodeURIComponent(groupId)}/${encodeURIComponent(uuid)}`)
+	},
+
+	updateGroupDashboard(groupId, uuid, data) {
+		return axios.put(`${baseUrl}/api/dashboards/group/${encodeURIComponent(groupId)}/${encodeURIComponent(uuid)}`, data)
+	},
+
+	deleteGroupDashboard(groupId, uuid) {
+		return axios.delete(`${baseUrl}/api/dashboards/group/${encodeURIComponent(groupId)}/${encodeURIComponent(uuid)}`)
+	},
+
 	// Sharing endpoints
 	listShares(dashboardId) {
 		return axios.get(`${baseUrl}/api/dashboard/${dashboardId}/shares`)

@@ -16,9 +16,26 @@ return [
 		// Main page
 		['name' => 'page#index', 'url' => '/', 'verb' => 'GET'],
 
-		// User dashboard endpoints
+		// User dashboard endpoints (REQ-DASH-002..010).
+		// NOTE: specific routes (`/visible`, `/group/...`) MUST precede the
+		// wildcard `{id}` routes — Symfony matches the first that fits and
+		// would otherwise route `visible` to the personal `getById` handler.
 		['name' => 'dashboard_api#list', 'url' => '/api/dashboards', 'verb' => 'GET'],
+		// Visible-to-user resolution endpoint (REQ-DASH-013).
+		['name' => 'dashboard_api#visible', 'url' => '/api/dashboards/visible', 'verb' => 'GET'],
+		// Group-shared dashboard CRUD (REQ-DASH-014). All five routes are
+		// scoped to a single `groupId` (real Nextcloud group id or the
+		// reserved literal `default`).
+		['name' => 'dashboard_api#listGroup', 'url' => '/api/dashboards/group/{groupId}', 'verb' => 'GET'],
+		['name' => 'dashboard_api#createGroup', 'url' => '/api/dashboards/group/{groupId}', 'verb' => 'POST'],
+		['name' => 'dashboard_api#setGroupDefault', 'url' => '/api/dashboards/group/{groupId}/default', 'verb' => 'POST'],
+		['name' => 'dashboard_api#getGroup', 'url' => '/api/dashboards/group/{groupId}/{uuid}', 'verb' => 'GET'],
+		['name' => 'dashboard_api#updateGroup', 'url' => '/api/dashboards/group/{groupId}/{uuid}', 'verb' => 'PUT'],
+		['name' => 'dashboard_api#deleteGroup', 'url' => '/api/dashboards/group/{groupId}/{uuid}', 'verb' => 'DELETE'],
+		// Personal-scope endpoints (must come AFTER `/api/dashboards/...`
+		// specific routes above to avoid wildcard hijack).
 		['name' => 'dashboard_api#getActive', 'url' => '/api/dashboard', 'verb' => 'GET'],
+		['name' => 'dashboard_api#setActiveDashboard', 'url' => '/api/dashboard/active', 'verb' => 'POST'],
 		['name' => 'dashboard_api#getById', 'url' => '/api/dashboard/{id}', 'verb' => 'GET'],
 		['name' => 'dashboard_api#create', 'url' => '/api/dashboard', 'verb' => 'POST'],
 		['name' => 'dashboard_api#update', 'url' => '/api/dashboard/{id}', 'verb' => 'PUT'],

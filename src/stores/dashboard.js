@@ -8,6 +8,11 @@ import { api } from '../services/api.js'
 
 export const useDashboardStore = defineStore('dashboard', {
 	state: () => ({
+		// `dashboards` carries every dashboard visible to the user
+		// (REQ-DASH-013). Each row carries a `source` field set by the
+		// `/api/dashboards/visible` endpoint: `'user' | 'group' | 'default'`.
+		// The frontend uses the source to route subsequent edit calls
+		// to the correct backend endpoint (personal vs group-scoped).
 		dashboards: [],
 		activeDashboard: null,
 		widgetPlacements: [],
@@ -26,14 +31,48 @@ export const useDashboardStore = defineStore('dashboard', {
 		compulsoryPlacements: (state) => {
 			return state.widgetPlacements.filter(p => p.isCompulsory)
 		},
+
+		// Personal (`source === 'user'`) dashboards. Backed by the
+		// `/api/dashboards/visible` payload (REQ-DASH-013).
+		userDashboards: (state) => {
+			return state.dashboards.filter(d => d.source === 'user')
+		},
+
+		// Group-matching shared dashboards (`source === 'group'`)
+		// — REQ-DASH-014.
+		groupSharedDashboards: (state) => {
+			return state.dashboards.filter(d => d.source === 'group')
+		},
+
+		// Default-group shared dashboards (`source === 'default'`)
+		// — REQ-DASH-012.
+		defaultGroupDashboards: (state) => {
+			return state.dashboards.filter(d => d.source === 'default')
+		},
 	},
 
 	actions: {
 		async loadDashboards() {
 			this.loading = true
 			try {
-				const response = await api.getDashboards()
-				this.dashboards = response.data
+				// REQ-DASH-013: prefer the `/visible` endpoint so the store
+				// receives the source-tagged union of personal + group +
+				// default-group dashboards. Older clients that only know
+				// `/api/dashboards` keep working server-side, but the
+				// listing UI uses the unioned source of truth.
+				let response
+				try {
+					response = await api.getVisibleDashboards()
+				} catch (visibleError) {
+					console.warn('Falling back to /api/dashboards (visible endpoint failed):', visibleError)
+					response = await api.getDashboards()
+					// Tag legacy payloads as user-scope so getters still work.
+					response.data = (response.data || []).map(d => ({
+						...d,
+						source: d.source || 'user',
+					}))
+				}
+				this.dashboards = response.data || []
 
 				// Load the active dashboard
 				const activeResponse = await api.getActiveDashboard()

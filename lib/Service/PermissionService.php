@@ -32,6 +32,14 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IGroupManager;
 use OCP\IUserManager;
 
+/**
+ * Service for resolving dashboard permissions across personal,
+ * shared, and group-shared scopes (REQ-DASH-014).
+ *
+ * @SuppressWarnings(PHPMD.TooManyPublicMethods) Twelve methods cover the
+ *                                                three scopes' permission
+ *                                                checks without splitting.
+ */
 class PermissionService
 {
     /**
@@ -258,12 +266,39 @@ class PermissionService
     /**
      * Get the effective permission level for a dashboard, ignoring sharing.
      *
-     * @param Dashboard $dashboard The dashboard.
+     * For `group_shared` dashboards (REQ-DASH-014): the resolved level is
+     * always `view_only` for non-admin members and `full` for admins —
+     * the row's own `permissionLevel` field is intentionally ignored so
+     * the read-only-for-members rule lives in one place. Pass `$userId`
+     * to enable the admin override; omit it to keep the legacy "ignore
+     * sharing, return record level" behaviour.
+     *
+     * @param Dashboard   $dashboard The dashboard.
+     * @param string|null $userId    The acting user (enables the
+     *                               group-shared admin override). Pass
+     *                               null to fall back to the record's
+     *                               own permission level.
      *
      * @return string The effective permission level.
      */
-    public function getEffectivePermissionLevel(Dashboard $dashboard): string
-    {
+    public function getEffectivePermissionLevel(
+        Dashboard $dashboard,
+        ?string $userId=null
+    ): string {
+        // REQ-DASH-014: group-shared dashboards are read-only for
+        // non-admin members and fully editable for admins, regardless of
+        // the row's persisted `permissionLevel` field (which is kept on
+        // the row for forward-compat with future per-tile editing).
+        if ($dashboard->getType() === Dashboard::TYPE_GROUP_SHARED) {
+            if ($userId !== null
+                && $this->groupManager->isAdmin(userId: $userId) === true
+            ) {
+                return Dashboard::PERMISSION_FULL;
+            }
+
+            return Dashboard::PERMISSION_VIEW_ONLY;
+        }
+
         // If based on a template, use template's permission level.
         if ($dashboard->getBasedOnTemplate() !== null) {
             try {
@@ -315,8 +350,36 @@ class PermissionService
             }
         }
 
+        // Group-shared dashboards bypass the ownership-vs-share path:
+        // visibility is by group membership, not by per-row sharing.
+        // REQ-DASH-014.
+        if ($dashboard->getType() === Dashboard::TYPE_GROUP_SHARED) {
+            $groupId = (string) $dashboard->getGroupId();
+            if ($groupId === Dashboard::DEFAULT_GROUP_ID) {
+                return $this->getEffectivePermissionLevel(
+                    dashboard: $dashboard,
+                    userId: $userId
+                );
+            }
+
+            $userGroupIds = $this->getUserGroupIds(userId: $userId);
+            if (in_array(needle: $groupId, haystack: $userGroupIds, strict: true) === true
+                || $this->groupManager->isAdmin(userId: $userId) === true
+            ) {
+                return $this->getEffectivePermissionLevel(
+                    dashboard: $dashboard,
+                    userId: $userId
+                );
+            }//end if
+
+            return null;
+        }//end if
+
         if ($dashboard->getUserId() === $userId) {
-            return $this->getEffectivePermissionLevel(dashboard: $dashboard);
+            return $this->getEffectivePermissionLevel(
+                dashboard: $dashboard,
+                userId: $userId
+            );
         }
 
         $shares = $this->shareService->resolveSharedDashboards(

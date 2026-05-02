@@ -44,6 +44,10 @@ use Throwable;
  * Service for managing dashboards.
  *
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ * @SuppressWarnings(PHPMD.TooManyPublicMethods)        Personal + group-shared + visible-to-user CRUD lives here intentionally.
+ * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)   Same; splitting risks losing the single-source-of-truth behaviour.
+ * @SuppressWarnings(PHPMD.ExcessiveParameterList)     The constructor wires every dependency the three scopes need.
+ * @SuppressWarnings(PHPMD.CyclomaticComplexity)        `resolveActiveDashboard` fans out the 7-step REQ-DASH-018 chain.
  */
 class DashboardService
 {
@@ -258,7 +262,8 @@ class DashboardService
             $dashboardId,
             userId: $userId
         );
-        $dashboard->setIsActive(true);
+        // Cast to int — the entity column is SMALLINT.
+        $dashboard->setIsActive(1);
 
         return $dashboard;
     }//end activateDashboard()

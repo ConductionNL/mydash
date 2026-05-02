@@ -191,4 +191,80 @@ class DashboardFactoryTest extends TestCase
             $dashboard->getUpdatedAt()
         );
     }
+
+    /**
+     * REQ-DASH-011: a `group_shared` dashboard MUST carry a non-null
+     * `groupId`; the factory rejects the call before any row is built.
+     *
+     * @return void
+     */
+    public function testCreateRejectsGroupSharedWithoutGroupId(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->factory->create(
+            userId: null,
+            name: 'Bad Dashboard',
+            type: \OCA\MyDash\Db\Dashboard::TYPE_GROUP_SHARED
+        );
+    }
+
+    /**
+     * REQ-DASH-011: a `user`-type dashboard MUST NOT carry a `groupId`.
+     *
+     * @return void
+     */
+    public function testCreateRejectsUserTypeWithGroupId(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->factory->create(
+            userId: 'alice',
+            name: 'Bad Dashboard',
+            type: \OCA\MyDash\Db\Dashboard::TYPE_USER,
+            groupId: 'marketing'
+        );
+    }
+
+    /**
+     * REQ-DASH-011: a valid `group_shared` row carries `userId === null`,
+     * the matching `groupId`, and is non-active.
+     *
+     * @return void
+     */
+    public function testCreateGroupSharedSetsUserIdNullAndIsInactive(): void
+    {
+        $dashboard = $this->factory->create(
+            userId: null,
+            name: 'Marketing Overview',
+            type: \OCA\MyDash\Db\Dashboard::TYPE_GROUP_SHARED,
+            groupId: 'marketing'
+        );
+
+        $this->assertSame(\OCA\MyDash\Db\Dashboard::TYPE_GROUP_SHARED, $dashboard->getType());
+        $this->assertSame('marketing', $dashboard->getGroupId());
+        $this->assertNull($dashboard->getUserId());
+        $this->assertSame(0, $dashboard->getIsActive());
+    }
+
+    /**
+     * REQ-DASH-012: the literal `'default'` is accepted as a synthetic
+     * group sentinel even when no Nextcloud group with that id exists.
+     *
+     * @return void
+     */
+    public function testCreateAcceptsDefaultGroupSentinel(): void
+    {
+        $dashboard = $this->factory->create(
+            userId: null,
+            name: 'Welcome',
+            type: \OCA\MyDash\Db\Dashboard::TYPE_GROUP_SHARED,
+            groupId: \OCA\MyDash\Db\Dashboard::DEFAULT_GROUP_ID
+        );
+
+        $this->assertSame(
+            \OCA\MyDash\Db\Dashboard::DEFAULT_GROUP_ID,
+            $dashboard->getGroupId()
+        );
+    }
 }
