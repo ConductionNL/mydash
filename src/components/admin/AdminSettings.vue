@@ -96,6 +96,59 @@
 				</div>
 			</div>
 
+			<!-- Group-shared dashboards (REQ-DASH-015..017) -->
+			<div class="mydash-admin__section">
+				<div class="mydash-admin__section-header">
+					<h3>{{ t('mydash', 'Group-shared dashboards') }}</h3>
+				</div>
+
+				<p class="mydash-admin__hint">
+					{{ t('mydash', 'Promote a single dashboard per group as the default. Members of the group will land on it when they have no personal preference yet.') }}
+				</p>
+
+				<div v-if="loadingGroupDashboards" class="mydash-admin__hint">
+					{{ t('mydash', 'Loading group dashboards…') }}
+				</div>
+
+				<div
+					v-for="(rows, groupId) in groupSharedDashboards"
+					:key="groupId"
+					class="mydash-admin__group">
+					<h4 class="mydash-admin__group-title">
+						{{ groupId }}
+					</h4>
+					<div v-if="rows.length === 0" class="mydash-admin__hint">
+						{{ t('mydash', 'No group-shared dashboards in this group yet.') }}
+					</div>
+					<div v-else class="mydash-admin__templates">
+						<div
+							v-for="dash in rows"
+							:key="dash.uuid"
+							class="mydash-admin__template">
+							<div class="mydash-admin__template-info">
+								<strong>{{ dash.name }}</strong>
+								<span
+									v-if="dash.isDefault === 1"
+									class="mydash-admin__badge"
+									data-test="group-default-badge">
+									{{ t('mydash', 'Default') }}
+								</span>
+							</div>
+							<div class="mydash-admin__template-actions">
+								<NcButton
+									v-if="dash.isDefault !== 1"
+									type="secondary"
+									data-test="set-group-default"
+									:disabled="settingGroupDefault === dash.uuid"
+									@click="setGroupDefault(groupId, dash.uuid)">
+									{{ t('mydash', 'Set as default') }}
+								</NcButton>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
 			<!-- Info -->
 			<div class="mydash-admin__section">
 				<h3>{{ t('mydash', 'Setting as default app') }}</h3>
@@ -193,6 +246,11 @@ export default {
 		ViewDashboard,
 	},
 
+	inject: {
+		injectedAllGroups: { from: 'allGroups', default: () => [] },
+		injectedConfiguredGroups: { from: 'configuredGroups', default: () => [] },
+	},
+
 	data() {
 		return {
 			loading: true,
@@ -211,11 +269,20 @@ export default {
 				{ id: 'full', label: this.t('mydash', 'Full customization') },
 			],
 			gridColumnOptions: [6, 8, 12],
+			// REQ-DASH-015..017 — group-shared dashboards listing for the
+			// "Set as default" UI. Keyed by groupId, value is an array of
+			// dashboard rows (each carrying `isDefault` 0|1).
+			groupSharedDashboards: {},
+			loadingGroupDashboards: false,
+			// uuid currently being promoted (disables the row's button to
+			// avoid double-clicks during the in-flight call).
+			settingGroupDefault: null,
 		}
 	},
 
 	async created() {
 		await this.loadData()
+		await this.loadGroupSharedDashboards()
 	},
 
 	methods: {
@@ -333,6 +400,99 @@ export default {
 			}
 			return groups.join(', ')
 		},
+
+		/**
+		 * Resolve the list of group ids the admin curates: prefer the
+		 * `configuredGroups` initial-state slot (curated order) and fall
+		 * back to the synthetic `'default'` group so the admin always sees
+		 * at least one section. REQ-DASH-015.
+		 *
+		 * @return {string[]} Group ids to render.
+		 */
+		resolveAdminGroupIds() {
+			const configured = Array.isArray(this.injectedConfiguredGroups)
+				? this.injectedConfiguredGroups
+				: []
+			if (configured.length > 0) {
+				return configured.includes('default')
+					? configured
+					: ['default', ...configured]
+			}
+			return ['default']
+		},
+
+		/**
+		 * Fetch group-shared dashboards for every curated group via
+		 * `GET /api/dashboards/group/{groupId}` (REQ-DASH-014). Errors
+		 * for one group MUST NOT abort the others — a missing group is
+		 * common (e.g. the admin removed it but the order was kept).
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadGroupSharedDashboards() {
+			this.loadingGroupDashboards = true
+			const groupIds = this.resolveAdminGroupIds()
+			const next = {}
+			await Promise.all(
+				groupIds.map(async (groupId) => {
+					try {
+						const response = await api.listGroupDashboards(groupId)
+						next[groupId] = Array.isArray(response.data) ? response.data : []
+					} catch (e) {
+						console.warn(`Failed to load group dashboards for ${groupId}:`, e)
+						next[groupId] = []
+					}
+				}),
+			)
+			this.groupSharedDashboards = next
+			this.loadingGroupDashboards = false
+		},
+
+		/**
+		 * Promote a group-shared dashboard to the group default
+		 * (REQ-DASH-015). Optimistically flips the in-memory rows
+		 * (target → 1, every other row in the same group → 0) before the
+		 * API call; on 4xx/5xx restores the snapshot so the badge never
+		 * lies.
+		 *
+		 * @param {string} groupId The group id from the row context.
+		 * @param {string} uuid The dashboard uuid to promote.
+		 * @return {Promise<void>}
+		 */
+		async setGroupDefault(groupId, uuid) {
+			const rows = this.groupSharedDashboards[groupId] || []
+			// Snapshot prior `isDefault` values for rollback.
+			const snapshot = rows.map(d => ({ uuid: d.uuid, isDefault: d.isDefault }))
+			// Optimistic update.
+			this.groupSharedDashboards = {
+				...this.groupSharedDashboards,
+				[groupId]: rows.map(d => ({
+					...d,
+					isDefault: d.uuid === uuid ? 1 : 0,
+				})),
+			}
+			this.settingGroupDefault = uuid
+			try {
+				await api.setGroupDashboardDefault(groupId, uuid)
+			} catch (error) {
+				// Roll back to the snapshot. Surface the failure via the
+				// console; the parent page already wires Nextcloud
+				// notifications for axios errors at the global level.
+				this.groupSharedDashboards = {
+					...this.groupSharedDashboards,
+					[groupId]: rows.map((d) => {
+						const prev = snapshot.find(s => s.uuid === d.uuid)
+						return prev ? { ...d, isDefault: prev.isDefault } : d
+					}),
+				}
+				console.error(
+					this.t('mydash', 'Failed to set the group default dashboard'),
+					error,
+				)
+			} finally {
+				this.settingGroupDefault = null
+			}
+		},
 	},
 }
 </script>
@@ -428,6 +588,19 @@ export default {
 
 .mydash-admin__modal h2 {
 	margin: 0 0 24px;
+}
+
+.mydash-admin__group {
+	margin-bottom: 24px;
+}
+
+.mydash-admin__group-title {
+	margin: 16px 0 8px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
 }
 
 .mydash-admin__modal-actions {

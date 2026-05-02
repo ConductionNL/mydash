@@ -313,6 +313,47 @@ export const useDashboardStore = defineStore('dashboard', {
 			}
 		},
 
+		/**
+		 * Promote a group-shared dashboard to the group's default
+		 * (REQ-DASH-015). Optimistically flips `isDefault` to 1 on the
+		 * target row and to 0 on every other row in the same group, then
+		 * calls the backend. On 4xx/5xx the snapshot is restored so the
+		 * UI never lies.
+		 *
+		 * @param {string} groupId The dashboard's group id.
+		 * @param {string} uuid The target dashboard's uuid.
+		 * @return {Promise<void>}
+		 */
+		async setGroupDashboardDefault(groupId, uuid) {
+			// Snapshot the affected rows so we can roll back on failure.
+			const snapshot = this.dashboards
+				.filter(d => d.groupId === groupId && d.source !== 'user')
+				.map(d => ({ id: d.id, uuid: d.uuid, isDefault: d.isDefault }))
+
+			// Optimistic update: target → 1, every other row in group → 0.
+			this.dashboards = this.dashboards.map(d => {
+				if (d.groupId !== groupId || d.source === 'user') {
+					return d
+				}
+				return { ...d, isDefault: d.uuid === uuid ? 1 : 0 }
+			})
+
+			try {
+				await api.setGroupDashboardDefault(groupId, uuid)
+			} catch (error) {
+				// Roll back the snapshot — restore every flipped row.
+				this.dashboards = this.dashboards.map(d => {
+					const prev = snapshot.find(s => s.uuid === d.uuid)
+					if (prev === undefined) {
+						return d
+					}
+					return { ...d, isDefault: prev.isDefault }
+				})
+				console.error('Failed to set group default dashboard:', error)
+				throw error
+			}
+		},
+
 		async updateWidgetPlacement(placementId, updates) {
 			console.log('[DashboardStore] updateWidgetPlacement called:', JSON.stringify({ placementId, updates }, null, 2))
 			try {

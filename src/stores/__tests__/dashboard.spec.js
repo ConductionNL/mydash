@@ -42,6 +42,7 @@ vi.mock('../../services/api.js', () => ({
 		addTile: vi.fn(),
 		updateWidgetPlacement: vi.fn(),
 		removeWidget: vi.fn(),
+		setGroupDashboardDefault: vi.fn(),
 	},
 }))
 
@@ -148,5 +149,52 @@ describe('useDashboardStore — loadDashboards source plumbing', () => {
 		expect(store.dashboards).toHaveLength(2)
 		// Legacy payloads receive `source: 'user'` so getters still work.
 		expect(store.dashboards.every(d => d.source === 'user')).toBe(true)
+	})
+})
+
+describe('useDashboardStore — setGroupDashboardDefault (REQ-DASH-015)', () => {
+	const seed = () => ([
+		{ id: 1, uuid: 'a', source: 'group', groupId: 'marketing', isDefault: 1 },
+		{ id: 2, uuid: 'b', source: 'group', groupId: 'marketing', isDefault: 0 },
+		{ id: 3, uuid: 'c', source: 'group', groupId: 'marketing', isDefault: 0 },
+		// Different group — must NOT be touched.
+		{ id: 4, uuid: 'x', source: 'group', groupId: 'sales', isDefault: 1 },
+		// Personal — must NOT be touched.
+		{ id: 5, uuid: 'p', source: 'user', groupId: null, isDefault: 0 },
+	])
+
+	it('optimistically flips target → 1 and every other row in the same group → 0 on success', async () => {
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+		store.dashboards = seed()
+		mockApi.setGroupDashboardDefault.mockResolvedValue({ data: { status: 'ok' } })
+
+		await store.setGroupDashboardDefault('marketing', 'c')
+
+		const byUuid = Object.fromEntries(store.dashboards.map(d => [d.uuid, d]))
+		expect(byUuid.a.isDefault).toBe(0)
+		expect(byUuid.b.isDefault).toBe(0)
+		expect(byUuid.c.isDefault).toBe(1)
+		// Untouched scopes remain stable.
+		expect(byUuid.x.isDefault).toBe(1)
+		expect(byUuid.p.isDefault).toBe(0)
+		expect(mockApi.setGroupDashboardDefault).toHaveBeenCalledWith('marketing', 'c')
+	})
+
+	it('rolls back the snapshot on a 4xx/5xx and re-throws', async () => {
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+		store.dashboards = seed()
+		mockApi.setGroupDashboardDefault.mockRejectedValue(new Error('403'))
+
+		await expect(store.setGroupDashboardDefault('marketing', 'c')).rejects.toThrow('403')
+
+		const byUuid = Object.fromEntries(store.dashboards.map(d => [d.uuid, d]))
+		// Snapshot restored.
+		expect(byUuid.a.isDefault).toBe(1)
+		expect(byUuid.b.isDefault).toBe(0)
+		expect(byUuid.c.isDefault).toBe(0)
+		// Other group untouched.
+		expect(byUuid.x.isDefault).toBe(1)
 	})
 })

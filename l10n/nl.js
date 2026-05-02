@@ -185,7 +185,13 @@ OC.L10N.register(
     "Text" : "Tekst",
     "No text content" : "Geen tekstinhoud",
     "Text is required" : "Tekst is verplicht",
-    "Font Size" : "Tekengrootte"
+    "Font Size" : "Tekengrootte",
+    "Group-shared dashboards" : "Groepsgedeelde dashboards",
+    "Promote a single dashboard per group as the default. Members of the group will land on it when they have no personal preference yet." : "Promoveer één dashboard per groep tot het standaarddashboard. Leden van de groep komen daarop uit als ze nog geen persoonlijke voorkeur hebben.",
+    "Loading group dashboards…" : "Groepsdashboards laden…",
+    "No group-shared dashboards in this group yet." : "Nog geen groepsgedeelde dashboards in deze groep.",
+    "Set as default" : "Als standaard instellen",
+    "Failed to set the group default dashboard" : "Kon het standaarddashboard van de groep niet instellen"
 },
 "nplurals=2; plural=(n != 1);"
 );
