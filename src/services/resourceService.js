@@ -5,8 +5,9 @@
  * Thin wrapper around `POST /api/resources` (REQ-RES-001..005). Posts a
  * `data:image/<type>;base64,...` data URL as JSON, returns the server's
  * standard `{status, url, name, size}` envelope on success, and rethrows
- * a normalised error on the standardised `{status: 'error', error,
- * message}` envelope so callers can branch on the stable `error` enum.
+ * a normalised `ResourceUploadError` on the standardised
+ * `{status: 'error', error, message}` envelope so callers can branch on
+ * the stable `error` enum without parsing the human message.
  *
  * Used by:
  * - `image-widget` form
@@ -47,7 +48,7 @@ export class ResourceUploadError extends Error {
 }
 
 /**
- * Upload a base64 data URL via `POST /api/resources`.
+ * Upload a base64 data URL via `POST /apps/mydash/api/resources`.
  *
  * @param {string} dataUrl A `data:image/<type>;base64,<payload>` string.
  * @return {Promise<{url: string, name: string, size: number}>} The

@@ -8,6 +8,7 @@
  *  - returns the success envelope's `{url, name, size}` shape
  *  - rethrows the server's `error` enum + `message` as a `ResourceUploadError`
  *  - falls back to a `network_error` code when the network call fails
+ *  - returns `unknown_error` when the body is malformed
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'

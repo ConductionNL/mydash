@@ -28,9 +28,9 @@
 	<img
 		v-if="isUrl"
 		:src="name"
+		:alt="alt || 'icon'"
 		:width="size"
-		:height="size"
-		alt="">
+		:height="size">
 	<component
 		:is="iconComponent"
 		v-else
@@ -64,6 +64,17 @@ export default {
 		size: {
 			type: Number,
 			default: 20,
+		},
+
+		/**
+		 * Alt text for `<img>` elements (custom URL inputs). Falls back
+		 * to a non-empty default (`'icon'`) so screen readers always
+		 * have something to announce. Ignored for built-in MDI icons,
+		 * which are decorative SVG.
+		 */
+		alt: {
+			type: String,
+			default: null,
 		},
 	},
 
