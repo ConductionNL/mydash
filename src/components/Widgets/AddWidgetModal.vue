@@ -345,7 +345,11 @@ export default {
 		/**
 		 * Build the `{type, content}` payload via the composable's
 		 * `assembleContent()` and emit it. The modal performs no API
-		 * calls — the parent (Views.vue) does. REQ-WDG-010.
+		 * calls AND no GridStack operations — the parent (Views.vue)
+		 * persists via the dashboard store, which routes the placement
+		 * through `placeNewWidget(spec)` from `useGridManager.js`
+		 * (REQ-GRID-014: single placement authority). The modal MUST
+		 * NOT call the GridStack add-widget API directly. REQ-WDG-010.
 		 */
 		onSubmit() {
 			if (!this.isValid) {

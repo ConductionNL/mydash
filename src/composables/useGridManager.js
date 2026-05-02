@@ -4,7 +4,7 @@
  *
  * useGridManager — combined GridStack configuration + Vue 2 composable.
  *
- * Responsibilities split into two halves:
+ * Three responsibilities live in this single module:
  *
  * 1. Grid configuration constants and helpers (REQ-GRID-007 responsive
  *    breakpoints, REQ-GRID-012 cell geometry, REQ-GRID-013 GridStack v12 pin):
@@ -12,27 +12,39 @@
  *      `COLUMN_LAYOUT`, `CELL_HEIGHT_CSS_VAR`
  *    - `getColumnOpts()` — returns the `columnOpts` bag for `GridStack.init`
  *    - `syncCellHeightCssVar()` — mirrors `CELL_HEIGHT` into a CSS variable
- *    - `placeNewWidget(widgets, w, h, columns)` — collision-free placement
- *      helper used by REQ-WDG-013/014 (widget-collision-placement).
  *
- * 2. Right-click context-menu state for widget placements
+ * 2. Add-widget placement helper (REQ-GRID-006 widget auto-layout +
+ *    REQ-GRID-014 single placement authority):
+ *    - `placeNewWidget(spec, placements, options?)` — primary auto-position
+ *      with top-left + push-down fallback. Single legal caller of
+ *      `grid.addWidget(...)` in the codebase (enforced by grep test).
+ *    - `DEFAULT_W`, `DEFAULT_H`, `DEFAULT_VIEWPORT_ROWS` constants.
+ *
+ * 3. Right-click context-menu state for widget placements
  *    (REQ-WDG-015..017, widget-context-menu):
  *    - `useGridManager({canEdit, onEdit, onRemove, ...})` factory
  *    - Tracks `contextMenuOpen`, `contextMenuPosition`, `selectedWidget`
  *    - `onWidgetRightClick`, `closeContextMenu`, `triggerEdit`,
  *      `triggerRemove`, `attach`, `detach`
  *
- * Why combined: both halves were authored independently (responsive grid
- * breakpoints + widget context menu) but converged on a single composable
- * file as the natural home for grid-coupled logic. Keeping them together
- * means the host's GridStack init call and the right-click handler import
- * from one module.
+ * Why combined: all three halves were authored independently (responsive
+ * grid breakpoints + widget collision placement + widget context menu) but
+ * converged on a single composable file as the natural home for grid-coupled
+ * logic.
  *
  * Naming note
  * -----------
  * GridStack v12 calls the responsive options bag `columnOpts` (not
  * `columnOptions` or `responsive`). The exported `getColumnOpts()` factory
  * returns an object that can be spread directly into `GridStack.init`.
+ *
+ * Placement-helper rule (REQ-GRID-014)
+ * ------------------------------------
+ * `placeNewWidget(spec, placements, options?)` is the SINGLE authority for
+ * "where does the next widget go?". All add-widget code paths (toolbar
+ * dropdown, keyboard shortcut, drag-from-picker, AddWidgetModal submit)
+ * MUST funnel through it. Inline calls to `grid.addWidget(...)` outside
+ * this file are forbidden and enforced by a grep test.
  */
 
 import Vue from 'vue'
@@ -43,9 +55,7 @@ import Vue from 'vue'
 
 /**
  * Cell height in pixels. Single source of truth for both the JS init call
- * and the `--mydash-cell-height` CSS custom property. Defaulted to 60 per
- * the responsive-grid-breakpoints proposal; flip to 80 here (single edit)
- * if the stakeholder later prefers more vertical breathing room.
+ * and the `--mydash-cell-height` CSS custom property.
  *
  * @type {number}
  */
@@ -53,7 +63,7 @@ export const CELL_HEIGHT = 60
 
 /**
  * Inter-cell margin in pixels. Applied uniformly to all four sides by
- * GridStack when passed as a number (see GridStackOptions.margin).
+ * GridStack when passed as a number.
  *
  * @type {number}
  */
@@ -61,20 +71,13 @@ export const GRID_MARGIN = 8
 
 /**
  * Default column count for a dashboard that does not override `gridColumns`.
- * GridStack will use this whenever the viewport is wider than the largest
- * breakpoint entry below.
  *
  * @type {number}
  */
 export const DEFAULT_COLUMNS = 12
 
 /**
- * Responsive breakpoint table — four entries, monotonically descending
- * column counts. Each entry says: "for viewports up to `w` px wide, use
- * `c` columns". GridStack v12 matches the smallest entry whose `w` is
- * greater than or equal to the current viewport width; below the smallest
- * entry the smallest column count applies.
- *
+ * Responsive breakpoint table — four entries, monotonically descending.
  *   1400 px : full HD desktops (12 columns)
  *   1100 px : standard laptops with the Nextcloud sidebar visible (8)
  *    768 px : iPad portrait threshold (4)
@@ -90,18 +93,14 @@ export const BREAKPOINTS = Object.freeze([
 ])
 
 /**
- * GridStack reflow algorithm name. `'moveScale'` proportionally rescales
- * widget widths and positions when the column count changes (a half-width
- * widget at 12 cols becomes a half-width widget at 8 cols).
+ * GridStack reflow algorithm name.
  *
  * @type {'moveScale'}
  */
 export const COLUMN_LAYOUT = 'moveScale'
 
 /**
- * CSS custom-property name used to mirror `CELL_HEIGHT` into the cascade
- * so any `calc()` expression can stay in sync without re-importing the JS
- * constant.
+ * CSS custom-property name used to mirror `CELL_HEIGHT` into the cascade.
  *
  * @type {string}
  */
@@ -124,11 +123,7 @@ export function getColumnOpts() {
 
 /**
  * Mirror the JS `CELL_HEIGHT` value into the CSS `--mydash-cell-height`
- * custom property on the document root so `calc()` expressions in
- * stylesheets stay in lock-step with the GridStack init value. Safe to
- * call repeatedly; idempotent.
- *
- * No-op when `document` is unavailable (SSR / Vitest jsdom without a body).
+ * custom property on the document root. No-op when `document` is unavailable.
  *
  * @return {void}
  */
@@ -142,58 +137,137 @@ export function syncCellHeightCssVar() {
 	)
 }
 
+// ---------------------------------------------------------------------------
+// Widget placement helper (REQ-GRID-006 + REQ-GRID-014)
+// ---------------------------------------------------------------------------
+
 /**
- * Find the first non-overlapping `(x, y)` slot for a new widget of size
- * `w × h` cells inside a grid that already contains `widgets`. Used by
- * `addWidget` flows (REQ-WDG-013/014) so newly created widgets never
- * land on top of existing ones.
+ * Default widget width in grid columns when the caller omits `spec.w`.
  *
- * Algorithm: row-major scan. For each row from `y=0` upward, try each
- * column `x` from `0` to `columns - w`; the first `(x, y)` whose footprint
- * does not intersect any existing placement wins. The scan is bounded by
- * the highest occupied row + height of the new widget, guaranteeing
- * termination on a finite (or empty) grid.
- *
- * @param {Array<{ x: number, y: number, w: number, h: number }>} widgets
- *   currently placed widgets (each must declare `x`, `y`, `w`, `h`).
- * @param {number} w  width of the new widget in cells (>= 1).
- * @param {number} h  height of the new widget in cells (>= 1).
- * @param {number} [columns=DEFAULT_COLUMNS]  total grid column count.
- * @return {{ x: number, y: number }} top-left of the chosen slot.
+ * @type {number}
  */
-export function placeNewWidget(widgets, w, h, columns = DEFAULT_COLUMNS) {
-	const safeWidgets = Array.isArray(widgets) ? widgets : []
-	const safeColumns = Math.max(1, columns)
-	const safeW = Math.min(Math.max(1, w), safeColumns)
-	const safeH = Math.max(1, h)
+export const DEFAULT_W = 4
 
-	const rectsOverlap = (ax, ay, aw, ah, bx, by, bw, bh) => {
-		return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by
+/**
+ * Default widget height in grid rows when the caller omits `spec.h`.
+ *
+ * @type {number}
+ */
+export const DEFAULT_H = 4
+
+/**
+ * Fallback "viewport rows" used when the caller does not pass a measured
+ * value. 8 rows × 60 px ≈ 480 px which is the smallest first-paint surface.
+ *
+ * @type {number}
+ */
+export const DEFAULT_VIEWPORT_ROWS = 8
+
+/**
+ * Pure rectangle-overlap test on integer grid coordinates.
+ *
+ * @param {{x: number, y: number, w: number, h: number}} a
+ * @param {{x: number, y: number, w: number, h: number}} b
+ * @return {boolean}
+ */
+function rectsOverlap(a, b) {
+	return (
+		a.x < b.x + b.w
+		&& b.x < a.x + a.w
+		&& a.y < b.y + b.h
+		&& b.y < a.y + a.h
+	)
+}
+
+/**
+ * Engine-free emulation of GridStack's `findEmptyPosition` scan.
+ *
+ * @param {{w: number, h: number}} sz target widget size in cells
+ * @param {Array<{x: number, y: number, w: number, h: number}>} nodes existing widgets
+ * @param {number} columns total grid columns
+ * @param {number} maxScanRows scan ceiling
+ * @return {{x: number, y: number} | null}
+ */
+function scanForEmptySlot(sz, nodes, columns, maxScanRows) {
+	if (sz.w > columns) {
+		return null
 	}
-
-	const maxOccupiedRow = safeWidgets.reduce((max, p) => {
-		const bottom = (Number(p.y) || 0) + (Number(p.h) || 1)
-		return bottom > max ? bottom : max
-	}, 0)
-
-	const yLimit = maxOccupiedRow + safeH
-
-	for (let y = 0; y <= yLimit; y++) {
-		for (let x = 0; x <= safeColumns - safeW; x++) {
-			const collides = safeWidgets.some(p => rectsOverlap(
-				x, y, safeW, safeH,
-				Number(p.x) || 0, Number(p.y) || 0,
-				Number(p.w) || 1, Number(p.h) || 1,
-			))
+	for (let y = 0; y < maxScanRows; y++) {
+		for (let x = 0; x <= columns - sz.w; x++) {
+			const candidate = { x, y, w: sz.w, h: sz.h }
+			const collides = nodes.some(n => rectsOverlap(candidate, n))
 			if (!collides) {
 				return { x, y }
 			}
 		}
 	}
+	return null
+}
 
-	// Fallback — should never fire because the y-loop is unbounded enough,
-	// but keep an explicit return so callers always get a slot.
-	return { x: 0, y: maxOccupiedRow }
+/**
+ * Compute the placement coordinates and any required push-down side effects
+ * for a new widget being added to the dashboard.
+ *
+ * Algorithm (REQ-GRID-006):
+ *   1. **Primary** — try `grid.addWidget({...spec, autoPosition: true})`
+ *      via the supplied live GridStack instance, OR emulate the same scan
+ *      with `scanForEmptySlot`.
+ *   2. **Fallback** — when step 1 returns no slot OR the picked slot is
+ *      below `viewportRows` (off-screen on first paint), place the new
+ *      widget at `(0, 0)` and shift every overlapping existing widget to
+ *      `gridY = h`.
+ *
+ * @param {object} spec target widget spec — `w`/`h` default to {@link DEFAULT_W}/{@link DEFAULT_H}
+ * @param {Array<object>} placements current placements in MyDash field-name form
+ *   (`gridX`, `gridY`, `gridWidth`, `gridHeight`, `id`)
+ * @param {object} [options] optional knobs
+ * @param {number} [options.gridColumns] column count, defaults to {@link DEFAULT_COLUMNS}
+ * @param {number} [options.viewportRows] visible rows on first paint, defaults to {@link DEFAULT_VIEWPORT_ROWS}
+ * @param {object} [options.grid] live GridStack instance — when supplied the engine is used directly
+ * @return {{ x: number, y: number, w: number, h: number, pushed: Array<{id: any, gridY: number}> }}
+ */
+export function placeNewWidget(spec, placements, options = {}) {
+	const w = (spec && Number.isFinite(spec.w) && spec.w > 0) ? spec.w : DEFAULT_W
+	const h = (spec && Number.isFinite(spec.h) && spec.h > 0) ? spec.h : DEFAULT_H
+	const columns = options.gridColumns || DEFAULT_COLUMNS
+	const viewportRows = options.viewportRows || DEFAULT_VIEWPORT_ROWS
+
+	const safePlacements = Array.isArray(placements) ? placements : []
+	const nodes = safePlacements.map(p => ({
+		id: p.id,
+		x: Number.isFinite(p.gridX) ? p.gridX : 0,
+		y: Number.isFinite(p.gridY) ? p.gridY : 0,
+		w: Number.isFinite(p.gridWidth) ? p.gridWidth : 1,
+		h: Number.isFinite(p.gridHeight) ? p.gridHeight : 1,
+	}))
+
+	let primaryHit = null
+	if (options.grid && options.grid.engine) {
+		const probe = { w, h, _id: '__mydash_probe__' }
+		const liveNodes = options.grid.engine.nodes.filter(n => n._id !== probe._id)
+		const found = options.grid.engine.findEmptyPosition(probe, liveNodes, columns)
+		if (found) {
+			primaryHit = { x: probe.x, y: probe.y }
+		}
+	} else {
+		primaryHit = scanForEmptySlot({ w, h }, nodes, columns, viewportRows * 4)
+	}
+
+	const primaryAcceptable = primaryHit !== null && primaryHit.y < viewportRows
+
+	if (primaryAcceptable) {
+		return { x: primaryHit.x, y: primaryHit.y, w, h, pushed: [] }
+	}
+
+	const newRect = { x: 0, y: 0, w, h }
+	const pushed = []
+	for (const node of nodes) {
+		if (rectsOverlap(newRect, node)) {
+			pushed.push({ id: node.id, gridY: h })
+		}
+	}
+
+	return { x: 0, y: 0, w, h, pushed }
 }
 
 // ---------------------------------------------------------------------------
@@ -202,33 +276,23 @@ export function placeNewWidget(widgets, w, h, columns = DEFAULT_COLUMNS) {
 
 /**
  * Default popover dimensions used when clamping. A real popover is
- * `min-width: 150px` (REQ-WDG-017) and approximately three buttons tall;
- * the actual rendered height varies with theme padding so we use a
- * conservative estimate that keeps the menu fully on-screen even when the
- * theme bumps line-height. Hosts can override these by passing
- * `{ menuWidth, menuHeight }` to the factory.
+ * `min-width: 150px` (REQ-WDG-017) and approximately three buttons tall.
  */
 const DEFAULT_MENU_WIDTH = 150
 const DEFAULT_MENU_HEIGHT = 132
 
 /**
- * Create a grid-manager state container.
+ * Create a grid-manager state container for the right-click context menu.
  *
  * @param {object} options factory options
- * @param {{value: boolean}} options.canEdit reactive boolean (Vue.observable
- *   wrapper, ref, or computed) controlling whether right-click opens the
- *   popover; when `.value` is false the right-click falls through to the
- *   browser's native context menu (REQ-WDG-015 view-mode scenario).
- * @param {Function} [options.onEdit] called with `(widget)` when the user
- *   clicks the Edit item. Hosts wire this to open `AddWidgetModal` with
- *   `editingWidget` set (REQ-WDG-010).
- * @param {Function} [options.onRemove] called with `(widget)` when the user
- *   clicks Remove. Hosts wire this to the placement-delete path of
- *   REQ-WDG-005 (`DELETE /api/placements/{id}`).
+ * @param {{value: boolean}} options.canEdit reactive boolean controlling
+ *   whether right-click opens the popover.
+ * @param {Function} [options.onEdit] called with `(widget)` on Edit click.
+ * @param {Function} [options.onRemove] called with `(widget)` on Remove click.
  * @param {number} [options.menuWidth] override for clamp width (px)
  * @param {number} [options.menuHeight] override for clamp height (px)
- * @param {{innerWidth: number, innerHeight: number}} [options.viewport]
- *   override for the viewport (defaults to `window`); injectable for tests.
+ * @param {{innerWidth: number, innerHeight: number}} [options.viewport] override
+ *   for the viewport (defaults to `window`); injectable for tests.
  * @return {{
  *   state: {contextMenuOpen: boolean, contextMenuPosition: {x: number, y: number}, selectedWidget: (object|null)},
  *   onWidgetRightClick: (event: MouseEvent, widget: object) => void,
