@@ -42,6 +42,13 @@
 
 <script>
 import { GridStack } from 'gridstack'
+import {
+	CELL_HEIGHT,
+	GRID_MARGIN,
+	DEFAULT_COLUMNS,
+	getColumnOpts,
+	syncCellHeightCssVar,
+} from '../composables/useGridManager.js'
 import WidgetWrapper from './WidgetWrapper.vue'
 import TileWidget from './TileWidget.vue'
 
@@ -68,7 +75,7 @@ export default {
 		},
 		gridColumns: {
 			type: Number,
-			default: 12,
+			default: DEFAULT_COLUMNS,
 		},
 	},
 
@@ -144,15 +151,26 @@ export default {
 		},
 
 		initGrid() {
+			// Mirror the JS cell-height constant into the CSS custom
+			// property BEFORE GridStack initialises so any first-paint
+			// `calc()` expression already reads the correct value.
+			// See REQ-GRID-012 (cell geometry constants).
+			syncCellHeightCssVar()
+
 			this.grid = GridStack.init({
 				column: this.gridColumns,
-				cellHeight: 80,
-				margin: 12,
+				cellHeight: CELL_HEIGHT,
+				margin: GRID_MARGIN,
 				float: true,
 				animate: true,
 				disableDrag: !this.editMode,
 				disableResize: !this.editMode,
 				removable: false,
+				// REQ-GRID-007 (responsive breakpoints): four explicit
+				// width:column entries with the `moveScale` reflow
+				// algorithm so widgets proportionally rescale on
+				// viewport changes.
+				columnOpts: getColumnOpts(),
 			}, this.$refs.gridContainer.querySelector('.grid-stack'))
 
 			// Listen for changes
