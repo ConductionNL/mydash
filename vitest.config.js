@@ -29,7 +29,10 @@ const cssNoop = {
 	name: 'mydash-css-noop',
 	enforce: 'pre',
 	resolveId(id) {
-		if (id.endsWith('.css')) {
+		// Match any CSS-like resolution (relative, absolute, with or
+		// without query). Some side-effect imports surface as fully
+		// resolved absolute paths from the optimizer; handle both.
+		if (typeof id === 'string' && /\.css(\?.*)?$/.test(id)) {
 			return '\0virtual:css-noop'
 		}
 		return null
@@ -54,7 +57,20 @@ module.exports = {
 		setupFiles: [path.resolve(__dirname, 'tests/vitest/setup.js')],
 		server: {
 			deps: {
-				inline: ['@nextcloud/vue'],
+				// Inline Vue 2 + Nextcloud + transitive packages so Vite
+				// transforms their .css side-effect imports through the
+				// `cssNoop` plugin above. Without this, Vitest hands the
+				// raw .css path to Node's ESM loader which crashes with
+				// `ERR_UNKNOWN_FILE_EXTENSION`.
+				inline: [
+					/@nextcloud\/vue/,
+					/@nextcloud\/dialogs/,
+					/vue-material-design-icons/,
+					/vue-select/,
+					/vue-multiselect/,
+					/vue2-datepicker/,
+					/floating-vue/,
+				],
 			},
 		},
 	},
