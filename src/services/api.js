@@ -66,6 +66,16 @@ export const api = {
 		return axios.delete(`${baseUrl}/api/dashboards/group/${encodeURIComponent(groupId)}/${encodeURIComponent(uuid)}`)
 	},
 
+	// Promote a single group-shared dashboard to the group's default
+	// (REQ-DASH-015). Admin-only — backend enforces the admin guard and
+	// runs the flip in a single transaction.
+	setGroupDashboardDefault(groupId, uuid) {
+		return axios.post(
+			`${baseUrl}/api/dashboards/group/${encodeURIComponent(groupId)}/default`,
+			{ uuid },
+		)
+	},
+
 	// Sharing endpoints
 	listShares(dashboardId) {
 		return axios.get(`${baseUrl}/api/dashboard/${dashboardId}/shares`)

@@ -152,7 +152,13 @@ OC.L10N.register(
     "Widget title" : "Widget title",
     "Widget type" : "Widget type",
     "Widgets" : "Widgets",
-    "https://example.com or /apps/files" : "https://example.com or /apps/files"
+    "https://example.com or /apps/files" : "https://example.com or /apps/files",
+    "Group-shared dashboards" : "Group-shared dashboards",
+    "Promote a single dashboard per group as the default. Members of the group will land on it when they have no personal preference yet." : "Promote a single dashboard per group as the default. Members of the group will land on it when they have no personal preference yet.",
+    "Loading group dashboards…" : "Loading group dashboards…",
+    "No group-shared dashboards in this group yet." : "No group-shared dashboards in this group yet.",
+    "Set as default" : "Set as default",
+    "Failed to set the group default dashboard" : "Failed to set the group default dashboard"
 },
 "nplurals=2; plural=(n != 1);"
 );

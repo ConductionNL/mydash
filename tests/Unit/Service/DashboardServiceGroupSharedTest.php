@@ -357,6 +357,145 @@ class DashboardServiceGroupSharedTest extends TestCase
     }//end testGetVisibleToUserDelegatesToMapper()
 
     /**
+     * REQ-DASH-015: setGroupDefault rejects non-admin actors with the
+     * canonical "forbidden" exception. The mapper MUST NOT be touched
+     * and no transaction MUST be opened.
+     *
+     * @return void
+     */
+    public function testSetGroupDefaultRejectsNonAdmin(): void
+    {
+        $this->groupManager->method('isAdmin')->with('alice')->willReturn(false);
+
+        $this->db->expects($this->never())->method('beginTransaction');
+        $this->dashboardMapper
+            ->expects($this->never())
+            ->method('setGroupDefaultUuid');
+        $this->dashboardMapper
+            ->expects($this->never())
+            ->method('clearGroupDefaults');
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage(DashboardService::ERR_FORBIDDEN_NOT_ADMIN);
+
+        $this->service->setGroupDefault(
+            actorUserId: 'alice',
+            groupId: 'marketing',
+            uuid: 'uuid-1'
+        );
+    }//end testSetGroupDefaultRejectsNonAdmin()
+
+    /**
+     * REQ-DASH-015 happy path. The service MUST:
+     *  - open a single transaction,
+     *  - set the target row to default,
+     *  - clear every other row in the same group (with `exceptUuid` pinning
+     *    the target so we never write the "set 1" row to 0 in the same
+     *    statement),
+     *  - commit.
+     *
+     * @return void
+     */
+    public function testSetGroupDefaultFlipsOthersOff(): void
+    {
+        $this->groupManager->method('isAdmin')->with('admin')->willReturn(true);
+
+        $this->db->expects($this->once())->method('beginTransaction');
+        $this->db->expects($this->once())->method('commit');
+        $this->db->expects($this->never())->method('rollBack');
+
+        $this->dashboardMapper
+            ->expects($this->once())
+            ->method('setGroupDefaultUuid')
+            ->with('marketing', 'uuid-c')
+            ->willReturn(1);
+        $this->dashboardMapper
+            ->expects($this->once())
+            ->method('clearGroupDefaults')
+            ->with('marketing', 'uuid-c')
+            ->willReturn(2);
+
+        $this->service->setGroupDefault(
+            actorUserId: 'admin',
+            groupId: 'marketing',
+            uuid: 'uuid-c'
+        );
+    }//end testSetGroupDefaultFlipsOthersOff()
+
+    /**
+     * REQ-DASH-015: the target uuid must belong to the path's group; if
+     * `setGroupDefaultUuid` returns 0 the service MUST roll back, throw
+     * `DoesNotExistException`, and crucially MUST NOT call
+     * `clearGroupDefaults` (which would wipe the existing default in the
+     * other group).
+     *
+     * @return void
+     */
+    public function testSetGroupDefaultRejectsCrossGroupUuid(): void
+    {
+        $this->groupManager->method('isAdmin')->with('admin')->willReturn(true);
+
+        $this->db->expects($this->once())->method('beginTransaction');
+        $this->db->expects($this->once())->method('rollBack');
+        $this->db->expects($this->never())->method('commit');
+
+        $this->dashboardMapper
+            ->expects($this->once())
+            ->method('setGroupDefaultUuid')
+            ->with('sales', 'uuid-marketing')
+            ->willReturn(0);
+        $this->dashboardMapper
+            ->expects($this->never())
+            ->method('clearGroupDefaults');
+
+        $this->expectException(DoesNotExistException::class);
+        $this->expectExceptionMessage(DashboardService::ERR_DEFAULT_TARGET_NOT_IN_GROUP);
+
+        $this->service->setGroupDefault(
+            actorUserId: 'admin',
+            groupId: 'sales',
+            uuid: 'uuid-marketing'
+        );
+    }//end testSetGroupDefaultRejectsCrossGroupUuid()
+
+    /**
+     * REQ-DASH-015: a failure between the two UPDATE calls MUST roll the
+     * transaction back so the previous default is preserved. We simulate
+     * this by making `clearGroupDefaults` throw — the service MUST
+     * rollback and re-throw.
+     *
+     * @return void
+     */
+    public function testSetGroupDefaultIsTransactional(): void
+    {
+        $this->groupManager->method('isAdmin')->with('admin')->willReturn(true);
+
+        $this->db->expects($this->once())->method('beginTransaction');
+        $this->db->expects($this->once())->method('rollBack');
+        $this->db->expects($this->never())->method('commit');
+
+        $this->dashboardMapper
+            ->expects($this->once())
+            ->method('setGroupDefaultUuid')
+            ->with('marketing', 'uuid-b')
+            ->willReturn(1);
+        $this->dashboardMapper
+            ->expects($this->once())
+            ->method('clearGroupDefaults')
+            ->with('marketing', 'uuid-b')
+            ->willThrowException(new \RuntimeException('DB exploded mid-flip'));
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('DB exploded mid-flip');
+
+        $this->service->setGroupDefault(
+            actorUserId: 'admin',
+            groupId: 'marketing',
+            uuid: 'uuid-b'
+        );
+    }//end testSetGroupDefaultIsTransactional()
+
+    /**
      * REQ-DASH-014: updateGroupShared strips the `isDefault` field from
      * the patch payload defensively (the admin promotes via the
      * dedicated /default endpoint instead).

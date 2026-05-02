@@ -44,10 +44,10 @@ use Throwable;
  * Service for managing dashboards.
  *
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
- * @SuppressWarnings(PHPMD.TooManyPublicMethods)        Personal + group-shared + visible-to-user CRUD lives here intentionally.
- * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)   Same; splitting risks losing the single-source-of-truth behaviour.
- * @SuppressWarnings(PHPMD.ExcessiveParameterList)     The constructor wires every dependency the three scopes need.
- * @SuppressWarnings(PHPMD.CyclomaticComplexity)        `resolveActiveDashboard` fans out the 7-step REQ-DASH-018 chain.
+ * @SuppressWarnings(PHPMD.TooManyPublicMethods)     Personal + group-shared + visible-to-user CRUD lives here.
+ * @SuppressWarnings(PHPMD.ExcessiveClassComplexity) Same; splitting risks losing the single-source-of-truth.
+ * @SuppressWarnings(PHPMD.ExcessiveParameterList)   The constructor wires every dependency the three scopes need.
+ * @SuppressWarnings(PHPMD.CyclomaticComplexity)     `resolveActiveDashboard` fans out the REQ-DASH-018 chain.
  */
 class DashboardService
 {
