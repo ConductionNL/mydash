@@ -30,6 +30,8 @@
 
 import LabelWidget from '../components/Widgets/Renderers/LabelWidget.vue'
 import LabelForm from '../components/Widgets/Forms/LabelForm.vue'
+import NcDashboardWidget from '../components/Widgets/Renderers/NcDashboardWidget.vue'
+import NcDashboardForm from '../components/Widgets/Forms/NcDashboardForm.vue'
 
 /**
  * @typedef {object} WidgetRegistryEntry
@@ -55,6 +57,16 @@ export const widgetRegistry = {
 		},
 		displayName: t('mydash', 'Label'),
 		icon: 'FormatTitle',
+	},
+	'nc-widget': {
+		renderer: NcDashboardWidget,
+		form: NcDashboardForm,
+		defaultContent: {
+			widgetId: '',
+			displayMode: 'vertical',
+		},
+		displayName: t('mydash', 'Nextcloud Widget'),
+		icon: 'ViewDashboard',
 	},
 }
 

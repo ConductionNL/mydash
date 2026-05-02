@@ -154,7 +154,15 @@ OC.L10N.register(
     "Widgets" : "Widgets",
     "https://example.com or /apps/files" : "https://voorbeeld.nl of /apps/files",
     "SVG could not be parsed or contained no allowed content" : "SVG kon niet worden ontleed of bevat geen toegestane inhoud",
-    "Resource exceeds the 5 MB serving cap" : "Bestand overschrijdt de limiet van 5 MB"
+    "Resource exceeds the 5 MB serving cap" : "Bestand overschrijdt de limiet van 5 MB",
+    "Nextcloud Widget" : "Nextcloud-widget",
+    "Select Widget" : "Widget selecteren",
+    "Choose a widget…" : "Kies een widget…",
+    "Display Mode" : "Weergavemodus",
+    "Vertical (list)" : "Verticaal (lijst)",
+    "Horizontal (cards)" : "Horizontaal (kaarten)",
+    "Loading…" : "Laden…",
+    "No items available" : "Geen items beschikbaar"
 },
 "nplurals=2; plural=(n != 1);"
 );

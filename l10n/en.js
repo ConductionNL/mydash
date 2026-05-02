@@ -154,7 +154,15 @@ OC.L10N.register(
     "Widgets" : "Widgets",
     "https://example.com or /apps/files" : "https://example.com or /apps/files",
     "SVG could not be parsed or contained no allowed content" : "SVG could not be parsed or contained no allowed content",
-    "Resource exceeds the 5 MB serving cap" : "Resource exceeds the 5 MB serving cap"
+    "Resource exceeds the 5 MB serving cap" : "Resource exceeds the 5 MB serving cap",
+    "Nextcloud Widget" : "Nextcloud Widget",
+    "Select Widget" : "Select Widget",
+    "Choose a widget…" : "Choose a widget…",
+    "Display Mode" : "Display Mode",
+    "Vertical (list)" : "Vertical (list)",
+    "Horizontal (cards)" : "Horizontal (cards)",
+    "Loading…" : "Loading…",
+    "No items available" : "No items available"
 },
 "nplurals=2; plural=(n != 1);"
 );
