@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:d7ebafe2-455e-4202-8423-2998c9cdb975",
+  "serialNumber": "urn:uuid:6647ce56-6b6c-422c-a5e0-dd68f110f33e",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-04-30T21:14:30Z",
+    "timestamp": "2026-05-02T15:15:40Z",
     "tools": [
       {
         "name": "composer",
@@ -100,11 +100,11 @@
       "properties": [
         {
           "name": "cdx:composer:package:distReference",
-          "value": "9e204d5345b3f299ab40c7ac4f211bb6fc6b4b71"
+          "value": "c671f9b7e4a10bb4f5a707ef22e5863341d04853"
         },
         {
           "name": "cdx:composer:package:sourceReference",
-          "value": "9e204d5345b3f299ab40c7ac4f211bb6fc6b4b71"
+          "value": "c671f9b7e4a10bb4f5a707ef22e5863341d04853"
         },
         {
           "name": "cdx:composer:package:type",
