@@ -148,7 +148,18 @@ OC.L10N.register(
     "Widget title" : "Widget title",
     "Widget type" : "Widget type",
     "Widgets" : "Widgets",
-    "https://example.com or /apps/files" : "https://example.com or /apps/files"
+    "https://example.com or /apps/files" : "https://example.com or /apps/files",
+    "Failed to upload image" : "Failed to upload image",
+    "Admin privileges required" : "Admin privileges required",
+    "Body must contain a base64 data URL" : "Body must contain a base64 data URL",
+    "Allowed image formats: jpeg, jpg, png, gif, svg, webp" : "Allowed image formats: jpeg, jpg, png, gif, svg, webp",
+    "Maximum size is 5MB" : "Maximum size is 5MB",
+    "Declared image type does not match file content" : "Declared image type does not match file content",
+    "Image content appears to be corrupt" : "Image content appears to be corrupt",
+    "Use JSON body with base64 field" : "Use JSON body with base64 field",
+    "Failed to store resource" : "Failed to store resource",
+    "SVG could not be parsed or contained no allowed content" : "SVG could not be parsed or contained no allowed content",
+    "Maximum image size: 5 MB. Allowed types: jpeg, jpg, png, gif, svg, webp." : "Maximum image size: 5 MB. Allowed types: jpeg, jpg, png, gif, svg, webp."
 },
 "nplurals=2; plural=(n != 1);"
 );

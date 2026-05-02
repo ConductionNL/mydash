@@ -148,7 +148,18 @@ OC.L10N.register(
     "Widget title" : "Widgettitel",
     "Widget type" : "Widgettype",
     "Widgets" : "Widgets",
-    "https://example.com or /apps/files" : "https://voorbeeld.nl of /apps/files"
+    "https://example.com or /apps/files" : "https://voorbeeld.nl of /apps/files",
+    "Failed to upload image" : "Afbeelding uploaden mislukt",
+    "Admin privileges required" : "Beheerdersrechten vereist",
+    "Body must contain a base64 data URL" : "Body moet een base64 data-URL bevatten",
+    "Allowed image formats: jpeg, jpg, png, gif, svg, webp" : "Toegestane afbeeldingstypen: jpeg, jpg, png, gif, svg, webp",
+    "Maximum size is 5MB" : "Maximale grootte is 5MB",
+    "Declared image type does not match file content" : "Het opgegeven afbeeldingstype komt niet overeen met de inhoud",
+    "Image content appears to be corrupt" : "De afbeelding lijkt beschadigd te zijn",
+    "Use JSON body with base64 field" : "Gebruik een JSON-body met een base64-veld",
+    "Failed to store resource" : "Opslaan van resource mislukt",
+    "SVG could not be parsed or contained no allowed content" : "SVG kon niet worden gelezen of bevatte geen toegestane inhoud",
+    "Maximum image size: 5 MB. Allowed types: jpeg, jpg, png, gif, svg, webp." : "Maximale afbeeldingsgrootte: 5 MB. Toegestane typen: jpeg, jpg, png, gif, svg, webp."
 },
 "nplurals=2; plural=(n != 1);"
 );

@@ -53,6 +53,9 @@ return [
 		['name' => 'rule_api#updateRule', 'url' => '/api/rules/{ruleId}', 'verb' => 'PUT'],
 		['name' => 'rule_api#deleteRule', 'url' => '/api/rules/{ruleId}', 'verb' => 'DELETE'],
 
+		// Resource upload endpoint (admin-only — see ResourceController)
+		['name' => 'resource#upload', 'url' => '/api/resources', 'verb' => 'POST'],
+
 		// Admin endpoints
 		['name' => 'admin#listTemplates', 'url' => '/api/admin/templates', 'verb' => 'GET'],
 		['name' => 'admin#createTemplate', 'url' => '/api/admin/templates', 'verb' => 'POST'],
