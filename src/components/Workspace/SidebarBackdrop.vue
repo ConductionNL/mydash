@@ -5,7 +5,7 @@
 
 <template>
 	<div
-		class="mydash-sidebar-backdrop"
+		class="mydash-sidebar-backdrop sidebar-backdrop"
 		role="presentation"
 		@click="$emit('close')" />
 </template>
@@ -28,6 +28,10 @@
  * `dashboard-switcher-sidebar` capability owns the slide-in panel itself;
  * this backdrop is paired with it but lives in the shell because the
  * shell owns the `sidebarOpen` state.
+ *
+ * The element carries both `mydash-sidebar-backdrop` (canonical class
+ * used by the shell) and `sidebar-backdrop` (legacy class still
+ * referenced by the standalone unit test).
  */
 export default {
 	name: 'SidebarBackdrop',

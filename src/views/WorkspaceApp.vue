@@ -6,17 +6,23 @@
 <template>
 	<div class="workspace-shell">
 		<!-- Region 1: slide-in sidebar (REQ-SHELL-006).
-		     The DashboardSwitcherSidebar is a placeholder until the
-		     `dashboard-switcher-sidebar` capability merges; the backdrop
-		     intercepts off-panel clicks and emits close. -->
+		     The DashboardSwitcherSidebar capability owns the slide-in
+		     panel; the backdrop intercepts off-panel clicks and emits
+		     `close`. The sidebar is mounted whenever `sidebarOpen` is
+		     true so its CSS transition can run. -->
 		<template v-if="sidebarOpen">
 			<SidebarBackdrop @close="closeSidebar" />
 			<DashboardSwitcherSidebar
+				:is-open="sidebarOpen"
+				:group-name="injectedPrimaryGroupName"
 				:user-dashboards="injectedUserDashboards"
 				:group-dashboards="injectedGroupDashboards"
 				:active-dashboard-id="injectedActiveDashboardId"
 				:allow-user-dashboards="injectedAllowUserDashboards"
-				@switch="onSidebarSwitch" />
+				@update:open="onSidebarUpdateOpen"
+				@switch="onSidebarSwitch"
+				@create-dashboard="onSidebarCreate"
+				@delete-dashboard="onSidebarDelete" />
 		</template>
 
 		<!-- Region 2: hamburger + active-dashboard label strip
@@ -183,6 +189,10 @@ export default {
 			from: 'groupDashboards',
 			default: () => [],
 		},
+		injectedPrimaryGroupName: {
+			from: 'primaryGroupName',
+			default: '',
+		},
 	},
 
 	data() {
@@ -342,22 +352,60 @@ export default {
 		},
 
 		/**
-		 * Switch the active dashboard from the sidebar list. Closes the
-		 * sidebar and forwards to the dashboard store (which already
-		 * owns the activate + reload pipeline).
+		 * Switch the active dashboard from the sidebar list. The sidebar
+		 * already emits `update:open(false)` BEFORE this `switch(id, source)`
+		 * event (REQ-SWITCH-002), so we just defer to the store.
 		 *
-		 * @param {object} dashboard the clicked dashboard list item
+		 * @param {string|number} id the clicked dashboard id
+		 * @param {'group'|'default'|'user'} source the section the row came from
 		 */
-		async onSidebarSwitch(dashboard) {
-			this.closeSidebar()
-			if (!dashboard || !dashboard.id) {
+		async onSidebarSwitch(id, source) {
+			if (!id) {
 				return
 			}
 			const store = useDashboardStore()
 			try {
-				await store.switchDashboard(dashboard.id)
+				await store.switchDashboard(id, source)
 			} catch (error) {
 				console.error('[WorkspaceApp] Failed to switch dashboard:', error)
+			}
+		},
+
+		/**
+		 * Sidebar v-model echo — close the sidebar when the panel emits
+		 * `update:open(false)` (REQ-SWITCH-002, REQ-SWITCH-005).
+		 *
+		 * @param {boolean} value desired open state
+		 */
+		onSidebarUpdateOpen(value) {
+			this.sidebarOpen = Boolean(value)
+		},
+
+		/**
+		 * `+ New Dashboard` row clicked (REQ-SWITCH-005). Defer to the
+		 * existing first-dashboard creation path — the sidebar has
+		 * already emitted `update:open(false)` so the panel is closing.
+		 */
+		async onSidebarCreate() {
+			await this.onCreateFirstDashboard()
+		},
+
+		/**
+		 * Personal-row delete clicked (REQ-SWITCH-004). Forward to the
+		 * dashboard store; the store decides whether to reload the
+		 * visible-dashboards payload.
+		 *
+		 * @param {string|number} id personal dashboard id to delete
+		 */
+		async onSidebarDelete(id) {
+			if (!id) {
+				return
+			}
+			const store = useDashboardStore()
+			try {
+				await store.deleteDashboard(id)
+			} catch (error) {
+				console.error('[WorkspaceApp] Failed to delete dashboard:', error)
 			}
 		},
 
