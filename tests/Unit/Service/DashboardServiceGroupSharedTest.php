@@ -27,6 +27,7 @@ use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
+use OCA\MyDash\Service\AdminTemplateService;
 use OCA\MyDash\Service\DashboardFactory;
 use OCA\MyDash\Service\DashboardResolver;
 use OCA\MyDash\Service\DashboardService;
@@ -35,8 +36,6 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
-use OCP\IUser;
-use OCP\IUserManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -69,8 +68,8 @@ class DashboardServiceGroupSharedTest extends TestCase
     /** @var IGroupManager&MockObject */
     private $groupManager;
 
-    /** @var IUserManager&MockObject */
-    private $userManager;
+    /** @var AdminTemplateService&MockObject */
+    private $adminTemplateService;
 
     /** @var IDBConnection&MockObject */
     private $db;
@@ -92,16 +91,16 @@ class DashboardServiceGroupSharedTest extends TestCase
     {
         parent::setUp();
 
-        $this->dashboardMapper = $this->createMock(DashboardMapper::class);
-        $this->placementMapper = $this->createMock(WidgetPlacementMapper::class);
-        $this->settingMapper   = $this->createMock(AdminSettingMapper::class);
-        $this->templateService = $this->createMock(TemplateService::class);
-        $this->dashResolver    = $this->createMock(DashboardResolver::class);
-        $this->groupManager    = $this->createMock(IGroupManager::class);
-        $this->userManager     = $this->createMock(IUserManager::class);
-        $this->db              = $this->createMock(IDBConnection::class);
-        $this->config          = $this->createMock(IConfig::class);
-        $this->logger          = $this->createMock(LoggerInterface::class);
+        $this->dashboardMapper      = $this->createMock(DashboardMapper::class);
+        $this->placementMapper      = $this->createMock(WidgetPlacementMapper::class);
+        $this->settingMapper        = $this->createMock(AdminSettingMapper::class);
+        $this->templateService      = $this->createMock(TemplateService::class);
+        $this->dashResolver         = $this->createMock(DashboardResolver::class);
+        $this->groupManager         = $this->createMock(IGroupManager::class);
+        $this->adminTemplateService = $this->createMock(AdminTemplateService::class);
+        $this->db                   = $this->createMock(IDBConnection::class);
+        $this->config               = $this->createMock(IConfig::class);
+        $this->logger               = $this->createMock(LoggerInterface::class);
 
         $this->service = new DashboardService(
             dashboardMapper: $this->dashboardMapper,
@@ -111,7 +110,7 @@ class DashboardServiceGroupSharedTest extends TestCase
             dashboardFactory: new DashboardFactory(),
             dashResolver: $this->dashResolver,
             groupManager: $this->groupManager,
-            userManager: $this->userManager,
+            adminTemplateService: $this->adminTemplateService,
             db: $this->db,
             config: $this->config,
             logger: $this->logger,
@@ -308,39 +307,42 @@ class DashboardServiceGroupSharedTest extends TestCase
     }//end testFindGroupDashboardRejectsNonGroupSharedType()
 
     /**
-     * REQ-DASH-013: getVisibleToUser returns an empty list when the user
-     * is unknown to the user manager (defensive — the resolver should
-     * never fall over).
+     * REQ-DASH-013 + REQ-TMPL-013: getVisibleToUser returns an empty list
+     * when the routing resolver reports no group memberships (the
+     * resolver itself returns `[]` for unknown users — defensive
+     * behaviour propagated through the mapper call).
      *
      * @return void
      */
     public function testGetVisibleToUserHandlesUnknownUser(): void
     {
-        $this->userManager
-            ->method('get')
+        $this->adminTemplateService
+            ->method('getUserGroupIdsFor')
             ->with('ghost')
-            ->willReturn(null);
+            ->willReturn([]);
+
+        $this->dashboardMapper
+            ->expects($this->once())
+            ->method('findVisibleToUser')
+            ->with('ghost', [])
+            ->willReturn([]);
 
         $result = $this->service->getVisibleToUser(userId: 'ghost');
         $this->assertSame([], $result);
     }//end testGetVisibleToUserHandlesUnknownUser()
 
     /**
-     * REQ-DASH-013: getVisibleToUser delegates to the mapper with the
-     * user's group ids resolved via IGroupManager.
+     * REQ-DASH-013 + REQ-TMPL-013: getVisibleToUser delegates to the
+     * mapper with the user's group ids resolved via the routing resolver
+     * (single source of truth for `IGroupManager::getUserGroupIds`).
      *
      * @return void
      */
     public function testGetVisibleToUserDelegatesToMapper(): void
     {
-        $user = $this->createMock(IUser::class);
-        $this->userManager
-            ->method('get')
+        $this->adminTemplateService
+            ->method('getUserGroupIdsFor')
             ->with('alice')
-            ->willReturn($user);
-        $this->groupManager
-            ->method('getUserGroupIds')
-            ->with($user)
             ->willReturn(['marketing', 'engineering']);
 
         $expected = [

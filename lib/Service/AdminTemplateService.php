@@ -3,7 +3,17 @@
 /**
  * AdminTemplateService
  *
- * Service for admin template CRUD operations.
+ * Service for admin template CRUD operations and the canonical
+ * primary-group routing resolver (REQ-TMPL-012, REQ-TMPL-013).
+ *
+ * This class is the single source of truth for:
+ *   - Walking the admin-configured `group_order` priority list to pick the
+ *     user's primary workspace group (`resolvePrimaryGroup`).
+ *   - Reading the user's Nextcloud group memberships
+ *     (`getUserGroupIdsFor` — the only place in `lib/` that calls
+ *     `IGroupManager::getUserGroupIds`). The grep-based test
+ *     {@see \Unit\Service\AdminTemplateServiceGrepGuardTest} enforces this
+ *     invariant.
  *
  * @category  Service
  * @package   OCA\MyDash\Service
@@ -26,9 +36,15 @@ use Exception;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
+use OCP\IGroupManager;
+use OCP\IUserManager;
 
 /**
- * Service for admin template CRUD operations.
+ * Service for admin template CRUD operations and primary-group routing.
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects) Routing resolver
+ *  intentionally lives here so REQ-TMPL-013's single-source-of-truth
+ *  invariant is statically enforceable by the grep guard.
  */
 class AdminTemplateService
 {
@@ -37,12 +53,146 @@ class AdminTemplateService
      *
      * @param DashboardMapper       $dashboardMapper Dashboard mapper.
      * @param WidgetPlacementMapper $placementMapper Widget placement mapper.
+     * @param AdminSettingsService  $settingsService Admin settings (provides
+     *                                               the `group_order` list).
+     * @param IGroupManager         $groupManager    Nextcloud group manager.
+     * @param IUserManager          $userManager     Nextcloud user manager.
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
         private readonly WidgetPlacementMapper $placementMapper,
+        private readonly AdminSettingsService $settingsService,
+        private readonly IGroupManager $groupManager,
+        private readonly IUserManager $userManager,
     ) {
     }//end __construct()
+
+    /**
+     * Resolve the Nextcloud group ID whose `group_shared` dashboards the
+     * given user should see (REQ-TMPL-012).
+     *
+     * Pure read: walks the admin-configured ordered list of group IDs from
+     * `admin_settings.group_order`, intersects with the user's actual group
+     * memberships (`IGroupManager::getUserGroupIds`), and returns the first
+     * match. When no group matches — or when `group_order` is empty / the
+     * user has no groups — returns the literal {@see Dashboard::DEFAULT_GROUP_ID}
+     * sentinel. Stale group IDs in `group_order` (groups that no longer
+     * exist in Nextcloud) are tolerated: they simply never match a real
+     * user membership and are silently skipped.
+     *
+     * MUST be deterministic and idempotent — never writes.
+     *
+     * @param string $userId The user ID.
+     *
+     * @return string The resolved primary group ID, or
+     *                {@see Dashboard::DEFAULT_GROUP_ID} when no match is found.
+     */
+    public function resolvePrimaryGroup(string $userId): string
+    {
+        $orderedGroups = $this->settingsService->getGroupOrder();
+        $userGroups    = $this->getUserGroupIdsFor(userId: $userId);
+
+        $match = self::pickFirstMatch(
+            orderedGroups: $orderedGroups,
+            userGroups: $userGroups
+        );
+
+        if ($match === null) {
+            return Dashboard::DEFAULT_GROUP_ID;
+        }
+
+        return $match;
+    }//end resolvePrimaryGroup()
+
+    /**
+     * Pure helper: return the first element of `$orderedGroups` that also
+     * appears in `$userGroups`, or `null` when there is no overlap.
+     *
+     * Extracted from {@see self::resolvePrimaryGroup()} so the algorithm
+     * itself is unit-testable without an `IGroupManager` /
+     * `AdminSettingsService` round-trip. The method is `static` because it
+     * has no instance state — kept on the class for discoverability.
+     *
+     * @param string[] $orderedGroups The admin-configured priority list.
+     * @param string[] $userGroups    The user's actual group memberships.
+     *
+     * @return string|null The first matching group ID, or `null` when no
+     *                     element of `$orderedGroups` is present in
+     *                     `$userGroups`.
+     */
+    public static function pickFirstMatch(
+        array $orderedGroups,
+        array $userGroups
+    ): ?string {
+        if ($orderedGroups === [] || $userGroups === []) {
+            return null;
+        }
+
+        $userIndex = array_flip(array: $userGroups);
+
+        foreach ($orderedGroups as $groupId) {
+            if (isset($userIndex[$groupId]) === true) {
+                return $groupId;
+            }
+        }
+
+        return null;
+    }//end pickFirstMatch()
+
+    /**
+     * Resolve the user's Nextcloud group IDs (REQ-TMPL-013).
+     *
+     * Single-source-of-truth wrapper around `IGroupManager::getUserGroupIds`.
+     * Every other service that needs the user's group memberships MUST
+     * consume this helper instead of injecting `IGroupManager` directly —
+     * the {@see \Unit\Service\AdminTemplateServiceGrepGuardTest} grep guard
+     * enforces the rule. Returns `[]` when the user is unknown so callers
+     * can treat "no user" the same as "no groups".
+     *
+     * @param string $userId The user ID.
+     *
+     * @return string[] The user's group IDs, or `[]` when the user does
+     *                  not exist.
+     */
+    public function getUserGroupIdsFor(string $userId): array
+    {
+        $user = $this->userManager->get(uid: $userId);
+        if ($user === null) {
+            return [];
+        }
+
+        return $this->groupManager->getUserGroupIds(user: $user);
+    }//end getUserGroupIdsFor()
+
+    /**
+     * Resolve the human-readable display name for a primary group ID.
+     *
+     * Used by the workspace renderer (REQ-TMPL-012) so the frontend can
+     * label the dashboard switcher with the friendly name. The
+     * {@see Dashboard::DEFAULT_GROUP_ID} sentinel resolves to the literal
+     * string `'Default'` (translated client-side); a real group ID is
+     * looked up via `IGroupManager::get()` and its display name returned —
+     * falling back to the group ID itself when the group has been deleted
+     * since the resolver ran (rare race).
+     *
+     * @param string $groupId The group ID returned by
+     *                        {@see self::resolvePrimaryGroup()}.
+     *
+     * @return string The display name to surface to the frontend.
+     */
+    public function resolvePrimaryGroupDisplayName(string $groupId): string
+    {
+        if ($groupId === Dashboard::DEFAULT_GROUP_ID) {
+            return 'Default';
+        }
+
+        $group = $this->groupManager->get(gid: $groupId);
+        if ($group === null) {
+            return $groupId;
+        }
+
+        return $group->getDisplayName();
+    }//end resolvePrimaryGroupDisplayName()
 
     /**
      * List all admin dashboard templates.

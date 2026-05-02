@@ -23,8 +23,6 @@ namespace OCA\MyDash\Service;
 
 use DateTime;
 use OCA\MyDash\Db\ConditionalRule;
-use OCP\IGroupManager;
-use OCP\IUserManager;
 
 /**
  * Service for evaluating conditional rules against user context.
@@ -34,13 +32,14 @@ class RuleEvaluatorService
     /**
      * Constructor
      *
-     * @param IGroupManager         $groupManager The group manager interface.
-     * @param IUserManager          $userManager  The user manager interface.
-     * @param UserAttributeResolver $attrResolver The attribute resolver.
+     * @param AdminTemplateService  $adminTemplateService Routing resolver — single
+     *                                                    source of truth for
+     *                                                    `IGroupManager::getUserGroupIds`
+     *                                                    (REQ-TMPL-013).
+     * @param UserAttributeResolver $attrResolver         The attribute resolver.
      */
     public function __construct(
-        private readonly IGroupManager $groupManager,
-        private readonly IUserManager $userManager,
+        private readonly AdminTemplateService $adminTemplateService,
         private readonly UserAttributeResolver $attrResolver,
     ) {
     }//end __construct()
@@ -96,12 +95,14 @@ class RuleEvaluatorService
             return false;
         }
 
-        $user = $this->userManager->get(uid: $userId);
-        if ($user === null) {
+        // Group memberships are read through the routing resolver so the
+        // single-source-of-truth invariant (REQ-TMPL-013) holds.
+        $userGroups = $this->adminTemplateService->getUserGroupIdsFor(
+            userId: $userId
+        );
+        if ($userGroups === []) {
             return false;
         }
-
-        $userGroups = $this->groupManager->getUserGroupIds(user: $user);
 
         return empty(array_intersect($userGroups, $targetGroups)) === false;
     }//end evaluateGroupRule()

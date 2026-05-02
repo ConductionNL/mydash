@@ -172,7 +172,8 @@ OC.L10N.register(
     "Saving…" : "Opslaan…",
     "Failed to load group list." : "Kon de groepenlijst niet laden.",
     "Group order saved." : "Groepsvolgorde opgeslagen.",
-    "Failed to save group order." : "Kon de groepsvolgorde niet opslaan."
+    "Failed to save group order." : "Kon de groepsvolgorde niet opslaan.",
+    "Your primary group for shared dashboards" : "Je primaire groep voor gedeelde dashboards"
 },
 "nplurals=2; plural=(n != 1);"
 );

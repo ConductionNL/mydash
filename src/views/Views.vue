@@ -2,6 +2,18 @@
 	<div id="mydash-app">
 		<!-- Floating controls in top right -->
 		<div class="mydash-floating-controls">
+			<!-- Primary-group label (REQ-TMPL-012). Surfaces the resolved
+			     primary group's display name so the user can see which
+			     group's dashboards they are currently viewing. The label
+			     is hidden when the resolver returned the `default`
+			     sentinel AND no friendly name was pushed (avoids a noisy
+			     "Default" badge for one-group installations). -->
+			<div
+				v-if="primaryGroupLabel"
+				class="mydash-primary-group-label"
+				:title="t('mydash', 'Your primary group for shared dashboards')">
+				{{ primaryGroupLabel }}
+			</div>
 			<DashboardSwitcher
 				v-if="dashboards.length > 1"
 				:dashboards="dashboards"
@@ -142,12 +154,20 @@ export default {
 		DashboardConfigModal,
 		AddWidgetModal,
 	},
-	// REQ-INIT-004 / REQ-ASET-003: pull the typed admin flag down the tree.
-	// Default `false` keeps the UX safe even if the value is missing.
+	// REQ-INIT-004 / REQ-ASET-003 / REQ-TMPL-012: pull typed initial-state
+	// values down the tree. Defaults keep the UX safe when keys are missing.
 	inject: {
 		allowUserDashboards: {
 			from: 'allowUserDashboards',
 			default: false,
+		},
+		primaryGroup: {
+			from: 'primaryGroup',
+			default: 'default',
+		},
+		primaryGroupName: {
+			from: 'primaryGroupName',
+			default: '',
 		},
 	},
 	data() {
@@ -198,6 +218,27 @@ export default {
 				return this.t('mydash', 'Create your first dashboard to get started')
 			}
 			return this.t('mydash', 'Personal dashboards are not enabled by your administrator')
+		},
+		/**
+		 * Display label for the resolved primary group (REQ-TMPL-012).
+		 *
+		 * Returns the server-pushed `primaryGroupName` verbatim when it
+		 * is non-empty (real Nextcloud groups), the localised
+		 * `'Default'` string when the resolver returned the `default`
+		 * sentinel and the server didn't pick a name, or an empty
+		 * string when there is nothing meaningful to show — the
+		 * `v-if` in the template hides the badge in that last case.
+		 *
+		 * @return {string} Label to render, or '' when none.
+		 */
+		primaryGroupLabel() {
+			if (this.primaryGroupName) {
+				return this.primaryGroupName
+			}
+			if (this.primaryGroup && this.primaryGroup !== 'default') {
+				return this.primaryGroup
+			}
+			return ''
 		},
 	},
 	async created() {
@@ -436,6 +477,18 @@ export default {
 	gap: 8px;
 	align-items: center;
 	z-index: 1000;
+}
+
+/* Primary-group label (REQ-TMPL-012). Subtle pill that names the
+   resolved group whose dashboards drive the workspace. */
+.mydash-primary-group-label {
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--color-text-maxcontrast);
+	background: var(--color-background-hover);
+	border-radius: var(--border-radius-pill, 999px);
+	padding: 4px 10px;
+	white-space: nowrap;
 }
 
 /* Strip the visible text on the menu trigger button — we want icon-only.
