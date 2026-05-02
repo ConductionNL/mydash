@@ -4,12 +4,25 @@
  */
 
 import { defineStore } from 'pinia'
+import { showError } from '@nextcloud/dialogs'
+import { translate as t } from '@nextcloud/l10n'
+
 import { api } from '../services/api.js'
 import {
 	placeNewWidget,
 	DEFAULT_W,
 	DEFAULT_H,
 } from '../composables/useGridManager.js'
+
+/**
+ * Stable backend error code returned by `POST /api/dashboard` when the admin
+ * setting `allow_user_dashboards` is `false` (REQ-ASET-003). Surfaced as a
+ * localised toast so the UI stays coherent even when the user reaches the
+ * endpoint via a stale-cached affordance or a direct API call.
+ *
+ * @type {string}
+ */
+const ERR_PERSONAL_DASHBOARDS_DISABLED = 'personal_dashboards_disabled'
 
 export const useDashboardStore = defineStore('dashboard', {
 	state: () => ({
@@ -250,7 +263,16 @@ export const useDashboardStore = defineStore('dashboard', {
 				this.activeDashboard = response.data.dashboard
 				this.widgetPlacements = []
 			} catch (error) {
+				// REQ-ASET-003 (extended): when the backend returns the
+				// stable `personal_dashboards_disabled` envelope, surface
+				// a localised toast — the UI may have offered a stale
+				// affordance or the call may bypass the UI altogether.
+				if (error?.response?.status === 403
+					&& error?.response?.data?.error === ERR_PERSONAL_DASHBOARDS_DISABLED) {
+					showError(t('mydash', 'Personal dashboards are not enabled by your administrator'))
+				}
 				console.error('Failed to create dashboard:', error)
+				throw error
 			} finally {
 				this.loading = false
 			}

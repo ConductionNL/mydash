@@ -28,6 +28,16 @@ vi.mock('@nextcloud/router', () => ({
 	generateUrl: (path) => `/index.php${path}`,
 }))
 
+vi.mock('@nextcloud/dialogs', () => ({
+	showError: vi.fn(),
+	showSuccess: vi.fn(),
+}))
+
+vi.mock('@nextcloud/l10n', () => ({
+	translate: (_app, str) => str,
+	translatePlural: (_app, sing, plur, n) => (n === 1 ? sing : plur),
+}))
+
 vi.mock('../../services/api.js', () => ({
 	api: {
 		getDashboards: vi.fn(),
@@ -104,6 +114,48 @@ describe('useDashboardStore — source-aware getters', () => {
 		expect(store.userDashboards).toEqual([])
 		expect(store.groupSharedDashboards).toEqual([])
 		expect(store.defaultGroupDashboards).toEqual([])
+	})
+})
+
+describe('useDashboardStore — createDashboard gating (REQ-ASET-003 extended)', () => {
+	beforeEach(async () => {
+		const { showError } = await import('@nextcloud/dialogs')
+		showError.mockReset()
+	})
+
+	it('surfaces a localised toast when the backend returns personal_dashboards_disabled', async () => {
+		const { showError } = await import('@nextcloud/dialogs')
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+
+		const err = new Error('Forbidden')
+		err.response = {
+			status: 403,
+			data: {
+				status: 'error',
+				error: 'personal_dashboards_disabled',
+				message: 'Personal dashboards are not enabled by your administrator',
+			},
+		}
+		mockApi.createDashboard.mockRejectedValue(err)
+
+		await expect(store.createDashboard({ name: 'Try it' })).rejects.toBe(err)
+		expect(showError).toHaveBeenCalledWith(
+			'Personal dashboards are not enabled by your administrator',
+		)
+	})
+
+	it('does not show the toast for unrelated errors', async () => {
+		const { showError } = await import('@nextcloud/dialogs')
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+
+		const err = new Error('Boom')
+		err.response = { status: 500, data: { error: 'internal_server_error' } }
+		mockApi.createDashboard.mockRejectedValue(err)
+
+		await expect(store.createDashboard('Try it')).rejects.toBe(err)
+		expect(showError).not.toHaveBeenCalled()
 	})
 })
 

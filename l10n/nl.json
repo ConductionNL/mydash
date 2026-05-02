@@ -73,6 +73,8 @@
         "Not logged in": "Niet ingelogd",
         "Optional description": "Optionele beschrijving",
         "Permission level": "Rechteniveau",
+        "Personal dashboards are not enabled by your administrator": "Persoonlijke dashboards zijn niet ingeschakeld door je beheerder",
+        "Disabling this only blocks creating new personal dashboards. Existing personal dashboards remain visible and editable.": "Het uitschakelen blokkeert alleen het aanmaken van nieuwe persoonlijke dashboards. Bestaande persoonlijke dashboards blijven zichtbaar en bewerkbaar.",
         "Search widgets...": "Widgets zoeken...",
         "Select dashboard": "Selecteer dashboard",
         "Select icon…": "Selecteer pictogram…",

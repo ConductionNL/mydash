@@ -121,6 +121,8 @@ OC.L10N.register(
     "Park" : "Park",
     "Parking" : "Parkeren",
     "Permission level" : "Rechteniveau",
+    "Personal dashboards are not enabled by your administrator" : "Persoonlijke dashboards zijn niet ingeschakeld door je beheerder",
+    "Disabling this only blocks creating new personal dashboards. Existing personal dashboards remain visible and editable." : "Het uitschakelen blokkeert alleen het aanmaken van nieuwe persoonlijke dashboards. Bestaande persoonlijke dashboards blijven zichtbaar en bewerkbaar.",
     "Person" : "Persoon",
     "Phone" : "Telefoon",
     "Picture" : "Afbeelding",

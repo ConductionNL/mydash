@@ -242,9 +242,12 @@ class PermissionService
      */
     public function canCreateDashboard(string $userId): bool
     {
-        return $this->settingMapper->getValue(
+        // REQ-ASET-003 (extended): default `false` — when no row exists,
+        // personal dashboard creation MUST be blocked. Defense-in-depth
+        // companion to DashboardService::assertPersonalDashboardsAllowed().
+        return (bool) $this->settingMapper->getValue(
             key: AdminSetting::KEY_ALLOW_USER_DASHBOARDS,
-            default: true
+            default: false
         );
     }//end canCreateDashboard()
 

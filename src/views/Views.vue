@@ -65,15 +65,20 @@
 				@widget-right-click="onWidgetRightClick"
 				@tile-edit="openTileEditorForEdit" />
 
+			<!-- Empty-state shell. The "Create dashboard" affordance is gated
+			     by the admin `allow_user_dashboards` flag (REQ-ASET-003,
+			     extended). When the flag is off the button MUST be hidden
+			     and the description swapped for a localised explainer so
+			     the workspace never offers an action that would 403. -->
 			<div v-else class="mydash-empty">
 				<NcEmptyContent
 					:name="t('mydash', 'No dashboard yet')"
-					:description="t('mydash', 'Create your first dashboard to get started')">
+					:description="emptyStateDescription">
 					<template #icon>
 						<ViewDashboard :size="64" />
 					</template>
-					<template #action>
-						<NcButton type="primary" @click="createDashboard">
+					<template v-if="allowUserDashboards" #action>
+						<NcButton type="primary" @click="handleCreateDashboard">
 							{{ t('mydash', 'Create dashboard') }}
 						</NcButton>
 					</template>
@@ -229,6 +234,14 @@ export default {
 
 		return { canEditRef, grid }
 	},
+	// REQ-INIT-004 / REQ-ASET-003: pull the typed admin flag down the tree.
+	// Default `false` keeps the UX safe even if the value is missing.
+	inject: {
+		allowUserDashboards: {
+			from: 'allowUserDashboards',
+			default: false,
+		},
+	},
 	data() {
 		return {
 			isEditMode: false,
@@ -300,6 +313,20 @@ export default {
 		 */
 		sidebarUserDashboards() {
 			return this.userDashboards
+		},
+		/**
+		 * Empty-state copy. When personal dashboards are disabled by the
+		 * admin we swap the friendly "create one" prompt for a localised
+		 * explainer (REQ-ASET-003). The translatable English source is
+		 * kept short so the layout doesn't wrap awkwardly.
+		 *
+		 * @return {string}
+		 */
+		emptyStateDescription() {
+			if (this.allowUserDashboards) {
+				return this.t('mydash', 'Create your first dashboard to get started')
+			}
+			return this.t('mydash', 'Personal dashboards are not enabled by your administrator')
 		},
 	},
 	watch: {

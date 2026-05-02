@@ -121,6 +121,8 @@ OC.L10N.register(
     "Park" : "Park",
     "Parking" : "Parking",
     "Permission level" : "Permission level",
+    "Personal dashboards are not enabled by your administrator" : "Personal dashboards are not enabled by your administrator",
+    "Disabling this only blocks creating new personal dashboards. Existing personal dashboards remain visible and editable." : "Disabling this only blocks creating new personal dashboards. Existing personal dashboards remain visible and editable.",
     "Person" : "Person",
     "Phone" : "Phone",
     "Picture" : "Picture",

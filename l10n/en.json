@@ -69,6 +69,8 @@
         "Not logged in": "Not logged in",
         "Optional description": "Optional description",
         "Permission level": "Permission level",
+        "Personal dashboards are not enabled by your administrator": "Personal dashboards are not enabled by your administrator",
+        "Disabling this only blocks creating new personal dashboards. Existing personal dashboards remain visible and editable.": "Disabling this only blocks creating new personal dashboards. Existing personal dashboards remain visible and editable.",
         "Search widgets...": "Search widgets...",
         "Select dashboard": "Select dashboard",
         "Select icon…": "Select icon…",
