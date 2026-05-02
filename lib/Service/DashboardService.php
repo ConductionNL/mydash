@@ -44,10 +44,10 @@ use Throwable;
  * Service for managing dashboards.
  *
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
- * @SuppressWarnings(PHPMD.TooManyPublicMethods)        Personal + group-shared + visible-to-user CRUD lives here intentionally.
- * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)   Same; splitting risks losing the single-source-of-truth behaviour.
- * @SuppressWarnings(PHPMD.ExcessiveParameterList)     The constructor wires every dependency the three scopes need.
- * @SuppressWarnings(PHPMD.CyclomaticComplexity)        `resolveActiveDashboard` fans out the 7-step REQ-DASH-018 chain.
+ * @SuppressWarnings(PHPMD.TooManyPublicMethods)     Personal + group-shared + visible-to-user CRUD lives here intentionally.
+ * @SuppressWarnings(PHPMD.ExcessiveClassComplexity) Same; splitting risks losing the single-source-of-truth behaviour.
+ * @SuppressWarnings(PHPMD.ExcessiveParameterList)   The constructor wires every dependency the three scopes need.
+ * @SuppressWarnings(PHPMD.CyclomaticComplexity)     `resolveActiveDashboard` fans out the 7-step REQ-DASH-018 chain.
  */
 class DashboardService
 {
@@ -744,6 +744,36 @@ class DashboardService
     }//end isAdmin()
 
     /**
+     * Read the admin `allow_user_dashboards` flag without throwing.
+     *
+     * Use this when callers need a plain boolean (e.g. to render the UI
+     * affordance or to push the flag into the initial-state contract);
+     * use {@see self::assertPersonalDashboardsAllowed()} when the call
+     * site needs the request to be rejected with a 403 envelope.
+     *
+     * The default is `false` (admins must opt in) — this is the secure
+     * default mandated by REQ-ASET-003: when the row is missing, personal
+     * dashboard creation MUST be blocked.
+     *
+     * @return bool Whether personal dashboard creation is currently
+     *              permitted by admin settings.
+     *
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName) Intentional: the proposal
+     *  pins the public name to `getAllowUserDashboards()` so it mirrors the
+     *  initial-state key (`allowUserDashboards`) and the
+     *  setting key constant (`AdminSetting::KEY_ALLOW_USER_DASHBOARDS`).
+     *  Renaming to `isAllowUserDashboards()` would break the symmetry the
+     *  spec relies on.
+     */
+    public function getAllowUserDashboards(): bool
+    {
+        return (bool) $this->settingMapper->getValue(
+            key: AdminSetting::KEY_ALLOW_USER_DASHBOARDS,
+            default: false
+        );
+    }//end getAllowUserDashboards()
+
+    /**
      * Assert that personal-dashboard creation is permitted by admin settings.
      *
      * Implements REQ-ASET-003 runtime gating: when the admin flag
@@ -758,12 +788,7 @@ class DashboardService
      */
     public function assertPersonalDashboardsAllowed(): void
     {
-        $allowed = $this->settingMapper->getValue(
-            key: AdminSetting::KEY_ALLOW_USER_DASHBOARDS,
-            default: false
-        );
-
-        if ($allowed !== true) {
+        if ($this->getAllowUserDashboards() === false) {
             throw new PersonalDashboardsDisabledException();
         }
     }//end assertPersonalDashboardsAllowed()
@@ -829,10 +854,7 @@ class DashboardService
      */
     private function tryCreateFromTemplate(string $userId): ?array
     {
-        $allowUserDashboards = $this->settingMapper->getValue(
-            key: AdminSetting::KEY_ALLOW_USER_DASHBOARDS,
-            default: true
-        );
+        $allowUserDashboards = $this->getAllowUserDashboards();
 
         $template = $this->templateService->getApplicableTemplate(
             userId: $userId

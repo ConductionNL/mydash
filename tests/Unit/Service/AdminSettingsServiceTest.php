@@ -43,7 +43,9 @@ class AdminSettingsServiceTest extends TestCase
         $settings = $this->service->getSettings();
 
         $this->assertSame(Dashboard::PERMISSION_ADD_ONLY, $settings['defaultPermissionLevel']);
-        $this->assertTrue($settings['allowUserDashboards']);
+        // REQ-ASET-003 (extended): allow_user_dashboards defaults to false
+        // when no row is present — admins MUST opt in.
+        $this->assertFalse($settings['allowUserDashboards']);
         $this->assertTrue($settings['allowMultipleDashboards']);
         $this->assertSame(12, $settings['defaultGridColumns']);
     }

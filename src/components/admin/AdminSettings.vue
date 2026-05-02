@@ -24,11 +24,20 @@
 						@input="saveSettings" />
 				</div>
 
+				<!-- REQ-ASET-003 (extended). The toggle is wired to
+				     `PUT /api/admin/settings`. Toggling does NOT mutate
+				     dashboard rows: existing personal dashboards remain
+				     readable and editable; only NEW creations and forks
+				     are blocked. The helper text below makes this clear
+				     to admins so they don't fear data loss. -->
 				<NcCheckboxRadioSwitch
 					:checked="settings.allowUserDashboards"
 					@update:checked="updateSetting('allowUserDashboards', $event)">
 					{{ t('mydash', 'Allow users to create custom dashboards') }}
 				</NcCheckboxRadioSwitch>
+				<p class="mydash-admin__hint mydash-admin__hint--inline">
+					{{ t('mydash', 'Disabling this only blocks creating new personal dashboards. Existing personal dashboards remain visible and editable.') }}
+				</p>
 
 				<NcCheckboxRadioSwitch
 					:checked="settings.allowMultipleDashboards"
@@ -193,12 +202,23 @@ export default {
 		ViewDashboard,
 	},
 
+	// REQ-INIT-004: read the initial-state snapshot the PHP admin form
+	// pushes via `MyDashAdmin::getForm()`. Treated as a hint for the
+	// initial render only — `loadData()` overwrites with the API truth.
+	inject: {
+		allowUserDashboards: {
+			from: 'allowUserDashboards',
+			default: false,
+		},
+	},
+
 	data() {
 		return {
 			loading: true,
 			settings: {
 				defaultPermissionLevel: { id: 'add_only', label: this.t('mydash', 'Add only') },
-				allowUserDashboards: true,
+				// Default mirrors the spec — admins MUST opt in.
+				allowUserDashboards: this.allowUserDashboards ?? false,
 				allowMultipleDashboards: true,
 				defaultGridColumns: 12,
 			},
@@ -251,11 +271,18 @@ export default {
 
 		async saveSettings() {
 			try {
+				// REQ-ASET-002: the PUT /api/admin/settings endpoint accepts
+				// the abbreviated camelCase parameter names — the long
+				// camelCase forms returned by GET are NOT accepted on
+				// write. Mismatched keys silently no-op (controller leaves
+				// the matching arg null), which would have left the toggle
+				// permanently stuck. REQ-ASET-003 explicitly demands the
+				// admin can flip the flag at runtime.
 				await api.updateAdminSettings({
-					defaultPermissionLevel: this.settings.defaultPermissionLevel?.id,
-					allowUserDashboards: this.settings.allowUserDashboards,
-					allowMultipleDashboards: this.settings.allowMultipleDashboards,
-					defaultGridColumns: this.settings.defaultGridColumns,
+					defaultPermLevel: this.settings.defaultPermissionLevel?.id,
+					allowUserDash: this.settings.allowUserDashboards,
+					allowMultiDash: this.settings.allowMultipleDashboards,
+					defaultGridCols: this.settings.defaultGridColumns,
 				})
 			} catch (error) {
 				console.error('Failed to save settings:', error)

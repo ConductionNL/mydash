@@ -21,7 +21,7 @@ Settings are stored as key-value pairs:
 
 | Setting Key (DB) | API Response Key | Type | Default | Description |
 |------------------|------------------|------|---------|-------------|
-| `allow_user_dashboards` | `allowUserDashboards` | boolean | `true` | Whether non-admin users can create their own dashboards |
+| `allow_user_dashboards` | `allowUserDashboards` | boolean | `false` | Whether non-admin users can create their own personal dashboards. Admins MUST opt in (REQ-ASET-003). |
 | `allow_multiple_dashboards` | `allowMultipleDashboards` | boolean | `true` | Whether users can have more than one dashboard |
 | `default_permission_level` | `defaultPermissionLevel` | string | `add_only` | Default permission level for user-created dashboards |
 | `default_grid_columns` | `defaultGridColumns` | integer | `12` | Default number of grid columns for new dashboards |
@@ -41,11 +41,12 @@ Administrators MUST be able to retrieve all current admin settings via the API. 
   ```json
   {
     "defaultPermissionLevel": "add_only",
-    "allowUserDashboards": true,
+    "allowUserDashboards": false,
     "allowMultipleDashboards": true,
     "defaultGridColumns": 12
   }
   ```
+- NOTE: `allowUserDashboards` defaults to `false` (REQ-ASET-003) — admins MUST opt in to personal dashboard creation.
 
 #### Scenario: Get settings after modification
 - GIVEN the admin has set `allowUserDashboards` to `false`
@@ -133,41 +134,73 @@ Administrators MUST be able to update individual or multiple admin settings in a
 - THEN the system MUST ignore the unknown key (unrecognized parameters are simply not matched to method arguments)
 - AND known settings MUST NOT be affected
 
-### REQ-ASET-003: Allow User Dashboards Setting
+### REQ-ASET-003: Allow User Dashboards Setting (runtime gating + envelope)
 
-When `allowUserDashboards` is false, non-admin users MUST NOT be able to create their own dashboards. This is enforced by `PermissionService::canCreateDashboard()`.
+The setting `allow_user_dashboards` (boolean stored as `'0'` / `'1'`, default `'0'`) MUST gate every endpoint that **creates** a personal (`type='user'`) dashboard. Read endpoints, update endpoints, and existing personal dashboards MUST remain accessible regardless of the flag's value. Toggling the flag MUST NOT mutate any dashboard records.
 
-#### Scenario: User dashboard creation blocked
-- GIVEN `allowUserDashboards` is set to `false`
-- WHEN user "alice" sends POST /api/dashboard with body `{"name": "My Dashboard"}`
-- THEN the system MUST return HTTP 403 with a message indicating user dashboard creation is disabled
-- AND no dashboard MUST be created
+The endpoints listed below MUST evaluate the flag at request time and, when it equals `'0'`, MUST return HTTP 403 with response body `{status: 'error', error: 'personal_dashboards_disabled', message: <translated string>}`:
 
-#### Scenario: User dashboard creation allowed
-- GIVEN `allowUserDashboards` is set to `true` (default)
-- WHEN user "alice" sends POST /api/dashboard with body `{"name": "My Dashboard"}`
-- THEN the system MUST allow the creation
-- AND the response MUST return HTTP 201
+- `POST /api/dashboard` (when payload omits `type` or sets `type='user'`)
+- `POST /api/dashboards/{uuid}/fork` (always — fork target is always `type='user'`; the route itself is owned by the `fork-current-as-personal` capability and inherits this gating)
+
+Endpoints that MUST NOT check the flag (so existing personal dashboards remain functional):
+
+- `GET /api/dashboards/visible`
+- `GET /api/dashboard/{id}`
+- `PUT /api/dashboard/{id}` (existing personal dashboard updates)
+- `DELETE /api/dashboard/{id}` (users can still clean up their old personal dashboards)
+- `POST /api/dashboard/active`
+- `POST /api/dashboard/{id}/activate`
+- All `group_shared` and `admin_template` endpoints
+
+Admins MAY always create dashboards regardless of the flag (the `PermissionService::canCreateDashboard()` companion check is layered defense-in-depth; admins bypass it through their group membership).
+
+#### Scenario: Flag off blocks personal dashboard creation
+- GIVEN admin setting `allow_user_dashboards = '0'`
+- WHEN user "alice" sends `POST /api/dashboard` with body `{"name": "My Test"}`
+- THEN the system MUST return HTTP 403 with `{status: 'error', error: 'personal_dashboards_disabled', message: 'Personal dashboards are not enabled by your administrator'}`
+- AND no row MUST be inserted into `oc_mydash_dashboards`
+
+#### Scenario: Flag off blocks fork
+- GIVEN admin setting `allow_user_dashboards = '0'`
+- AND alice can read group-shared dashboard `S`
+- WHEN she sends `POST /api/dashboards/{S.uuid}/fork`
+- THEN the system MUST return HTTP 403 with the same `personal_dashboards_disabled` error envelope
+
+#### Scenario: Flag off does not break existing personal dashboards
+- GIVEN alice has 2 existing personal dashboards `P1`, `P2`
+- AND admin toggles `allow_user_dashboards` from `'1'` to `'0'`
+- WHEN alice opens the workspace page
+- THEN `P1` and `P2` MUST still appear in `GET /api/dashboards/visible`
+- AND alice MUST be able to `PUT /api/dashboard/{P1.id}` and `DELETE` them
+- AND alice MUST be able to set either as her active dashboard via `POST /api/dashboard/active`
+- AND only `POST /api/dashboard` and fork endpoints MUST return 403
+
+#### Scenario: Toggling does not destructively mutate data
+- GIVEN alice has 1 personal dashboard `P1` (active)
+- AND admin toggles `allow_user_dashboards` to `'0'` and back to `'1'`
+- THEN `P1` MUST still exist with all original fields and placements
+- AND `P1.isActive` MUST still be `1` (unchanged)
+- AND no rows in `oc_mydash_dashboards` or `oc_mydash_widget_placements` MUST have been touched
+
+#### Scenario: Default value when setting is missing
+- GIVEN a fresh MyDash install with no row for `allow_user_dashboards` in `oc_mydash_admin_settings`
+- WHEN any code reads the setting (via `DashboardService::getAllowUserDashboards()`, `PermissionService::canCreateDashboard()`, or `AdminSettingsService::getSettings()`)
+- THEN it MUST evaluate to `false` (creation blocked) — the secure default
 
 #### Scenario: Admins can always create dashboards
-- GIVEN `allowUserDashboards` is set to `false`
+- GIVEN `allow_user_dashboards` is set to `false`
 - WHEN a Nextcloud admin sends POST /api/dashboard with body `{"name": "Admin Dashboard"}`
 - THEN the system MUST allow the creation
 - AND the admin setting MUST NOT restrict admin users
 
-#### Scenario: Existing user dashboards preserved when setting is disabled
-- GIVEN user "alice" has 3 dashboards
-- AND the admin sets `allowUserDashboards` to `false`
-- WHEN alice views her dashboards via GET /api/dashboards
-- THEN all 3 existing dashboards MUST still be returned
-- AND alice MUST still be able to view, edit (per permission level), and delete her existing dashboards
-- AND alice MUST NOT be able to create new dashboards
-
-#### Scenario: Frontend hides create button when disabled
-- GIVEN `allowUserDashboards` is set to `false`
-- WHEN user "alice" views the MyDash interface
-- THEN the "Create Dashboard" button MUST NOT be displayed
-- AND the UI SHOULD display a message such as "Dashboard creation is managed by your administrator"
+#### Scenario: Frontend hides create affordance when disabled
+- GIVEN `allow_user_dashboards` is set to `false`
+- WHEN user "alice" views the MyDash workspace
+- THEN the "Create dashboard…" entry in `DashboardConfigMenu` MUST NOT be rendered
+- AND the empty-state "Create dashboard" button in `Views.vue` MUST NOT be rendered
+- AND the empty-state description MUST read "Personal dashboards are not enabled by your administrator"
+- AND if the call is invoked anyway (stale UI, direct API call) the backend MUST still return the 403 `personal_dashboards_disabled` envelope (defense in depth)
 
 ### REQ-ASET-004: Allow Multiple Dashboards Setting
 
@@ -390,6 +423,35 @@ The settings API MUST return consistent error responses for various failure scen
 - THEN the system MUST return HTTP 200 with `{"status": "ok"}`
 - AND no settings MUST be modified (all parameters are null, so no updates are applied)
 
+### REQ-ASET-015: Initial-state mirror of the allow-user-dashboards flag
+
+The current value of `allow_user_dashboards` MUST be pushed as initial state `allowUserDashboards: bool` on every workspace and admin page render so the frontend can hide the "+ New Dashboard" affordance and any "Fork as personal" affordance without an extra round-trip. The push MUST happen via `InitialStateBuilder::setAllowUserDashboards()` (REQ-INIT-002) — direct calls to `IInitialState::provideInitialState()` are forbidden by the `lint:initial-state` CI guard.
+
+#### Scenario: Initial state matches setting on the workspace page
+- GIVEN admin setting `allow_user_dashboards = '1'`
+- WHEN any user loads the workspace page (`PageController::index`)
+- THEN the page initial state MUST include `allowUserDashboards: true`
+- AND the workspace `provide` MUST expose the same value to descendants
+
+#### Scenario: Initial state matches setting on the admin page
+- GIVEN admin setting `allow_user_dashboards = '0'`
+- WHEN an admin loads the MyDash admin settings page (`MyDashAdmin::getForm`)
+- THEN the admin initial state MUST include `allowUserDashboards: false`
+
+#### Scenario: Frontend honours the flag
+- GIVEN initial state has `allowUserDashboards: false`
+- WHEN the workspace renders
+- THEN the "Create dashboard…" entry in `DashboardConfigMenu` MUST NOT be visible
+- AND the empty-state "Create dashboard" button in `Views.vue` MUST NOT be visible
+- AND any "Fork as personal" affordance MUST NOT be visible
+- AND attempting to invoke the underlying actions via direct API call MUST still hit the 403 (defense in depth — REQ-ASET-003)
+
+#### Scenario: Toast surfaces the stable error code on direct API invocation
+- GIVEN the frontend `useDashboardStore.createDashboard` is invoked
+- AND the backend returns HTTP 403 with `error: 'personal_dashboards_disabled'`
+- THEN the store MUST surface a localised toast via `@nextcloud/dialogs::showError` reading the `Personal dashboards are not enabled by your administrator` translation
+- AND the original error MUST be re-thrown so callers can short-circuit
+
 ## Non-Functional Requirements
 
 - **Performance**: GET /api/admin/settings MUST return within 100ms. Settings lookups during user operations (e.g., `PermissionService::canCreateDashboard()`) query the `AdminSettingMapper` each time; caching is NOT currently implemented.
@@ -403,7 +465,8 @@ The settings API MUST return consistent error responses for various failure scen
 **Fully implemented:**
 - REQ-ASET-001 (Retrieve Admin Settings): `AdminSettingsService::getSettings()` in `lib/Service/AdminSettingsService.php` returns all 4 settings with documented defaults. `AdminController::getSettings()` in `lib/Controller/AdminController.php` exposes GET /api/admin/settings. Non-admin access is blocked because AdminController lacks `#[NoAdminRequired]`.
 - REQ-ASET-002 (Update Admin Settings): `AdminSettingsService::updateSettings()` accepts abbreviated camelCase params (`defaultPermLevel`, `allowUserDash`, `allowMultiDash`, `defaultGridCols`). `AdminController::updateSettings()` returns `{"status": "ok"}`.
-- REQ-ASET-003 (Allow User Dashboards): `PermissionService::canCreateDashboard()` in `lib/Service/PermissionService.php` checks `AdminSetting::KEY_ALLOW_USER_DASHBOARDS`. `DashboardApiController::checkCreatePermissions()` in `lib/Controller/DashboardApiController.php` returns 403 when disabled.
+- REQ-ASET-003 (Allow User Dashboards — runtime gating): `DashboardService::getAllowUserDashboards()` and `DashboardService::assertPersonalDashboardsAllowed()` in `lib/Service/DashboardService.php` are the canonical reader and gate. `DashboardApiController::create()` calls the assert FIRST and returns the stable `{status:'error', error:'personal_dashboards_disabled', message:...}` envelope mapped from `PersonalDashboardsDisabledException` (`lib/Exception/PersonalDashboardsDisabledException.php`). The defense-in-depth `PermissionService::canCreateDashboard()` and `AdminSettingsService::getSettings()` defaults also return `false` so a missing row blocks creation everywhere.
+- REQ-ASET-015 (Initial-state mirror): `PageController::index` and `MyDashAdmin::getForm` both call `DashboardService::getAllowUserDashboards()` and push the value via `InitialStateBuilder::setAllowUserDashboards()`. The frontend reads it via `loadInitialState('workspace' | 'admin')` and provides it down the tree (REQ-INIT-004); `DashboardConfigMenu`, `Views.vue`, and `AdminSettings.vue` inject it. `useDashboardStore.createDashboard` surfaces the 403 envelope as a localised toast via `@nextcloud/dialogs::showError`.
 - REQ-ASET-004 (Allow Multiple Dashboards): `PermissionService::canHaveMultipleDashboards()` checks the setting. `DashboardApiController::checkCreatePermissions()` counts existing dashboards and returns 403 if multiples are disallowed.
 - REQ-ASET-005 (Default Permission Level): `DashboardFactory::create()` in `lib/Service/DashboardFactory.php` hardcodes `PERMISSION_FULL` for user-created dashboards. The admin default setting is used as fallback by `PermissionService::getEffectivePermissionLevel()`.
 - REQ-ASET-007 (Settings Persistence): Settings are stored in `oc_mydash_admin_settings` table via `AdminSettingMapper`. Defaults are returned in-code when DB rows are absent.
@@ -412,7 +475,7 @@ The settings API MUST return consistent error responses for various failure scen
 **Not yet implemented:**
 - REQ-ASET-002 validation: No server-side validation for permission level values (any string accepted), grid column range (any integer accepted), or boolean type coercion. Documented as NOTEs in the spec.
 - REQ-ASET-006 default grid columns: `DashboardFactory::create()` hardcodes `gridColumns: 12` and does NOT read the `defaultGridColumns` admin setting. The admin setting exists but is not applied when creating user dashboards.
-- REQ-ASET-003 frontend UX: The AdminSettings.vue does not show a "Dashboard creation is managed by your administrator" message to non-admin users. Admin-only enforcement relies on controller access control, but the user-facing frontend does not reflect this state.
+- REQ-ASET-003 fork endpoint: The `POST /api/dashboards/{uuid}/fork` route is owned by the separate `fork-current-as-personal` capability and does not yet exist; gating will be added there with the same `PersonalDashboardsDisabledException` envelope.
 - REQ-ASET-008 localization: UI labels use `t('mydash', ...)` translation function but actual Dutch translations are not verified in l10n files.
 
 **Partial implementations:**

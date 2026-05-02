@@ -169,11 +169,9 @@ class DashboardApiController extends Controller
             return ResponseHelper::unauthorized();
         }
 
-        $resolved = $this->resolveCreateParams(
-            name: $name,
-            description: $description
-        );
-
+        // REQ-ASET-003 (extended): admin gating runs FIRST so the response
+        // envelope is the stable `personal_dashboards_disabled` shape no
+        // matter what the request body looked like.
         try {
             $this->dashboardService->assertPersonalDashboardsAllowed();
         } catch (PersonalDashboardsDisabledException $e) {
@@ -186,6 +184,11 @@ class DashboardApiController extends Controller
                 statusCode: Http::STATUS_FORBIDDEN
             );
         }
+
+        $resolved = $this->resolveCreateParams(
+            name: $name,
+            description: $description
+        );
 
         $permError = $this->checkCreatePermissions(
             userId: $this->userId

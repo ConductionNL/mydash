@@ -28,7 +28,13 @@
 			</template>
 			{{ dashboard.name }}{{ dashboard.isOwner === false ? ` (${t('mydash', 'shared by')} ${dashboard.sharedBy})` : '' }}
 		</NcActionButton>
+		<!-- REQ-ASET-003 (extended): personal-dashboard creation is gated by
+		     the admin `allow_user_dashboards` flag. The trigger is hidden
+		     when the flag is off so the UI stays in sync with the 403 the
+		     backend would return. The flag itself comes from the typed
+		     initial-state contract via the root `provide` (REQ-INIT-004). -->
 		<NcActionButton
+			v-if="allowUserDashboards"
 			:close-after-click="true"
 			@click="$emit('create-dashboard')">
 			<template #icon>
@@ -179,6 +185,17 @@ export default {
 		ShapePolygonPlus,
 		BookOpenVariantOutline,
 		AccountGroup,
+	},
+
+	// REQ-INIT-004: read the typed initial-state snapshot via root
+	// `provide` (set in `src/main.js`). Default `false` keeps the gating
+	// safe even if the value is missing — REQ-ASET-003 says the secure
+	// default is "block creation".
+	inject: {
+		allowUserDashboards: {
+			from: 'allowUserDashboards',
+			default: false,
+		},
 	},
 
 	props: {

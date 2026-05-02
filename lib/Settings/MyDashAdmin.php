@@ -26,8 +26,8 @@ declare(strict_types=1);
 namespace OCA\MyDash\Settings;
 
 use OCA\MyDash\AppInfo\Application;
-use OCA\MyDash\Db\AdminSetting;
 use OCA\MyDash\Db\AdminSettingMapper;
+use OCA\MyDash\Service\DashboardService;
 use OCA\MyDash\Service\InitialState\Page;
 use OCA\MyDash\Service\InitialStateBuilder;
 use OCA\MyDash\Service\WidgetService;
@@ -42,16 +42,21 @@ class MyDashAdmin implements ISettings
     /**
      * Constructor.
      *
-     * @param IInitialState      $initialState  The Nextcloud initial-state service.
-     * @param IGroupManager      $groupManager  Group manager (full group list).
-     * @param WidgetService      $widgetService Available-widgets descriptor formatter.
-     * @param AdminSettingMapper $settingMapper Admin settings store.
+     * @param IInitialState      $initialState     The Nextcloud initial-state service.
+     * @param IGroupManager      $groupManager     Group manager (full group list).
+     * @param WidgetService      $widgetService    Available-widgets descriptor formatter.
+     * @param AdminSettingMapper $settingMapper    Admin settings store
+     *                                             (configured-groups list).
+     * @param DashboardService   $dashboardService Dashboard service exposing
+     *                                             the `allow_user_dashboards`
+     *                                             flag (REQ-ASET-003).
      */
     public function __construct(
         private readonly IInitialState $initialState,
         private readonly IGroupManager $groupManager,
         private readonly WidgetService $widgetService,
         private readonly AdminSettingMapper $settingMapper,
+        private readonly DashboardService $dashboardService,
     ) {
     }//end __construct()
 
@@ -87,10 +92,7 @@ class MyDashAdmin implements ISettings
             $configuredGroups = [];
         }
 
-        $allowUserDashboards = (bool) $this->settingMapper->getValue(
-            key: AdminSetting::KEY_ALLOW_USER_DASHBOARDS,
-            default: false
-        );
+        $allowUserDashboards = $this->dashboardService->getAllowUserDashboards();
 
         (new InitialStateBuilder(
             initialState: $this->initialState,

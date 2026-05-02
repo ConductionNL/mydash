@@ -57,7 +57,9 @@ class AdminSettingsService
 
         return [
             'defaultPermissionLevel'  => $settings[$permKey] ?? $permDef,
-            'allowUserDashboards'     => $settings[$userKey] ?? true,
+            // REQ-ASET-003 (extended): default `false` — admins MUST opt in
+            // to personal dashboard creation.
+            'allowUserDashboards'     => $settings[$userKey] ?? false,
             'allowMultipleDashboards' => $settings[$multiKey] ?? true,
             'defaultGridColumns'      => $settings[$gridKey] ?? 12,
         ];

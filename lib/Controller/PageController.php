@@ -28,8 +28,6 @@ declare(strict_types=1);
 namespace OCA\MyDash\Controller;
 
 use OCA\MyDash\AppInfo\Application;
-use OCA\MyDash\Db\AdminSetting;
-use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Service\DashboardService;
 use OCA\MyDash\Service\InitialState\Page;
@@ -59,14 +57,16 @@ class PageController extends Controller
     /**
      * Constructor.
      *
-     * @param IRequest           $request          The request.
-     * @param IManager           $dashboardManager Nextcloud dashboard widget manager.
-     * @param IInitialState      $initialState     The Nextcloud initial-state service.
-     * @param IUserSession       $userSession      Active user session.
-     * @param IGroupManager      $groupManager     Group manager (admin + primary).
-     * @param WidgetService      $widgetService    Available-widgets descriptor formatter.
-     * @param DashboardService   $dashboardService Dashboard listing + resolver.
-     * @param AdminSettingMapper $settingMapper    Admin settings store (allow_user flag).
+     * @param IRequest         $request          The request.
+     * @param IManager         $dashboardManager Nextcloud dashboard widget manager.
+     * @param IInitialState    $initialState     The Nextcloud initial-state service.
+     * @param IUserSession     $userSession      Active user session.
+     * @param IGroupManager    $groupManager     Group manager (admin + primary).
+     * @param WidgetService    $widgetService    Available-widgets descriptor formatter.
+     * @param DashboardService $dashboardService Dashboard listing + resolver
+     *                                           (also exposes the
+     *                                           `allow_user_dashboards` flag
+     *                                           — REQ-ASET-003).
      */
     public function __construct(
         IRequest $request,
@@ -76,7 +76,6 @@ class PageController extends Controller
         private readonly IGroupManager $groupManager,
         private readonly WidgetService $widgetService,
         private readonly DashboardService $dashboardService,
-        private readonly AdminSettingMapper $settingMapper,
     ) {
         parent::__construct(appName: Application::APP_ID, request: $request);
     }//end __construct()
@@ -177,10 +176,7 @@ class PageController extends Controller
             );
         }
 
-        $allowUserDashboards = (bool) $this->settingMapper->getValue(
-            key: AdminSetting::KEY_ALLOW_USER_DASHBOARDS,
-            default: false
-        );
+        $allowUserDashboards = $this->dashboardService->getAllowUserDashboards();
 
         $builder = new InitialStateBuilder(
             initialState: $this->initialState,
