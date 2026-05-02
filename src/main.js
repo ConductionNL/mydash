@@ -20,7 +20,10 @@ import App from './App.vue'
 import { loadInitialState } from './utils/loadInitialState.js'
 
 import 'gridstack/dist/gridstack.min.css'
-import 'gridstack/dist/gridstack-extra.min.css'
+// Note: GridStack v12 dropped the separate `gridstack-extra.min.css`
+// helper file — the per-column-count CSS rules used by responsive
+// breakpoints are now generated dynamically by the engine at init time.
+// (Was the v10 import path: `gridstack/dist/gridstack-extra.min.css`.)
 
 // Global functions
 Vue.mixin({

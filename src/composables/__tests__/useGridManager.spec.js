@@ -2,13 +2,33 @@
  * SPDX-FileCopyrightText: 2026 MyDash Contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
  *
- * Vitest unit tests for `useGridManager` composable. Covers REQ-WDG-015
- * (right-click opens popover in edit mode, falls through in view mode),
- * REQ-WDG-016 (outside-click closes; switching widgets swaps; listener
- * cleanup), and REQ-WDG-017 (viewport clamping on right + bottom edges).
+ * Vitest unit tests for `useGridManager.js` covering both halves of the
+ * combined composable:
+ *
+ *   - REQ-GRID-007 (Responsive breakpoints): the BREAKPOINTS table has the
+ *     four expected entries, monotonically descending column counts, and
+ *     `getColumnOpts()` wires the `moveScale` layout + `breakpointForWindow`
+ *     flag.
+ *   - REQ-GRID-012 (Cell geometry constants): `CELL_HEIGHT === 60`,
+ *     `GRID_MARGIN === 8`, and the height-math scenario.
+ *   - syncCellHeightCssVar() writes the `--mydash-cell-height` custom
+ *     property on `:root` from the JS constant.
+ *   - REQ-WDG-015..017 (Right-click context menu): edit-mode opens the
+ *     popover, view-mode falls through, viewport clamping, swap-not-stack,
+ *     outside-click closes, listener cleanup.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import {
+	BREAKPOINTS,
+	CELL_HEIGHT,
+	CELL_HEIGHT_CSS_VAR,
+	COLUMN_LAYOUT,
+	DEFAULT_COLUMNS,
+	GRID_MARGIN,
+	getColumnOpts,
+	syncCellHeightCssVar,
+} from '../useGridManager.js'
 
 beforeEach(() => {
 	globalThis.t = (_app, key) => key
@@ -30,7 +50,86 @@ function makeEvent(clientX, clientY) {
 	}
 }
 
-describe('useGridManager', () => {
+describe('useGridManager — grid configuration', () => {
+	describe('REQ-GRID-012 cell geometry constants', () => {
+		it('CELL_HEIGHT is 60 px', () => {
+			expect(CELL_HEIGHT).toBe(60)
+		})
+
+		it('GRID_MARGIN is 8 px', () => {
+			expect(GRID_MARGIN).toBe(8)
+		})
+
+		it('DEFAULT_COLUMNS is 12', () => {
+			expect(DEFAULT_COLUMNS).toBe(12)
+		})
+
+		it('height math: 4 rows + 3 inter-row margins = 264 px', () => {
+			const rows = 4
+			const innerMargins = rows - 1
+			expect((rows * CELL_HEIGHT) + (innerMargins * GRID_MARGIN)).toBe(264)
+		})
+	})
+
+	describe('REQ-GRID-007 responsive breakpoints', () => {
+		it('BREAKPOINTS has exactly four entries', () => {
+			expect(BREAKPOINTS).toHaveLength(4)
+		})
+
+		it('BREAKPOINTS entries match the spec table 1400/1100/768/480', () => {
+			expect(BREAKPOINTS).toEqual([
+				{ w: 1400, c: 12 },
+				{ w: 1100, c: 8 },
+				{ w: 768, c: 4 },
+				{ w: 480, c: 1 },
+			])
+		})
+
+		it('column counts descend monotonically as widths shrink', () => {
+			for (let i = 1; i < BREAKPOINTS.length; i++) {
+				expect(BREAKPOINTS[i].w).toBeLessThan(BREAKPOINTS[i - 1].w)
+				expect(BREAKPOINTS[i].c).toBeLessThan(BREAKPOINTS[i - 1].c)
+			}
+		})
+
+		it('BREAKPOINTS is frozen so callers cannot mutate the canonical table', () => {
+			expect(Object.isFrozen(BREAKPOINTS)).toBe(true)
+		})
+
+		it('COLUMN_LAYOUT is "moveScale"', () => {
+			expect(COLUMN_LAYOUT).toBe('moveScale')
+		})
+
+		it('getColumnOpts() returns a fresh deep copy of breakpoints + the moveScale layout + breakpointForWindow', () => {
+			const opts = getColumnOpts()
+			expect(opts.layout).toBe('moveScale')
+			expect(opts.breakpointForWindow).toBe(true)
+			expect(opts.breakpoints).toEqual([
+				{ w: 1400, c: 12 },
+				{ w: 1100, c: 8 },
+				{ w: 768, c: 4 },
+				{ w: 480, c: 1 },
+			])
+			opts.breakpoints[0].c = 99
+			expect(BREAKPOINTS[0].c).toBe(12)
+		})
+	})
+
+	describe('CSS custom-property sync', () => {
+		it('syncCellHeightCssVar writes the cell height to documentElement', () => {
+			document.documentElement.style.removeProperty(CELL_HEIGHT_CSS_VAR)
+			syncCellHeightCssVar()
+			const value = document.documentElement.style.getPropertyValue(CELL_HEIGHT_CSS_VAR)
+			expect(value).toBe(`${CELL_HEIGHT}px`)
+		})
+
+		it('CELL_HEIGHT_CSS_VAR is the documented `--mydash-cell-height` name', () => {
+			expect(CELL_HEIGHT_CSS_VAR).toBe('--mydash-cell-height')
+		})
+	})
+})
+
+describe('useGridManager — context menu', () => {
 	it('REQ-WDG-015: edit mode right-click opens popover at cursor position', async () => {
 		const { useGridManager } = await import('../useGridManager.js')
 		const canEdit = { value: true }
@@ -70,8 +169,6 @@ describe('useGridManager', () => {
 			menuWidth: 150,
 			menuHeight: 100,
 		})
-		// Right-click 50px from right edge — popover (150px wide) would
-		// overflow by 100px. Expect rendered left to shift back to 650.
 		grid.onWidgetRightClick(makeEvent(750, 200), { id: 1 })
 		expect(grid.state.contextMenuPosition.x).toBe(650)
 		expect(grid.state.contextMenuPosition.x + 150).toBeLessThanOrEqual(800)
@@ -86,8 +183,6 @@ describe('useGridManager', () => {
 			menuWidth: 150,
 			menuHeight: 100,
 		})
-		// Right-click 20px from bottom — popover (100px tall) overflows
-		// by 80px. Expect rendered top to shift back to 500.
 		grid.onWidgetRightClick(makeEvent(400, 580), { id: 1 })
 		expect(grid.state.contextMenuPosition.y).toBe(500)
 		expect(grid.state.contextMenuPosition.y + 100).toBeLessThanOrEqual(600)
@@ -119,7 +214,6 @@ describe('useGridManager', () => {
 		grid.onWidgetRightClick(makeEvent(500, 500), { id: 'b' })
 		expect(grid.state.selectedWidget.id).toBe('b')
 		expect(grid.state.contextMenuPosition).toEqual({ x: 500, y: 500 })
-		// The popover is still open — it was swapped, not stacked.
 		expect(grid.state.contextMenuOpen).toBe(true)
 	})
 
@@ -147,7 +241,6 @@ describe('useGridManager', () => {
 		grid.onWidgetRightClick(makeEvent(100, 100), { id: 'a' })
 		expect(grid.state.contextMenuOpen).toBe(true)
 
-		// Dispatch a click whose target is NOT inside .widget-context-menu.
 		const outsideTarget = document.createElement('div')
 		document.body.appendChild(outsideTarget)
 		const evt = new MouseEvent('click', { bubbles: true })
@@ -169,8 +262,6 @@ describe('useGridManager', () => {
 		grid.attach()
 		grid.onWidgetRightClick(makeEvent(100, 100), { id: 'a' })
 
-		// Build an element that is inside .widget-context-menu so closest()
-		// returns the wrapper. The composable should bail before closing.
 		const wrapper = document.createElement('div')
 		wrapper.className = 'widget-context-menu'
 		const inner = document.createElement('button')
@@ -198,7 +289,6 @@ describe('useGridManager', () => {
 		grid.detach()
 		const removeCalls = removeSpy.mock.calls.filter((c) => c[0] === 'click')
 		expect(removeCalls.length).toBeGreaterThan(0)
-		// Detach also clears any popover state so no leak into next mount.
 		expect(grid.state.contextMenuOpen).toBe(false)
 		removeSpy.mockRestore()
 	})
