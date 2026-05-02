@@ -84,14 +84,21 @@ if (!DASHBOARD_ICONS[DEFAULT_ICON]) {
 /**
  * Resolve an icon name to a Vue component reference.
  *
- * Tolerates null, undefined, empty string, and unknown names — all of
- * these resolve to `DASHBOARD_ICONS[DEFAULT_ICON]`. Never throws and
- * never returns null.
+ * Returns null when the name is a URL (per REQ-ICON-006) — callers MUST
+ * render via `<img>` in that case. For registry names, tolerates null,
+ * undefined, empty string, and unknown names — all resolve to
+ * `DASHBOARD_ICONS[DEFAULT_ICON]`. Never throws on non-URL inputs.
  *
- * @param {string|null|undefined} name - Icon registry key, or null/empty.
- * @return {object} A Vue component suitable for `<component :is>`.
+ * @param {string|null|undefined} name - Icon registry key, URL, or null/empty.
+ * @return {object|null} A Vue component suitable for `<component :is>`,
+ *                       or `null` when `name` is a URL.
  */
 export function getIconComponent(name) {
+	// REQ-ICON-006: URL inputs return null — caller must use <img> instead.
+	if (isCustomIconUrl(name)) {
+		return null
+	}
+	// Registry names or null/empty → resolve to DEFAULT_ICON.
 	if (typeof name !== 'string' || name.length === 0) {
 		return DASHBOARD_ICONS[DEFAULT_ICON]
 	}
