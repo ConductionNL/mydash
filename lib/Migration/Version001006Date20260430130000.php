@@ -161,15 +161,15 @@ class Version001006Date20260430130000 extends SimpleMigrationStep
      * Only runs when `mydash.cleanup_orphan_shares` is explicitly `true`.
      * Default is `false` to avoid surprise deletions on federated environments.
      *
-     * @param IOutput $output  The migration output handler.
-     * @param Closure $closure The schema closure.
-     * @param array   $options The migration options.
+     * @param IOutput $output        The migration output handler.
+     * @param Closure $schemaClosure The schema closure.
+     * @param array   $options       The migration options.
      *
      * @return void
      */
     public function postSchemaChange(
         IOutput $output,
-        Closure $closure,
+        Closure $schemaClosure,
         array $options
     ): void {
         $enabled = $this->config->getAppValue(

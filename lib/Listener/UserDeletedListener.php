@@ -63,7 +63,9 @@ class UserDeletedListener implements IEventListener
      * @param IGroupManager         $groupManager    The group manager.
      * @param IUserManager          $userManager     The user manager.
      * @param IDBConnection         $db              The DB connection.
-     * @param LoggerInterface       $logger          PSR-3 logger (PHP_SAPI-safe; replaces deprecated `\OC::$server->getLogger()`).
+     * @param LoggerInterface       $logger          PSR-3 logger (PHP_SAPI-safe;
+     *                                               replaces deprecated
+     *                                               `\OC::$server->getLogger()`).
      */
     public function __construct(
         private readonly DashboardShareMapper $shareMapper,

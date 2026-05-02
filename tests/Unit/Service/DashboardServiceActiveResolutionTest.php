@@ -28,6 +28,7 @@ use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
+use OCA\MyDash\Service\AdminTemplateService;
 use OCA\MyDash\Service\DashboardFactory;
 use OCA\MyDash\Service\DashboardResolver;
 use OCA\MyDash\Service\DashboardService;
@@ -35,8 +36,7 @@ use OCA\MyDash\Service\TemplateService;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
-use OCP\IUser;
-use OCP\IUserManager;
+use OCP\L10N\IFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -70,8 +70,11 @@ class DashboardServiceActiveResolutionTest extends TestCase
     /** @var IGroupManager&MockObject */
     private $groupManager;
 
-    /** @var IUserManager&MockObject */
-    private $userManager;
+    /** @var AdminTemplateService&MockObject */
+    private $adminTemplateService;
+
+    /** @var IFactory&MockObject */
+    private $l10nFactory;
 
     /** @var IDBConnection&MockObject */
     private $db;
@@ -98,11 +101,12 @@ class DashboardServiceActiveResolutionTest extends TestCase
         $this->settingMapper   = $this->createMock(AdminSettingMapper::class);
         $this->templateService = $this->createMock(TemplateService::class);
         $this->dashResolver    = $this->createMock(DashboardResolver::class);
-        $this->groupManager    = $this->createMock(IGroupManager::class);
-        $this->userManager     = $this->createMock(IUserManager::class);
-        $this->db              = $this->createMock(IDBConnection::class);
-        $this->config          = $this->createMock(IConfig::class);
-        $this->logger          = $this->createMock(LoggerInterface::class);
+        $this->groupManager         = $this->createMock(IGroupManager::class);
+        $this->adminTemplateService = $this->createMock(AdminTemplateService::class);
+        $this->db                   = $this->createMock(IDBConnection::class);
+        $this->config               = $this->createMock(IConfig::class);
+        $this->l10nFactory          = $this->createMock(IFactory::class);
+        $this->logger               = $this->createMock(LoggerInterface::class);
 
         $this->service = new DashboardService(
             dashboardMapper: $this->dashboardMapper,
@@ -112,9 +116,10 @@ class DashboardServiceActiveResolutionTest extends TestCase
             dashboardFactory: new DashboardFactory(),
             dashResolver: $this->dashResolver,
             groupManager: $this->groupManager,
-            userManager: $this->userManager,
+            adminTemplateService: $this->adminTemplateService,
             db: $this->db,
             config: $this->config,
+            l10nFactory: $this->l10nFactory,
             logger: $this->logger,
         );
     }//end setUp()
@@ -151,10 +156,10 @@ class DashboardServiceActiveResolutionTest extends TestCase
 
     /**
      * Wire `getVisibleToUser` to return the supplied list. The resolver
-     * routes through `getVisibleToUser` which itself fans out to
-     * `IUserManager::get` + `IGroupManager::getUserGroupIds` +
-     * `DashboardMapper::findVisibleToUser`. We mock the deepest mapper
-     * call so the wiring stays exercised.
+     * routes through `getVisibleToUser` which fans out to
+     * `AdminTemplateService::getUserGroupIdsFor` (REQ-TMPL-013 single
+     * source of truth for `IGroupManager`) + `DashboardMapper::findVisibleToUser`.
+     * Stub the routing helper + the mapper so the wiring stays exercised.
      *
      * @param string $userId  The user id.
      * @param array  $visible The visible-to-user payload to return.
@@ -163,9 +168,10 @@ class DashboardServiceActiveResolutionTest extends TestCase
      */
     private function stubVisible(string $userId, array $visible): void
     {
-        $user = $this->createMock(IUser::class);
-        $this->userManager->method('get')->with($userId)->willReturn($user);
-        $this->groupManager->method('getUserGroupIds')->with($user)->willReturn([]);
+        $this->adminTemplateService
+            ->method('getUserGroupIdsFor')
+            ->with(userId: $userId)
+            ->willReturn([]);
         $this->dashboardMapper
             ->method('findVisibleToUser')
             ->willReturn($visible);

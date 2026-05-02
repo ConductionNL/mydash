@@ -717,8 +717,11 @@ class DashboardApiController extends Controller
                 name: $name
             );
 
-            return ResponseHelper::success(
-                data: ['dashboard' => $fork->jsonSerialize()],
+            return new JSONResponse(
+                data: [
+                    'status'    => 'success',
+                    'dashboard' => $fork->jsonSerialize(),
+                ],
                 statusCode: Http::STATUS_CREATED
             );
         } catch (PersonalDashboardsDisabledException $e) {

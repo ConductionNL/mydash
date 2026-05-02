@@ -29,6 +29,7 @@ use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCA\MyDash\Exception\PersonalDashboardsDisabledException;
+use OCA\MyDash\Service\AdminTemplateService;
 use OCA\MyDash\Service\DashboardFactory;
 use OCA\MyDash\Service\DashboardResolver;
 use OCA\MyDash\Service\DashboardService;
@@ -38,8 +39,6 @@ use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\IL10N;
-use OCP\IUser;
-use OCP\IUserManager;
 use OCP\L10N\IFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -66,8 +65,8 @@ class DashboardServiceForkTest extends TestCase
     /** @var IGroupManager&MockObject */
     private $groupManager;
 
-    /** @var IUserManager&MockObject */
-    private $userManager;
+    /** @var AdminTemplateService&MockObject */
+    private $adminTemplateService;
 
     /** @var IDBConnection&MockObject */
     private $db;
@@ -99,8 +98,8 @@ class DashboardServiceForkTest extends TestCase
         $templateService       = $this->createMock(TemplateService::class);
         /** @var DashboardResolver&MockObject $dashResolver */
         $dashResolver          = $this->createMock(DashboardResolver::class);
-        $this->groupManager    = $this->createMock(IGroupManager::class);
-        $this->userManager     = $this->createMock(IUserManager::class);
+        $this->groupManager         = $this->createMock(IGroupManager::class);
+        $this->adminTemplateService = $this->createMock(AdminTemplateService::class);
         $this->db              = $this->createMock(IDBConnection::class);
         $this->config          = $this->createMock(IConfig::class);
         $this->l10nFactory     = $this->createMock(IFactory::class);
@@ -131,7 +130,7 @@ class DashboardServiceForkTest extends TestCase
             dashboardFactory: new DashboardFactory(),
             dashResolver: $dashResolver,
             groupManager: $this->groupManager,
-            userManager: $this->userManager,
+            adminTemplateService: $this->adminTemplateService,
             db: $this->db,
             config: $this->config,
             l10nFactory: $this->l10nFactory,
@@ -423,15 +422,14 @@ class DashboardServiceForkTest extends TestCase
     }//end testForkPersonalDashboardCreatesIndependentDuplicate()
 
     /**
-     * Helper: stub the IUserManager + IGroupManager wiring so
+     * Helper: stub the AdminTemplateService routing layer so
      * `getVisibleToUser()` returns the supplied visible list.
      *
      * The visible-to-user resolver in the SUT calls
-     * `userManager->get($userId)` and then
-     * `groupManager->getUserGroupIds($user)` then delegates to the
-     * dashboard mapper's `findVisibleToUser`. Stubbing the mapper end
-     * is enough — the user/group accessors only need to return
-     * non-nulls so the early-bail branch isn't hit.
+     * `adminTemplateService->getUserGroupIdsFor($userId)` (REQ-TMPL-013
+     * single-source-of-truth wrapper for `IGroupManager`) then delegates
+     * to the dashboard mapper's `findVisibleToUser`. Stubbing the mapper
+     * end is enough — the routing helper only needs to return an array.
      *
      * @param string                                                  $userId  The user id.
      * @param array<int, array{dashboard: Dashboard, source: string}> $visible The visible-to-user list.
@@ -440,10 +438,10 @@ class DashboardServiceForkTest extends TestCase
      */
     private function stubVisibleToUser(string $userId, array $visible): void
     {
-        /** @var IUser&MockObject $user */
-        $user = $this->createMock(IUser::class);
-        $this->userManager->method('get')->with($userId)->willReturn($user);
-        $this->groupManager->method('getUserGroupIds')->with($user)->willReturn([]);
+        $this->adminTemplateService
+            ->method('getUserGroupIdsFor')
+            ->with(userId: $userId)
+            ->willReturn([]);
         $this->dashboardMapper
             ->method('findVisibleToUser')
             ->willReturn($visible);

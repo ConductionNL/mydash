@@ -64,6 +64,7 @@ module.exports = {
 				// `ERR_UNKNOWN_FILE_EXTENSION`.
 				inline: [
 					/@nextcloud\/vue/,
+					/@nextcloud\/axios/,
 					/@conduction\/nextcloud-vue/,
 					/@nextcloud\/dialogs/,
 					/vue-material-design-icons/,
@@ -78,6 +79,18 @@ module.exports = {
 	resolve: {
 		alias: [
 			{ find: '@', replacement: path.resolve(__dirname, 'src') },
+			// `@nextcloud/axios` is ESM-only and its `exports` field
+			// confuses Vite's module resolver under unit tests; redirect
+			// every import to a tiny stub that exports the default `axios`
+			// without any Nextcloud-specific CSRF wiring (test code that
+			// actually exercises HTTP calls already uses `vi.mock(...)`).
+			{ find: /^@nextcloud\/axios$/, replacement: path.resolve(__dirname, 'tests/vitest/stubs/nextcloud-axios.js') },
+			// `@conduction/nextcloud-vue` ships a CJS bundle that
+			// `require()`s `.vue` files which Vite's transform pipeline
+			// cannot consume. Tests that need the actual component
+			// behaviour use `vi.mock(...)`; everyone else gets a tiny
+			// stub so transitive imports don't crash.
+			{ find: /^@conduction\/nextcloud-vue$/, replacement: path.resolve(__dirname, 'tests/vitest/stubs/conduction-nextcloud-vue.js') },
 		],
 	},
 }

@@ -196,10 +196,10 @@ class AdminSettingsService
      * `group-routing` drops them.
      *
      * @param array<int, mixed> $groupIds The ordered group IDs (mixed so the
-     *                                     runtime defensive check has work
-     *                                     to do; static analysis cannot
-     *                                     reach the IGroupManager → service
-     *                                     payload origin).
+     *                                    runtime defensive check has work
+     *                                    to do; static analysis cannot
+     *                                    reach the IGroupManager → service
+     *                                    payload origin).
      *
      * @return void
      *
