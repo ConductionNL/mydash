@@ -45,6 +45,12 @@ Thumbs.db
 /phpqa/
 /quality-reports/
 
+# Playwright e2e
+/tests/e2e/.auth/
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
 # PHP
 /composer.phar
 
