@@ -44,6 +44,15 @@ export const api = {
 		return axios.get(`${baseUrl}/api/dashboard`)
 	},
 
+	// Persist the user's active-dashboard preference (REQ-DASH-019).
+	// Empty string clears the pref so the resolver falls back through the
+	// 7-step chain on next render. The endpoint does NOT validate that
+	// the UUID exists — the resolver's stale-pref path handles invalid
+	// UUIDs on the next page load.
+	setActiveDashboardPreference(uuid) {
+		return axios.post(`${baseUrl}/api/dashboards/active`, { uuid })
+	},
+
 	createDashboard(data) {
 		return axios.post(`${baseUrl}/api/dashboard`, data)
 	},
@@ -58,6 +67,84 @@ export const api = {
 
 	activateDashboard(id) {
 		return axios.post(`${baseUrl}/api/dashboard/${id}/activate`)
+	},
+
+	getDashboardById(id) {
+		return axios.get(`${baseUrl}/api/dashboard/${id}`)
+	},
+
+	// Visible-to-user resolution endpoint (REQ-DASH-013).
+	// Returns deduplicated union of personal + group + default-group
+	// dashboards, each tagged with `source: 'user' | 'group' | 'default'`.
+	getVisibleDashboards() {
+		return axios.get(`${baseUrl}/api/dashboards/visible`)
+	},
+
+	// Group-shared dashboard CRUD (REQ-DASH-014).
+	listGroupDashboards(groupId) {
+		return axios.get(`${baseUrl}/api/dashboards/group/${encodeURIComponent(groupId)}`)
+	},
+
+	createGroupDashboard(groupId, data) {
+		return axios.post(`${baseUrl}/api/dashboards/group/${encodeURIComponent(groupId)}`, data)
+	},
+
+	getGroupDashboard(groupId, uuid) {
+		return axios.get(`${baseUrl}/api/dashboards/group/${encodeURIComponent(groupId)}/${encodeURIComponent(uuid)}`)
+	},
+
+	updateGroupDashboard(groupId, uuid, data) {
+		return axios.put(`${baseUrl}/api/dashboards/group/${encodeURIComponent(groupId)}/${encodeURIComponent(uuid)}`, data)
+	},
+
+	deleteGroupDashboard(groupId, uuid) {
+		return axios.delete(`${baseUrl}/api/dashboards/group/${encodeURIComponent(groupId)}/${encodeURIComponent(uuid)}`)
+	},
+
+	// Promote a single group-shared dashboard to the group's default
+	// (REQ-DASH-015). Admin-only — backend enforces the admin guard and
+	// runs the flip in a single transaction.
+	setGroupDashboardDefault(groupId, uuid) {
+		return axios.post(
+			`${baseUrl}/api/dashboards/group/${encodeURIComponent(groupId)}/default`,
+			{ uuid },
+		)
+	},
+
+	// Fork any visible dashboard into a brand-new personal copy
+	// (REQ-DASH-020). Body shape is `{name?: string}` — when `name`
+	// is omitted the backend applies the localised default
+	// `My copy of {source name}`.
+	forkDashboard(sourceUuid, name) {
+		const payload = (name === undefined || name === null || name === '')
+			? {}
+			: { name }
+		return axios.post(`${baseUrl}/api/dashboards/${encodeURIComponent(sourceUuid)}/fork`, payload)
+	},
+
+	// Sharing endpoints
+	listShares(dashboardId) {
+		return axios.get(`${baseUrl}/api/dashboard/${dashboardId}/shares`)
+	},
+
+	addShare(dashboardId, data) {
+		return axios.post(`${baseUrl}/api/dashboard/${dashboardId}/shares`, data)
+	},
+
+	replaceShares(dashboardId, shares) {
+		return axios.put(`${baseUrl}/api/dashboard/${dashboardId}/shares`, { shares })
+	},
+
+	removeShare(shareId) {
+		return axios.delete(`${baseUrl}/api/dashboard/share/${shareId}`)
+	},
+
+	revokeAllForRecipient(shareType, shareWith) {
+		return axios.delete(`${baseUrl}/api/sharees/${shareType}/${encodeURIComponent(shareWith)}`)
+	},
+
+	searchSharees(query) {
+		return axios.get(`${baseUrl}/api/sharees`, { params: { query } })
 	},
 
 	// Widget endpoints
@@ -131,6 +218,17 @@ export const api = {
 
 	updateAdminSettings(data) {
 		return axios.put(`${baseUrl}/api/admin/settings`, data)
+	},
+
+	// Admin group-priority order (REQ-ASET-012/013/014).
+	// Both endpoints are admin-only on the server side; the UI gates
+	// rendering of the section behind the same admin check.
+	getAdminGroups() {
+		return axios.get(`${baseUrl}/api/admin/groups`)
+	},
+
+	updateAdminGroupOrder(groups) {
+		return axios.post(`${baseUrl}/api/admin/groups`, { groups })
 	},
 
 	// Tile endpoints

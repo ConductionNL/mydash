@@ -60,3 +60,8 @@ Thumbs.db
 sbom.cdx.json
 bom-php.cdx.json
 bom-npm.cdx.json
+
+# Research notes (local-only)
+/docs/sendent-analysis.md
+/sendent-workspace-main/
+/2026.*_sendent-workspace-main.zip

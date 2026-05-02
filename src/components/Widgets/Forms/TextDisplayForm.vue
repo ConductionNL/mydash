@@ -5,176 +5,145 @@
 
 <template>
 	<div class="text-display-form">
-		<div class="text-display-form__field">
-			<label :for="textareaId" class="text-display-form__label">
-				{{ tt('Text') }}
-			</label>
+		<label class="text-display-form__field">
+			{{ t('mydash', 'Text') }}
 			<textarea
-				:id="textareaId"
-				v-model="form.text"
+				:value="text"
 				class="text-display-form__textarea"
 				rows="4"
-				@input="emitUpdate" />
-		</div>
+				required
+				@input="updateField('text', $event.target.value)" />
+		</label>
 
-		<div class="text-display-form__field">
-			<label :for="fontSizeId" class="text-display-form__label">
-				{{ tt('Font Size') }}
-			</label>
-			<input
-				:id="fontSizeId"
-				v-model="form.fontSize"
-				type="text"
-				class="text-display-form__input"
-				placeholder="14px"
-				@input="emitUpdate">
-		</div>
+		<NcTextField
+			:value="fontSize"
+			:label="t('mydash', 'Font Size')"
+			placeholder="14px"
+			@update:value="updateField('fontSize', $event)" />
 
-		<div class="text-display-form__field">
-			<label :for="colorId" class="text-display-form__label">
-				{{ tt('Text Color') }}
-			</label>
+		<label class="text-display-form__color-label">
+			{{ t('mydash', 'Text Color') }}
 			<input
-				:id="colorId"
-				v-model="form.color"
 				type="color"
+				:value="color || '#000000'"
 				class="text-display-form__color"
-				@input="emitUpdate">
-		</div>
+				@input="updateField('color', $event.target.value)">
+		</label>
 
-		<div class="text-display-form__field">
-			<label :for="bgColorId" class="text-display-form__label">
-				{{ tt('Background Color') }}
-			</label>
+		<label class="text-display-form__color-label">
+			{{ t('mydash', 'Background Color') }}
 			<input
-				:id="bgColorId"
-				v-model="form.backgroundColor"
 				type="color"
+				:value="backgroundColor || '#ffffff'"
 				class="text-display-form__color"
-				@input="emitUpdate">
-		</div>
+				@input="updateField('backgroundColor', $event.target.value)">
+		</label>
 
-		<div class="text-display-form__field">
-			<label :for="alignmentId" class="text-display-form__label">
-				{{ tt('Alignment') }}
-			</label>
-			<select
-				:id="alignmentId"
-				v-model="form.textAlign"
-				class="text-display-form__select"
-				@change="emitUpdate">
-				<option value="left">
-					{{ tt('Left') }}
-				</option>
-				<option value="center">
-					{{ tt('Center') }}
-				</option>
-				<option value="right">
-					{{ tt('Right') }}
-				</option>
-				<option value="justify">
-					{{ tt('Justify') }}
-				</option>
-			</select>
-		</div>
+		<NcSelect
+			:value="textAlign"
+			:options="textAlignOptions"
+			:input-label="t('mydash', 'Alignment')"
+			:clearable="false"
+			@input="updateField('textAlign', $event)" />
 	</div>
 </template>
 
 <script>
-/**
- * TextDisplayForm
- *
- * Sub-form for AddWidgetModal that authors the persisted `content` blob for a
- * `text` widget. Pre-fills from `editingWidget.content` on mount, emits
- * `update:content` reactively, and exposes a `validate()` method matching the
- * existing modal contract (REQ-TXT-004).
- */
+import { NcTextField, NcSelect } from '@conduction/nextcloud-vue'
 
-const DEFAULTS = {
+const DEFAULT_CONTENT = Object.freeze({
 	text: '',
 	fontSize: '14px',
 	color: '',
 	backgroundColor: '',
 	textAlign: 'left',
-}
+})
 
-let uidCounter = 0
-
+/**
+ * TextDisplayForm is the sub-form for AddWidgetModal when the user is
+ * creating or editing a `text` widget placement.
+ *
+ * Exposes the five controls described in REQ-TXT-004 (textarea, font size
+ * input, two colour pickers, alignment select) and a `validate()` method
+ * returning `[t('mydash', 'Text is required')]` when text is empty or
+ * whitespace-only — matching the AddWidgetModal sub-form contract.
+ */
 export default {
 	name: 'TextDisplayForm',
 
+	components: {
+		NcTextField,
+		NcSelect,
+	},
+
 	props: {
+		/**
+		 * The placement being edited, or `null` in create mode.
+		 * Pre-fills every control from `editingWidget.content`.
+		 */
 		editingWidget: {
 			type: Object,
 			default: null,
+		},
+		/**
+		 * Initial content values — used when not editing and the parent
+		 * supplies registry defaults.
+		 */
+		value: {
+			type: Object,
+			default: () => ({ ...DEFAULT_CONTENT }),
 		},
 	},
 
 	emits: ['update:content'],
 
 	data() {
+		const initial = this.editingWidget?.content || this.value || {}
 		return {
-			uid: ++uidCounter,
-			form: { ...DEFAULTS },
+			text: initial.text ?? DEFAULT_CONTENT.text,
+			fontSize: initial.fontSize ?? DEFAULT_CONTENT.fontSize,
+			color: initial.color ?? DEFAULT_CONTENT.color,
+			backgroundColor: initial.backgroundColor ?? DEFAULT_CONTENT.backgroundColor,
+			textAlign: initial.textAlign ?? DEFAULT_CONTENT.textAlign,
 		}
 	},
 
 	computed: {
-		textareaId() {
-			return `text-display-form-text-${this.uid}`
+		textAlignOptions() {
+			return ['left', 'center', 'right', 'justify']
 		},
-		fontSizeId() {
-			return `text-display-form-fontsize-${this.uid}`
-		},
-		colorId() {
-			return `text-display-form-color-${this.uid}`
-		},
-		bgColorId() {
-			return `text-display-form-bgcolor-${this.uid}`
-		},
-		alignmentId() {
-			return `text-display-form-alignment-${this.uid}`
-		},
-	},
 
-	mounted() {
-		const content = this.editingWidget?.content || {}
-		this.form = {
-			text: typeof content.text === 'string' ? content.text : DEFAULTS.text,
-			fontSize: typeof content.fontSize === 'string' && content.fontSize !== ''
-				? content.fontSize
-				: DEFAULTS.fontSize,
-			color: typeof content.color === 'string' ? content.color : DEFAULTS.color,
-			backgroundColor: typeof content.backgroundColor === 'string'
-				? content.backgroundColor
-				: DEFAULTS.backgroundColor,
-			textAlign: ['left', 'center', 'right', 'justify'].includes(content.textAlign)
-				? content.textAlign
-				: DEFAULTS.textAlign,
-		}
+		assembledContent() {
+			return {
+				text: this.text,
+				fontSize: this.fontSize,
+				color: this.color,
+				backgroundColor: this.backgroundColor,
+				textAlign: this.textAlign,
+			}
+		},
 	},
 
 	methods: {
-		tt(key) {
-			if (typeof t === 'function') {
-				return t('mydash', key)
-			}
-			return key
-		},
-
-		emitUpdate() {
-			this.$emit('update:content', { ...this.form })
+		/**
+		 * Set a field and notify parent.
+		 *
+		 * @param {string} field one of: text, fontSize, color, backgroundColor, textAlign
+		 * @param {string} value new value
+		 */
+		updateField(field, value) {
+			this[field] = value
+			this.$emit('update:content', this.assembledContent)
 		},
 
 		/**
-		 * Validate the form. Returns an array of localised error strings.
-		 * Empty array means the form is valid (REQ-TXT-004).
+		 * Returns a list of error strings; empty array means valid.
 		 *
-		 * @return {string[]} array of error messages
+		 * @return {string[]} validation errors
 		 */
 		validate() {
-			if (!this.form.text || this.form.text.trim() === '') {
-				return [this.tt('Text is required')]
+			if (typeof this.text !== 'string' || this.text.trim() === '') {
+				return [t('mydash', 'Text is required')]
 			}
 			return []
 		},
@@ -193,27 +162,36 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
-}
-
-.text-display-form__label {
-	font-weight: bold;
+	font-size: 14px;
 }
 
 .text-display-form__textarea {
 	width: 100%;
-	font-family: inherit;
+	min-height: 96px;
+	padding: 8px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font: inherit;
 	resize: vertical;
 }
 
-.text-display-form__input,
-.text-display-form__select {
-	width: 100%;
+.text-display-form__color-label {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	font-size: 14px;
 }
 
 .text-display-form__color {
-	width: 64px;
+	width: 48px;
 	height: 32px;
 	padding: 0;
 	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	cursor: pointer;
+	background: transparent;
 }
 </style>

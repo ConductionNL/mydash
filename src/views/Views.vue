@@ -1,129 +1,130 @@
-<!--
-  - SPDX-FileCopyrightText: 2024 MyDash Contributors
-  - SPDX-License-Identifier: AGPL-3.0-or-later
--->
-
 <template>
 	<div id="mydash-app">
-		<!-- Sidebar backdrop: click outside to close (REQ-SHELL-006) -->
+		<!-- Slide-in sidebar (REQ-SWITCH-001..007). Wired with Vue 2's
+		     v-model rebind (model: { prop: 'isOpen', event: 'update:open' })
+		     so this template can use plain `v-model` while the sidebar
+		     emits the `update:open(boolean)` event mandated by the spec.
+		     Once `runtime-shell` ships and replaces this view with
+		     `WorkspaceApp.vue`, the same binding shape applies. -->
+		<DashboardSwitcherSidebar
+			v-model="sidebarOpen"
+			:group-name="primaryGroupName"
+			:group-dashboards="sidebarGroupDashboards"
+			:user-dashboards="sidebarUserDashboards"
+			:active-dashboard-id="activeDashboard?.id"
+			:allow-user-dashboards="allowUserDashboards"
+			@switch="onSidebarSwitch"
+			@create-dashboard="onSidebarCreateDashboard"
+			@delete-dashboard="onSidebarDeleteDashboard" />
 		<SidebarBackdrop
-			:is-open="sidebarOpen"
+			v-if="sidebarOpen"
 			@close="sidebarOpen = false" />
 
-		<!-- Slide-in sidebar (REQ-SHELL-003 / REQ-SHELL-004) -->
-		<DashboardSwitcherSidebar
-			:is-open="sidebarOpen"
-			:group-name="primaryGroupName"
-			:group-dashboards="groupDashboards"
-			:user-dashboards="userDashboards"
-			:active-dashboard-id="activeDashboard ? activeDashboard.id : ''"
-			:allow-user-dashboards="allowUserDashboards"
-			@update:open="sidebarOpen = $event"
-			@switch="onSwitchDashboard"
-			@create-dashboard="onCreateDashboard"
-			@delete-dashboard="onDeleteDashboard" />
-
-		<!-- Main content area -->
-		<div class="mydash-main">
-			<!-- Header strip: hamburger + active-dashboard label (REQ-SHELL-004) -->
-			<div class="mydash-header-strip">
-				<button
-					class="mydash-hamburger"
-					:aria-label="t('mydash', 'Open navigation')"
-					@click="sidebarOpen = !sidebarOpen">
+		<!-- Floating controls in top right -->
+		<div class="mydash-floating-controls">
+			<NcButton
+				type="tertiary"
+				:aria-label="t('mydash', 'Dashboards')"
+				class="mydash-sidebar-toggle"
+				@click="sidebarOpen = !sidebarOpen">
+				<template #icon>
 					<MenuIcon :size="20" />
-				</button>
-				<span class="mydash-active-dashboard-label">
-					{{ activeDashboard ? activeDashboard.name : '' }}
-				</span>
+				</template>
+			</NcButton>
+			<!-- Primary-group label (REQ-TMPL-012). Surfaces the resolved
+			     primary group's display name so the user can see which
+			     group's dashboards they are currently viewing. The label
+			     is hidden when the resolver returned the `default`
+			     sentinel AND no friendly name was pushed (avoids a noisy
+			     "Default" badge for one-group installations). -->
+			<div
+				v-if="primaryGroupLabel"
+				class="mydash-primary-group-label"
+				:title="t('mydash', 'Your primary group for shared dashboards')">
+				{{ primaryGroupLabel }}
+			</div>
+			<DashboardSwitcher
+				v-if="dashboards.length > 1"
+				:dashboards="dashboards"
+				:active-id="activeDashboard?.id"
+				@switch="switchDashboard" />
+			<DashboardConfigMenu
+				:dashboards="dashboards"
+				:active-dashboard-id="activeDashboard?.id"
+				:is-edit-mode="isEditMode"
+				:can-edit="canEdit"
+				:is-active-owner="activeDashboard?.isOwner !== false"
+				@switch-dashboard="switchDashboard"
+				@create-dashboard="handleCreateDashboard"
+				@toggle-edit="toggleEditMode"
+				@open-config="openConfigModal"
+				@add-tile="openTileEditor()"
+				@add-widget="openWidgetModal"
+				@add-custom-widget="openCustomWidgetModal()" />
+		</div>
 
-				<!-- Edit toolbar (REQ-SHELL-003): only when canEdit -->
-				<div v-if="canEdit" class="mydash-toolbar">
-					<NcButton
-						:type="isEditMode ? 'primary' : 'secondary'"
-						:aria-label="isEditMode ? t('mydash', 'Close editing') : t('mydash', 'Customize')"
-						@click="toggleEditMode">
-						<template #icon>
-							<Close v-if="isEditMode" :size="20" />
-							<Cog v-else :size="20" />
-						</template>
-						{{ isEditMode ? t('mydash', 'Close') : '' }}
-					</NcButton>
+		<!-- Main dashboard grid -->
+		<div class="mydash-container" :class="{ 'mydash-edit-mode': isEditMode }">
+			<DashboardGrid
+				v-if="activeDashboard"
+				:placements="widgetPlacements"
+				:widgets="availableWidgets"
+				:edit-mode="isEditMode"
+				:grid-columns="activeDashboard.gridColumns"
+				@update:placements="updatePlacements"
+				@widget-remove="removeWidget"
+				@widget-edit="openStyleEditor"
+				@widget-right-click="onWidgetRightClick"
+				@tile-edit="openTileEditorForEdit" />
 
-					<template v-if="isEditMode">
-						<NcButton
-							type="secondary"
-							:aria-label="t('mydash', 'Add Widget')"
-							@click="openWidgetPicker">
-							<template #icon>
-								<Plus :size="20" />
-							</template>
-							{{ t('mydash', 'Add Widget') }}
-						</NcButton>
-
-						<NcButton
-							type="secondary"
-							:aria-label="t('mydash', 'Save Layout')"
-							:disabled="saving"
-							@click="saveLayout">
-							<template #icon>
-								<ContentSave :size="20" />
-							</template>
-							{{ t('mydash', 'Save Layout') }}
+			<!-- Empty-state shell. The "Create dashboard" affordance is gated
+			     by the admin `allow_user_dashboards` flag (REQ-ASET-003,
+			     extended). When the flag is off the button MUST be hidden
+			     and the description swapped for a localised explainer so
+			     the workspace never offers an action that would 403. -->
+			<div v-else class="mydash-empty">
+				<NcEmptyContent
+					:name="t('mydash', 'No dashboard yet')"
+					:description="emptyStateDescription">
+					<template #icon>
+						<ViewDashboard :size="64" />
+					</template>
+					<template v-if="allowUserDashboards" #action>
+						<NcButton type="primary" @click="handleCreateDashboard">
+							{{ t('mydash', 'Create dashboard') }}
 						</NcButton>
 					</template>
-				</div>
-			</div>
-
-			<!-- Main dashboard grid (REQ-SHELL-001) -->
-			<div class="mydash-container" :class="{ 'mydash-edit-mode': isEditMode }">
-				<!-- Grid: shown when active dashboard exists (REQ-SHELL-005) -->
-				<DashboardGrid
-					v-if="activeDashboard"
-					ref="dashboardGrid"
-					:placements="widgetPlacements"
-					:widgets="availableWidgets"
-					:edit-mode="isEditMode && canEdit"
-					:grid-columns="activeDashboard.gridColumns"
-					@update:placements="updatePlacements"
-					@widget-remove="removeWidget"
-					@widget-edit="openWidgetEditModal"
-					@tile-edit="openTileEditorForEdit" />
-
-				<!-- Empty state: shown when no active dashboard (REQ-SHELL-005) -->
-				<div v-else class="mydash-empty">
-					<NcEmptyContent
-						:name="t('mydash', 'You have no dashboards yet')"
-						:description="allowUserDashboards
-							? t('mydash', 'Create your first dashboard to get started')
-							: t('mydash', 'Personal dashboards are not enabled. Ask your administrator.')">
-						<template #icon>
-							<ViewDashboard :size="64" />
-						</template>
-						<template v-if="allowUserDashboards" #action>
-							<NcButton type="primary" @click="onCreateDashboard">
-								{{ t('mydash', 'Create your first dashboard') }}
-							</NcButton>
-						</template>
-					</NcEmptyContent>
-				</div>
+				</NcEmptyContent>
 			</div>
 		</div>
 
-		<!-- Widget picker sidebar -->
-		<WidgetPicker
-			:open="isPickerOpen"
+		<!-- Widget picker modal -->
+		<WidgetPickerModal
+			:open="isWidgetModalOpen"
 			:widgets="availableWidgets"
 			:placed-widget-ids="placedWidgetIds"
-			:dashboards="dashboards"
-			:active-dashboard-id="activeDashboard ? activeDashboard.id : ''"
-			@close="closeWidgetPicker"
-			@add="addWidget"
-			@add-tile="openTileEditor()"
-			@switch-dashboard="onSwitchDashboard"
-			@create-dashboard="onCreateDashboard"
-			@edit-dashboard="handleEditDashboard"
-			@delete-dashboard="handleDeleteDashboard" />
+			@close="closeWidgetModal"
+			@add="addWidget" />
+
+		<!-- Custom widget add/edit modal — registry-driven host for label,
+		     text, image, link-button, etc. (REQ-WDG-010..014). The modal does
+		     no API calls itself; this view persists the emitted payload. -->
+		<AddWidgetModal
+			:show="isCustomWidgetModalOpen"
+			:preselected-type="customWidgetPreselectedType"
+			:editing-widget="customWidgetEditing"
+			@close="closeCustomWidgetModal"
+			@submit="saveCustomWidget" />
+
+		<!-- Dashboard configuration modal (also used for creating a new dashboard) -->
+		<DashboardConfigModal
+			:open="isConfigModalOpen"
+			:dashboard="configModalMode === 'create' ? null : activeDashboard"
+			:mode="configModalMode"
+			:can-delete="dashboards.length > 1"
+			@close="closeConfigModal"
+			@save="saveDashboardConfig"
+			@delete="deleteCurrentDashboard" />
 
 		<!-- Style editor modal -->
 		<WidgetStyleEditor
@@ -134,14 +135,6 @@
 			@update="updateWidgetStyle"
 			@delete="deleteWidget" />
 
-		<!-- Add / Edit widget modal (content-level) -->
-		<AddWidgetModal
-			:show="isWidgetModalOpen"
-			:widgets="availableWidgets"
-			:editing-widget="editingWidgetContent"
-			@close="closeWidgetModal"
-			@submit="handleWidgetModalSubmit" />
-
 		<!-- Tile editor modal -->
 		<TileEditor
 			:open="isTileEditorOpen"
@@ -149,29 +142,42 @@
 			@close="closeTileEditor"
 			@save="saveTile"
 			@delete="deleteTile" />
+
+		<!-- Widget right-click context menu (REQ-WDG-015..017). The
+		     popover renders only in edit mode, anchored at the cursor.
+		     Clicking Edit reuses AddWidgetModal with the placement set
+		     as `editingWidget`; Remove calls the placement-delete path
+		     of REQ-WDG-005; Cancel is a no-op close. -->
+		<WidgetContextMenu
+			v-if="grid.state.contextMenuOpen"
+			:top="grid.state.contextMenuPosition.y"
+			:left="grid.state.contextMenuPosition.x"
+			@edit="grid.triggerEdit()"
+			@remove="grid.triggerRemove()"
+			@close="grid.closeContextMenu()" />
 	</div>
 </template>
 
 <script>
+import Vue from 'vue'
 import { mapState, mapActions } from 'pinia'
 import { NcButton, NcEmptyContent } from '@conduction/nextcloud-vue'
-import { showSuccess, showError } from '@nextcloud/dialogs'
 import { t } from '@nextcloud/l10n'
 
 // Icons
-import Close from 'vue-material-design-icons/Close.vue'
-import Cog from 'vue-material-design-icons/Cog.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
-import MenuIcon from 'vue-material-design-icons/Menu.vue'
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
-import ContentSave from 'vue-material-design-icons/ContentSave.vue'
+import MenuIcon from 'vue-material-design-icons/Menu.vue'
 
 // Components
 import DashboardGrid from '../components/DashboardGrid.vue'
-import WidgetPicker from '../components/WidgetPicker.vue'
+import WidgetPickerModal from '../components/WidgetPickerModal.vue'
 import WidgetStyleEditor from '../components/WidgetStyleEditor.vue'
-import AddWidgetModal from '../components/Widgets/AddWidgetModal.vue'
 import TileEditor from '../components/TileEditor.vue'
+import DashboardSwitcher from '../components/DashboardSwitcher.vue'
+import DashboardConfigMenu from '../components/DashboardConfigMenu.vue'
+import DashboardConfigModal from '../components/DashboardConfigModal.vue'
+import AddWidgetModal from '../components/Widgets/AddWidgetModal.vue'
+import WidgetContextMenu from '../components/Widgets/WidgetContextMenu.vue'
 import DashboardSwitcherSidebar from '../components/Workspace/DashboardSwitcherSidebar.vue'
 import SidebarBackdrop from '../components/Workspace/SidebarBackdrop.vue'
 
@@ -181,81 +187,213 @@ import { useWidgetStore } from '../stores/widgets.js'
 import { useTileStore } from '../stores/tiles.js'
 import { api } from '../services/api.js'
 
+// Composables
+import { useGridManager } from '../composables/useGridManager.js'
+
 export default {
 	name: 'Views',
 	components: {
 		NcButton,
 		NcEmptyContent,
-		Close,
-		Cog,
-		Plus,
-		MenuIcon,
 		ViewDashboard,
-		ContentSave,
+		MenuIcon,
 		DashboardGrid,
-		WidgetPicker,
+		WidgetPickerModal,
 		WidgetStyleEditor,
-		AddWidgetModal,
 		TileEditor,
+		DashboardSwitcher,
+		DashboardConfigMenu,
+		DashboardConfigModal,
+		AddWidgetModal,
+		WidgetContextMenu,
 		DashboardSwitcherSidebar,
 		SidebarBackdrop,
 	},
-
-	/**
-	 * Inject workspace initial-state values provided from main.js (REQ-INIT-004 / REQ-INIT-005).
-	 * These are plain values pushed by InitialStateBuilder via Vue.provide() at the root.
-	 */
+	// Inject the typed initial-state snapshot pushed from `src/main.js`
+	// (REQ-INIT-003..005). Defaults match the reader contract so the
+	// sidebar still mounts when running under tests that don't set a
+	// provider (e.g. Vitest harness) — see DashboardSwitcherSidebar specs.
 	inject: {
-		isAdmin: { default: false },
-		dashboardSource: { default: 'group' },
-		allowUserDashboards: { default: false },
 		primaryGroupName: { default: '' },
-		groupDashboards: { default: () => [] },
-		userDashboards: { default: () => [] },
+		allowUserDashboards: { default: false },
 	},
+	setup() {
+		// Reactive `canEdit` proxy handed to the grid manager composable.
+		// Wrapped in Vue.observable so the composable's
+		// `onWidgetRightClick` early-return tracks the live value without
+		// re-creating the composable on every edit-mode toggle. When the
+		// runtime-shell capability ships, this will be replaced by the
+		// typed provide/inject contract and removed from local state.
+		const canEditRef = Vue.observable({ value: false })
 
+		// `selectedWidget` from the popover may live in either of two
+		// edit paths. The host-side callbacks resolve which one to use
+		// (custom-type widgets → AddWidgetModal; nextcloud-widget tiles →
+		// WidgetStyleEditor) and the placement-delete path is the same
+		// `removeWidgetFromDashboard` action used by the existing remove
+		// flow. The host wires these via methods after instantiation so
+		// `this` is bound to the component when the callbacks fire.
+		const grid = useGridManager({
+			canEdit: canEditRef,
+			onEdit(widget) {
+				// `this` is the Vue instance once we bind in `created()`.
+				grid._host?.handleContextMenuEdit(widget)
+			},
+			onRemove(widget) {
+				grid._host?.handleContextMenuRemove(widget)
+			},
+		})
+
+		return { canEditRef, grid }
+	},
+	// REQ-INIT-004 / REQ-ASET-003 / REQ-TMPL-012: pull typed initial-state
+	// values down the tree. Defaults keep the UX safe when keys are missing.
+	inject: {
+		allowUserDashboards: {
+			from: 'allowUserDashboards',
+			default: false,
+		},
+		primaryGroup: {
+			from: 'primaryGroup',
+			default: 'default',
+		},
+		primaryGroupName: {
+			from: 'primaryGroupName',
+			default: '',
+		},
+	},
 	data() {
 		return {
-			sidebarOpen: false,
 			isEditMode: false,
-			saving: false,
-			isPickerOpen: false,
+			isWidgetModalOpen: false,
+			isConfigModalOpen: false,
+			configModalMode: 'edit',
 			isStyleEditorOpen: false,
 			editingPlacement: null,
 			isTileEditorOpen: false,
 			editingTile: null,
-			// Add/edit widget modal state
-			isWidgetModalOpen: false,
-			editingWidgetContent: null,
+			// Custom widget add/edit modal state. `customWidgetEditing`
+			// non-null = edit mode; `customWidgetPreselectedType` non-null =
+			// type-specific deep-link from the toolbar.
+			isCustomWidgetModalOpen: false,
+			customWidgetPreselectedType: null,
+			customWidgetEditing: null,
+			// `dashboard-switcher` capability state — controlled here, the
+			// sidebar emits update:open(boolean) via its v-model rebind.
+			sidebarOpen: false,
 		}
 	},
-
 	computed: {
 		...mapState(useDashboardStore, [
 			'dashboards',
 			'activeDashboard',
 			'widgetPlacements',
+			'permissionLevel',
 			'loading',
+			'userDashboards',
+			'groupSharedDashboards',
+			'defaultGroupDashboards',
 		]),
 		...mapState(useWidgetStore, ['availableWidgets']),
 		...mapState(useTileStore, ['tiles']),
 
+		canEdit() {
+			return this.permissionLevel !== 'view_only'
+		},
 		/**
-		 * REQ-SHELL-002: canEdit gate — admins can always edit; regular users
-		 * only when viewing their own personal dashboard (source = 'user').
+		 * Whether the right-click context menu (REQ-WDG-015) should open
+		 * for the current dashboard. Requires both the user permission
+		 * gate and the workspace shell's edit-mode toggle. View mode
+		 * intentionally falls through to the browser's native menu.
 		 *
 		 * @return {boolean}
 		 */
-		canEdit() {
-			return this.isAdmin || this.dashboardSource === 'user'
+		canEditForContextMenu() {
+			return this.canEdit && this.isEditMode
 		},
-
 		placedWidgetIds() {
 			return this.widgetPlacements.map(p => p.widgetId)
 		},
+		/**
+		 * Combined input for the sidebar's `groupDashboards` prop —
+		 * primary-group + default-group rows, each carrying their `source`
+		 * discriminator from `/api/dashboards/visible` (REQ-DASH-013).
+		 *
+		 * @return {Array<object>} Concatenated group + default dashboards.
+		 */
+		sidebarGroupDashboards() {
+			return [...this.groupSharedDashboards, ...this.defaultGroupDashboards]
+		},
+		/**
+		 * Personal dashboards for the sidebar's `userDashboards` prop.
+		 * Aliased so the sidebar's prop name reads naturally in the
+		 * template even if the store getter is renamed later.
+		 *
+		 * @return {Array<object>} Dashboards with `source === 'user'`.
+		 */
+		sidebarUserDashboards() {
+			return this.userDashboards
+		},
+		/**
+		 * Empty-state copy. When personal dashboards are disabled by the
+		 * admin we swap the friendly "create one" prompt for a localised
+		 * explainer (REQ-ASET-003). The translatable English source is
+		 * kept short so the layout doesn't wrap awkwardly.
+		 *
+		 * @return {string}
+		 */
+		emptyStateDescription() {
+			if (this.allowUserDashboards) {
+				return this.t('mydash', 'Create your first dashboard to get started')
+			}
+			return this.t('mydash', 'Personal dashboards are not enabled by your administrator')
+		},
+		/**
+		 * Display label for the resolved primary group (REQ-TMPL-012).
+		 *
+		 * Returns the server-pushed `primaryGroupName` verbatim when it
+		 * is non-empty (real Nextcloud groups), the localised
+		 * `'Default'` string when the resolver returned the `default`
+		 * sentinel and the server didn't pick a name, or an empty
+		 * string when there is nothing meaningful to show — the
+		 * `v-if` in the template hides the badge in that last case.
+		 *
+		 * @return {string} Label to render, or '' when none.
+		 */
+		primaryGroupLabel() {
+			if (this.primaryGroupName) {
+				return this.primaryGroupName
+			}
+			if (this.primaryGroup && this.primaryGroup !== 'default') {
+				return this.primaryGroup
+			}
+			return ''
+		},
 	},
-
+	watch: {
+		/**
+		 * Mirror the combined edit-mode / permission gate into the
+		 * Vue.observable proxy the grid manager composable owns. The
+		 * proxy is the only thing the composable reads, so this watcher
+		 * is what keeps the right-click guard live.
+		 *
+		 * @param {boolean} value the new combined edit/permission value
+		 */
+		canEditForContextMenu: {
+			immediate: true,
+			handler(value) {
+				if (this.canEditRef) {
+					this.canEditRef.value = !!value
+				}
+			},
+		},
+	},
 	async created() {
+		// Bind the host onto the grid composable so its onEdit / onRemove
+		// callbacks can delegate to component methods. The composable was
+		// instantiated in `setup()` which has no access to `this`.
+		this.grid._host = this
+
 		const dashboardStore = useDashboardStore()
 		const widgetStore = useWidgetStore()
 		const tileStore = useTileStore()
@@ -266,7 +404,17 @@ export default {
 			tileStore.loadTiles(),
 		])
 	},
-
+	mounted() {
+		// Attach the document-level click listener (REQ-WDG-016 outside-
+		// click closes popover). Detached in beforeDestroy so we never
+		// leak a listener across mounts.
+		this.grid.attach()
+	},
+	beforeDestroy() {
+		this.grid.detach()
+		// Drop the host pointer to avoid retaining the Vue instance.
+		this.grid._host = null
+	},
 	methods: {
 		t,
 		...mapActions(useDashboardStore, [
@@ -281,181 +429,153 @@ export default {
 		]),
 		...mapActions(useTileStore, ['createTile', 'updateTile', 'deleteTile']),
 
-		// ─── Toolbar ───────────────────────────────────────────────────────
-
 		toggleEditMode() {
 			this.isEditMode = !this.isEditMode
 			if (!this.isEditMode) {
-				this.closeWidgetPicker()
+				this.closeWidgetModal()
 				this.closeStyleEditor()
+				// Leaving edit mode also dismisses any open right-click
+				// popover so view mode never carries an edit-only surface.
+				this.grid.closeContextMenu()
 			}
 		},
 
 		/**
-		 * REQ-SHELL-003: Save Layout — PUT current placements to the correct
-		 * endpoint based on dashboardSource.
-		 */
-		async saveLayout() {
-			if (this.saving || !this.activeDashboard) return
-
-			this.saving = true
-			try {
-				const layout = this.widgetPlacements.map(p => ({
-					id: p.id,
-					gridX: p.gridX,
-					gridY: p.gridY,
-					gridWidth: p.gridWidth,
-					gridHeight: p.gridHeight,
-				}))
-
-				if (this.dashboardSource === 'group' || this.dashboardSource === 'default') {
-					await api.updateGroupDashboard(
-						this.activeDashboard.groupId,
-						this.activeDashboard.uuid || this.activeDashboard.id,
-						{ layout },
-					)
-				} else {
-					await api.updateDashboard(
-						this.activeDashboard.id,
-						{ layout },
-					)
-				}
-
-				showSuccess(t('mydash', 'Layout saved'))
-			} catch (error) {
-				console.error('[Views] saveLayout failed:', error)
-				showError(t('mydash', 'Failed to save layout'))
-			} finally {
-				this.saving = false
-			}
-		},
-
-		// ─── Sidebar event handlers ────────────────────────────────────────
-
-		/**
-		 * REQ-SHELL-003: Switch to another dashboard (REQ-DASH-018).
+		 * DashboardGrid forwards every right-click on a placement here
+		 * (REQ-WDG-015). The composable owns the early-return + viewport
+		 * clamp + state mutation; we just forward the event so view mode
+		 * never calls `preventDefault()`.
 		 *
-		 * @param {string} dashboardId - Dashboard ID to switch to
-		 * @param {string} source - Source type ('group' | 'default' | 'user')
+		 * @param {MouseEvent} event the contextmenu event
+		 * @param {object} placement the placement under the cursor
 		 */
-		async onSwitchDashboard(dashboardId, source) {
-			this.sidebarOpen = false
-			try {
-				await this.switchDashboard(dashboardId)
-			} catch (error) {
-				console.error('[Views] Failed to switch dashboard:', error)
-			}
+		onWidgetRightClick(event, placement) {
+			this.grid.onWidgetRightClick(event, placement)
 		},
 
 		/**
-		 * REQ-SHELL-004: Create a new personal dashboard.
-		 */
-		async onCreateDashboard() {
-			const name = prompt(t('mydash', 'Dashboard name'))
-			if (!name) return
-
-			try {
-				await this.createDashboard(name)
-			} catch (error) {
-				console.error('[Views] Failed to create dashboard:', error)
-			}
-		},
-
-		/**
-		 * REQ-SHELL-003: Delete a dashboard with confirmation.
+		 * Edit click from the popover (REQ-WDG-015 edit scenario). Custom-
+		 * type placements (label, text, image, link-button, …) reuse the
+		 * unified AddWidgetModal with `editingWidget` set (REQ-WDG-010);
+		 * all other placements fall through to the legacy style editor so
+		 * the popover is useful for stock Nextcloud widgets too.
 		 *
-		 * @param {string} dashboardId - Dashboard ID to delete
+		 * @param {object} placement the placement to edit
 		 */
-		async onDeleteDashboard(dashboardId) {
-			if (!confirm(t('mydash', 'Are you sure you want to delete this dashboard?'))) {
+		handleContextMenuEdit(placement) {
+			if (placement && placement.type) {
+				this.openCustomWidgetEdit(placement)
 				return
 			}
+			this.openStyleEditor(placement)
+		},
 
+		/**
+		 * Remove click from the popover (REQ-WDG-015 remove scenario).
+		 * Routes through the same store action as the existing remove
+		 * flow so the placement-delete path of REQ-WDG-005 (DELETE
+		 * `/api/placements/{id}`) remains the single source of truth.
+		 *
+		 * @param {object} placement the placement to delete
+		 */
+		async handleContextMenuRemove(placement) {
+			if (!placement?.id) {
+				return
+			}
 			try {
-				await api.deleteDashboard(dashboardId)
-				// Refresh dashboards.
-				await this.loadDashboards()
+				await this.removeWidget(placement.id)
 			} catch (error) {
-				console.error('[Views] Failed to delete dashboard:', error)
+				console.error('[Views] Failed to remove widget via context menu:', error)
 			}
 		},
-
-		// ─── Widget picker ─────────────────────────────────────────────────
-
-		openWidgetPicker() {
-			this.isPickerOpen = true
+		openWidgetModal() {
+			if (!this.isEditMode) {
+				this.isEditMode = true
+			}
+			this.isWidgetModalOpen = true
 		},
-		closeWidgetPicker() {
-			this.isPickerOpen = false
+		closeWidgetModal() {
+			this.isWidgetModalOpen = false
 		},
-
-		async addWidget(widgetId) {
-			// Use the widget placement helper to compute position
-			const gridComponent = this.$refs.dashboardGrid
-			let position = null
-
-			if (gridComponent && gridComponent.placeWidget) {
-				// Get widget spec (default size if not specified)
-				const widget = this.availableWidgets.find(w => w.id === widgetId)
-				const spec = {
-					w: widget?.defaultWidth ?? 4,
-					h: widget?.defaultHeight ?? 4,
+		/**
+		 * Open the registry-driven custom widget modal in create mode.
+		 * Pass a `type` to deep-link to a specific sub-form (REQ-WDG-010
+		 * preselected-type scenario); omit it for the type-picker flow.
+		 *
+		 * @param {string|null} type registry key, or null for picker flow
+		 */
+		openCustomWidgetModal(type = null) {
+			if (!this.isEditMode) {
+				this.isEditMode = true
+			}
+			this.customWidgetPreselectedType = type
+			this.customWidgetEditing = null
+			this.isCustomWidgetModalOpen = true
+		},
+		/**
+		 * Open the modal in edit mode for an existing custom-type
+		 * placement. The placement's type is immutable in edit mode
+		 * (REQ-WDG-010), so the type select is hidden.
+		 *
+		 * @param {object} placement existing placement record with type+content
+		 */
+		openCustomWidgetEdit(placement) {
+			this.customWidgetEditing = placement
+			this.customWidgetPreselectedType = null
+			this.isCustomWidgetModalOpen = true
+		},
+		closeCustomWidgetModal() {
+			this.isCustomWidgetModalOpen = false
+			this.customWidgetPreselectedType = null
+			this.customWidgetEditing = null
+		},
+		/**
+		 * Persist the `{type, content}` payload emitted by AddWidgetModal.
+		 * In create mode we route through `addWidgetToDashboard` (which
+		 * the per-widget proposals will extend to accept custom-type
+		 * payloads); in edit mode we route through `updateWidgetPlacement`.
+		 *
+		 * The per-widget capability proposals own the actual API contract
+		 * — this view simply forwards the payload, mirroring how the tile
+		 * editor and style editor work today.
+		 *
+		 * @param {{type: string, content: object}} payload the widget add/edit payload from AddWidgetModal
+		 */
+		async saveCustomWidget(payload) {
+			try {
+				if (this.customWidgetEditing?.id) {
+					await this.updateWidgetPlacement(
+						this.customWidgetEditing.id,
+						{ content: payload.content },
+					)
+				} else {
+					await this.addWidgetToDashboard({
+						type: payload.type,
+						content: payload.content,
+					})
 				}
-				position = gridComponent.placeWidget(spec)
+				this.closeCustomWidgetModal()
+			} catch (error) {
+				console.error('[Views] Failed to save custom widget:', error)
 			}
-
-			await this.addWidgetToDashboard(widgetId, position)
 		},
-
+		openConfigModal() {
+			this.configModalMode = 'edit'
+			this.isConfigModalOpen = true
+		},
+		openCreateDashboardModal() {
+			this.configModalMode = 'create'
+			this.isConfigModalOpen = true
+		},
+		closeConfigModal() {
+			this.isConfigModalOpen = false
+		},
+		async addWidget(widgetId) {
+			await this.addWidgetToDashboard(widgetId)
+		},
 		async removeWidget(placementId) {
 			await this.removeWidgetFromDashboard(placementId)
 		},
-
-		/**
-		 * Open AddWidgetModal in edit mode for a placement that carries
-		 * widget content (styleConfig.type is set).
-		 * Falls through to the style editor for placements without content types.
-		 *
-		 * @param {object} placement the placement object to edit
-		 */
-		openWidgetEditModal(placement) {
-			const contentType = placement.styleConfig?.type
-			if (contentType) {
-				this.editingWidgetContent = {
-					type: contentType,
-					content: placement.styleConfig?.content || {},
-					placementId: placement.id,
-				}
-				this.isWidgetModalOpen = true
-			} else {
-				// No content type — fall through to the style editor.
-				this.openStyleEditor(placement)
-			}
-		},
-
-		closeWidgetModal() {
-			this.isWidgetModalOpen = false
-			this.editingWidgetContent = null
-		},
-
-		async handleWidgetModalSubmit(payload) {
-			if (this.editingWidgetContent?.placementId) {
-				// Edit mode: persist content back into styleConfig.
-				const existing = this.widgetPlacements.find(p => p.id === this.editingWidgetContent.placementId)
-				const updates = {
-					styleConfig: {
-						...(existing?.styleConfig || {}),
-						type: payload.type,
-						content: payload.content,
-					},
-				}
-				await this.updateWidgetPlacement(this.editingWidgetContent.placementId, updates)
-			}
-			this.closeWidgetModal()
-		},
-
-		// ─── Style editor ──────────────────────────────────────────────────
-
 		openStyleEditor(placement) {
 			this.editingPlacement = placement
 			this.isStyleEditorOpen = true
@@ -474,15 +594,14 @@ export default {
 				this.closeStyleEditor()
 			}
 		},
-
-		// ─── Tile editor ───────────────────────────────────────────────────
-
 		openTileEditor(tile = null) {
+			if (!this.isEditMode) {
+				this.isEditMode = true
+			}
 			this.editingTile = tile
 			this.isTileEditorOpen = true
 		},
 		openTileEditorForEdit(placement) {
-			// Convert placement data to tile format for editing.
 			const tileData = {
 				id: placement.id,
 				title: placement.tileTitle,
@@ -502,7 +621,6 @@ export default {
 		async saveTile(tileData) {
 			try {
 				if (this.editingTile) {
-					// Update existing tile (which is stored as a placement).
 					await this.updateWidgetPlacement(this.editingTile.id, {
 						tileTitle: tileData.title,
 						tileIcon: tileData.icon,
@@ -513,18 +631,7 @@ export default {
 						tileLinkValue: tileData.linkValue,
 					})
 				} else {
-					// Use the widget placement helper to compute position
-					const gridComponent = this.$refs.dashboardGrid
-					let position = null
-
-					if (gridComponent && gridComponent.placeWidget) {
-						// Tiles have default size 2×2
-						const spec = { w: 2, h: 2 }
-						position = gridComponent.placeWidget(spec)
-					}
-
-					// Create new tile using the store action (like widgets).
-					await this.addTileToDashboard(tileData, position)
+					await this.addTileToDashboard(tileData)
 				}
 				this.closeTileEditor()
 			} catch (error) {
@@ -537,23 +644,87 @@ export default {
 				this.closeTileEditor()
 			}
 		},
-
-		// ─── Legacy dashboard CRUD (used by WidgetPicker) ──────────────────
-
-		async handleEditDashboard(dashboard) {
-			const name = prompt(t('mydash', 'Dashboard name'), dashboard.name)
-			if (!name || name === dashboard.name) return
-
+		handleCreateDashboard() {
+			this.openCreateDashboardModal()
+		},
+		async saveDashboardConfig({ id, name, description, icon }) {
 			try {
-				await api.updateDashboard(dashboard.id, { name })
-				// Refresh dashboards.
-				await this.loadDashboards()
+				if (id == null) {
+					await this.createDashboard({ name, description, icon })
+				} else {
+					await api.updateDashboard(id, { name, description, icon })
+					await this.loadDashboards()
+				}
+				this.closeConfigModal()
 			} catch (error) {
-				console.error('[Views] Failed to update dashboard:', error)
+				console.error('Failed to save dashboard:', error)
 			}
 		},
-		async handleDeleteDashboard(dashboard) {
-			await this.onDeleteDashboard(dashboard.id)
+		async deleteCurrentDashboard(dashboard) {
+			if (!confirm(this.t('mydash', 'Are you sure you want to delete this dashboard?'))) {
+				return
+			}
+
+			try {
+				await api.deleteDashboard(dashboard.id)
+				await this.loadDashboards()
+				this.closeConfigModal()
+			} catch (error) {
+				console.error('Failed to delete dashboard:', error)
+			}
+		},
+		/**
+		 * Handle a switch emitted by `DashboardSwitcherSidebar`. The sidebar
+		 * passes the row's `source` discriminator alongside the id so we
+		 * can pick the correct API endpoint per REQ-DASH-013/REQ-DASH-014:
+		 *
+		 *   - `'user'`    → personal dashboard endpoint (already the
+		 *                   default in `dashboardStore.switchDashboard`)
+		 *   - `'group'`   → primary group endpoint
+		 *   - `'default'` → default group endpoint
+		 *
+		 * The store currently fetches via `getDashboardById`, which works
+		 * for every visible-to-user record regardless of source — the
+		 * group/default branches stay identical for now and exist to make
+		 * the source contract visible to readers (and to keep the fan-out
+		 * easy when source-specific endpoints land).
+		 *
+		 * @param {string|number} id Dashboard id from the clicked row.
+		 * @param {'group'|'default'|'user'} source Section discriminator.
+		 */
+		// eslint-disable-next-line no-unused-vars
+		async onSidebarSwitch(id, source) {
+			// `source` is currently informational — `switchDashboard`
+			// resolves any visible dashboard via /api/dashboard/{id}. The
+			// signature is kept explicit so per-source behaviour can land
+			// without re-touching this view (and so the load-bearing
+			// REQ-SWITCH-002 contract is visible at the call site).
+			await this.switchDashboard(id)
+		},
+		/**
+		 * Sidebar `+ New Dashboard` row handler — opens the create
+		 * dashboard modal flow already used by the topbar config menu.
+		 */
+		onSidebarCreateDashboard() {
+			this.openCreateDashboardModal()
+		},
+		/**
+		 * Sidebar personal-row delete handler. Mirrors the topbar
+		 * deletion flow (confirm → API → reload) but operates on an
+		 * arbitrary id rather than the active dashboard.
+		 *
+		 * @param {string|number} id Personal dashboard id to delete.
+		 */
+		async onSidebarDeleteDashboard(id) {
+			if (!confirm(this.t('mydash', 'Are you sure you want to delete this dashboard?'))) {
+				return
+			}
+			try {
+				await api.deleteDashboard(id)
+				await this.loadDashboards()
+			} catch (error) {
+				console.error('Failed to delete dashboard:', error)
+			}
 		},
 	},
 }
@@ -564,83 +735,59 @@ export default {
 	min-height: 100vh;
 	width: 100%;
 	background: transparent;
-	display: flex;
-	flex-direction: column;
 }
 
-/* REQ-SHELL-003 / REQ-SHELL-004: Header strip with hamburger + label + toolbar */
-.mydash-header-strip {
+.mydash-floating-controls {
+	position: fixed;
+	top: 80px;
+	right: 44px;
 	display: flex;
-	align-items: center;
 	gap: 8px;
-	padding: 8px 16px;
-	background: var(--color-main-background);
-	border-bottom: 1px solid var(--color-border);
-	position: sticky;
-	top: var(--header-height, 50px);
-	z-index: 100;
-	flex-shrink: 0;
-}
-
-.mydash-hamburger {
-	display: flex;
 	align-items: center;
-	justify-content: center;
-	width: 36px;
-	height: 36px;
-	padding: 0;
-	background: none;
-	border: none;
-	border-radius: var(--border-radius);
-	cursor: pointer;
-	color: var(--color-text-base);
-	flex-shrink: 0;
-	transition: background-color 0.15s ease;
+	z-index: 1000;
 }
 
-.mydash-hamburger:hover {
-	background-color: var(--color-background-hover);
+.mydash-sidebar-toggle {
+	/* Hint that the sidebar opens from the left even though the toggle
+	   itself lives in the top-right cluster. */
+	margin-right: auto;
 }
 
-.mydash-active-dashboard-label {
-	font-weight: 600;
-	font-size: 15px;
-	color: var(--color-text-base);
-	flex: 1;
-	overflow: hidden;
-	text-overflow: ellipsis;
+/* Primary-group label (REQ-TMPL-012). Subtle pill that names the
+   resolved group whose dashboards drive the workspace. */
+.mydash-primary-group-label {
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--color-text-maxcontrast);
+	background: var(--color-background-hover);
+	border-radius: var(--border-radius-pill, 999px);
+	padding: 4px 10px;
 	white-space: nowrap;
 }
 
-/* REQ-SHELL-003: Toolbar at right of header strip */
-.mydash-toolbar {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	flex-shrink: 0;
+/* Strip the visible text on the menu trigger button — we want icon-only.
+   NcActions renders its aria-label as button text in this version. */
+.mydash-floating-controls :deep(.action-item__menutoggle .button-vue__text) {
+	display: none;
 }
-
-/* REQ-SHELL-001: Main content wraps header + grid */
-.mydash-main {
-	display: flex;
-	flex-direction: column;
-	flex: 1;
-	min-height: 0;
+.mydash-floating-controls :deep(.action-item__menutoggle) {
+	width: var(--default-clickable-area, 44px);
+	min-width: var(--default-clickable-area, 44px);
+	padding: 0;
 }
 
 .mydash-container {
 	flex: 1;
 	padding: 0;
 	overflow: auto;
-	min-height: calc(100vh - var(--header-height, 50px) - 53px);
+	min-height: calc(100vh - var(--header-height));
 }
 
-/* REQ-SHELL-005: Empty-state centred inside grid area */
 .mydash-empty {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	height: 100%;
-	min-height: calc(100vh - var(--header-height, 50px) - 53px);
+	min-height: calc(100vh - var(--header-height));
 }
 </style>

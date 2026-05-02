@@ -17,7 +17,7 @@
 				:gs-h="placement.gridHeight"
 				:gs-min-w="2"
 				:gs-min-h="2"
-				@contextmenu.prevent="onWidgetRightClick($event, placement)">
+				@contextmenu="onItemContextMenu($event, placement)">
 				<div class="grid-stack-item-content">
 					<!-- Render Tile directly for tile placements. -->
 					<TileWidget
@@ -53,11 +53,17 @@
 
 <script>
 import { GridStack } from 'gridstack'
+import {
+	CELL_HEIGHT,
+	GRID_MARGIN,
+	DEFAULT_COLUMNS,
+	getColumnOpts,
+	syncCellHeightCssVar,
+} from '../composables/useGridManager.js'
 import WidgetWrapper from './WidgetWrapper.vue'
 import TileWidget from './TileWidget.vue'
 import WidgetContextMenu from './Widgets/WidgetContextMenu.vue'
 import { placeNewWidget } from '../utils/widgetPlacement.js'
-import { CELL_HEIGHT, GRID_MARGIN, BREAKPOINTS, COLUMN_LAYOUT } from '../constants/gridConfig.js'
 
 export default {
 	name: 'DashboardGrid',
@@ -83,11 +89,18 @@ export default {
 		},
 		gridColumns: {
 			type: Number,
-			default: 12,
+			default: DEFAULT_COLUMNS,
 		},
 	},
 
-	emits: ['update:placements', 'widget-remove', 'widget-style', 'tile-edit', 'widget-edit'],
+	emits: [
+		'update:placements',
+		'widget-remove',
+		'widget-style',
+		'tile-edit',
+		'widget-edit',
+		'widget-right-click',
+	],
 
 	data() {
 		return {
@@ -140,9 +153,24 @@ export default {
 
 	methods: {
 		/**
-		 * Place a new widget using the collision placement algorithm (REQ-GRID-006, REQ-GRID-014).
-		 * Returns the placement position {x, y, w, h} for the new widget.
-		 * Caller MUST persist this position via the standard updatePlacements API.
+		 * Forward right-click events on a grid item up to the workspace
+		 * shell (REQ-WDG-015). The shell is responsible for deciding
+		 * whether to swallow the native menu (edit mode) or let it through
+		 * (view mode) — this component MUST NOT call `preventDefault()`
+		 * itself, otherwise view-mode loses the browser's native menu.
+		 *
+		 * @param {MouseEvent} event the contextmenu event
+		 * @param {object} placement the placement under the cursor
+		 */
+		onItemContextMenu(event, placement) {
+			this.$emit('widget-right-click', event, placement)
+		},
+
+		/**
+		 * Place a new widget using the collision placement algorithm
+		 * (REQ-GRID-006, REQ-GRID-014). Returns the placement position
+		 * `{x, y, w, h}` for the new widget. Caller MUST persist this
+		 * position via the standard updatePlacements API.
 		 *
 		 * @param {object} spec widget spec with optional {w, h} dimensions
 		 * @return {object} placement position {x, y, w, h}
@@ -194,19 +222,26 @@ export default {
 		},
 
 		initGrid() {
+			// Mirror the JS cell-height constant into the CSS custom
+			// property BEFORE GridStack initialises so any first-paint
+			// `calc()` expression already reads the correct value.
+			// See REQ-GRID-012 (cell geometry constants).
+			syncCellHeightCssVar()
+
 			this.grid = GridStack.init({
 				column: this.gridColumns,
 				cellHeight: CELL_HEIGHT,
 				margin: GRID_MARGIN,
-				columnOpts: {
-					breakpoints: BREAKPOINTS,
-					layout: COLUMN_LAYOUT,
-				},
 				float: true,
 				animate: true,
 				disableDrag: !this.editMode,
 				disableResize: !this.editMode,
 				removable: false,
+				// REQ-GRID-007 (responsive breakpoints): four explicit
+				// width:column entries with the `moveScale` reflow
+				// algorithm so widgets proportionally rescale on
+				// viewport changes.
+				columnOpts: getColumnOpts(),
 			}, this.$refs.gridContainer.querySelector('.grid-stack'))
 
 			// Listen for changes

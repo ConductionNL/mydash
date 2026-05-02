@@ -27,6 +27,7 @@ use InvalidArgumentException;
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Db\DashboardMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IL10N;
 use OCP\IURLGenerator;
 use OCP\L10N\IFactory;
 use OCP\Notification\INotification;
@@ -140,14 +141,14 @@ class Notifier implements INotifier
      * Subject parameters: [sharerUserId, dashboardName, permissionLevel].
      *
      * @param INotification $notification The notification.
-     * @param \OCP\IL10N    $l            The L10N instance.
+     * @param IL10N         $l            The L10N instance.
      * @param string        $url          The deep-link URL.
      *
      * @return INotification The prepared notification.
      */
     private function prepareDashboardShared(
         INotification $notification,
-        \OCP\IL10N $l,
+        IL10N $l,
         string $url
     ): INotification {
         $params = $notification->getSubjectParameters();
@@ -188,14 +189,14 @@ class Notifier implements INotifier
      * Subject parameters: [dashboardName].
      *
      * @param INotification $notification The notification.
-     * @param \OCP\IL10N    $l            The L10N instance.
+     * @param IL10N         $l            The L10N instance.
      * @param string        $url          The deep-link URL.
      *
      * @return INotification The prepared notification.
      */
     private function prepareOwnershipTransferred(
         INotification $notification,
-        \OCP\IL10N $l,
+        IL10N $l,
         string $url
     ): INotification {
         $params = $notification->getSubjectParameters();
@@ -261,13 +262,13 @@ class Notifier implements INotifier
     /**
      * Return the human-readable label for a permission level.
      *
-     * @param \OCP\IL10N $l     The L10N instance.
-     * @param string     $level The permission level identifier.
+     * @param IL10N  $l     The L10N instance.
+     * @param string $level The permission level identifier.
      *
      * @return string The translated label.
      */
     private function permissionLabel(
-        \OCP\IL10N $l,
+        IL10N $l,
         string $level
     ): string {
         return match ($level) {

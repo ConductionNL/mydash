@@ -5,210 +5,154 @@
 
 <template>
 	<div class="label-form">
-		<div class="label-form__field">
-			<label :for="textId" class="label-form__label">
-				{{ tt('Text') }}
-			</label>
-			<input
-				:id="textId"
-				v-model="form.text"
-				type="text"
-				class="label-form__input"
-				@input="emitUpdate">
-		</div>
+		<NcTextField
+			:value="text"
+			:label="t('mydash', 'Label text')"
+			:placeholder="t('mydash', 'Label text')"
+			required
+			@update:value="updateField('text', $event)" />
 
-		<div class="label-form__field">
-			<label :for="fontSizeId" class="label-form__label">
-				{{ tt('Font Size') }}
-			</label>
-			<input
-				:id="fontSizeId"
-				v-model="form.fontSize"
-				type="text"
-				class="label-form__input"
-				placeholder="16px"
-				@input="emitUpdate">
-		</div>
+		<NcTextField
+			:value="fontSize"
+			:label="t('mydash', 'Font size')"
+			placeholder="16px"
+			@update:value="updateField('fontSize', $event)" />
 
-		<div class="label-form__field">
-			<label :for="colorId" class="label-form__label">
-				{{ tt('Text Color') }}
-			</label>
+		<label class="label-form__color-label">
+			{{ t('mydash', 'Color') }}
 			<input
-				:id="colorId"
-				v-model="form.color"
 				type="color"
+				:value="color || '#000000'"
 				class="label-form__color"
-				@input="emitUpdate">
-		</div>
+				@input="updateField('color', $event.target.value)">
+		</label>
 
-		<div class="label-form__field">
-			<label :for="bgColorId" class="label-form__label">
-				{{ tt('Background Color') }}
-			</label>
+		<label class="label-form__color-label">
+			{{ t('mydash', 'Background color') }}
 			<input
-				:id="bgColorId"
-				v-model="form.backgroundColor"
 				type="color"
+				:value="backgroundColor || '#ffffff'"
 				class="label-form__color"
-				@input="emitUpdate">
-		</div>
+				@input="updateField('backgroundColor', $event.target.value)">
+		</label>
 
-		<div class="label-form__field">
-			<label :for="fontWeightId" class="label-form__label">
-				{{ tt('Font Weight') }}
-			</label>
-			<select
-				:id="fontWeightId"
-				v-model="form.fontWeight"
-				class="label-form__select"
-				@change="emitUpdate">
-				<option value="normal">
-					{{ tt('Normal') }}
-				</option>
-				<option value="bold">
-					{{ tt('Bold') }}
-				</option>
-				<option value="600">
-					600
-				</option>
-				<option value="700">
-					700
-				</option>
-				<option value="800">
-					800
-				</option>
-			</select>
-		</div>
+		<NcSelect
+			:value="fontWeight"
+			:options="fontWeightOptions"
+			:input-label="t('mydash', 'Font Weight')"
+			:clearable="false"
+			@input="updateField('fontWeight', $event)" />
 
-		<div class="label-form__field">
-			<label :for="alignmentId" class="label-form__label">
-				{{ tt('Alignment') }}
-			</label>
-			<select
-				:id="alignmentId"
-				v-model="form.textAlign"
-				class="label-form__select"
-				@change="emitUpdate">
-				<option value="left">
-					{{ tt('Left') }}
-				</option>
-				<option value="center">
-					{{ tt('Center') }}
-				</option>
-				<option value="right">
-					{{ tt('Right') }}
-				</option>
-			</select>
-		</div>
+		<NcSelect
+			:value="textAlign"
+			:options="textAlignOptions"
+			:input-label="t('mydash', 'Alignment')"
+			:clearable="false"
+			@input="updateField('textAlign', $event)" />
 	</div>
 </template>
 
 <script>
-/**
- * LabelForm
- *
- * Sub-form for AddWidgetModal that authors the persisted `content` blob for a
- * `label` widget. Pre-fills from `editingWidget.content` on mount, emits
- * `update:content` reactively, and exposes a `validate()` method requiring
- * non-empty trimmed text per REQ-LBL-005.
- */
+import { NcTextField, NcSelect } from '@conduction/nextcloud-vue'
 
-const ALLOWED_FONT_WEIGHT = ['normal', 'bold', '600', '700', '800']
-const ALLOWED_TEXT_ALIGN = ['left', 'center', 'right']
-
-const DEFAULTS = {
+const DEFAULT_CONTENT = Object.freeze({
 	text: '',
 	fontSize: '16px',
 	color: '',
 	backgroundColor: '',
 	fontWeight: 'bold',
 	textAlign: 'center',
-}
+})
 
-let uidCounter = 0
-
+/**
+ * LabelForm is the sub-form for the AddWidgetModal when the user is creating
+ * or editing a `label` widget placement.
+ *
+ * Exposes six controls per REQ-LBL-005 and a `validate()` method returning
+ * `[t('mydash', 'Label text is required')]` when text is empty/whitespace.
+ */
 export default {
 	name: 'LabelForm',
 
+	components: {
+		NcTextField,
+		NcSelect,
+	},
+
 	props: {
+		/**
+		 * The placement being edited, or `null` in create mode.
+		 * Pre-fills every control from `editingWidget.content` per REQ-LBL-005.
+		 */
 		editingWidget: {
 			type: Object,
 			default: null,
+		},
+		/**
+		 * Initial content values — used when not editing and the parent
+		 * supplies registry defaults.
+		 */
+		value: {
+			type: Object,
+			default: () => ({ ...DEFAULT_CONTENT }),
 		},
 	},
 
 	emits: ['update:content'],
 
 	data() {
+		const initial = this.editingWidget?.content || this.value || {}
 		return {
-			uid: ++uidCounter,
-			form: { ...DEFAULTS },
+			text: initial.text ?? DEFAULT_CONTENT.text,
+			fontSize: initial.fontSize ?? DEFAULT_CONTENT.fontSize,
+			color: initial.color ?? DEFAULT_CONTENT.color,
+			backgroundColor: initial.backgroundColor ?? DEFAULT_CONTENT.backgroundColor,
+			fontWeight: initial.fontWeight ?? DEFAULT_CONTENT.fontWeight,
+			textAlign: initial.textAlign ?? DEFAULT_CONTENT.textAlign,
 		}
 	},
 
 	computed: {
-		textId() {
-			return `label-form-text-${this.uid}`
+		fontWeightOptions() {
+			return ['normal', 'bold', '600', '700', '800']
 		},
-		fontSizeId() {
-			return `label-form-fontsize-${this.uid}`
-		},
-		colorId() {
-			return `label-form-color-${this.uid}`
-		},
-		bgColorId() {
-			return `label-form-bgcolor-${this.uid}`
-		},
-		fontWeightId() {
-			return `label-form-fontweight-${this.uid}`
-		},
-		alignmentId() {
-			return `label-form-alignment-${this.uid}`
-		},
-	},
 
-	mounted() {
-		const content = this.editingWidget?.content || {}
-		this.form = {
-			text: typeof content.text === 'string' ? content.text : DEFAULTS.text,
-			fontSize: typeof content.fontSize === 'string' && content.fontSize !== ''
-				? content.fontSize
-				: DEFAULTS.fontSize,
-			color: typeof content.color === 'string' ? content.color : DEFAULTS.color,
-			backgroundColor: typeof content.backgroundColor === 'string'
-				? content.backgroundColor
-				: DEFAULTS.backgroundColor,
-			fontWeight: ALLOWED_FONT_WEIGHT.includes(String(content.fontWeight))
-				? String(content.fontWeight)
-				: DEFAULTS.fontWeight,
-			textAlign: ALLOWED_TEXT_ALIGN.includes(content.textAlign)
-				? content.textAlign
-				: DEFAULTS.textAlign,
-		}
+		textAlignOptions() {
+			return ['left', 'center', 'right']
+		},
+
+		assembledContent() {
+			return {
+				text: this.text,
+				fontSize: this.fontSize,
+				color: this.color,
+				backgroundColor: this.backgroundColor,
+				fontWeight: this.fontWeight,
+				textAlign: this.textAlign,
+			}
+		},
 	},
 
 	methods: {
-		tt(key) {
-			if (typeof t === 'function') {
-				return t('mydash', key)
-			}
-			return key
-		},
-
-		emitUpdate() {
-			this.$emit('update:content', { ...this.form })
+		/**
+		 * Set a field and notify parent.
+		 *
+		 * @param {string} field one of: text, fontSize, color, backgroundColor, fontWeight, textAlign
+		 * @param {string} value new value
+		 */
+		updateField(field, value) {
+			this[field] = value
+			this.$emit('update:content', this.assembledContent)
 		},
 
 		/**
-		 * Validate the form. Returns an array of localised error strings.
-		 * Empty array means the form is valid (REQ-LBL-005).
+		 * Returns a list of error strings; empty array means valid.
 		 *
-		 * @return {string[]} array of error messages
+		 * @return {string[]} validation errors
 		 */
 		validate() {
-			if (!this.form.text || this.form.text.trim() === '') {
-				return [this.tt('Label text is required')]
+			if (typeof this.text !== 'string' || this.text.trim() === '') {
+				return [t('mydash', 'Label text is required')]
 			}
 			return []
 		},
@@ -223,25 +167,21 @@ export default {
 	gap: 12px;
 }
 
-.label-form__field {
+.label-form__color-label {
 	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.label-form__label {
-	font-weight: bold;
-}
-
-.label-form__input,
-.label-form__select {
-	width: 100%;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	font-size: 14px;
 }
 
 .label-form__color {
-	width: 64px;
+	width: 48px;
 	height: 32px;
 	padding: 0;
 	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	cursor: pointer;
+	background: transparent;
 }
 </style>

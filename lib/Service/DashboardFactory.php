@@ -36,27 +36,25 @@ class DashboardFactory
      * mismatch — no row is persisted in that case (the caller never
      * receives an entity to insert).
      *
-     * @param string|null $userId          The user ID — must be non-null
-     *                                     for `TYPE_USER`, must be null for
+     * @param string|null $userId          The user ID — must be non-null for
+     *                                     `TYPE_USER`, must be null for
      *                                     `TYPE_GROUP_SHARED` /
      *                                     `TYPE_ADMIN_TEMPLATE`.
      * @param string      $name            The dashboard name.
      * @param string|null $description     The dashboard description.
-     * @param string      $type            The dashboard type
-     *                                     (default {@see
-     *                                     Dashboard::TYPE_USER}).
-     * @param string|null $groupId         The group ID — required
-     *                                     when `type ===
-     *                                     TYPE_GROUP_SHARED`,
+     * @param string      $type            The dashboard type (default
+     *                                     {@see Dashboard::TYPE_USER}).
+     * @param string|null $groupId         The group ID — required when
+     *                                     `type === TYPE_GROUP_SHARED`,
      *                                     forbidden otherwise.
      * @param int         $gridColumns     The grid column count.
      * @param string      $permissionLevel The owner's permission level on
      *                                     this dashboard. Defaults to
      *                                     {@see Dashboard::PERMISSION_FULL};
-     *                                     callers may pass a more
-     *                                     restrictive level when forking
-     *                                     a shared dashboard or
-     *                                     creating a read-only template.
+     *                                     callers may pass a more restrictive
+     *                                     level when forking a shared
+     *                                     dashboard or creating a read-only
+     *                                     template.
      *
      * @return Dashboard The created dashboard entity (not yet persisted).
      *

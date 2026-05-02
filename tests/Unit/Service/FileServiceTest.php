@@ -3,6 +3,12 @@
 /**
  * FileService Test
  *
+ * Covers REQ-LBN-004: filename validation rejects path traversal,
+ * special chars, and oversized input; the admin-configured extension
+ * allow-list is enforced; existing files are overwritten and their
+ * fileId returned; and raw exception messages are NEVER leaked to the
+ * caller (only typed exceptions surface).
+ *
  * @category  Test
  * @package   OCA\MyDash\Tests\Unit\Service
  * @author    Conduction b.v. <info@conduction.nl>
@@ -17,23 +23,25 @@ declare(strict_types=1);
 
 namespace Unit\Service;
 
+use OCA\MyDash\Db\AdminSetting;
 use OCA\MyDash\Db\AdminSettingMapper;
-use OCA\MyDash\Exception\ForbiddenExtensionException;
+use OCA\MyDash\Exception\FileTypeNotAllowedException;
 use OCA\MyDash\Exception\InvalidDirectoryException;
 use OCA\MyDash\Exception\InvalidFilenameException;
+use OCA\MyDash\Exception\StorageFailureException;
 use OCA\MyDash\Service\FileService;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
+use OCP\Files\NotFoundException;
+use OCP\Files\NotPermittedException;
 use OCP\IURLGenerator;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
-/**
- * Unit tests for FileService::createFile validation.
- */
 class FileServiceTest extends TestCase
 {
+    private FileService $service;
 
     /** @var IRootFolder&MockObject */
     private $rootFolder;
@@ -44,16 +52,24 @@ class FileServiceTest extends TestCase
     /** @var AdminSettingMapper&MockObject */
     private $settingMapper;
 
-    private FileService $service;
+    /** @var Folder&MockObject */
+    private $userFolder;
 
     protected function setUp(): void
     {
         $this->rootFolder    = $this->createMock(IRootFolder::class);
         $this->urlGenerator  = $this->createMock(IURLGenerator::class);
         $this->settingMapper = $this->createMock(AdminSettingMapper::class);
+        $this->userFolder    = $this->createMock(Folder::class);
 
-        // Default: allow-list falls back to DEFAULT_ALLOWED_EXTENSIONS.
         $this->settingMapper->method('getValue')->willReturn(null);
+
+        $this->urlGenerator->method('linkToRouteAbsolute')
+            ->willReturnCallback(static function (string $route, array $args): string {
+                return 'https://nc/files?openfile=' . ($args['openfile'] ?? '');
+            });
+
+        $this->rootFolder->method('getUserFolder')->willReturn($this->userFolder);
 
         $this->service = new FileService(
             rootFolder: $this->rootFolder,
@@ -62,252 +78,280 @@ class FileServiceTest extends TestCase
         );
     }
 
-    // -------------------------------------------------------------------------
-    // Filename validation (REQ-LBN-004 + PHPUnit task 6.1)
-    // -------------------------------------------------------------------------
-
-    public function testEmptyFilenameThrows(): void
-    {
-        $this->expectException(InvalidFilenameException::class);
-        $this->service->createFile(
-            userId: 'alice',
-            filename: '',
-            dir: '/',
-            content: ''
-        );
-    }
-
-    public function testFilenameExceeding255CharsThrows(): void
-    {
-        $this->expectException(InvalidFilenameException::class);
-        $this->service->createFile(
-            userId: 'alice',
-            filename: str_repeat(string: 'a', times: 252) . '.txt',
-            dir: '/',
-            content: ''
-        );
-    }
-
-    public function testPathTraversalDoubleDotThrows(): void
+    /**
+     * REQ-LBN-004 task 6.1: filename traversal sequence rejected.
+     */
+    public function testPathTraversalIsRejected(): void
     {
         $this->expectException(InvalidFilenameException::class);
         $this->service->createFile(
             userId: 'alice',
             filename: '../../etc/passwd',
-            dir: '/',
-            content: ''
+            dir: '/'
         );
     }
 
-    public function testPathTraversalForwardSlashThrows(): void
+    public function testForwardSlashIsRejected(): void
     {
         $this->expectException(InvalidFilenameException::class);
         $this->service->createFile(
             userId: 'alice',
-            filename: 'sub/etc/passwd',
-            dir: '/',
-            content: ''
+            filename: 'foo/bar.txt',
+            dir: '/'
         );
     }
 
-    public function testPathTraversalBackslashThrows(): void
+    public function testBackslashIsRejected(): void
     {
         $this->expectException(InvalidFilenameException::class);
         $this->service->createFile(
             userId: 'alice',
-            filename: 'sub\\evil.txt',
-            dir: '/',
-            content: ''
+            filename: 'foo\\bar.txt',
+            dir: '/'
         );
     }
 
-    public function testNullByteInFilenameThrows(): void
+    public function testNullByteIsRejected(): void
     {
         $this->expectException(InvalidFilenameException::class);
         $this->service->createFile(
             userId: 'alice',
-            filename: "good\0bad.txt",
-            dir: '/',
-            content: ''
+            filename: "evil\0.txt",
+            dir: '/'
         );
     }
 
-    public function testSpecialCharsInFilenameThrows(): void
+    public function testEmptyFilenameIsRejected(): void
     {
         $this->expectException(InvalidFilenameException::class);
         $this->service->createFile(
             userId: 'alice',
-            filename: 'bad<script>.txt',
-            dir: '/',
-            content: ''
+            filename: '',
+            dir: '/'
         );
     }
 
-    // -------------------------------------------------------------------------
-    // Directory validation
-    // -------------------------------------------------------------------------
+    public function testOversizedFilenameIsRejected(): void
+    {
+        $this->expectException(InvalidFilenameException::class);
+        // 256 chars (> 255 cap). Use only allowed chars so the size check
+        // is what fires.
+        $this->service->createFile(
+            userId: 'alice',
+            filename: str_repeat('a', 252) . '.txt',
+            dir: '/'
+        );
+    }
 
-    public function testDirTraversalDoubleDotThrows(): void
+    public function testSpecialCharactersAreRejected(): void
+    {
+        $this->expectException(InvalidFilenameException::class);
+        $this->service->createFile(
+            userId: 'alice',
+            filename: 'evil*.txt',
+            dir: '/'
+        );
+    }
+
+    public function testDirectoryTraversalIsRejected(): void
     {
         $this->expectException(InvalidDirectoryException::class);
         $this->service->createFile(
             userId: 'alice',
-            filename: 'valid.txt',
-            dir: '../secret',
-            content: ''
+            filename: 'safe.txt',
+            dir: '/../etc'
         );
     }
 
-    public function testNullByteInDirThrows(): void
+    public function testDirectoryNullByteIsRejected(): void
     {
         $this->expectException(InvalidDirectoryException::class);
         $this->service->createFile(
             userId: 'alice',
-            filename: 'valid.txt',
-            dir: "sub\0dir",
-            content: ''
+            filename: 'safe.txt',
+            dir: "/foo\0bar"
         );
     }
 
-    // -------------------------------------------------------------------------
-    // Extension allow-list (REQ-LBN-004 + PHPUnit task 6.2)
-    // -------------------------------------------------------------------------
-
-    public function testDisallowedExtensionThrows(): void
+    /**
+     * REQ-LBN-004 task 6.2: extension allow-list — disallowed extension
+     * surfaces as FileTypeNotAllowedException (HTTP 400).
+     */
+    public function testDisallowedExtensionIsRejected(): void
     {
-        $this->expectException(ForbiddenExtensionException::class);
+        $this->expectException(FileTypeNotAllowedException::class);
         $this->service->createFile(
             userId: 'alice',
-            filename: 'evil.exe',
-            dir: '/',
-            content: ''
+            filename: 'foo.exe',
+            dir: '/'
         );
     }
 
-    public function testDisallowedExtensionPhpThrows(): void
+    public function testNoExtensionIsRejected(): void
     {
-        $this->expectException(ForbiddenExtensionException::class);
+        $this->expectException(FileTypeNotAllowedException::class);
         $this->service->createFile(
             userId: 'alice',
-            filename: 'shell.php',
-            dir: '/',
-            content: ''
+            filename: 'README',
+            dir: '/'
         );
     }
 
-    public function testCustomAllowListRespected(): void
+    /**
+     * REQ-LBN-004 task 6.2: allowed extension passes through to storage.
+     */
+    public function testAllowedExtensionWritesNewFile(): void
     {
-        // Override settingMapper to return a custom allow-list.
-        $mapper = $this->createMock(AdminSettingMapper::class);
-        $mapper->method('getValue')->willReturn(['txt', 'md', 'docx']);
+        $file = $this->createMock(File::class);
+        $file->method('getId')->willReturn(42);
 
-        $service = new FileService(
-            rootFolder: $this->rootFolder,
-            urlGenerator: $this->urlGenerator,
-            settingMapper: $mapper,
-        );
-
-        $this->expectException(ForbiddenExtensionException::class);
-        $service->createFile(
-            userId: 'alice',
-            filename: 'data.csv',   // csv not in custom list
-            dir: '/',
-            content: ''
-        );
-    }
-
-    // -------------------------------------------------------------------------
-    // Happy path — new file
-    // -------------------------------------------------------------------------
-
-    public function testAllowedExtensionCreatesFile(): void
-    {
-        $fileMock   = $this->createMock(File::class);
-        $folderMock = $this->createMock(Folder::class);
-
-        $fileMock->method('getId')->willReturn(42);
-        $folderMock->method('nodeExists')->willReturn(false);
-        $folderMock->method('newFile')->willReturn($fileMock);
-
-        $this->rootFolder->method('getUserFolder')->willReturn($folderMock);
-        $this->urlGenerator->method('linkToRouteAbsolute')
-            ->willReturn('https://nc/index.php/apps/files/?openfile=42');
+        $this->userFolder->method('nodeExists')->with('hello.txt')->willReturn(false);
+        $this->userFolder->method('newFile')->with('hello.txt', 'hi')->willReturn($file);
 
         $result = $this->service->createFile(
             userId: 'alice',
-            filename: 'report.docx',
+            filename: 'hello.txt',
             dir: '/',
-            content: ''
+            content: 'hi'
         );
 
+        $this->assertSame('success', $result['status']);
         $this->assertSame(42, $result['fileId']);
-        $this->assertStringContainsString('openfile=42', $result['url']);
+        $this->assertSame('https://nc/files?openfile=42', $result['url']);
     }
 
-    // -------------------------------------------------------------------------
-    // Overwrite semantics (PHPUnit task 6.3)
-    // -------------------------------------------------------------------------
-
+    /**
+     * REQ-LBN-004 task 6.3: existing file is overwritten and its fileId
+     * matches the existing entry.
+     */
     public function testExistingFileIsOverwritten(): void
     {
-        $existingFile = $this->createMock(File::class);
-        $existingFile->method('getId')->willReturn(7);
-        $existingFile->expects($this->once())->method('putContent')->with('');
+        $existing = $this->createMock(File::class);
+        $existing->method('getId')->willReturn(99);
+        $existing->expects($this->once())
+            ->method('putContent')
+            ->with('new contents');
 
-        $folderMock = $this->createMock(Folder::class);
-        $folderMock->method('nodeExists')->willReturn(true);
-        $folderMock->method('get')->willReturn($existingFile);
-        // newFile must NOT be called.
-        $folderMock->expects($this->never())->method('newFile');
-
-        $this->rootFolder->method('getUserFolder')->willReturn($folderMock);
-        $this->urlGenerator->method('linkToRouteAbsolute')
-            ->willReturn('https://nc/index.php/apps/files/?openfile=7');
+        $this->userFolder->method('nodeExists')->with('report.docx')->willReturn(true);
+        $this->userFolder->method('get')->with('report.docx')->willReturn($existing);
+        $this->userFolder->expects($this->never())->method('newFile');
 
         $result = $this->service->createFile(
             userId: 'alice',
             filename: 'report.docx',
             dir: '/',
+            content: 'new contents'
+        );
+
+        $this->assertSame(99, $result['fileId']);
+    }
+
+    /**
+     * REQ-LBN-004 task 6.4: raw exception messages are NEVER leaked.
+     * NotPermittedException-from-storage surfaces as the typed
+     * StorageFailureException with a curated display message.
+     */
+    public function testStorageFailureIsWrappedNotLeaked(): void
+    {
+        $this->userFolder->method('nodeExists')->willReturn(false);
+        $this->userFolder->method('newFile')
+            ->willThrowException(new NotPermittedException('disk full at /var/lib/raw'));
+
+        try {
+            $this->service->createFile(
+                userId: 'alice',
+                filename: 'hello.txt',
+                dir: '/',
+                content: 'hi'
+            );
+            $this->fail('Expected StorageFailureException');
+        } catch (StorageFailureException $e) {
+            // Curated, never the underlying raw message.
+            $this->assertStringNotContainsString('disk full', $e->getMessage());
+            $this->assertStringNotContainsString('/var/lib/raw', $e->getMessage());
+        }
+    }
+
+    public function testTargetSubdirectoryAutoCreated(): void
+    {
+        $sub  = $this->createMock(Folder::class);
+        $file = $this->createMock(File::class);
+        $file->method('getId')->willReturn(7);
+
+        $this->userFolder->method('get')
+            ->with('/notes')
+            ->willThrowException(new NotFoundException());
+        $this->userFolder->method('newFolder')
+            ->with('/notes')
+            ->willReturn($sub);
+
+        $sub->method('nodeExists')->with('hello.txt')->willReturn(false);
+        $sub->method('newFile')->willReturn($file);
+
+        $result = $this->service->createFile(
+            userId: 'alice',
+            filename: 'hello.txt',
+            dir: '/notes',
             content: ''
         );
 
         $this->assertSame(7, $result['fileId']);
     }
 
-    // -------------------------------------------------------------------------
-    // Exception messages not leaked (PHPUnit task 6.4)
-    // -------------------------------------------------------------------------
-
-    public function testInvalidFilenameMessageIsSafe(): void
+    public function testCustomAllowListReplacesDefault(): void
     {
-        try {
-            $this->service->createFile(
-                userId: 'alice',
-                filename: '../../etc/passwd',
-                dir: '/',
-                content: ''
-            );
-            $this->fail('Expected InvalidFilenameException');
-        } catch (InvalidFilenameException $e) {
-            // The display message must not contain raw path or internal details.
-            $this->assertStringNotContainsString('/etc/passwd', $e->getDisplayMessage());
-            $this->assertNotEmpty($e->getDisplayMessage());
-        }
+        $custom = $this->createMock(AdminSettingMapper::class);
+        $custom->method('getValue')->willReturn(['md', 'csv']);
+
+        $service = new FileService(
+            rootFolder: $this->rootFolder,
+            urlGenerator: $this->urlGenerator,
+            settingMapper: $custom,
+        );
+
+        // .txt is in the DEFAULT list but not in this custom list.
+        $this->expectException(FileTypeNotAllowedException::class);
+        $service->createFile(
+            userId: 'alice',
+            filename: 'note.txt',
+            dir: '/'
+        );
     }
 
-    public function testForbiddenExtensionMessageIsSafe(): void
+    public function testGetAllowedExtensionsFallsBackOnEmptyStored(): void
     {
-        try {
-            $this->service->createFile(
-                userId: 'alice',
-                filename: 'shell.php',
-                dir: '/',
-                content: ''
-            );
-            $this->fail('Expected ForbiddenExtensionException');
-        } catch (ForbiddenExtensionException $e) {
-            $this->assertStringNotContainsString('php', $e->getDisplayMessage());
-            $this->assertNotEmpty($e->getDisplayMessage());
-        }
+        $this->settingMapper = $this->createMock(AdminSettingMapper::class);
+        $this->settingMapper->method('getValue')->willReturn([]);
+
+        $service = new FileService(
+            rootFolder: $this->rootFolder,
+            urlGenerator: $this->urlGenerator,
+            settingMapper: $this->settingMapper,
+        );
+
+        $this->assertSame(
+            FileService::DEFAULT_ALLOWED_EXTENSIONS,
+            $service->getAllowedExtensions()
+        );
     }
-}//end class
+
+    public function testSetAllowedExtensionsNormalisesAndPersists(): void
+    {
+        $this->settingMapper = $this->createMock(AdminSettingMapper::class);
+        $this->settingMapper->expects($this->once())
+            ->method('setSetting')
+            ->with(
+                AdminSetting::KEY_LINK_CREATE_FILE_EXTENSIONS,
+                ['txt', 'docx']
+            );
+
+        $service = new FileService(
+            rootFolder: $this->rootFolder,
+            urlGenerator: $this->urlGenerator,
+            settingMapper: $this->settingMapper,
+        );
+
+        $stored = $service->setAllowedExtensions(['TXT', '.docx', '..', 'bad/path']);
+        $this->assertSame(['txt', 'docx'], $stored);
+    }
+}

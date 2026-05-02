@@ -182,7 +182,20 @@ class WidgetPlacement extends Entity implements JsonSerializable
     protected ?string $tileTitle = null;
 
     /**
-     * The tile icon.
+     * The tile icon — opaque single-column field.
+     *
+     * Per `dashboard-icons` REQ-ICON-009 the column may hold ANY of the
+     * following three forms; the backend treats the column as opaque
+     * and the frontend `IconRenderer` discriminates at render time via
+     * `isCustomIconUrl()`:
+     *
+     *   - `null` — render the default icon
+     *   - A built-in registry key (e.g. `'Star'`, `'ViewDashboard'`)
+     *   - A URL beginning with `/` or `http` (custom icon uploaded via
+     *     the `resource-uploads` capability)
+     *
+     * Switching between forms is a plain `UPDATE`; no schema migration
+     * is required and no auxiliary discriminator column exists.
      *
      * @var string|null
      */

@@ -3,6 +3,12 @@
 /**
  * ResourceUploadRequestParser Test
  *
+ * Covers the body-parsing seam for `POST /api/resources` (REQ-RES-001):
+ * multipart bodies are rejected with HTTP 415, missing/invalid JSON
+ * bodies produce `invalid_data_url`, well-formed JSON without a string
+ * `base64` field also produces `invalid_data_url`, and the happy path
+ * returns the raw base64 string.
+ *
  * @category  Test
  * @package   OCA\MyDash\Tests\Unit\Controller
  * @author    Conduction b.v. <info@conduction.nl>
@@ -37,54 +43,78 @@ class ResourceUploadRequestParserTest extends TestCase
         $this->request = $this->createMock(IRequest::class);
     }
 
-    public function testHappyPathReturnsBase64String(): void
+    private function withContentType(string $value): void
     {
-        $this->request->method('getHeader')->willReturn('application/json');
-        $body = json_encode(['base64' => 'data:image/png;base64,AAA']);
-
-        $result = $this->parser->extractBase64(
-            request: $this->request,
-            rawBody: $body
-        );
-
-        $this->assertSame('data:image/png;base64,AAA', $result);
+        $this->request->method('getHeader')
+            ->with('Content-Type')
+            ->willReturn($value);
     }
 
-    public function testMultipartIsRejected(): void
+    public function testHappyPathReturnsBase64String(): void
     {
-        $this->request->method('getHeader')->willReturn('multipart/form-data; boundary=---X');
+        $this->withContentType('application/json');
+        $result = $this->parser->extractBase64(
+            request: $this->request,
+            rawBody: '{"base64":"data:image/png;base64,xxx"}'
+        );
+        $this->assertSame('data:image/png;base64,xxx', $result);
+    }
 
+    public function testMultipartIsRejectedWith415(): void
+    {
+        $this->withContentType('multipart/form-data; boundary=---abc');
         $this->expectException(UnsupportedMediaTypeException::class);
-        $this->parser->extractBase64(request: $this->request, rawBody: '---X');
+        $this->parser->extractBase64(
+            request: $this->request,
+            rawBody: 'whatever'
+        );
     }
 
     public function testEmptyBodyIsRejected(): void
     {
-        $this->request->method('getHeader')->willReturn('application/json');
-
+        $this->withContentType('application/json');
         $this->expectException(InvalidDataUrlException::class);
         $this->parser->extractBase64(request: $this->request, rawBody: '');
     }
 
-    public function testInvalidJsonIsRejected(): void
+    public function testMalformedJsonIsRejected(): void
     {
-        $this->request->method('getHeader')->willReturn('application/json');
-
+        $this->withContentType('application/json');
         $this->expectException(InvalidDataUrlException::class);
         $this->parser->extractBase64(
             request: $this->request,
-            rawBody: '{not json'
+            rawBody: '{not-json'
         );
     }
 
-    public function testNonStringBase64FieldIsRejected(): void
+    public function testJsonWithoutBase64FieldIsRejected(): void
     {
-        $this->request->method('getHeader')->willReturn('application/json');
-
+        $this->withContentType('application/json');
         $this->expectException(InvalidDataUrlException::class);
         $this->parser->extractBase64(
             request: $this->request,
-            rawBody: json_encode(['base64' => 12345])
+            rawBody: '{"foo":"bar"}'
         );
+    }
+
+    public function testJsonWithNonStringBase64IsRejected(): void
+    {
+        $this->withContentType('application/json');
+        $this->expectException(InvalidDataUrlException::class);
+        $this->parser->extractBase64(
+            request: $this->request,
+            rawBody: '{"base64":123}'
+        );
+    }
+
+    public function testMissingContentTypeIsAccepted(): void
+    {
+        // Empty content type header should not be treated as multipart.
+        $this->withContentType('');
+        $result = $this->parser->extractBase64(
+            request: $this->request,
+            rawBody: '{"base64":"data:image/png;base64,abc"}'
+        );
+        $this->assertSame('data:image/png;base64,abc', $result);
     }
 }

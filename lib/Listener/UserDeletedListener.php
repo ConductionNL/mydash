@@ -36,12 +36,20 @@ use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\IUserManager;
 use OCP\User\Events\UserDeletedEvent;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
  * Handles user deletion: recipient cleanup + ownership transfer / cascade.
  *
  * @implements IEventListener<UserDeletedEvent>
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects) The retention cascade
+ *                                                  legitimately spans share,
+ *                                                  dashboard, placement,
+ *                                                  group and user services
+ *                                                  in one orchestrating
+ *                                                  listener.
  */
 class UserDeletedListener implements IEventListener
 {
@@ -55,6 +63,9 @@ class UserDeletedListener implements IEventListener
      * @param IGroupManager         $groupManager    The group manager.
      * @param IUserManager          $userManager     The user manager.
      * @param IDBConnection         $db              The DB connection.
+     * @param LoggerInterface       $logger          PSR-3 logger (PHP_SAPI-safe;
+     *                                               replaces deprecated
+     *                                               `\OC::$server->getLogger()`).
      */
     public function __construct(
         private readonly DashboardShareMapper $shareMapper,
@@ -64,6 +75,7 @@ class UserDeletedListener implements IEventListener
         private readonly IGroupManager $groupManager,
         private readonly IUserManager $userManager,
         private readonly IDBConnection $db,
+        private readonly LoggerInterface $logger,
     ) {
     }//end __construct()
 
@@ -154,7 +166,7 @@ class UserDeletedListener implements IEventListener
             $this->db->rollBack();
             // Log but do not rethrow — we want to continue processing
             // the other dashboards.
-            \OC::$server->getLogger()->error(
+            $this->logger->error(
                 message: sprintf(
                     'mydash UserDeletedListener: failed to handle dashboard %d: %s',
                     $dashboardId,

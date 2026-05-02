@@ -5,227 +5,246 @@
 
 <template>
 	<div class="image-form">
-		<div class="image-form__field">
-			<label :for="fileInputId" class="image-form__label">
-				{{ tt('Upload Image') }}
-			</label>
+		<label class="image-form__field">
+			<span class="image-form__label">{{ t('mydash', 'Upload Image') }}</span>
 			<input
-				:id="fileInputId"
 				type="file"
 				accept="image/*"
-				class="image-form__input"
-				@change="handleFileSelect">
-			<p v-if="uploadError" class="image-form__error">
-				{{ uploadError }}
-			</p>
+				class="image-form__file"
+				:disabled="uploading"
+				@change="onFileSelected">
+		</label>
+		<div v-if="uploadError" class="image-form__error" role="alert">
+			{{ uploadError }}
 		</div>
 
-		<div class="image-form__field">
-			<label :for="urlInputId" class="image-form__label">
-				{{ tt('Or enter Image URL') }}
-			</label>
-			<input
-				:id="urlInputId"
-				v-model="form.url"
-				type="text"
-				class="image-form__input"
-				@input="emitUpdate">
-		</div>
+		<NcTextField
+			:value="url"
+			:label="t('mydash', 'Or enter Image URL')"
+			:placeholder="t('mydash', 'Or enter Image URL')"
+			required
+			@update:value="updateField('url', $event)" />
 
-		<div v-if="form.url" class="image-form__preview">
+		<div v-if="hasUrl" class="image-form__preview-wrap">
 			<img
-				:src="form.url"
-				:alt="form.alt"
-				class="image-form__preview-img">
+				class="image-form__preview"
+				:src="url"
+				:alt="alt || t('mydash', 'Image')"
+				@error="onPreviewError">
+			<div v-if="previewError" class="image-form__preview-error">
+				{{ t('mydash', 'Image failed to load') }}
+			</div>
 		</div>
 
-		<div class="image-form__field">
-			<label :for="altInputId" class="image-form__label">
-				{{ tt('Alt Text') }}
-			</label>
-			<input
-				:id="altInputId"
-				v-model="form.alt"
-				type="text"
-				class="image-form__input"
-				@input="emitUpdate">
-		</div>
+		<NcTextField
+			:value="alt"
+			:label="t('mydash', 'Alt Text')"
+			@update:value="updateField('alt', $event)" />
 
-		<div class="image-form__field">
-			<label :for="linkInputId" class="image-form__label">
-				{{ tt('Link (optional)') }}
-			</label>
-			<input
-				:id="linkInputId"
-				v-model="form.link"
-				type="text"
-				class="image-form__input"
-				@input="emitUpdate">
-		</div>
+		<NcTextField
+			:value="link"
+			:label="t('mydash', 'Link (optional)')"
+			placeholder="https://example.com"
+			@update:value="updateField('link', $event)" />
 
-		<div class="image-form__field">
-			<label :for="fitSelectId" class="image-form__label">
-				{{ tt('Fit') }}
-			</label>
+		<label class="image-form__field">
+			<span class="image-form__label">{{ t('mydash', 'Fit') }}</span>
 			<select
-				:id="fitSelectId"
-				v-model="form.fit"
+				v-model="fit"
 				class="image-form__select"
-				@change="emitUpdate">
-				<option value="cover">
-					{{ tt('Cover') }}
-				</option>
-				<option value="contain">
-					{{ tt('Contain') }}
-				</option>
-				<option value="fill">
-					{{ tt('Fill') }}
-				</option>
-				<option value="none">
-					{{ tt('None') }}
+				@change="updateField('fit', fit)">
+				<option v-for="opt in fitOptions" :key="opt.value" :value="opt.value">
+					{{ opt.label }}
 				</option>
 			</select>
-		</div>
+		</label>
 	</div>
 </template>
 
 <script>
-/**
- * ImageForm
- *
- * Sub-form for AddWidgetModal that authors the persisted `content` blob for an
- * `image` widget. Provides file upload (via resource-uploads endpoint) and
- * direct URL input, along with alt text, link, and fit controls. Pre-fills from
- * `editingWidget.content` on mount, emits `update:content` reactively, and
- * exposes a `validate()` method per REQ-IMG-005.
- */
+import { NcTextField } from '@conduction/nextcloud-vue'
+import {
+	uploadDataUrl,
+	readFileAsDataUrl,
+	ResourceUploadError,
+} from '../../../services/resourceService.js'
 
-const DEFAULTS = {
+const DEFAULT_CONTENT = Object.freeze({
 	url: '',
 	alt: '',
 	link: '',
 	fit: 'cover',
-}
+})
 
-let uidCounter = 0
-
+/**
+ * ImageForm is the sub-form mounted inside the AddWidgetModal when the
+ * user is creating or editing an `image` widget placement.
+ *
+ * Controls (REQ-IMG-005):
+ *   - File upload (`<input type="file" accept="image/*">`) — on change,
+ *     read the file as a base64 data URL and POST it to
+ *     `/apps/mydash/api/resources` via `uploadDataUrl()`. On success
+ *     `form.url` is set to the response `{url}`; on failure an inline
+ *     error appears under the upload input and `form.url` is left
+ *     untouched.
+ *   - URL text input — direct entry path (also written by the upload
+ *     pipeline on success).
+ *   - Alt text input.
+ *   - Link text input (optional, drives click-through in the renderer).
+ *   - Fit select — `cover | contain | fill | none`, default `cover`.
+ *   - Live preview thumbnail under the URL input whenever `url` is
+ *     non-empty.
+ *
+ * `validate()` returns `[t('mydash', 'Image URL is required')]` when
+ * `form.url.trim() === ''`, otherwise an empty array.
+ */
 export default {
 	name: 'ImageForm',
 
+	components: {
+		NcTextField,
+	},
+
 	props: {
+		/**
+		 * The placement being edited, or `null` in create mode.
+		 * Pre-fills every control from `editingWidget.content`.
+		 */
 		editingWidget: {
 			type: Object,
 			default: null,
+		},
+		/**
+		 * Initial content values — used when not editing and the parent
+		 * supplies registry defaults.
+		 */
+		value: {
+			type: Object,
+			default: () => ({ ...DEFAULT_CONTENT }),
 		},
 	},
 
 	emits: ['update:content'],
 
 	data() {
+		const initial = (this.editingWidget && this.editingWidget.content) || this.value || {}
 		return {
-			uid: ++uidCounter,
-			form: { ...DEFAULTS },
+			url: typeof initial.url === 'string' ? initial.url : DEFAULT_CONTENT.url,
+			alt: typeof initial.alt === 'string' ? initial.alt : DEFAULT_CONTENT.alt,
+			link: typeof initial.link === 'string' ? initial.link : DEFAULT_CONTENT.link,
+			fit: typeof initial.fit === 'string' ? initial.fit : DEFAULT_CONTENT.fit,
+			uploading: false,
 			uploadError: '',
+			previewError: false,
 		}
 	},
 
 	computed: {
-		fileInputId() {
-			return `image-form-file-${this.uid}`
+		hasUrl() {
+			return typeof this.url === 'string' && this.url.trim() !== ''
 		},
-		urlInputId() {
-			return `image-form-url-${this.uid}`
+
+		fitOptions() {
+			return [
+				{ value: 'cover', label: t('mydash', 'Cover') },
+				{ value: 'contain', label: t('mydash', 'Contain') },
+				{ value: 'fill', label: t('mydash', 'Fill') },
+				{ value: 'none', label: t('mydash', 'None') },
+			]
 		},
-		altInputId() {
-			return `image-form-alt-${this.uid}`
-		},
-		linkInputId() {
-			return `image-form-link-${this.uid}`
-		},
-		fitSelectId() {
-			return `image-form-fit-${this.uid}`
+
+		assembledContent() {
+			return {
+				url: this.url,
+				alt: this.alt,
+				link: this.link,
+				fit: this.fit,
+			}
 		},
 	},
 
-	mounted() {
-		const content = this.editingWidget?.content || {}
-		this.form = {
-			url: typeof content.url === 'string' ? content.url : DEFAULTS.url,
-			alt: typeof content.alt === 'string' ? content.alt : DEFAULTS.alt,
-			link: typeof content.link === 'string' ? content.link : DEFAULTS.link,
-			fit: ['cover', 'contain', 'fill', 'none'].includes(content.fit)
-				? content.fit
-				: DEFAULTS.fit,
-		}
+	watch: {
+		url() {
+			// When the URL changes the preview must re-arm so a
+			// previously broken URL does not permanently mask a freshly
+			// chosen good one.
+			this.previewError = false
+		},
 	},
 
 	methods: {
-		tt(key) {
-			if (typeof t === 'function') {
-				return t('mydash', key)
-			}
-			return key
-		},
-
-		emitUpdate() {
-			this.$emit('update:content', { ...this.form })
-		},
-
-		handleFileSelect(event) {
-			const file = event.target.files?.[0]
-			if (!file) {
-				return
-			}
-
-			this.uploadError = ''
-			const reader = new FileReader()
-
-			reader.onload = async (e) => {
-				try {
-					const dataUrl = e.target.result
-					const response = await fetch('/index.php/apps/mydash/api/resources', {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-						},
-						body: JSON.stringify({ base64: dataUrl }),
-					})
-
-					if (!response.ok) {
-						throw new Error(`HTTP ${response.status}`)
-					}
-
-					const data = await response.json()
-					this.form.url = data.url
-					this.emitUpdate()
-					// Reset file input
-					event.target.value = ''
-				} catch (error) {
-					this.uploadError = this.tt('Failed to upload image')
-					console.error('Image upload failed:', error)
-					// Reset file input
-					event.target.value = ''
-				}
-			}
-
-			reader.onerror = () => {
-				this.uploadError = this.tt('Failed to upload image')
-				// Reset file input
-				event.target.value = ''
-			}
-
-			reader.readAsDataURL(file)
+		/**
+		 * Set a field and notify parent so the modal can fall back to
+		 * the composable's `state.content` when assembling the submit
+		 * payload.
+		 *
+		 * @param {string} field one of: url, alt, link, fit
+		 * @param {string} value new value
+		 */
+		updateField(field, value) {
+			this[field] = value
+			this.$emit('update:content', this.assembledContent)
 		},
 
 		/**
-		 * Validate the form. Returns an array of localised error strings.
-		 * Empty array means the form is valid (REQ-IMG-005).
+		 * Handle the file input's `change` event: read the chosen file
+		 * as a base64 data URL and POST it to the resource-uploads
+		 * endpoint. On success set `url` from the response; on failure
+		 * surface the inline error string and leave `url` unchanged.
 		 *
-		 * @return {string[]} array of error messages
+		 * @param {Event} event the input change event
+		 */
+		async onFileSelected(event) {
+			const target = event && event.target
+			const file = target && target.files && target.files[0]
+			if (!file) {
+				return
+			}
+			this.uploading = true
+			this.uploadError = ''
+			try {
+				const dataUrl = await readFileAsDataUrl(file)
+				const result = await uploadDataUrl(dataUrl)
+				this.updateField('url', result.url)
+			} catch (err) {
+				// Per spec we surface a single generic message — the
+				// server already produced a stable code we could branch
+				// on, but the proposal explicitly calls out one string.
+				this.uploadError = t('mydash', 'Failed to upload image')
+				if (err instanceof ResourceUploadError) {
+					// Keep a console hint for admins debugging an
+					// upload regression.
+					// eslint-disable-next-line no-console
+					console.warn('[mydash] image upload failed', err.code, err.message)
+				}
+			} finally {
+				this.uploading = false
+				// Reset the input so re-selecting the same file fires
+				// the change event again.
+				if (target) {
+					target.value = ''
+				}
+			}
+		},
+
+		/**
+		 * Mark the preview thumbnail as broken so the inline preview
+		 * error message renders. The renderer has its own broken-image
+		 * fallback for the dashboard cell — this is purely the form-side
+		 * affordance.
+		 */
+		onPreviewError() {
+			this.previewError = true
+		},
+
+		/**
+		 * Returns a list of error strings; empty array means valid.
+		 *
+		 * @return {string[]} validation errors
 		 */
 		validate() {
-			if (!this.form.url || this.form.url.trim() === '') {
-				return [this.tt('Image URL is required')]
+			if (typeof this.url !== 'string' || this.url.trim() === '') {
+				return [t('mydash', 'Image URL is required')]
 			}
 			return []
 		},
@@ -244,38 +263,48 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
+	font-size: 14px;
 }
 
 .image-form__label {
-	font-weight: bold;
+	font-weight: 500;
 }
 
-.image-form__input,
+.image-form__file {
+	font-size: 13px;
+}
+
 .image-form__select {
-	width: 100%;
+	padding: 8px 12px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-size: 14px;
 }
 
 .image-form__error {
-	margin: 0;
-	padding: 4px 8px;
-	font-size: 12px;
 	color: var(--color-error);
-	background-color: rgba(192, 0, 0, 0.1);
-	border-radius: 2px;
+	font-size: 13px;
+}
+
+.image-form__preview-wrap {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
 }
 
 .image-form__preview {
-	width: 100%;
-	height: 200px;
+	max-width: 100%;
+	max-height: 160px;
+	object-fit: contain;
 	border: 1px solid var(--color-border);
-	border-radius: 4px;
-	overflow: hidden;
-	background-color: var(--color-background-secondary);
+	border-radius: var(--border-radius);
+	background: var(--color-background-dark);
 }
 
-.image-form__preview-img {
-	width: 100%;
-	height: 100%;
-	object-fit: contain;
+.image-form__preview-error {
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
 }
 </style>

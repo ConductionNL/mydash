@@ -24,8 +24,6 @@ use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacement;
 use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\IGroupManager;
-use OCP\IUserManager;
 
 /**
  * Service for managing admin dashboard templates.
@@ -35,16 +33,18 @@ class TemplateService
     /**
      * Constructor
      *
-     * @param DashboardMapper       $dashboardMapper Dashboard mapper.
-     * @param WidgetPlacementMapper $placementMapper Widget placement mapper.
-     * @param IGroupManager         $groupManager    Group manager interface.
-     * @param IUserManager          $userManager     User manager interface.
+     * @param DashboardMapper       $dashboardMapper      Dashboard mapper.
+     * @param WidgetPlacementMapper $placementMapper      Widget placement mapper.
+     * @param AdminTemplateService  $adminTemplateService Routing resolver —
+     *                                                    single source of truth
+     *                                                    for
+     *                                                    `IGroupManager::getUserGroupIds`
+     *                                                    (REQ-TMPL-013).
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
         private readonly WidgetPlacementMapper $placementMapper,
-        private readonly IGroupManager $groupManager,
-        private readonly IUserManager $userManager,
+        private readonly AdminTemplateService $adminTemplateService,
     ) {
     }//end __construct()
 
@@ -59,13 +59,15 @@ class TemplateService
     {
         $templates = $this->dashboardMapper->findAdminTemplates();
 
-        // Get user object and their groups.
-        $user = $this->userManager->get(uid: $userId);
-        if ($user === null) {
-            return null;
-        }
-
-        $userGroups = $this->groupManager->getUserGroupIds(user: $user);
+        // Group memberships are read through the routing resolver so the
+        // single-source-of-truth invariant (REQ-TMPL-013) holds. An empty
+        // result means either an unknown user OR a known user with no
+        // group memberships — in both cases we skip the per-template
+        // intersection scan and fall through to the default template
+        // lookup at the end of the method (preserving legacy behaviour).
+        $userGroups = $this->adminTemplateService->getUserGroupIdsFor(
+            userId: $userId
+        );
 
         // Find template that matches user's groups.
         foreach ($templates as $template) {
@@ -153,7 +155,7 @@ class TemplateService
         $dashboard->setPermissionLevel(
             $template->getPermissionLevel()
         );
-        $dashboard->setIsActive(true);
+        $dashboard->setIsActive(1);
         $dashboard->setCreatedAt($now);
         $dashboard->setUpdatedAt($now);
 

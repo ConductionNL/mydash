@@ -1,44 +1,39 @@
 /**
- * Typed reader for the MyDash initial-state contract.
- *
- * Mirrors {@link OCA\MyDash\Service\InitialStateBuilder} on the JS side
- * (REQ-INIT-002 / REQ-INIT-003). The function reads every key declared for
- * the requested page via `loadState('mydash', key, default)`, fills missing
- * keys with the spec defaults, and warns if the server-pushed schema version
- * does not match the version this bundle was compiled against.
- *
- * Direct `loadState('mydash', ...)` calls outside this module are forbidden
- * by a grep lint test (REQ-INIT-003 scenario "Direct loadState rejected").
- *
- * SPDX-FileCopyrightText: 2024 MyDash Contributors
+ * SPDX-FileCopyrightText: 2026 MyDash Contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
+ *
+ * Centralised JS reader for the per-page MyDash initial-state contract
+ * (REQ-INIT-003). The matching PHP builder lives at
+ * `lib/Service/InitialStateBuilder.php`. Adding, removing, or renaming a
+ * key here is a deliberate spec change — bump
+ * {@link INITIAL_STATE_SCHEMA_VERSION} in lockstep with the PHP constant
+ * and update the per-page table below.
+ *
+ * This module is the only place in the frontend allowed to call
+ * `loadState('mydash', ...)`; a CI grep guard in `package.json`'s
+ * `lint:initial-state` script enforces that.
  */
 
 import { loadState } from '@nextcloud/initial-state'
 
 /**
- * Compiled-in initial-state schema version. MUST equal the PHP value in
- * `OCA\\MyDash\\Service\\InitialStateBuilder::INITIAL_STATE_SCHEMA_VERSION`.
- *
- * @type {number}
+ * Schema version compiled into the JS bundle. Compared against the
+ * server-pushed `_schemaVersion`; mismatch logs a console warning so
+ * deploy-skew between PHP and JS surfaces (REQ-INIT-002).
  */
-export const INITIAL_STATE_SCHEMA_VERSION = 1
+export const INITIAL_STATE_SCHEMA_VERSION = 2
 
 /**
- * Reserved key used to stamp the schema version on every payload.
- *
- * @type {string}
+ * Reserved key carrying the schema version on the wire.
  */
 export const SCHEMA_VERSION_KEY = '_schemaVersion'
 
 /**
- * Per-page key/default tables. Mirrors REQ-INIT-002 Data Model exactly.
- *
- * Keep the key strings byte-identical to the PHP setters in
- * `InitialStateBuilder` — renaming at this boundary is a spec change.
+ * Per-page key/default tables. MUST mirror REQ-INIT-002's Data Model
+ * exactly. Defaults guarantee the reader never returns `undefined`.
  */
-const PAGE_KEYS = Object.freeze({
-	workspace: Object.freeze({
+const PAGE_KEYS = {
+	workspace: {
 		widgets: [],
 		layout: [],
 		primaryGroup: 'default',
@@ -49,39 +44,40 @@ const PAGE_KEYS = Object.freeze({
 		groupDashboards: [],
 		userDashboards: [],
 		allowUserDashboards: false,
-	}),
-	admin: Object.freeze({
+	},
+	admin: {
 		allGroups: [],
 		configuredGroups: [],
 		widgets: [],
 		allowUserDashboards: false,
-	}),
-})
+		linkCreateFileExtensions: ['txt', 'md', 'docx', 'xlsx', 'csv', 'odt'],
+	},
+}
 
 /**
- * Load the typed initial-state object for the given page.
+ * Read every initial-state key declared for the given page, fill defaults
+ * for any missing keys, and validate the schema version stamp.
  *
- * @param {'workspace'|'admin'} page The Vue mount this state targets.
- * @return {object} The default-filled, never-`undefined` state object.
- * @throws {Error} If `page` is not a known page identifier.
+ * @param {('workspace'|'admin')} page Destination page identifier.
+ * @return {object} Typed snapshot — never carries `undefined` values.
+ * @throws {Error} When `page` is not a known page identifier.
  */
 export function loadInitialState(page) {
 	const defaults = PAGE_KEYS[page]
-	if (defaults === undefined) {
-		throw new Error(`MyDash loadInitialState: unknown page "${page}"`)
+	if (!defaults) {
+		throw new Error(`loadInitialState: unknown page "${page}" — known: ${Object.keys(PAGE_KEYS).join(', ')}`)
 	}
 
 	const state = {}
 	for (const [key, fallback] of Object.entries(defaults)) {
-		state[key] = loadState('mydash', key, fallback)
+		state[key] = readKey(key, fallback)
 	}
 
-	const serverVersion = loadState('mydash', SCHEMA_VERSION_KEY, null)
+	const serverVersion = readKey(SCHEMA_VERSION_KEY, null)
 	if (serverVersion !== null && serverVersion !== INITIAL_STATE_SCHEMA_VERSION) {
 		// eslint-disable-next-line no-console
 		console.warn(
-			`MyDash initial-state schema mismatch: server v${serverVersion} `
-			+ `vs client v${INITIAL_STATE_SCHEMA_VERSION} — refresh recommended`,
+			`MyDash initial-state schema mismatch: server v${serverVersion} vs client v${INITIAL_STATE_SCHEMA_VERSION} — refresh recommended`,
 		)
 	}
 
@@ -89,16 +85,19 @@ export function loadInitialState(page) {
 }
 
 /**
- * Read-only access to the per-page key set. Exported for tests and lint
- * tooling — production code should call {@link loadInitialState} instead.
+ * Wrap loadState so a missing key (the helper throws) silently degrades
+ * to the documented default. The reader contract guarantees no
+ * `undefined` reads — the JS bundle never crashes when PHP omits a key.
  *
- * @param {'workspace'|'admin'} page The page identifier.
- * @return {string[]} The list of declared keys for the page.
+ * @param {string} key The initial-state key.
+ * @param {*} fallback Default to use when the key is missing.
+ * @return {*} The pushed value, or the fallback.
  */
-export function getDeclaredKeys(page) {
-	const defaults = PAGE_KEYS[page]
-	if (defaults === undefined) {
-		throw new Error(`MyDash getDeclaredKeys: unknown page "${page}"`)
+function readKey(key, fallback) {
+	try {
+		const value = loadState('mydash', key, fallback)
+		return value === undefined ? fallback : value
+	} catch (e) {
+		return fallback
 	}
-	return Object.keys(defaults)
 }

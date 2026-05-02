@@ -13,6 +13,9 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
+ *
+ * SPDX-FileCopyrightText: 2024 MyDash Contributors
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -32,9 +35,10 @@ use OCA\MyDash\Exception\PersonalDashboardsDisabledException;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IConfig;
 use OCP\IDBConnection;
-use OCP\IL10N;
 use OCP\IGroupManager;
+use OCP\IL10N;
 use OCP\IUserManager;
+use OCP\L10N\IFactory;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -42,6 +46,10 @@ use Throwable;
  * Service for managing dashboards.
  *
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ * @SuppressWarnings(PHPMD.TooManyPublicMethods)     Personal + group-shared + visible-to-user CRUD lives here intentionally.
+ * @SuppressWarnings(PHPMD.ExcessiveClassComplexity) Same; splitting risks losing the single-source-of-truth behaviour.
+ * @SuppressWarnings(PHPMD.ExcessiveParameterList)   The constructor wires every dependency the three scopes need.
+ * @SuppressWarnings(PHPMD.CyclomaticComplexity)     `resolveActiveDashboard` fans out the 7-step REQ-DASH-018 chain.
  */
 class DashboardService
 {
@@ -86,24 +94,33 @@ class DashboardService
     /**
      * Constructor
      *
-     * @param DashboardMapper       $dashboardMapper  Dashboard mapper.
-     * @param WidgetPlacementMapper $placementMapper  Widget placement mapper.
-     * @param AdminSettingMapper    $settingMapper    Admin setting mapper.
-     * @param TemplateService       $templateService  Template service.
-     * @param DashboardFactory      $dashboardFactory Dashboard factory.
-     * @param DashboardResolver     $dashResolver     Dashboard resolver.
-     * @param IGroupManager         $groupManager     Group manager.
-     * @param IUserManager          $userManager      User manager.
-     * @param IDBConnection         $db               DB connection (for the
-     *                                                transactional default
-     *                                                flip — REQ-DASH-015).
-     * @param IConfig               $config           Nextcloud per-user
-     *                                                preference storage.
-     * @param IL10N                 $l10n             Localisation service
-     *                                                (used for the fork
-     *                                                default name —
-     *                                                REQ-DASH-020).
-     * @param LoggerInterface       $logger           PSR logger.
+     * @param DashboardMapper       $dashboardMapper      Dashboard mapper.
+     * @param WidgetPlacementMapper $placementMapper      Widget placement mapper.
+     * @param AdminSettingMapper    $settingMapper        Admin setting mapper.
+     * @param TemplateService       $templateService      Template service.
+     * @param DashboardFactory      $dashboardFactory     Dashboard factory.
+     * @param DashboardResolver     $dashResolver         Dashboard resolver.
+     * @param IGroupManager         $groupManager         Group manager (used for
+     *                                                    `isAdmin` only — group
+     *                                                    membership lookups go
+     *                                                    through the routing
+     *                                                    resolver per
+     *                                                    REQ-TMPL-013).
+     * @param AdminTemplateService  $adminTemplateService Routing resolver — single
+     *                                                    source of truth for
+     *                                                    `IGroupManager::getUserGroupIds`
+     *                                                    (REQ-TMPL-013).
+     * @param IDBConnection         $db                   DB connection (for the
+     *                                                    transactional default
+     *                                                    flip — REQ-DASH-015).
+     * @param IConfig               $config               Nextcloud per-user
+     *                                                    preference storage.
+     * @param IFactory              $l10nFactory          L10N factory used to
+     *                                                    build the
+     *                                                    "My copy of {name}"
+     *                                                    default fork name
+     *                                                    (REQ-DASH-020).
+     * @param LoggerInterface       $logger               PSR logger.
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
@@ -113,10 +130,10 @@ class DashboardService
         private readonly DashboardFactory $dashboardFactory,
         private readonly DashboardResolver $dashResolver,
         private readonly IGroupManager $groupManager,
-        private readonly IUserManager $userManager,
+        private readonly AdminTemplateService $adminTemplateService,
         private readonly IDBConnection $db,
         private readonly IConfig $config,
-        private readonly IL10N $l10n,
+        private readonly IFactory $l10nFactory,
         private readonly LoggerInterface $logger,
     ) {
     }//end __construct()
@@ -170,13 +187,15 @@ class DashboardService
      * @param string      $userId      The user ID.
      * @param string      $name        The dashboard name.
      * @param string|null $description The dashboard description.
+     * @param string|null $icon        Opaque icon identifier (registry key or URL); see the `dashboard-icons` capability.
      *
      * @return Dashboard The created dashboard.
      */
     public function createDashboard(
         string $userId,
         string $name,
-        ?string $description=null
+        ?string $description=null,
+        ?string $icon=null
     ): Dashboard {
         $dashboard = $this->dashboardFactory->create(
             userId: $userId,
@@ -184,118 +203,18 @@ class DashboardService
             description: $description
         );
 
+        // Icon is an opaque string (registry key or URL) — see the
+        // `dashboard-icons` capability. NULL/empty means "use the
+        // frontend default glyph".
+        if ($icon !== null && $icon !== '') {
+            // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
+            $dashboard->setIcon($icon);
+        }
+
         $this->dashboardMapper->deactivateAllForUser(userId: $userId);
 
         return $this->dashboardMapper->insert(entity: $dashboard);
     }//end createDashboard()
-
-    /**
-     * Fork a visible dashboard as a new personal copy for the caller.
-     *
-     * Implements REQ-DASH-020..022. Creates a new `user`-type dashboard
-     * owned by `$userId`, deep-copies all widget placements from the
-     * source, and makes it the user's active dashboard. The entire
-     * operation runs inside a single DB transaction (REQ-DASH-021).
-     *
-     * Gating rules:
-     *  - `allow_user_dashboards` must be `true`; otherwise throws
-     *    {@see PersonalDashboardsDisabledException} (→ HTTP 403).
-     *  - The source must be visible to `$userId` (any type); otherwise
-     *    throws {@see DoesNotExistException} (→ HTTP 404, no info leak).
-     *
-     * Resource URLs in placements are kept as-is — no resource bytes are
-     * duplicated (REQ-DASH-022).
-     *
-     * @param string      $userId     The calling user ID.
-     * @param string      $sourceUuid The UUID of the dashboard to fork.
-     * @param string|null $name       Override name; defaults to
-     *                                `t('My copy of {name}', …)`.
-     *
-     * @return Dashboard The newly created personal dashboard.
-     *
-     * @throws PersonalDashboardsDisabledException When the admin flag is off.
-     * @throws DoesNotExistException               When the source is not visible
-     *                                             to the calling user.
-     * @throws \Throwable                          On any DB error (rolled back).
-     *
-     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
-     */
-    public function forkAsPersonal(
-        string $userId,
-        string $sourceUuid,
-        ?string $name=null
-    ): Dashboard {
-        // REQ-ASET-003 gate — throws PersonalDashboardsDisabledException on failure.
-        $this->assertPersonalDashboardsAllowed();
-
-        // Resolve source from the user's visible set (REQ-DASH-013).
-        // Do NOT fall back to a raw findByUuid — that would leak existence
-        // of dashboards the user cannot see (REQ-DASH-020, 404 scenario).
-        $visible = $this->getVisibleToUser(userId: $userId);
-        $source  = null;
-        foreach ($visible as $entry) {
-            if ((string) $entry['dashboard']->getUuid() === $sourceUuid) {
-                $source = $entry['dashboard'];
-                break;
-            }
-        }
-
-        if ($source === null) {
-            throw new DoesNotExistException(
-                msg: 'Dashboard not found or not visible'
-            );
-        }
-
-        // Resolve the fork name — fall back to a translated default.
-        if ($name !== null && $name !== '') {
-            $forkName = $name;
-        } else {
-            $forkName = $this->l10n->t(
-                'My copy of {name}',
-                ['name' => (string) $source->getName()]
-            );
-        }
-
-        $this->db->beginTransaction();
-        try {
-            // Build the new personal dashboard entity.
-            $newDash = $this->dashboardFactory->create(
-                userId: $userId,
-                name: $forkName,
-                type: Dashboard::TYPE_USER,
-                groupId: null,
-                gridColumns: (int) $source->getGridColumns()
-            );
-            // Forks are never defaults (REQ-DASH-020 scenario).
-            $newDash->setIsDefault(0);
-
-            // Deactivate other personal dashboards BEFORE insert so the
-            // factory-set isActive=1 on the new row stays clean.
-            $this->dashboardMapper->deactivateAllForUser(userId: $userId);
-
-            // Persist the new dashboard row.
-            $newDash = $this->dashboardMapper->insert(entity: $newDash);
-
-            // Deep-copy placements (REQ-DASH-020, REQ-DASH-022).
-            $this->placementMapper->cloneToDashboard(
-                sourceDashboardId: (int) $source->getId(),
-                targetDashboardId: (int) $newDash->getId()
-            );
-
-            // Persist the active-dashboard preference (REQ-DASH-019).
-            $this->setActivePreference(
-                userId: $userId,
-                uuid: (string) $newDash->getUuid()
-            );
-
-            $this->db->commit();
-        } catch (Throwable $t) {
-            $this->db->rollBack();
-            throw $t;
-        }//end try
-
-        return $newDash;
-    }//end forkAsPersonal()
 
     /**
      * Update a dashboard.
@@ -369,7 +288,8 @@ class DashboardService
             $dashboardId,
             userId: $userId
         );
-        $dashboard->setIsActive(true);
+        // Cast to int — the entity column is SMALLINT.
+        $dashboard->setIsActive(1);
 
         return $dashboard;
     }//end activateDashboard()
@@ -638,9 +558,11 @@ class DashboardService
     /**
      * Get all dashboards visible to a user, source-tagged.
      *
-     * Wires `IGroupManager::getUserGroupIds()` into the mapper's union
-     * query and returns the deduplicated list with `source` set per row.
-     * REQ-DASH-013.
+     * Resolves the user's full group memberships through
+     * {@see AdminTemplateService::getUserGroupIdsFor()} (REQ-TMPL-013 —
+     * single source of truth for `IGroupManager::getUserGroupIds`) and
+     * wires the result into the mapper's union query. Returns the
+     * deduplicated list with `source` set per row. REQ-DASH-013.
      *
      * @param string $userId The user ID.
      *
@@ -649,12 +571,9 @@ class DashboardService
      */
     public function getVisibleToUser(string $userId): array
     {
-        $user = $this->userManager->get(uid: $userId);
-        if ($user === null) {
-            return [];
-        }
-
-        $userGroupIds = $this->groupManager->getUserGroupIds(user: $user);
+        $userGroupIds = $this->adminTemplateService->getUserGroupIdsFor(
+            userId: $userId
+        );
 
         return $this->dashboardMapper->findVisibleToUser(
             userId: $userId,
@@ -694,10 +613,9 @@ class DashboardService
         ?string $primaryGroupId
     ): ?array {
         // Normalise the sentinel so steps 2-5 can rely on it.
+        $groupId = $primaryGroupId;
         if ($primaryGroupId === null || $primaryGroupId === '') {
             $groupId = Dashboard::DEFAULT_GROUP_ID;
-        } else {
-            $groupId = $primaryGroupId;
         }
 
         // Pre-fetch all visible dashboards once — used for the pref lookup
@@ -706,7 +624,7 @@ class DashboardService
 
         // Build a UUID-keyed index for O(1) pref lookup.
         /**
-         * UUID-keyed index of the visible-to-user dashboard list.
+         * UUID-indexed view of $visible for O(1) lookup.
          *
          * @var array<string, array{dashboard: Dashboard, source: string}> $byUuid
          */
@@ -836,6 +754,228 @@ class DashboardService
     }//end setActivePreference()
 
     /**
+     * Fork any dashboard the user can read into a brand-new personal copy.
+     *
+     * Implements REQ-DASH-020 / REQ-DASH-021 / REQ-DASH-022:
+     *  - source can be ANY dashboard the user can see — personal, group,
+     *    or default-group sentinel — resolved via the same visible-to-user
+     *    chain as the rest of the multi-scope dashboards code
+     *    (REQ-DASH-013). A source the caller cannot see is treated as a
+     *    404 ({@see DoesNotExistException}).
+     *  - REQ-ASET-003 (extended) gating runs FIRST — when the admin flag
+     *    `allow_user_dashboards` is off the call MUST throw
+     *    {@see PersonalDashboardsDisabledException} before any DB write.
+     *  - the fork is always a `user`-type row owned by `$userId`, with
+     *    `groupId = null`, `isDefault = 0`, and `isActive = 1` (every
+     *    other personal dashboard owned by the user is deactivated as a
+     *    side-effect, mirroring {@see self::createDashboard()}).
+     *  - the fork's `gridColumns` is copied from the source.
+     *  - all `widget_placements` rows on the source are byte-for-byte
+     *    cloned via {@see WidgetPlacementMapper::cloneToDashboard()} —
+     *    tile fields, styleConfig, grid coords, sortOrder, customTitle
+     *    are all preserved (REQ-DASH-020 scenario "byte-for-byte
+     *    clones"). Resource URL fields (e.g. `tileIcon`) reference the
+     *    SAME shared resource record (REQ-DASH-022).
+     *  - the entire operation runs inside a single
+     *    {@see IDBConnection::beginTransaction()} — any failure rolls
+     *    back the new dashboard row AND the partial placement clones
+     *    (REQ-DASH-021).
+     *  - the fork becomes the user's active dashboard (the legacy
+     *    `is_active` SMALLINT column on `user`-type rows is the source
+     *    of truth for personal-only stacks; the
+     *    `active_dashboard_uuid` user-preference is also written so the
+     *    REQ-DASH-018 resolution chain returns the fork on next render).
+     *
+     * @param string      $userId     The acting user.
+     * @param string      $sourceUuid The source dashboard UUID.
+     * @param string|null $name       Optional explicit name; when null
+     *                                or empty the default
+     *                                "My copy of {source name}" is
+     *                                used (translated via the user's
+     *                                active language).
+     *
+     * @return Dashboard The newly created (and activated) personal
+     *                   dashboard entity.
+     *
+     * @throws PersonalDashboardsDisabledException When the admin flag
+     *                                             `allow_user_dashboards`
+     *                                             is off — caller maps
+     *                                             to HTTP 403 with the
+     *                                             stable error code
+     *                                             `personal_dashboards_disabled`.
+     * @throws DoesNotExistException               When the source UUID
+     *                                             does not exist OR the
+     *                                             user cannot read it
+     *                                             (HTTP 404 — do not
+     *                                             leak existence).
+     * @throws Throwable                           On any other DB error
+     *                                             — the transaction is
+     *                                             rolled back before
+     *                                             rethrowing
+     *                                             (REQ-DASH-021).
+     */
+    public function forkAsPersonal(
+        string $userId,
+        string $sourceUuid,
+        ?string $name=null
+    ): Dashboard {
+        // REQ-ASET-003 (extended): gate FIRST so we never persist when
+        // personal dashboards are disabled — and so the caller surfaces
+        // the stable `personal_dashboards_disabled` envelope no matter
+        // what happens with the body.
+        $this->assertPersonalDashboardsAllowed();
+
+        // REQ-DASH-020: source must be visible to the user — reuse the
+        // visible-to-user resolver so personal / group / default-group
+        // sources all resolve through the same indexed-and-deduped path.
+        $source = $this->findVisibleDashboardForFork(
+            userId: $userId,
+            sourceUuid: $sourceUuid
+        );
+
+        $resolvedName = $this->resolveForkName(
+            userId: $userId,
+            requestedName: $name,
+            sourceName: (string) $source->getName()
+        );
+
+        $this->db->beginTransaction();
+        try {
+            // REQ-DASH-020: force `isDefault = 0` and `groupId = null`
+            // on the fork — the factory is the single source of truth
+            // for the (type, groupId) invariant (REQ-DASH-011).
+            $fork = $this->dashboardFactory->create(
+                userId: $userId,
+                name: $resolvedName,
+                description: $source->getDescription(),
+                type: Dashboard::TYPE_USER,
+                groupId: null,
+                gridColumns: $source->getGridColumns(),
+                permissionLevel: Dashboard::PERMISSION_FULL
+            );
+            // Defensive — the factory already sets this for TYPE_USER but
+            // we make the contract visible at the call site.
+            $fork->setIsDefault(0);
+
+            // REQ-DASH-020: deactivate every other personal dashboard
+            // for this user before persisting the fork — mirrors
+            // {@see self::createDashboard()} so the single-active
+            // invariant holds across the transaction.
+            $this->dashboardMapper->deactivateAllForUser(userId: $userId);
+            $fork->setIsActive(1);
+
+            $persisted = $this->dashboardMapper->insert(entity: $fork);
+
+            // REQ-DASH-020: byte-for-byte placement clone. Any DB error
+            // bubbles out of the mapper and the catch below rolls back.
+            $this->placementMapper->cloneToDashboard(
+                sourceDashboardId: (int) $source->getId(),
+                targetDashboardId: (int) $persisted->getId()
+            );
+
+            // REQ-DASH-018 / REQ-DASH-019: also pin the active-dashboard
+            // user-pref so the resolver returns the fork on the next
+            // render even when the personal `is_active` column is not
+            // the source of truth (multi-scope deployments).
+            $forkUuid = (string) $persisted->getUuid();
+            if ($forkUuid !== '') {
+                $this->setActivePreference(
+                    userId: $userId,
+                    uuid: $forkUuid
+                );
+            }
+
+            $this->db->commit();
+
+            return $persisted;
+        } catch (Throwable $t) {
+            // REQ-DASH-021: rollback covers the inserted dashboard row
+            // AND any partially cloned placements — the catch is wide
+            // so we never leak a half-persisted fork on any throwable.
+            $this->db->rollBack();
+            throw $t;
+        }//end try
+    }//end forkAsPersonal()
+
+    /**
+     * Resolve the source dashboard for a fork via the visible-to-user
+     * chain.
+     *
+     * Personal, group-shared (matching), and default-group sentinel
+     * dashboards are all eligible source candidates. A source UUID the
+     * caller cannot see MUST be reported as a 404 to avoid leaking
+     * existence (REQ-DASH-020 scenario "Cannot fork a dashboard you
+     * cannot read").
+     *
+     * @param string $userId     The acting user.
+     * @param string $sourceUuid The source UUID.
+     *
+     * @return Dashboard The resolved source dashboard entity.
+     *
+     * @throws DoesNotExistException When the source is not visible.
+     */
+    private function findVisibleDashboardForFork(
+        string $userId,
+        string $sourceUuid
+    ): Dashboard {
+        $visible = $this->getVisibleToUser(userId: $userId);
+        foreach ($visible as $entry) {
+            $candidate = $entry['dashboard'];
+            if ((string) $candidate->getUuid() === $sourceUuid) {
+                return $candidate;
+            }
+        }
+
+        throw new DoesNotExistException(msg: 'Dashboard not found');
+    }//end findVisibleDashboardForFork()
+
+    /**
+     * Resolve the effective name for a forked dashboard.
+     *
+     * When the caller supplies a non-empty `$requestedName` we use it
+     * verbatim. Otherwise the system applies the localised default
+     * `t('My copy of {name}', ['name' => $sourceName])` using the
+     * acting user's active language (REQ-DASH-020).
+     *
+     * @param string      $userId        The acting user (drives the
+     *                                   l10n locale).
+     * @param string|null $requestedName Caller-supplied name.
+     * @param string      $sourceName    The source dashboard's name —
+     *                                   substituted into the default
+     *                                   pattern via the IL10N
+     *                                   placeholder mechanism (NOT
+     *                                   string concatenation).
+     *
+     * @return string The resolved name (always non-empty).
+     */
+    private function resolveForkName(
+        string $userId,
+        ?string $requestedName,
+        string $sourceName
+    ): string {
+        $trimmed = trim((string) $requestedName);
+        if ($trimmed !== '') {
+            return $trimmed;
+        }
+
+        $l10n = $this->l10nFactory->get(
+            app: Application::APP_ID,
+            lang: $this->config->getUserValue(
+                userId: $userId,
+                appName: 'core',
+                key: 'lang',
+                default: ''
+            )
+        );
+
+        // IL10N::t uses positional `%s` placeholders (vsprintf under
+        // the hood) — the cross-cutting JS / Python pipelines use
+        // `{name}` curly placeholders, but the PHP boundary stays on
+        // the standard sprintf substitution mechanism.
+        return $l10n->t('My copy of %s', [$sourceName]);
+    }//end resolveForkName()
+
+    /**
      * Check whether the given user is a Nextcloud administrator.
      *
      * Wraps `IGroupManager::isAdmin()` so callers don't have to import
@@ -849,6 +989,36 @@ class DashboardService
     {
         return $this->groupManager->isAdmin(userId: $userId);
     }//end isAdmin()
+
+    /**
+     * Read the admin `allow_user_dashboards` flag without throwing.
+     *
+     * Use this when callers need a plain boolean (e.g. to render the UI
+     * affordance or to push the flag into the initial-state contract);
+     * use {@see self::assertPersonalDashboardsAllowed()} when the call
+     * site needs the request to be rejected with a 403 envelope.
+     *
+     * The default is `false` (admins must opt in) — this is the secure
+     * default mandated by REQ-ASET-003: when the row is missing, personal
+     * dashboard creation MUST be blocked.
+     *
+     * @return bool Whether personal dashboard creation is currently
+     *              permitted by admin settings.
+     *
+     * @SuppressWarnings(PHPMD.BooleanGetMethodName) Intentional: the proposal
+     *  pins the public name to `getAllowUserDashboards()` so it mirrors the
+     *  initial-state key (`allowUserDashboards`) and the
+     *  setting key constant (`AdminSetting::KEY_ALLOW_USER_DASHBOARDS`).
+     *  Renaming to `isAllowUserDashboards()` would break the symmetry the
+     *  spec relies on.
+     */
+    public function getAllowUserDashboards(): bool
+    {
+        return (bool) $this->settingMapper->getValue(
+            key: AdminSetting::KEY_ALLOW_USER_DASHBOARDS,
+            default: false
+        );
+    }//end getAllowUserDashboards()
 
     /**
      * Assert that personal-dashboard creation is permitted by admin settings.
@@ -865,12 +1035,7 @@ class DashboardService
      */
     public function assertPersonalDashboardsAllowed(): void
     {
-        $allowed = $this->settingMapper->getValue(
-            key: AdminSetting::KEY_ALLOW_USER_DASHBOARDS,
-            default: false
-        );
-
-        if ($allowed !== true) {
+        if ($this->getAllowUserDashboards() === false) {
             throw new PersonalDashboardsDisabledException();
         }
     }//end assertPersonalDashboardsAllowed()
@@ -887,9 +1052,11 @@ class DashboardService
      * @param array<int, array{dashboard: Dashboard, source: string}> $visible        The full visible-to-user list.
      * @param string                                                  $groupId        The group ID to filter on.
      * @param string                                                  $source         Expected source tag
-     *                                                                                (`'group'` or `'default'`).
+     *                                                                                (`'group'` or
+     *                                                                                `'default'`).
      * @param bool                                                    $requireDefault When true, only rows with
-     *                                                                                `isDefault = 1` are considered.
+     *                                                                                `isDefault = 1` are
+     *                                                                                considered.
      *
      * @return array{dashboard: Dashboard, source: string}|null
      */
@@ -934,10 +1101,7 @@ class DashboardService
      */
     private function tryCreateFromTemplate(string $userId): ?array
     {
-        $allowUserDashboards = $this->settingMapper->getValue(
-            key: AdminSetting::KEY_ALLOW_USER_DASHBOARDS,
-            default: true
-        );
+        $allowUserDashboards = $this->getAllowUserDashboards();
 
         $template = $this->templateService->getApplicableTemplate(
             userId: $userId
@@ -1041,6 +1205,20 @@ class DashboardService
 
         if (isset($data['description']) === true) {
             $dashboard->setDescription($data['description']);
+        }
+
+        // Icon may be NULL/empty (use default), a registry key, or a URL.
+        // The discriminator + lookup live frontend-side in the
+        // `dashboard-icons` capability — we just store the opaque string.
+        if (array_key_exists(key: 'icon', array: $data) === true) {
+            $iconValue   = $data['icon'];
+            $iconToStore = null;
+            if (is_string($iconValue) === true) {
+                $iconToStore = $iconValue;
+            }
+
+            // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
+            $dashboard->setIcon($iconToStore);
         }
 
         if (isset($data['gridColumns']) === true) {

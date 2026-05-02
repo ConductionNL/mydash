@@ -13,6 +13,7 @@
 		"watch": "NODE_ENV=development webpack --config webpack.config.js --progress --watch",
 		"lint": "eslint src",
 		"lint:fix": "eslint src --fix",
+		"lint:initial-state": "node ./scripts/lint-initial-state.js",
 		"stylelint": "stylelint src/**/*.vue src/**/*.scss src/**/*.css",
 		"stylelint:fix": "stylelint src/**/*.vue src/**/*.scss src/**/*.css --fix",
 		"test": "vitest run",
@@ -23,14 +24,14 @@
 	"dependencies": {
 		"@conduction/nextcloud-vue": "^0.1.0-beta.17",
 		"@mdi/js": "^7.4.47",
-		"@nextcloud/axios": "^2.5.0",
+		"@nextcloud/axios": "~2.5.2",
 		"@nextcloud/dialogs": "^6.1.1",
 		"@nextcloud/initial-state": "^2.2.0",
 		"@nextcloud/l10n": "^3.2.0",
 		"@nextcloud/router": "^3.1.0",
 		"@nextcloud/vue": "^8.16.0",
 		"dompurify": "^3.4.1",
-		"gridstack": "^10.3.1",
+		"gridstack": "^12.2.1",
 		"pinia": "^2.1.7",
 		"vue": "^2.7.16",
 		"vue-loader": "^15.11.1",
@@ -49,7 +50,7 @@
 		"@nextcloud/stylelint-config": "^2.4.0",
 		"@nextcloud/webpack-vue-config": "^5.5.0",
 		"@vitejs/plugin-vue2": "^2.3.4",
-		"@vitest/ui": "^4.1.5",
+		"@vitest/ui": "^1.6.1",
 		"@vue/test-utils": "^1.3.6",
 		"@vue/tsconfig": "^0.5.1",
 		"eslint": "^8.56.0",
@@ -58,10 +59,10 @@
 		"eslint-plugin-n": "^16.6.2",
 		"eslint-plugin-promise": "^6.1.1",
 		"eslint-plugin-vue": "^9.21.1",
-		"jsdom": "^29.1.1",
+		"jsdom": "^24.1.3",
 		"stylelint": "^15.11.0",
 		"typescript": "^5.4.0",
-		"vitest": "^4.1.5"
+		"vitest": "^1.6.1"
 	},
 	"browserslist": [
 		"extends @nextcloud/browserslist-config"

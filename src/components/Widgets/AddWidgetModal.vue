@@ -4,116 +4,127 @@
 -->
 
 <template>
-	<div
+	<NcModal
 		v-if="show"
-		class="add-widget-modal__backdrop"
-		role="presentation"
-		@click.self="handleBackdropClick">
+		size="normal"
+		:name="modalTitle"
+		@close="onCancel">
 		<div
-			:id="modalId"
 			class="add-widget-modal"
 			role="dialog"
 			:aria-labelledby="titleId"
-			:aria-modal="true">
-			<!-- Header -->
-			<div class="add-widget-modal__header">
-				<h2 :id="titleId" class="add-widget-modal__title">
-					{{ editMode ? tt('Edit Widget') : tt('Add Widget') }}
-				</h2>
-				<button
-					class="add-widget-modal__close"
-					:aria-label="tt('Close')"
-					@click="handleClose">
-					&times;
-				</button>
+			aria-modal="true">
+			<h2 :id="titleId" class="add-widget-modal__title">
+				{{ modalTitle }}
+			</h2>
+
+			<!-- Type selector: shown only in pure-create mode (no preselected
+			     type, no editing widget). REQ-WDG-010. -->
+			<div v-if="showTypeSelect" class="add-widget-modal__type">
+				<label class="add-widget-modal__type-label" :for="typeSelectId">
+					{{ t('mydash', 'Widget type') }}
+				</label>
+				<select
+					:id="typeSelectId"
+					v-model="state.type"
+					class="add-widget-modal__type-select"
+					@change="onTypeSwitch">
+					<option
+						v-for="type in availableTypes"
+						:key="type"
+						:value="type">
+						{{ typeDisplayName(type) }}
+					</option>
+				</select>
 			</div>
 
-			<!-- Body -->
-			<div class="add-widget-modal__body">
-				<!-- Type selector — hidden in edit mode and when preselectedType is set -->
-				<div v-if="showTypeSelector" class="add-widget-modal__field">
-					<label :for="typeSelectorId" class="add-widget-modal__label">
-						{{ tt('Type') }}
-					</label>
-					<select
-						:id="typeSelectorId"
-						v-model="activeType"
-						class="add-widget-modal__select"
-						@change="onTypeChange">
-						<option
-							v-for="(entry, typeKey) in widgetRegistry"
-							:key="typeKey"
-							:value="typeKey">
-							{{ entry.label }}
-						</option>
-					</select>
-				</div>
-
-				<!-- Per-type sub-form -->
+			<!-- Active per-type sub-form. Driven by `<component :is>` from the
+			     widget registry; sub-forms expose `validate()` and either an
+			     `assembledContent` getter or `@update:content` events. -->
+			<div v-if="activeSubFormComponent" class="add-widget-modal__form">
 				<component
-					:is="activeFormComponent"
-					v-if="activeFormComponent"
-					ref="activeFormRef"
-					:editing-widget="editMode ? editingWidget : null"
+					:is="activeSubFormComponent"
+					ref="activeSubForm"
+					:key="state.type"
+					:editing-widget="state.editingWidget"
+					:value="state.content"
 					@update:content="onContentUpdate" />
 			</div>
+			<div v-else class="add-widget-modal__empty">
+				{{ t('mydash', 'No widget types available') }}
+			</div>
 
-			<!-- Footer / action buttons -->
-			<div class="add-widget-modal__footer">
-				<button
-					class="add-widget-modal__btn add-widget-modal__btn--secondary"
-					@click="handleClose">
-					{{ tt('Cancel') }}
-				</button>
-				<button
-					class="add-widget-modal__btn add-widget-modal__btn--primary"
+			<!-- Action buttons. REQ-WDG-013 close discipline: cancel emits
+			     close, never submit. Submit button is disabled while the
+			     active sub-form's validate() returns errors (REQ-WDG-012). -->
+			<div class="add-widget-modal__actions">
+				<NcButton type="tertiary" @click="onCancel">
+					{{ t('mydash', 'Cancel') }}
+				</NcButton>
+				<NcButton
+					type="primary"
 					:disabled="!isValid"
-					:title="firstValidationError"
-					@click="handleSubmit">
-					{{ editMode ? tt('Save') : tt('Add') }}
-				</button>
+					:title="firstError || ''"
+					@click="onSubmit">
+					{{ submitLabel }}
+				</NcButton>
 			</div>
 		</div>
-	</div>
+	</NcModal>
 </template>
 
 <script>
-import { widgetRegistry } from '../../constants/widgetRegistry.js'
-import { resetForm, loadEditingWidget, assembleContent } from '../../utils/widgetForm.js'
+import { NcModal, NcButton } from '@conduction/nextcloud-vue'
+import { t } from '@nextcloud/l10n'
 
-let uidCounter = 0
+import {
+	listWidgetTypes,
+	getWidgetTypeEntry,
+} from '../../constants/widgetRegistry.js'
+import { useWidgetForm } from '../../composables/useWidgetForm.js'
 
+let titleIdCounter = 0
+let selectIdCounter = 0
+
+/**
+ * AddWidgetModal — unified host for both "add a custom widget" and "edit a
+ * custom widget" flows. The modal does NO API work itself; it emits
+ * `submit({type, content})` for the parent to persist. Per-type fields live
+ * in sub-form components owned by their respective widget capabilities and
+ * registered in `widgetRegistry.js`.
+ *
+ * Props:
+ *  - `show` (bool): toggles visibility. Going `false → true` triggers
+ *    `resetForm()` (or `loadEditingWidget()` when `editingWidget` is set).
+ *  - `preselectedType` (string|null): when set, the type `<select>` is
+ *    hidden and the form opens directly on this type (toolbar deep-links).
+ *  - `editingWidget` (object|null): when set, the modal opens in edit mode;
+ *    the type select is hidden (placement type is immutable) and the
+ *    sub-form is pre-filled from `editingWidget.content`. The action button
+ *    reads `t('Save')` instead of `t('Add')` and the title reads
+ *    `t('Edit Widget')` instead of `t('Add Widget')`.
+ *
+ * Emits:
+ *  - `close`: cancel button, backdrop click, or Esc key.
+ *  - `submit`: `{type, content}` payload for the parent to send to the API.
+ */
 export default {
 	name: 'AddWidgetModal',
 
+	components: {
+		NcModal,
+		NcButton,
+	},
+
 	props: {
-		/**
-		 * Controls modal visibility.
-		 */
 		show: {
 			type: Boolean,
 			default: false,
 		},
-
-		/**
-		 * System Nextcloud widgets list (passed to nc-widget form if needed).
-		 */
-		widgets: {
-			type: Array,
-			default: () => [],
-		},
-
-		/**
-		 * When set, the type selector is hidden and this type is pre-selected.
-		 */
 		preselectedType: {
 			type: String,
 			default: null,
 		},
-
-		/**
-		 * When set, the modal opens in edit mode pre-filled from this widget.
-		 */
 		editingWidget: {
 			type: Object,
 			default: null,
@@ -122,327 +133,299 @@ export default {
 
 	emits: ['close', 'submit'],
 
+	setup() {
+		// One composable instance per modal mount. The composable owns the
+		// type/content/editingWidget reactive state shared with sub-forms.
+		const form = useWidgetForm()
+		return { form }
+	},
+
 	data() {
-		const uid = ++uidCounter
-		const firstType = Object.keys(widgetRegistry)[0] || 'text'
 		return {
-			uid,
-			widgetRegistry,
-			activeType: firstType,
-			// Reactive snapshot of the current form state (updated via onContentUpdate).
-			formSnapshot: {},
-			// Validation errors populated by revalidate() — kept reactive.
-			formErrors: [''],
+			// Re-validation tick: the modal needs `isValid` to recompute
+			// every time the active sub-form's input changes. Sub-forms
+			// emit `update:content` on every keystroke; we bump this
+			// counter in the handler so the computed re-runs.
+			validationTick: 0,
+			titleId: `add-widget-modal-title-${++titleIdCounter}`,
+			typeSelectId: `add-widget-modal-type-${++selectIdCounter}`,
 		}
 	},
 
 	computed: {
-		modalId() {
-			return `add-widget-modal-${this.uid}`
-		},
-
-		titleId() {
-			return `add-widget-modal-title-${this.uid}`
-		},
-
-		typeSelectorId() {
-			return `add-widget-modal-type-${this.uid}`
-		},
-
-		editMode() {
-			return Boolean(this.editingWidget)
-		},
-
-		showTypeSelector() {
-			return !this.preselectedType && !this.editMode
-		},
-
-		activeRegistryEntry() {
-			return widgetRegistry[this.activeType] || null
-		},
-
-		activeFormComponent() {
-			return this.activeRegistryEntry ? this.activeRegistryEntry.form : null
+		state() {
+			return this.form.state
 		},
 
 		/**
-		 * Submit is allowed only when formErrors is empty.
+		 * Type keys the picker should offer. Filters out registry entries
+		 * with no `form` component (i.e. types whose owning per-widget
+		 * proposal hasn't shipped its sub-form yet). REQ-WDG-014.
+		 *
+		 * @return {string[]}
+		 */
+		availableTypes() {
+			return listWidgetTypes()
+		},
+
+		/**
+		 * Hide the type select in edit mode (placement type is immutable)
+		 * or when the caller pre-selected a type.
 		 *
 		 * @return {boolean}
 		 */
-		isValid() {
-			return this.formErrors.length === 0
+		showTypeSelect() {
+			return !this.editingWidget && !this.preselectedType
 		},
 
-		firstValidationError() {
-			return this.formErrors[0] || ''
+		/**
+		 * The Vue component reference to mount via `<component :is>`.
+		 * Returns `null` when the active type is unknown OR has no form
+		 * registered yet (defensive — the user shouldn't be able to pick
+		 * such a type via `availableTypes`, but a stale `preselectedType`
+		 * could still drive us here).
+		 *
+		 * @return {object|null}
+		 */
+		activeSubFormComponent() {
+			const entry = getWidgetTypeEntry(this.state.type)
+			return entry?.form || null
+		},
+
+		/**
+		 * Modal heading text — flips between Add/Edit based on whether
+		 * an existing placement is being edited.
+		 *
+		 * @return {string}
+		 */
+		modalTitle() {
+			return this.editingWidget
+				? t('mydash', 'Edit Widget')
+				: t('mydash', 'Add Widget')
+		},
+
+		/**
+		 * Action button label — flips between Add/Save based on edit mode.
+		 *
+		 * @return {string}
+		 */
+		submitLabel() {
+			return this.editingWidget ? t('mydash', 'Save') : t('mydash', 'Add')
+		},
+
+		/**
+		 * Validation gate. `validationTick` keeps Vue's dependency tracker
+		 * aware that this computed should re-run on every form input.
+		 *
+		 * @return {string[]}
+		 */
+		validationErrors() {
+			// touch the tick so Vue tracks it as a dependency
+			// eslint-disable-next-line no-unused-expressions
+			this.validationTick
+			return this.form.validate(this.$refs.activeSubForm)
+		},
+
+		isValid() {
+			return this.validationErrors.length === 0
+		},
+
+		firstError() {
+			const err = this.validationErrors[0]
+			// Hide the internal "no active form" sentinel from the user UI.
+			return err && err !== '__no-active-form__' ? err : ''
 		},
 	},
 
 	watch: {
-		/**
-		 * React to show changes: reset form on open; restore editing state if needed.
-		 *
-		 * @param {boolean} newVal new visibility value
-		 * @param {boolean} oldVal previous visibility value
-		 */
-		show(newVal, oldVal) {
-			if (newVal && !oldVal) {
-				this.initModal()
+		show(isOpen) {
+			if (isOpen) {
+				this.openLifecycle()
 			}
 		},
-
-		/**
-		 * React to editingWidget changes when modal is already open.
-		 *
-		 * @param {object|null} newVal updated editing widget value
-		 */
-		editingWidget(newVal) {
-			if (this.show && newVal) {
-				this.initModal()
+		editingWidget: {
+			immediate: false,
+			handler(widget) {
+				if (this.show && widget) {
+					this.form.loadEditingWidget(widget)
+				}
+			},
+		},
+		preselectedType(type) {
+			if (this.show && type && !this.editingWidget) {
+				this.form.resetForm(type)
 			}
 		},
 	},
 
-	mounted() {
-		document.addEventListener('keydown', this.handleKeydown)
+	created() {
+		// Seed state synchronously before the first render so the
+		// `v-if="activeSubFormComponent"` path resolves to the right
+		// sub-form on initial mount (otherwise the modal flashes the
+		// "No widget types available" empty state for one tick).
 		if (this.show) {
-			this.initModal()
+			this.openLifecycle()
 		}
 	},
 
+	mounted() {
+		document.addEventListener('keydown', this.onKeydown)
+	},
+
 	beforeDestroy() {
-		document.removeEventListener('keydown', this.handleKeydown)
+		document.removeEventListener('keydown', this.onKeydown)
 	},
 
 	methods: {
-		tt(key) {
-			if (typeof t === 'function') {
-				return t('mydash', key)
-			}
-			return key
-		},
+		t,
 
 		/**
-		 * Initialise modal state on open / re-open.
-		 * Chooses type, then resets or pre-fills form.
+		 * Initialise form state when the modal opens. Edit mode pre-fills
+		 * from `editingWidget`; create mode resets to the preselected type
+		 * (toolbar invocation) or to the first available registered type.
 		 */
-		initModal() {
-			if (this.editMode) {
-				this.activeType = this.editingWidget.type || Object.keys(widgetRegistry)[0]
-			} else if (this.preselectedType) {
-				this.activeType = this.preselectedType
-			} else {
-				this.activeType = Object.keys(widgetRegistry)[0] || 'text'
-			}
-
-			// Reset form snapshot.
-			this.formSnapshot = resetForm(this.activeType)
-
-			if (this.editMode) {
-				this.formSnapshot = loadEditingWidget(this.formSnapshot, this.editingWidget)
-			}
-
-			// Reset validation (start blocked until sub-form validates after mount).
-			this.formErrors = ['']
-
-			// After the sub-form mounts, do an initial validation pass.
-			this.$nextTick(() => {
-				this.revalidate()
-			})
-		},
-
-		/**
-		 * Called when the user changes the type selector.
-		 * Resets form state to prevent cross-type field leakage.
-		 */
-		onTypeChange() {
-			this.formSnapshot = resetForm(this.activeType)
-			this.formErrors = ['']
-			this.$nextTick(() => {
-				this.revalidate()
-			})
-		},
-
-		/**
-		 * Called by the sub-form whenever its content changes.
-		 * Updates the snapshot and triggers validation.
-		 *
-		 * @param {object} content updated content from sub-form
-		 */
-		onContentUpdate(content) {
-			this.formSnapshot = { type: this.activeType, ...content }
-			this.revalidate()
-		},
-
-		/**
-		 * Call validate() on the active sub-form ref and store results in
-		 * reactive `formErrors` so that `isValid` computed re-evaluates.
-		 */
-		revalidate() {
-			const subForm = this.$refs.activeFormRef
-			if (!subForm || typeof subForm.validate !== 'function') {
-				// No validate method — treat as valid.
-				this.formErrors = []
+		openLifecycle() {
+			if (this.editingWidget) {
+				this.form.loadEditingWidget(this.editingWidget)
 				return
 			}
-			const errors = subForm.validate()
-			this.formErrors = Array.isArray(errors) ? errors : []
-		},
-
-		handleBackdropClick() {
-			this.handleClose()
+			const initialType = this.preselectedType
+				|| this.availableTypes[0]
+				|| ''
+			this.form.resetForm(initialType)
+			this.validationTick++
 		},
 
 		/**
-		 * Global keydown listener for Escape while modal is visible.
-		 *
-		 * @param {KeyboardEvent} event the keyboard event
+		 * Handle a `<select>` change: swap the active sub-form and reset
+		 * its state to defaults. REQ-WDG-010 — switching type discards
+		 * any in-progress field input (explicit trade-off, see proposal).
 		 */
-		handleKeydown(event) {
-			if (this.show && event.key === 'Escape') {
-				this.handleClose()
-			}
+		onTypeSwitch() {
+			this.form.resetForm(this.state.type)
+			this.validationTick++
 		},
 
-		handleClose() {
+		/**
+		 * Sub-forms emit `update:content` on every keystroke. We mirror
+		 * the payload into the composable so `assembleContent()` can fall
+		 * back to it for sub-forms without an `assembledContent` getter,
+		 * AND bump the validation tick so the action button enables/
+		 * disables reactively on input. REQ-WDG-012.
+		 *
+		 * @param {object} content the sub-form's current content payload
+		 */
+		onContentUpdate(content) {
+			this.state.content = { ...content }
+			this.validationTick++
+		},
+
+		/**
+		 * Cancel button / backdrop / NcModal `close` event. REQ-WDG-013 —
+		 * close is non-destructive; it does not emit submit.
+		 */
+		onCancel() {
 			this.$emit('close')
 		},
 
-		handleSubmit() {
-			// Re-validate before submitting as a safety guard.
-			this.revalidate()
+		/**
+		 * Esc-key listener. NcModal handles its own Esc dismissal in
+		 * normal usage, but we register this fallback so the modal works
+		 * even when NcModal's internal handler is suppressed by a parent
+		 * (e.g. inside a focus-trap). REQ-WDG-013.
+		 *
+		 * @param {KeyboardEvent} event the keydown event
+		 */
+		onKeydown(event) {
+			if (this.show && event.key === 'Escape') {
+				this.$emit('close')
+			}
+		},
+
+		/**
+		 * Build the `{type, content}` payload via the composable's
+		 * `assembleContent()` and emit it. The modal performs no API
+		 * calls AND no GridStack operations — the parent (Views.vue)
+		 * persists via the dashboard store, which routes the placement
+		 * through `placeNewWidget(spec)` from `useGridManager.js`
+		 * (REQ-GRID-014: single placement authority). The modal MUST
+		 * NOT call the GridStack add-widget API directly. REQ-WDG-010.
+		 */
+		onSubmit() {
 			if (!this.isValid) {
 				return
 			}
-
-			const payload = assembleContent(this.activeType, this.formSnapshot)
+			const payload = this.form.assembleContent(this.$refs.activeSubForm)
 			this.$emit('submit', payload)
+		},
+
+		/**
+		 * Look up the human-readable name for a registry type. Falls back
+		 * to the type key itself when the registry entry is missing.
+		 *
+		 * @param {string} type the registry type key
+		 * @return {string}
+		 */
+		typeDisplayName(type) {
+			const entry = getWidgetTypeEntry(type)
+			return entry?.displayName || type
 		},
 	},
 }
 </script>
 
 <style scoped>
-.add-widget-modal__backdrop {
-	position: fixed;
-	inset: 0;
-	background: rgba(0, 0, 0, 0.5);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	z-index: 2000;
-}
-
 .add-widget-modal {
-	background: var(--color-main-background);
-	border-radius: var(--border-radius-large);
-	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-	width: min(480px, calc(100vw - 32px));
-	max-height: calc(100vh - 64px);
-	display: flex;
-	flex-direction: column;
-	overflow: hidden;
-}
-
-.add-widget-modal__header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 20px 24px 16px;
-	border-bottom: 1px solid var(--color-border);
-	flex-shrink: 0;
-}
-
-.add-widget-modal__title {
-	font-size: 18px;
-	font-weight: 600;
-	margin: 0;
-}
-
-.add-widget-modal__close {
-	background: none;
-	border: none;
-	font-size: 24px;
-	cursor: pointer;
-	color: var(--color-text-maxcontrast);
-	padding: 0 4px;
-	line-height: 1;
-}
-
-.add-widget-modal__close:hover {
-	color: var(--color-main-text);
-}
-
-.add-widget-modal__body {
-	flex: 1;
-	overflow-y: auto;
-	padding: 20px 24px;
+	padding: 24px;
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
+	max-height: 80vh;
+	min-width: 320px;
 }
 
-.add-widget-modal__field {
+.add-widget-modal__title {
+	margin: 0;
+	font-size: 20px;
+	font-weight: 600;
+}
+
+.add-widget-modal__type {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: 6px;
 }
 
-.add-widget-modal__label {
-	font-weight: bold;
+.add-widget-modal__type-label {
 	font-size: 14px;
+	font-weight: 500;
 }
 
-.add-widget-modal__select {
-	width: 100%;
-	padding: 8px;
+.add-widget-modal__type-select {
+	padding: 8px 12px;
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius);
 	background: var(--color-main-background);
 	color: var(--color-main-text);
-}
-
-.add-widget-modal__footer {
-	display: flex;
-	justify-content: flex-end;
-	gap: 8px;
-	padding: 16px 24px 20px;
-	border-top: 1px solid var(--color-border);
-	flex-shrink: 0;
-}
-
-.add-widget-modal__btn {
-	padding: 8px 16px;
-	border-radius: var(--border-radius);
-	border: 1px solid transparent;
-	cursor: pointer;
 	font-size: 14px;
-	font-weight: 500;
-	transition: background var(--animation-quick) ease;
 }
 
-.add-widget-modal__btn:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
+.add-widget-modal__form {
+	overflow-y: auto;
+	flex: 1;
 }
 
-.add-widget-modal__btn--secondary {
-	background: var(--color-background-hover);
-	border-color: var(--color-border);
-	color: var(--color-main-text);
+.add-widget-modal__empty {
+	padding: 16px;
+	text-align: center;
+	color: var(--color-text-maxcontrast);
 }
 
-.add-widget-modal__btn--secondary:hover:not(:disabled) {
-	background: var(--color-border);
-}
-
-.add-widget-modal__btn--primary {
-	background: var(--color-primary-element);
-	color: var(--color-primary-element-text);
-}
-
-.add-widget-modal__btn--primary:hover:not(:disabled) {
-	background: var(--color-primary-element-hover);
+.add-widget-modal__actions {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+	border-top: 1px solid var(--color-border);
+	padding-top: 16px;
 }
 </style>

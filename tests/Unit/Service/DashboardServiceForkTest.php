@@ -1,17 +1,13 @@
 <?php
 
 /**
- * DashboardService Fork Test
+ * DashboardServiceForkTest
  *
- * Unit tests for DashboardService::forkAsPersonal() covering
- * REQ-DASH-020..022:
- *   - Deep-copy preserves all placement fields byte-for-byte.
- *   - Default name via t('My copy of {name}').
- *   - Gated 403 when allow_user_dashboards is off.
- *   - 404 when source is not visible to the user.
- *   - Forking own personal dashboard creates an independent duplicate.
- *   - Transactional rollback when placement insert fails.
- *   - Resource URLs are shared (not duplicated) — REQ-DASH-022.
+ * Unit tests for the fork-current-as-personal change. Covers
+ * REQ-DASH-020 (fork any visible dashboard), REQ-DASH-021 (transactional
+ * rollback on placement-clone failure), REQ-DASH-022 (resource URLs are
+ * shared, not duplicated) and the REQ-ASET-003 gating layered on top of
+ * the fork endpoint.
  *
  * @category  Test
  * @package   OCA\MyDash\Tests\Unit\Service
@@ -27,13 +23,13 @@ declare(strict_types=1);
 
 namespace Unit\Service;
 
-use OCA\MyDash\Db\AdminSetting;
+use Exception;
 use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
-use OCA\MyDash\Db\WidgetPlacement;
 use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCA\MyDash\Exception\PersonalDashboardsDisabledException;
+use OCA\MyDash\Service\AdminTemplateService;
 use OCA\MyDash\Service\DashboardFactory;
 use OCA\MyDash\Service\DashboardResolver;
 use OCA\MyDash\Service\DashboardService;
@@ -41,17 +37,18 @@ use OCA\MyDash\Service\TemplateService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IConfig;
 use OCP\IDBConnection;
-use OCP\IL10N;
 use OCP\IGroupManager;
-use OCP\IUser;
-use OCP\IUserManager;
+use OCP\IL10N;
+use OCP\L10N\IFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
-use RuntimeException;
 
 /**
- * Unit tests for forkAsPersonal (REQ-DASH-020..022).
+ * Tests for {@see DashboardService::forkAsPersonal()}.
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects) Mirrors the service constructor.
+ * @SuppressWarnings(PHPMD.TooManyPublicMethods)   One scenario per spec bullet.
  */
 class DashboardServiceForkTest extends TestCase
 {
@@ -65,20 +62,11 @@ class DashboardServiceForkTest extends TestCase
     /** @var AdminSettingMapper&MockObject */
     private $settingMapper;
 
-    /** @var TemplateService&MockObject */
-    private $templateService;
-
-    /** @var DashboardFactory&MockObject */
-    private $dashboardFactory;
-
-    /** @var DashboardResolver&MockObject */
-    private $dashResolver;
-
     /** @var IGroupManager&MockObject */
     private $groupManager;
 
-    /** @var IUserManager&MockObject */
-    private $userManager;
+    /** @var AdminTemplateService&MockObject */
+    private $adminTemplateService;
 
     /** @var IDBConnection&MockObject */
     private $db;
@@ -86,533 +74,412 @@ class DashboardServiceForkTest extends TestCase
     /** @var IConfig&MockObject */
     private $config;
 
+    /** @var IFactory&MockObject */
+    private $l10nFactory;
+
     /** @var IL10N&MockObject */
     private $l10n;
 
-    /** @var LoggerInterface&MockObject */
-    private $logger;
-
-    /** @var DashboardService */
     private DashboardService $service;
 
     /**
-     * Set up shared mocks.
+     * Set up fresh mocks per test.
      *
      * @return void
      */
     protected function setUp(): void
     {
-        $this->dashboardMapper  = $this->createMock(DashboardMapper::class);
-        $this->placementMapper  = $this->createMock(WidgetPlacementMapper::class);
-        $this->settingMapper    = $this->createMock(AdminSettingMapper::class);
-        $this->templateService  = $this->createMock(TemplateService::class);
-        $this->dashboardFactory = $this->createMock(DashboardFactory::class);
-        $this->dashResolver     = $this->createMock(DashboardResolver::class);
-        $this->groupManager     = $this->createMock(IGroupManager::class);
-        $this->userManager      = $this->createMock(IUserManager::class);
-        $this->db               = $this->createMock(IDBConnection::class);
-        $this->config           = $this->createMock(IConfig::class);
-        $this->l10n             = $this->createMock(IL10N::class);
-        $this->logger           = $this->createMock(LoggerInterface::class);
+        parent::setUp();
+
+        $this->dashboardMapper = $this->createMock(DashboardMapper::class);
+        $this->placementMapper = $this->createMock(WidgetPlacementMapper::class);
+        $this->settingMapper   = $this->createMock(AdminSettingMapper::class);
+        /** @var TemplateService&MockObject $templateService */
+        $templateService       = $this->createMock(TemplateService::class);
+        /** @var DashboardResolver&MockObject $dashResolver */
+        $dashResolver          = $this->createMock(DashboardResolver::class);
+        $this->groupManager         = $this->createMock(IGroupManager::class);
+        $this->adminTemplateService = $this->createMock(AdminTemplateService::class);
+        $this->db              = $this->createMock(IDBConnection::class);
+        $this->config          = $this->createMock(IConfig::class);
+        $this->l10nFactory     = $this->createMock(IFactory::class);
+        $this->l10n            = $this->createMock(IL10N::class);
+        /** @var LoggerInterface&MockObject $logger */
+        $logger                = $this->createMock(LoggerInterface::class);
+
+        // Default: l10n factory returns the IL10N mock and `t()`
+        // echoes the source name into the placeholder so the test can
+        // assert the canonical fallback shape.
+        $this->l10nFactory
+            ->method('get')
+            ->willReturn($this->l10n);
+        $this->l10n
+            ->method('t')
+            ->willReturnCallback(function (string $text, array $params = []): string {
+                if ($text === 'My copy of %s' && isset($params[0]) === true) {
+                    return 'My copy of '.$params[0];
+                }
+                return $text;
+            });
 
         $this->service = new DashboardService(
             dashboardMapper: $this->dashboardMapper,
             placementMapper: $this->placementMapper,
             settingMapper: $this->settingMapper,
-            templateService: $this->templateService,
-            dashboardFactory: $this->dashboardFactory,
-            dashResolver: $this->dashResolver,
+            templateService: $templateService,
+            dashboardFactory: new DashboardFactory(),
+            dashResolver: $dashResolver,
             groupManager: $this->groupManager,
-            userManager: $this->userManager,
+            adminTemplateService: $this->adminTemplateService,
             db: $this->db,
             config: $this->config,
-            l10n: $this->l10n,
-            logger: $this->logger,
+            l10nFactory: $this->l10nFactory,
+            logger: $logger,
         );
     }//end setUp()
 
     /**
-     * Helper: build a stub user with the given group IDs.
-     *
-     * @param string[] $groupIds Group IDs to return.
-     *
-     * @return IUser&MockObject
-     */
-    private function makeUser(array $groupIds=[]): IUser
-    {
-        $user = $this->createMock(IUser::class);
-        $this->userManager->method('get')
-            ->willReturn($user);
-        $this->groupManager->method('getUserGroupIds')
-            ->willReturn($groupIds);
-
-        return $user;
-    }//end makeUser()
-
-    /**
-     * Helper: build a stub source Dashboard with uuid and name set.
-     *
-     * @param string $uuid        Dashboard UUID.
-     * @param string $name        Dashboard name.
-     * @param int    $gridColumns Grid columns.
-     * @param int    $id          Dashboard DB id.
-     *
-     * @return Dashboard
-     */
-    private function makeSourceDashboard(
-        string $uuid,
-        string $name,
-        int $gridColumns=12,
-        int $id=42
-    ): Dashboard {
-        $dash = new Dashboard();
-        $dash->setId($id);
-        $dash->setUuid($uuid);
-        $dash->setName($name);
-        $dash->setType(Dashboard::TYPE_GROUP_SHARED);
-        $dash->setGroupId('marketing');
-        $dash->setGridColumns($gridColumns);
-        $dash->setIsDefault(0);
-        $dash->setIsActive(0);
-
-        return $dash;
-    }//end makeSourceDashboard()
-
-    /**
-     * Helper: build a stub personal Dashboard returned by dashboardMapper->insert.
-     *
-     * @param int    $id   DB id.
-     * @param string $uuid UUID.
-     * @param string $name Name.
-     *
-     * @return Dashboard
-     */
-    private function makeNewDashboard(
-        int $id=99,
-        string $uuid='new-uuid',
-        string $name='My copy of Source'
-    ): Dashboard {
-        $dash = new Dashboard();
-        $dash->setId($id);
-        $dash->setUuid($uuid);
-        $dash->setName($name);
-        $dash->setType(Dashboard::TYPE_USER);
-        $dash->setIsActive(1);
-        $dash->setIsDefault(0);
-        $dash->setGridColumns(12);
-
-        return $dash;
-    }//end makeNewDashboard()
-
-    /**
-     * REQ-DASH-020: Fork throws PersonalDashboardsDisabledException when
-     * the admin flag is off (gating → HTTP 403).
+     * REQ-ASET-003 (extended): fork MUST throw before any DB write
+     * when the admin flag is off.
      *
      * @return void
      */
-    public function testForkThrowsWhenFlagIsOff(): void
+    public function testForkThrowsWhenPersonalDashboardsDisabled(): void
     {
-        $this->settingMapper->method('getValue')
-            ->with(AdminSetting::KEY_ALLOW_USER_DASHBOARDS, false)
-            ->willReturn(false);
+        // settingMapper returns false -> assertPersonalDashboardsAllowed
+        // throws.
+        $this->settingMapper->method('getValue')->willReturn(false);
+
+        // No DB writes MUST happen — assert the strict expectation.
+        $this->db->expects($this->never())->method('beginTransaction');
+        $this->dashboardMapper->expects($this->never())->method('insert');
+        $this->placementMapper->expects($this->never())->method('cloneToDashboard');
 
         $this->expectException(PersonalDashboardsDisabledException::class);
 
         $this->service->forkAsPersonal(
             userId: 'alice',
-            sourceUuid: 'some-uuid'
+            sourceUuid: 'src-uuid',
+            name: null
         );
-    }//end testForkThrowsWhenFlagIsOff()
+    }//end testForkThrowsWhenPersonalDashboardsDisabled()
 
     /**
-     * REQ-DASH-020: Fork throws DoesNotExistException when the source uuid
-     * is not in the user's visible set (→ HTTP 404, no info leak).
+     * REQ-DASH-020: source UUID not visible to the user MUST surface
+     * as a 404 (DoesNotExistException at the service boundary) without
+     * leaking existence.
      *
      * @return void
      */
-    public function testForkThrowsNotFoundWhenSourceNotVisible(): void
+    public function testForkRaisesNotFoundWhenSourceNotVisible(): void
     {
-        $this->settingMapper->method('getValue')
-            ->with(AdminSetting::KEY_ALLOW_USER_DASHBOARDS, false)
-            ->willReturn(true);
+        $this->settingMapper->method('getValue')->willReturn(true);
 
-        $this->makeUser(['marketing']);
+        $this->stubVisibleToUser(userId: 'alice', visible: []);
 
-        // findVisibleToUser returns an empty list — source not visible.
-        $this->dashboardMapper->method('findVisibleToUser')
-            ->willReturn([]);
+        $this->db->expects($this->never())->method('beginTransaction');
+        $this->dashboardMapper->expects($this->never())->method('insert');
 
         $this->expectException(DoesNotExistException::class);
 
         $this->service->forkAsPersonal(
             userId: 'alice',
-            sourceUuid: 'invisible-uuid'
+            sourceUuid: 'unknown-uuid',
+            name: null
         );
-    }//end testForkThrowsNotFoundWhenSourceNotVisible()
+    }//end testForkRaisesNotFoundWhenSourceNotVisible()
 
     /**
-     * REQ-DASH-020: Happy path — fork uses the caller-supplied name.
+     * REQ-DASH-020: happy path forks a visible group-shared dashboard
+     * — new row is type=user, owner=alice, isDefault=0, groupId=null,
+     * isActive=1, gridColumns copied; placements cloned via mapper.
      *
      * @return void
      */
-    public function testForkUsesSuppliedName(): void
+    public function testForkHappyPathClonesGroupSharedSource(): void
     {
-        $this->settingMapper->method('getValue')
-            ->willReturn(true);
+        $this->settingMapper->method('getValue')->willReturn(true);
 
-        $this->makeUser(['marketing']);
-
-        $source = $this->makeSourceDashboard(
+        $source = $this->makeDashboard(
             uuid: 'src-uuid',
-            name: 'Source Dashboard',
-            gridColumns: 10
+            name: 'Marketing Overview',
+            type: Dashboard::TYPE_GROUP_SHARED,
+            userId: null,
+            groupId: 'marketing',
+            id: 42,
+            gridColumns: 16
         );
 
-        $this->dashboardMapper->method('findVisibleToUser')
-            ->willReturn([
-                ['dashboard' => $source, 'source' => 'group'],
-            ]);
-
-        $newDash = $this->makeNewDashboard(
-            id: 99,
-            uuid: 'new-uuid',
-            name: 'Custom Fork Name'
+        $this->stubVisibleToUser(
+            userId: 'alice',
+            visible: [
+                ['dashboard' => $source, 'source' => Dashboard::SOURCE_GROUP],
+            ]
         );
 
-        $this->dashboardFactory->expects($this->once())
-            ->method('create')
-            ->with(
-                'alice',       // userId
-                'Custom Fork Name', // name
-                null,          // description
-                Dashboard::TYPE_USER, // type
-                null,          // groupId
-                10             // gridColumns
-            )
-            ->willReturn($newDash);
-
-        $this->dashboardMapper->method('insert')
-            ->willReturn($newDash);
+        // Single transaction (REQ-DASH-021).
         $this->db->expects($this->once())->method('beginTransaction');
         $this->db->expects($this->once())->method('commit');
+        $this->db->expects($this->never())->method('rollBack');
 
-        $result = $this->service->forkAsPersonal(
-            userId: 'alice',
-            sourceUuid: 'src-uuid',
-            name: 'Custom Fork Name'
-        );
-
-        $this->assertSame('Custom Fork Name', $result->getName());
-    }//end testForkUsesSuppliedName()
-
-    /**
-     * REQ-DASH-020: When no name is given, the fork MUST use
-     * t('My copy of {name}', {name: source.name}).
-     *
-     * @return void
-     */
-    public function testForkUsesDefaultTranslatedName(): void
-    {
-        $this->settingMapper->method('getValue')
-            ->willReturn(true);
-
-        $this->makeUser([]);
-
-        $source = $this->makeSourceDashboard(
-            uuid: 'src-uuid',
-            name: 'Marketing Overview'
-        );
-
-        $this->dashboardMapper->method('findVisibleToUser')
-            ->willReturn([
-                ['dashboard' => $source, 'source' => 'group'],
-            ]);
-
-        // Expect the translated default name to be built.
-        $this->l10n->expects($this->once())
-            ->method('t')
-            ->with('My copy of {name}', ['name' => 'Marketing Overview'])
-            ->willReturn('My copy of Marketing Overview');
-
-        $newDash = $this->makeNewDashboard(
-            name: 'My copy of Marketing Overview'
-        );
-
-        $this->dashboardFactory->expects($this->once())
-            ->method('create')
-            ->with(
-                $this->anything(), // userId
-                'My copy of Marketing Overview', // name
-                $this->anything(), // description
-                $this->anything(), // type
-                $this->anything(), // groupId
-                $this->anything()  // gridColumns
-            )
-            ->willReturn($newDash);
-
-        $this->dashboardMapper->method('insert')->willReturn($newDash);
-        $this->db->method('beginTransaction');
-        $this->db->method('commit');
-
-        $result = $this->service->forkAsPersonal(
-            userId: 'alice',
-            sourceUuid: 'src-uuid'
-        );
-
-        $this->assertSame('My copy of Marketing Overview', $result->getName());
-    }//end testForkUsesDefaultTranslatedName()
-
-    /**
-     * REQ-DASH-021: Fork MUST roll back the transaction when placement
-     * clone fails. The new dashboard row MUST NOT be visible.
-     *
-     * @return void
-     */
-    public function testForkRollsBackOnPlacementInsertFailure(): void
-    {
-        $this->settingMapper->method('getValue')
-            ->willReturn(true);
-
-        $this->makeUser([]);
-
-        $source = $this->makeSourceDashboard(uuid: 'src-uuid', name: 'S');
-
-        $this->dashboardMapper->method('findVisibleToUser')
-            ->willReturn([
-                ['dashboard' => $source, 'source' => 'group'],
-            ]);
-
-        $this->l10n->method('t')
-            ->willReturn('My copy of S');
-
-        $newDash = $this->makeNewDashboard(id: 77);
-        $this->dashboardFactory->method('create')->willReturn($newDash);
-        $this->dashboardMapper->method('insert')->willReturn($newDash);
-
-        // Simulate placement clone failure.
-        $this->placementMapper->method('cloneToDashboard')
-            ->willThrowException(new RuntimeException('DB error'));
-
-        $this->db->expects($this->once())->method('beginTransaction');
-        // Rollback MUST be called on failure.
-        $this->db->expects($this->once())->method('rollBack');
-        // Commit MUST NOT be called.
-        $this->db->expects($this->never())->method('commit');
-
-        $this->expectException(RuntimeException::class);
-
-        $this->service->forkAsPersonal(
-            userId: 'alice',
-            sourceUuid: 'src-uuid'
-        );
-    }//end testForkRollsBackOnPlacementInsertFailure()
-
-    /**
-     * REQ-DASH-020: Forking a user's own personal dashboard creates an
-     * independent duplicate (the source type is TYPE_USER).
-     *
-     * @return void
-     */
-    public function testForkOwnPersonalDashboardCreatesIndependentCopy(): void
-    {
-        $this->settingMapper->method('getValue')
-            ->willReturn(true);
-
-        $this->makeUser([]);
-
-        // Source is the user's own personal dashboard.
-        $source = new Dashboard();
-        $source->setId(10);
-        $source->setUuid('personal-uuid');
-        $source->setName('My Dashboard');
-        $source->setType(Dashboard::TYPE_USER);
-        $source->setUserId('alice');
-        $source->setGridColumns(12);
-
-        $this->dashboardMapper->method('findVisibleToUser')
-            ->willReturn([
-                ['dashboard' => $source, 'source' => Dashboard::SOURCE_USER],
-            ]);
-
-        $this->l10n->method('t')
-            ->willReturn('My copy of My Dashboard');
-
-        $newDash = $this->makeNewDashboard(
-            id: 55,
-            uuid: 'fork-of-personal-uuid',
-            name: 'My copy of My Dashboard'
-        );
-
-        $this->dashboardFactory->expects($this->once())
-            ->method('create')
-            ->with(
-                'alice',                   // userId
-                'My copy of My Dashboard', // name
-                null,                      // description
-                Dashboard::TYPE_USER,      // type
-                null,                      // groupId
-                12                         // gridColumns
-            )
-            ->willReturn($newDash);
-
-        $this->dashboardMapper->method('insert')->willReturn($newDash);
-        $this->placementMapper->expects($this->once())
-            ->method('cloneToDashboard')
-            ->with(10, 55);
-
-        $this->db->method('beginTransaction');
-        $this->db->method('commit');
-
-        $result = $this->service->forkAsPersonal(
-            userId: 'alice',
-            sourceUuid: 'personal-uuid'
-        );
-
-        $this->assertSame('fork-of-personal-uuid', $result->getUuid());
-        $this->assertSame(Dashboard::TYPE_USER, $result->getType());
-    }//end testForkOwnPersonalDashboardCreatesIndependentCopy()
-
-    /**
-     * REQ-DASH-022: Resource URLs in placements are NOT duplicated.
-     *
-     * This test verifies that cloneToDashboard is called with the source
-     * and target IDs only — the service never reads or re-uploads resource
-     * bytes. The WidgetPlacementMapper is responsible for preserving tile*
-     * field values verbatim (tested in WidgetPlacementMapper tests).
-     *
-     * @return void
-     */
-    public function testForkDoesNotDuplicateResourceUrls(): void
-    {
-        $this->settingMapper->method('getValue')
-            ->willReturn(true);
-
-        $this->makeUser([]);
-
-        $source = $this->makeSourceDashboard(
-            uuid: 'src-uuid',
-            name: 'Icon Dashboard',
-            id: 11
-        );
-
-        $this->dashboardMapper->method('findVisibleToUser')
-            ->willReturn([
-                ['dashboard' => $source, 'source' => 'group'],
-            ]);
-
-        $this->l10n->method('t')
-            ->willReturn('My copy of Icon Dashboard');
-
-        $newDash = $this->makeNewDashboard(id: 88, uuid: 'new-icon-uuid');
-        $this->dashboardFactory->method('create')->willReturn($newDash);
-        $this->dashboardMapper->method('insert')->willReturn($newDash);
-
-        // The service MUST call cloneToDashboard and pass through only IDs —
-        // no resource-byte duplication logic should happen in the service.
-        $this->placementMapper->expects($this->once())
-            ->method('cloneToDashboard')
-            ->with(
-                $this->identicalTo(11),
-                $this->identicalTo(88)
-            );
-
-        $this->db->method('beginTransaction');
-        $this->db->method('commit');
-
-        $this->service->forkAsPersonal(
-            userId: 'alice',
-            sourceUuid: 'src-uuid'
-        );
-    }//end testForkDoesNotDuplicateResourceUrls()
-
-    /**
-     * REQ-DASH-020: Fork deactivates all existing user dashboards and
-     * makes the new one active (isActive logic).
-     *
-     * @return void
-     */
-    public function testForkDeactivatesExistingDashboardsAndMakesNewActive(): void
-    {
-        $this->settingMapper->method('getValue')
-            ->willReturn(true);
-
-        $this->makeUser([]);
-
-        $source = $this->makeSourceDashboard(uuid: 'src-uuid', name: 'S');
-
-        $this->dashboardMapper->method('findVisibleToUser')
-            ->willReturn([
-                ['dashboard' => $source, 'source' => 'group'],
-            ]);
-
-        $this->l10n->method('t')
-            ->willReturn('My copy of S');
-
-        $newDash = $this->makeNewDashboard(
-            id: 99,
-            uuid: 'new-uuid'
-        );
-        $this->dashboardFactory->method('create')->willReturn($newDash);
-        $this->dashboardMapper->method('insert')->willReturn($newDash);
-
-        // deactivateAllForUser MUST be called before insert.
-        $this->dashboardMapper->expects($this->once())
+        $captured = null;
+        $this->dashboardMapper
+            ->expects($this->once())
+            ->method('insert')
+            ->willReturnCallback(function (Dashboard $d) use (&$captured): Dashboard {
+                $d->setId(7);
+                $captured = $d;
+                return $d;
+            });
+        $this->dashboardMapper
+            ->expects($this->once())
             ->method('deactivateAllForUser')
             ->with('alice');
 
-        $this->db->method('beginTransaction');
-        $this->db->method('commit');
+        // REQ-DASH-020: cloneToDashboard called with source id and the
+        // newly persisted fork id.
+        $this->placementMapper
+            ->expects($this->once())
+            ->method('cloneToDashboard')
+            ->with(42, 7)
+            ->willReturn(4);
 
-        $result = $this->service->forkAsPersonal(
+        // REQ-DASH-018/019: active-pref pinned to the new uuid.
+        $this->config
+            ->expects($this->once())
+            ->method('setUserValue')
+            ->with(
+                'alice',
+                'mydash',
+                DashboardService::ACTIVE_DASHBOARD_UUID_PREF_KEY,
+                $this->isType('string')
+            );
+
+        $fork = $this->service->forkAsPersonal(
             userId: 'alice',
-            sourceUuid: 'src-uuid'
+            sourceUuid: 'src-uuid',
+            name: 'My Marketing'
         );
 
-        $this->assertSame(1, (int) $result->getIsActive());
-    }//end testForkDeactivatesExistingDashboardsAndMakesNewActive()
+        $this->assertNotNull($captured);
+        $this->assertSame(Dashboard::TYPE_USER, $captured->getType());
+        $this->assertSame('alice', $captured->getUserId());
+        $this->assertNull($captured->getGroupId());
+        $this->assertSame(0, $captured->getIsDefault());
+        $this->assertSame(1, $captured->getIsActive());
+        $this->assertSame(16, $captured->getGridColumns());
+        $this->assertSame('My Marketing', $captured->getName());
+        $this->assertSame(7, $fork->getId());
+    }//end testForkHappyPathClonesGroupSharedSource()
 
     /**
-     * REQ-DASH-019: Fork MUST persist the active-dashboard preference so
-     * the REQ-DASH-018 resolver picks it up on next page load.
+     * REQ-DASH-020 scenario: empty body uses
+     * `t('My copy of %s', [source.name])` as the default name.
      *
      * @return void
      */
-    public function testForkPersistsActiveDashboardPreference(): void
+    public function testForkDefaultsToLocalisedNameWhenBodyOmitsName(): void
     {
-        $this->settingMapper->method('getValue')
-            ->willReturn(true);
+        $this->settingMapper->method('getValue')->willReturn(true);
 
-        $this->makeUser([]);
+        $source = $this->makeDashboard(
+            uuid: 'src-uuid',
+            name: 'Marketing Overview',
+            type: Dashboard::TYPE_GROUP_SHARED,
+            userId: null,
+            groupId: 'marketing',
+            id: 42
+        );
 
-        $source = $this->makeSourceDashboard(uuid: 'src-uuid', name: 'S');
+        $this->stubVisibleToUser(
+            userId: 'alice',
+            visible: [
+                ['dashboard' => $source, 'source' => Dashboard::SOURCE_GROUP],
+            ]
+        );
 
-        $this->dashboardMapper->method('findVisibleToUser')
-            ->willReturn([
-                ['dashboard' => $source, 'source' => 'group'],
-            ]);
+        $captured = null;
+        $this->dashboardMapper
+            ->method('insert')
+            ->willReturnCallback(function (Dashboard $d) use (&$captured): Dashboard {
+                $d->setId(7);
+                $captured = $d;
+                return $d;
+            });
 
-        $this->l10n->method('t')->willReturn('My copy of S');
-
-        $newDash = $this->makeNewDashboard(id: 7, uuid: 'pref-uuid');
-        $this->dashboardFactory->method('create')->willReturn($newDash);
-        $this->dashboardMapper->method('insert')->willReturn($newDash);
-
-        // The preference MUST be saved with the new dashboard UUID.
-        $this->config->expects($this->once())
-            ->method('setUserValue')
-            ->with(
-                $this->identicalTo('alice'),
-                $this->anything(),
-                DashboardService::ACTIVE_DASHBOARD_UUID_PREF_KEY,
-                'pref-uuid'
-            );
-
-        $this->db->method('beginTransaction');
-        $this->db->method('commit');
+        $this->placementMapper->method('cloneToDashboard')->willReturn(0);
 
         $this->service->forkAsPersonal(
             userId: 'alice',
-            sourceUuid: 'src-uuid'
+            sourceUuid: 'src-uuid',
+            name: null
         );
-    }//end testForkPersistsActiveDashboardPreference()
+
+        $this->assertNotNull($captured);
+        $this->assertSame('My copy of Marketing Overview', $captured->getName());
+    }//end testForkDefaultsToLocalisedNameWhenBodyOmitsName()
+
+    /**
+     * REQ-DASH-021: any throwable from the placement clone rolls back
+     * the entire transaction and re-throws.
+     *
+     * @return void
+     */
+    public function testForkRollsBackOnPlacementCloneFailure(): void
+    {
+        $this->settingMapper->method('getValue')->willReturn(true);
+
+        $source = $this->makeDashboard(
+            uuid: 'src-uuid',
+            name: 'Marketing Overview',
+            type: Dashboard::TYPE_GROUP_SHARED,
+            userId: null,
+            groupId: 'marketing',
+            id: 42
+        );
+
+        $this->stubVisibleToUser(
+            userId: 'alice',
+            visible: [
+                ['dashboard' => $source, 'source' => Dashboard::SOURCE_GROUP],
+            ]
+        );
+
+        $this->db->expects($this->once())->method('beginTransaction');
+        $this->db->expects($this->never())->method('commit');
+        $this->db->expects($this->once())->method('rollBack');
+
+        $this->dashboardMapper
+            ->method('insert')
+            ->willReturnCallback(function (Dashboard $d): Dashboard {
+                $d->setId(7);
+                return $d;
+            });
+
+        // Placement clone fails — transaction MUST be rolled back.
+        $this->placementMapper
+            ->method('cloneToDashboard')
+            ->willThrowException(new Exception('DB error during clone'));
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('DB error during clone');
+
+        $this->service->forkAsPersonal(
+            userId: 'alice',
+            sourceUuid: 'src-uuid',
+            name: 'My Marketing'
+        );
+    }//end testForkRollsBackOnPlacementCloneFailure()
+
+    /**
+     * REQ-DASH-020 scenario: forking your own personal dashboard
+     * works and produces an independent duplicate (different uuid,
+     * type still `user`, owner unchanged).
+     *
+     * @return void
+     */
+    public function testForkPersonalDashboardCreatesIndependentDuplicate(): void
+    {
+        $this->settingMapper->method('getValue')->willReturn(true);
+
+        $source = $this->makeDashboard(
+            uuid: 'personal-src-uuid',
+            name: 'Personal',
+            type: Dashboard::TYPE_USER,
+            userId: 'alice',
+            groupId: null,
+            id: 11
+        );
+
+        $this->stubVisibleToUser(
+            userId: 'alice',
+            visible: [
+                ['dashboard' => $source, 'source' => Dashboard::SOURCE_USER],
+            ]
+        );
+
+        $captured = null;
+        $this->dashboardMapper
+            ->method('insert')
+            ->willReturnCallback(function (Dashboard $d) use (&$captured): Dashboard {
+                $d->setId(99);
+                $captured = $d;
+                return $d;
+            });
+        $this->placementMapper->method('cloneToDashboard')->willReturn(2);
+
+        $fork = $this->service->forkAsPersonal(
+            userId: 'alice',
+            sourceUuid: 'personal-src-uuid',
+            name: null
+        );
+
+        $this->assertNotNull($captured);
+        $this->assertSame(Dashboard::TYPE_USER, $captured->getType());
+        $this->assertSame('alice', $captured->getUserId());
+        $this->assertNotSame($source->getUuid(), $captured->getUuid());
+        $this->assertSame(99, $fork->getId());
+    }//end testForkPersonalDashboardCreatesIndependentDuplicate()
+
+    /**
+     * Helper: stub the AdminTemplateService routing layer so
+     * `getVisibleToUser()` returns the supplied visible list.
+     *
+     * The visible-to-user resolver in the SUT calls
+     * `adminTemplateService->getUserGroupIdsFor($userId)` (REQ-TMPL-013
+     * single-source-of-truth wrapper for `IGroupManager`) then delegates
+     * to the dashboard mapper's `findVisibleToUser`. Stubbing the mapper
+     * end is enough — the routing helper only needs to return an array.
+     *
+     * @param string                                                  $userId  The user id.
+     * @param array<int, array{dashboard: Dashboard, source: string}> $visible The visible-to-user list.
+     *
+     * @return void
+     */
+    private function stubVisibleToUser(string $userId, array $visible): void
+    {
+        $this->adminTemplateService
+            ->method('getUserGroupIdsFor')
+            ->with(userId: $userId)
+            ->willReturn([]);
+        $this->dashboardMapper
+            ->method('findVisibleToUser')
+            ->willReturn($visible);
+    }//end stubVisibleToUser()
+
+    /**
+     * Helper: build a Dashboard entity with the fields the tests care
+     * about pre-populated.
+     *
+     * @param string      $uuid        The dashboard UUID.
+     * @param string      $name        The dashboard name.
+     * @param string      $type        The dashboard type.
+     * @param string|null $userId      The owner user id (null for group_shared).
+     * @param string|null $groupId     The group id (null for user-type).
+     * @param int         $id          The primary key.
+     * @param int         $gridColumns The grid column count.
+     *
+     * @return Dashboard The populated entity.
+     */
+    private function makeDashboard(
+        string $uuid,
+        string $name,
+        string $type,
+        ?string $userId,
+        ?string $groupId,
+        int $id,
+        int $gridColumns=12
+    ): Dashboard {
+        $dashboard = new Dashboard();
+        $dashboard->setId($id);
+        $dashboard->setUuid($uuid);
+        $dashboard->setName($name);
+        $dashboard->setType($type);
+        $dashboard->setUserId($userId);
+        $dashboard->setGroupId($groupId);
+        $dashboard->setGridColumns($gridColumns);
+        $dashboard->setIsDefault(0);
+        $dashboard->setIsActive(0);
+        return $dashboard;
+    }//end makeDashboard()
 }//end class

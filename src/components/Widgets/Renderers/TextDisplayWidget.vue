@@ -6,12 +6,14 @@
 <template>
 	<div class="text-display-widget" :style="wrapperStyle">
 		<div
-			v-if="hasContent"
+			v-if="hasText"
 			class="text-display-widget__content"
-			v-html="sanitizedHtml" /><!-- eslint-disable-line vue/no-v-html — sanitised via DOMPurify per REQ-TXT-001 -->
+			:style="contentStyle"
+			v-html="sanitizedHtml" /><!-- eslint-disable-line vue/no-v-html -->
 		<span
 			v-else
-			class="text-display-widget__placeholder">
+			class="text-display-widget__placeholder"
+			:style="contentStyle">
 			{{ placeholderText }}
 		</span>
 	</div>
@@ -21,24 +23,22 @@
 import DOMPurify from 'dompurify'
 
 /**
- * TextDisplayWidget
+ * TextDisplayWidget renders user-authored multi-line text inside a dashboard
+ * cell. Content is passed through DOMPurify before injection via `v-html` so
+ * common formatting tags (`<b>`, `<i>`, `<a>`, `<br>`, `<p>`, `<ul>`, `<li>`)
+ * survive while XSS vectors (`<script>`, `on*` attributes, `javascript:`
+ * URLs) are stripped.
  *
- * Renders user-authored text inside a dashboard cell. Supports inline HTML
- * (sanitised via DOMPurify) so authors can use <b>, <i>, <a>, <br>, <p>, <ul>,
- * <li> for light formatting. Inline style controls (font size, colour,
- * background, alignment) are applied to the wrapper element with theme-aware
- * fallbacks (REQ-TXT-001..005).
+ * Persisted shape (REQ-TXT-001..005): `{type: 'text', content: {text,
+ * fontSize, color, backgroundColor, textAlign}}`. Defaults: `fontSize='14px'`,
+ * `color='var(--color-main-text)'`, `backgroundColor='transparent'`,
+ * `textAlign='left'`. Empty/whitespace `text` shows a localised italic
+ * placeholder so the cell stays a visible drop target.
  */
 export default {
 	name: 'TextDisplayWidget',
 
 	props: {
-		/**
-		 * Persisted widget content. Shape:
-		 *   { text, fontSize, color, backgroundColor, textAlign }
-		 * Any field may be missing or empty — the renderer falls back to
-		 * theme-aware defaults per REQ-TXT-002.
-		 */
 		content: {
 			type: Object,
 			default: () => ({}),
@@ -50,53 +50,64 @@ export default {
 			return typeof this.content?.text === 'string' ? this.content.text : ''
 		},
 
-		hasContent() {
+		hasText() {
 			return this.text.trim() !== ''
 		},
 
 		sanitizedHtml() {
-			// Deliberate use of v-html — sanitised via DOMPurify (see REQ-TXT-001).
-			// DOMPurify default config strips <script>, on* attributes, and
-			// javascript: URLs while preserving safe formatting tags.
+			// DOMPurify default config strips <script>, <style>, <link>,
+			// on* event attributes and javascript: URLs. We keep the
+			// default config explicitly — tighter overrides would block
+			// the `<a href>` and `<b>`/`<i>` formatting authors expect.
 			return DOMPurify.sanitize(this.text)
 		},
 
+		placeholderText() {
+			return t('mydash', 'No text content')
+		},
+
 		fontSize() {
-			const value = this.content?.fontSize
-			return value && String(value).trim() !== '' ? value : '14px'
+			return this.content?.fontSize || '14px'
 		},
 
 		color() {
-			const value = this.content?.color
-			return value && String(value).trim() !== '' ? value : 'var(--color-main-text)'
+			return this.content?.color || 'var(--color-main-text)'
 		},
 
 		backgroundColor() {
-			const value = this.content?.backgroundColor
-			return value && String(value).trim() !== '' ? value : 'transparent'
+			return this.content?.backgroundColor || 'transparent'
 		},
 
 		textAlign() {
-			const value = this.content?.textAlign
-			const allowed = ['left', 'center', 'right', 'justify']
-			return allowed.includes(value) ? value : 'left'
+			return this.content?.textAlign || 'left'
 		},
 
 		wrapperStyle() {
 			return {
-				fontSize: this.fontSize,
-				color: this.color,
-				backgroundColor: this.backgroundColor,
-				textAlign: this.textAlign,
+				width: '100%',
+				height: '100%',
+				padding: '16px',
+				display: 'flex',
+				'align-items': 'center',
+				'justify-content': 'center',
+				overflow: 'auto',
+				'background-color': this.backgroundColor,
 			}
 		},
 
-		placeholderText() {
-			// `t` is provided as a Nextcloud global at runtime. Tests stub it.
-			if (typeof t === 'function') {
-				return t('mydash', 'No text content')
+		contentStyle() {
+			const base = {
+				'font-size': this.fontSize,
+				'text-align': this.textAlign,
+				color: this.color,
+				width: '100%',
+				'overflow-wrap': 'break-word',
 			}
-			return 'No text content'
+			if (!this.hasText) {
+				base['font-style'] = 'italic'
+				base.color = 'var(--color-text-maxcontrast)'
+			}
+			return base
 		},
 	},
 }
@@ -104,25 +115,16 @@ export default {
 
 <style scoped>
 .text-display-widget {
-	box-sizing: border-box;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
 	width: 100%;
 	height: 100%;
-	padding: 16px;
-	overflow: auto;
 }
 
-.text-display-widget__content {
-	width: 100%;
-	white-space: pre-wrap;
-	word-break: break-word;
-}
-
+.text-display-widget__content,
 .text-display-widget__placeholder {
-	display: block;
-	font-style: italic;
-	color: var(--color-text-maxcontrast);
+	/* Safety net (REQ-TXT-005) — ensures long URLs / words inside the
+	   sanitised HTML wrap rather than overflowing horizontally. */
+	overflow-wrap: break-word;
+	word-wrap: break-word;
+	max-width: 100%;
 }
 </style>

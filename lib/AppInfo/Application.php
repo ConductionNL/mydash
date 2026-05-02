@@ -49,11 +49,12 @@ class Application extends App implements IBootstrap
      */
     public function register(IRegistrationContext $context): void
     {
-        // Register the INotifier for dashboard_shared and
-        // dashboard_ownership_transferred subjects. REQ-SHARE-011.
+        // Render `dashboard_shared` and `dashboard_ownership_transferred`
+        // notifications via our INotifier. REQ-SHARE-011.
         $context->registerNotifierService(notifierClass: Notifier::class);
 
-        // Register the user-deletion cascade listener. REQ-SHARE-012.
+        // Cascade share cleanup + admin-retention transfer on user deletion.
+        // REQ-SHARE-012, REQ-SHARE-013.
         $context->registerEventListener(
             event: UserDeletedEvent::class,
             listener: UserDeletedListener::class

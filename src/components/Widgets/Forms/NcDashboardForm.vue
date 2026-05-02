@@ -5,141 +5,135 @@
 
 <template>
 	<div class="nc-dashboard-form">
-		<!-- Widget picker -->
-		<div class="nc-dashboard-form__field">
-			<label :for="widgetSelectId" class="nc-dashboard-form__label">
-				{{ tt('Select Widget') }}
-			</label>
+		<label class="nc-dashboard-form__field">
+			<span class="nc-dashboard-form__label">{{ t('mydash', 'Select Widget') }}</span>
 			<select
-				:id="widgetSelectId"
-				v-model="form.widgetId"
+				v-model="widgetId"
 				class="nc-dashboard-form__select"
-				@change="emitUpdate">
-				<option value="">
-					{{ tt('Choose a widget…') }}
+				required
+				@change="emitContent">
+				<option value="" disabled>
+					{{ t('mydash', 'Choose a widget…') }}
 				</option>
 				<option
-					v-for="w in availableWidgets"
-					:key="w.id"
-					:value="w.id">
-					{{ w.title || w.id }}
+					v-for="opt in widgetOptions"
+					:key="opt.id"
+					:value="opt.id">
+					{{ opt.title }}
 				</option>
 			</select>
-		</div>
+		</label>
 
-		<!-- Display mode picker -->
-		<div class="nc-dashboard-form__field">
-			<label :for="modeSelectId" class="nc-dashboard-form__label">
-				{{ tt('Display Mode') }}
-			</label>
+		<label class="nc-dashboard-form__field">
+			<span class="nc-dashboard-form__label">{{ t('mydash', 'Display Mode') }}</span>
 			<select
-				:id="modeSelectId"
-				v-model="form.displayMode"
+				v-model="displayMode"
 				class="nc-dashboard-form__select"
-				@change="emitUpdate">
+				@change="emitContent">
 				<option value="vertical">
-					{{ tt('Vertical (list)') }}
+					{{ t('mydash', 'Vertical (list)') }}
 				</option>
 				<option value="horizontal">
-					{{ tt('Horizontal (cards)') }}
+					{{ t('mydash', 'Horizontal (cards)') }}
 				</option>
 			</select>
-		</div>
+		</label>
 	</div>
 </template>
 
 <script>
-/**
- * NcDashboardForm
- *
- * Sub-form for AddWidgetModal that authors the persisted `content` blob for an
- * `nc-widget` widget. Provides a picker populated from the server-supplied
- * widget list (IManager::getWidgets() via initial state) and a display-mode
- * selector. Pre-fills from `editingWidget.content` on mount, emits
- * `update:content` reactively, and exposes a `validate()` method per
- * REQ-WDG-018.
- *
- * @spec openspec/changes/nc-dashboard-widget-proxy/specs/widgets/spec.md#req-wdg-018
- */
-
-const DEFAULTS = {
+const DEFAULT_CONTENT = Object.freeze({
 	widgetId: '',
 	displayMode: 'vertical',
-}
+})
 
-let uidCounter = 0
-
+/**
+ * NcDashboardForm is the sub-form for the AddWidgetModal when the user is
+ * creating or editing an `nc-widget` placement (REQ-WDG-018).
+ *
+ * Two controls:
+ *  - **picker** — `<select>` populated from the `widgets` initial-state list
+ *    (REQ-WDG-001 / REQ-INIT-002 / REQ-WDG-018 scenario "Form picker lists
+ *    discovered widgets"). Validation requires a non-empty `widgetId`.
+ *  - **display mode** — `vertical` (list) or `horizontal` (cards).
+ *
+ * Pre-fills both controls from `editingWidget.content` per REQ-WDG-018.
+ */
 export default {
 	name: 'NcDashboardForm',
 
+	inject: {
+		widgetsCatalog: {
+			from: 'widgets',
+			default: () => [],
+		},
+	},
+
 	props: {
+		/**
+		 * The placement being edited, or `null` in create mode.
+		 * Pre-fills both controls from `editingWidget.content` per REQ-WDG-018.
+		 */
 		editingWidget: {
 			type: Object,
 			default: null,
+		},
+		/**
+		 * Initial content values — used when not editing and the parent
+		 * supplies registry defaults.
+		 */
+		value: {
+			type: Object,
+			default: () => ({ ...DEFAULT_CONTENT }),
 		},
 	},
 
 	emits: ['update:content'],
 
 	data() {
+		const initial = this.editingWidget?.content || this.value || {}
 		return {
-			uid: ++uidCounter,
-			form: { ...DEFAULTS },
+			widgetId: typeof initial.widgetId === 'string' ? initial.widgetId : DEFAULT_CONTENT.widgetId,
+			displayMode: initial.displayMode === 'horizontal' ? 'horizontal' : 'vertical',
 		}
 	},
 
 	computed: {
-		widgetSelectId() {
-			return `nc-dashboard-form-widget-${this.uid}`
+		widgetOptions() {
+			// PHP can serialise sequential arrays as objects; normalise here
+			// the same way the renderer does (tasks.md §2 defensive
+			// normalisation).
+			const list = Array.isArray(this.widgetsCatalog)
+				? this.widgetsCatalog
+				: (this.widgetsCatalog && typeof this.widgetsCatalog === 'object'
+					? Object.values(this.widgetsCatalog)
+					: [])
+			return list
+				.filter((w) => w && typeof w.id === 'string' && w.id !== '')
+				.map((w) => ({ id: w.id, title: w.title || w.id }))
 		},
 
-		modeSelectId() {
-			return `nc-dashboard-form-mode-${this.uid}`
+		assembledContent() {
+			return {
+				widgetId: this.widgetId,
+				displayMode: this.displayMode,
+			}
 		},
-
-		/**
-		 * Available widgets from initial state. PHP may serialise a sequential
-		 * array as a JSON object with numeric keys — normalise both shapes.
-		 */
-		availableWidgets() {
-			const injected = (window.__initialState && window.__initialState.widgets)
-				|| (window.OCA && window.OCA.MyDash && window.OCA.MyDash.initialState && window.OCA.MyDash.initialState.widgets)
-				|| []
-			return Array.isArray(injected) ? injected : Object.values(injected)
-		},
-	},
-
-	mounted() {
-		const content = this.editingWidget?.content || {}
-		this.form = {
-			widgetId: typeof content.widgetId === 'string' ? content.widgetId : DEFAULTS.widgetId,
-			displayMode: ['vertical', 'horizontal'].includes(content.displayMode)
-				? content.displayMode
-				: DEFAULTS.displayMode,
-		}
 	},
 
 	methods: {
-		tt(key) {
-			if (typeof t === 'function') {
-				return t('mydash', key)
-			}
-			return key
-		},
-
-		emitUpdate() {
-			this.$emit('update:content', { ...this.form })
+		emitContent() {
+			this.$emit('update:content', this.assembledContent)
 		},
 
 		/**
-		 * Validate the form. Returns an array of localised error strings.
-		 * Empty array means the form is valid.
+		 * Returns a list of error strings; empty array means valid.
 		 *
-		 * @return {string[]} array of error messages
+		 * @return {string[]} validation errors
 		 */
 		validate() {
-			if (!this.form.widgetId || this.form.widgetId.trim() === '') {
-				return [this.tt('Select Widget')]
+			if (typeof this.widgetId !== 'string' || this.widgetId.trim() === '') {
+				return [t('mydash', 'Choose a widget…')]
 			}
 			return []
 		},
@@ -161,10 +155,16 @@ export default {
 }
 
 .nc-dashboard-form__label {
-	font-weight: bold;
+	font-size: 14px;
+	font-weight: 500;
 }
 
 .nc-dashboard-form__select {
 	width: 100%;
+	padding: 6px 8px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
 }
 </style>

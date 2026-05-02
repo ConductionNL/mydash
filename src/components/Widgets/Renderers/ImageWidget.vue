@@ -7,154 +7,208 @@
 	<div
 		class="image-widget"
 		:style="wrapperStyle"
-		@click="handleClick">
+		@click="onClick">
 		<img
-			v-if="hasUrl"
+			v-if="showImage"
+			class="image-widget__img"
 			:src="url"
 			:alt="alt"
-			class="image-widget__img"
+			:style="imgStyle"
 			@error="onImageError">
-		<div
-			v-else
-			class="image-widget__placeholder">
-			<svg
-				viewBox="0 0 24 24"
-				width="48"
-				height="48"
-				fill="currentColor">
-				<path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-			</svg>
-			<p class="image-widget__placeholder-text">
-				{{ placeholderText }}
-			</p>
+		<div v-else class="image-widget__placeholder" :style="placeholderStyle">
+			<Camera :size="48" :fill-color="placeholderColor" />
+			<span class="image-widget__placeholder-label">{{ placeholderLabel }}</span>
 		</div>
 	</div>
 </template>
 
 <script>
+import Camera from 'vue-material-design-icons/Camera.vue'
+
+const ALLOWED_FITS = ['cover', 'contain', 'fill', 'none']
+const DEFAULT_FIT = 'cover'
+
 /**
- * ImageWidget
+ * ImageWidget renders a single image inside a dashboard cell. The
+ * persisted shape is `{type: 'image', content: {url, alt, link, fit}}`
+ * with `fit` restricted to `'cover' | 'contain' | 'fill' | 'none'` and
+ * defaulting to `'cover'`.
  *
- * Renders an image inside a dashboard cell with configurable object-fit behaviour.
- * Supports click-through link navigation, empty-URL placeholder, and broken-image
- * fallback (REQ-IMG-001..004).
+ * Three render branches:
+ *   - `url` non-empty and not yet errored → `<img>` with `object-fit: <fit>`.
+ *   - `url` empty → camera placeholder + `t('No image')`.
+ *   - `<img>` `error` event fired → camera placeholder + `t('Image failed to load')`.
+ *
+ * Click-through: when `link` is non-empty the cell wrapper sets
+ * `cursor: pointer` and a click opens the link via
+ * `window.open(link, '_blank', 'noopener,noreferrer')`. When `link` is
+ * empty the cursor stays default (deliberate UX choice — no misleading
+ * clickable affordance) and clicks are no-ops.
  */
 export default {
 	name: 'ImageWidget',
 
+	components: {
+		Camera,
+	},
+
 	props: {
-		/**
-		 * Persisted widget content. Shape:
-		 *   { url, alt, link, fit }
-		 * Any field may be missing or empty — the renderer falls back to
-		 * sensible defaults per the spec.
-		 */
+		/** Persisted content blob: `{url, alt, link, fit}`. */
 		content: {
 			type: Object,
 			default: () => ({}),
 		},
-
-		/**
-		 * Image URL. If empty, renders placeholder.
-		 */
-		url: {
-			type: String,
-			default: '',
+		/** Reserved for future use — kept to match the renderer contract. */
+		placement: {
+			type: Object,
+			default: null,
 		},
-
 		/**
-		 * Alt text for accessibility.
-		 */
-		alt: {
-			type: String,
-			default: '',
-		},
-
-		/**
-		 * Optional click-through link. When set, cell becomes clickable.
-		 */
-		link: {
-			type: String,
-			default: '',
-		},
-
-		/**
-		 * CSS object-fit value. Validator restricts to valid enum values
-		 * with fallback to 'cover' on unknown input (REQ-IMG-001).
+		 * REQ-IMG-001: object-fit value. Restricted to the four CSS values we
+		 * support; an unknown value falls back to `'cover'` and triggers a
+		 * Vue prop validator warning.
 		 */
 		fit: {
 			type: String,
-			default: 'cover',
+			default: undefined,
 			validator(value) {
-				if (!['cover', 'contain', 'fill', 'none'].includes(value)) {
-					console.warn(`Invalid fit value: '${value}'. Falling back to 'cover'.`)
-					return true // Vue validators pass through; the computed property falls back
+				if (value === undefined || value === null) {
+					return true
 				}
-				return true
+				return ALLOWED_FITS.includes(value)
 			},
 		},
 	},
 
 	data() {
 		return {
-			showError: false,
+			// Set to true once the `<img>` has fired the DOM `error`
+			// event so subsequent renders show the placeholder + the
+			// "Image failed to load" annotation (REQ-IMG-004).
+			loadFailed: false,
 		}
 	},
 
 	computed: {
-		// Prefer prop values if provided, else fall back to content blob
-		resolvedUrl() {
-			return this.url || (this.content?.url || '')
+		url() {
+			const value = this.content && this.content.url
+			return typeof value === 'string' ? value : ''
 		},
 
-		resolvedAlt() {
-			return this.alt || (this.content?.alt || '')
+		alt() {
+			const value = this.content && this.content.alt
+			return typeof value === 'string' ? value : ''
 		},
 
-		resolvedLink() {
-			return this.link || (this.content?.link || '')
-		},
-
-		resolvedFit() {
-			const value = this.fit || this.content?.fit || 'cover'
-			const allowed = ['cover', 'contain', 'fill', 'none']
-			return allowed.includes(value) ? value : 'cover'
+		link() {
+			const value = this.content && this.content.link
+			return typeof value === 'string' ? value : ''
 		},
 
 		hasUrl() {
-			return this.resolvedUrl.trim() !== '' && !this.showError
+			return this.url.trim() !== ''
+		},
+
+		hasLink() {
+			return this.link.trim() !== ''
+		},
+
+		showImage() {
+			return this.hasUrl && this.loadFailed === false
+		},
+
+		/**
+		 * Resolve the active `object-fit` value, preferring the prop
+		 * (used by some test/integration call sites) and falling back
+		 * to the persisted `content.fit`. Unknown / missing values
+		 * collapse to `'cover'` per REQ-IMG-001.
+		 *
+		 * @return {string} one of cover, contain, fill, none
+		 */
+		resolvedFit() {
+			let candidate = this.fit
+			if (candidate === undefined || candidate === null) {
+				candidate = this.content && this.content.fit
+			}
+			if (typeof candidate !== 'string' || ALLOWED_FITS.includes(candidate) === false) {
+				return DEFAULT_FIT
+			}
+			return candidate
+		},
+
+		placeholderLabel() {
+			return this.loadFailed
+				? t('mydash', 'Image failed to load')
+				: t('mydash', 'No image')
+		},
+
+		placeholderColor() {
+			return 'var(--color-text-maxcontrast)'
 		},
 
 		wrapperStyle() {
 			return {
-				cursor: this.resolvedLink ? 'pointer' : 'default',
+				width: '100%',
+				height: '100%',
 				overflow: 'hidden',
+				position: 'relative',
+				cursor: this.hasLink ? 'pointer' : 'default',
 			}
 		},
 
-		placeholderText() {
-			if (this.showError) {
-				if (typeof t === 'function') {
-					return t('mydash', 'Image failed to load')
-				}
-				return 'Image failed to load'
+		imgStyle() {
+			return {
+				width: '100%',
+				height: '100%',
+				display: 'block',
+				'object-fit': this.resolvedFit,
 			}
-			if (typeof t === 'function') {
-				return t('mydash', 'No image')
+		},
+
+		placeholderStyle() {
+			return {
+				width: '100%',
+				height: '100%',
+				display: 'flex',
+				'flex-direction': 'column',
+				'align-items': 'center',
+				'justify-content': 'center',
+				gap: '8px',
+				color: this.placeholderColor,
 			}
-			return 'No image'
+		},
+	},
+
+	watch: {
+		// When the URL changes (for example after the user edits the
+		// placement) we must re-arm the `<img>` so a previously failed
+		// URL doesn't permanently lock the cell into the placeholder.
+		url() {
+			this.loadFailed = false
 		},
 	},
 
 	methods: {
+		/**
+		 * REQ-IMG-004: swap to the placeholder + `Image failed to load`
+		 * annotation when the `<img>` reports an error. We deliberately
+		 * swallow the event here so no exception bubbles up into the
+		 * GridStack grid layer (which would crash the whole dashboard).
+		 */
 		onImageError() {
-			this.showError = true
+			this.loadFailed = true
 		},
 
-		handleClick() {
-			if (this.resolvedLink && this.resolvedLink.trim() !== '') {
-				window.open(this.resolvedLink, '_blank', 'noopener,noreferrer')
+		/**
+		 * REQ-IMG-003: open `link` in a new tab on click when non-empty,
+		 * no-op otherwise. We pass `noopener,noreferrer` so the opened
+		 * page can never reach back into the dashboard via `window.opener`.
+		 */
+		onClick() {
+			if (this.hasLink === false) {
+				return
 			}
+			window.open(this.link, '_blank', 'noopener,noreferrer')
 		},
 	},
 }
@@ -162,38 +216,21 @@ export default {
 
 <style scoped>
 .image-widget {
-	box-sizing: border-box;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
 	width: 100%;
 	height: 100%;
 	overflow: hidden;
 }
 
 .image-widget__img {
-	width: 100%;
-	height: 100%;
-	object-fit: v-bind(resolvedFit);
+	display: block;
 }
 
 .image-widget__placeholder {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
 	width: 100%;
 	height: 100%;
-	gap: 8px;
-	color: var(--color-text-maxcontrast);
-	padding: 12px;
-	box-sizing: border-box;
 }
 
-.image-widget__placeholder-text {
-	margin: 0;
-	font-size: 14px;
-	text-align: center;
+.image-widget__placeholder-label {
+	font-size: 13px;
 }
 </style>

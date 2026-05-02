@@ -3,160 +3,273 @@
   - SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
+<!--
+	DashboardSwitcherSidebar — capability `dashboard-switcher`
+
+	Slide-in left navigation panel that lists every dashboard visible to
+	the user, grouped by `source` discriminator (REQ-SWITCH-001):
+
+	  1. Primary group dashboards (`source !== 'default'` from `groupDashboards`)
+	  2. Default group dashboards (`source === 'default'` from `groupDashboards`)
+	  3. Personal dashboards (`userDashboards`)
+
+	Empty sections collapse entirely (no orphan headings). Clicking a row
+	emits `update:open(false)` THEN `switch(id, source)` (REQ-SWITCH-002).
+	The `source` discriminator on each emit is load-bearing — the parent
+	uses it to pick the correct API endpoint (group vs default vs user).
+
+	Personal rows expose a hover-revealed delete button (CSS `display: none →
+	inline-flex`) emitting `delete-dashboard(id)` with `@click.stop` so it
+	never triggers a switch (REQ-SWITCH-004).
+
+	`+ New Dashboard` row appears at the end of the personal section ONLY
+	when `allowUserDashboards === true`; clicking it emits `update:open(false)`
+	then `create-dashboard()` (REQ-SWITCH-005).
+
+	Slide-in is CSS-only via `transform: translateX(-100%) ↔ translateX(0)`
+	over 0.25s ease (REQ-SWITCH-006). Esc closes (WCAG 4.3).
+
+	Vue 2 v-model wiring: declares `model: { prop: 'isOpen', event:
+	'update:open' }` so a parent template can use `v-model="sidebarOpen"`
+	while we still emit the `update:open(boolean)` event mandated by the
+	spec. The downstream runtime-shell component should adopt the same
+	binding when it ships.
+
+	Icon rendering MUST go through the shared `IconRenderer` from
+	`dashboard-icons` — no inline `v-if="iconUrl"` branches here
+	(REQ-SWITCH-007).
+-->
+
 <template>
 	<aside
-		:class="{ open: isOpen }"
 		class="dashboard-switcher-sidebar"
-		@keydown.esc="handleEsc">
-		<!-- Primary group section -->
-		<template v-if="matchedGroupDashboards.length > 0">
-			<div class="sidebar-section-heading">
-				{{ groupName || t('mydash', 'Dashboards') }}
-			</div>
-			<div class="sidebar-section">
-				<button
-					v-for="dashboard in matchedGroupDashboards"
-					:key="`group-${dashboard.id}`"
-					:class="{ active: dashboard.id === activeDashboardId }"
-					class="sidebar-item sidebar-item--dashboard"
-					:aria-label="dashboard.name"
-					@click="handleDashboardClick(dashboard.id, 'group')">
-					<IconRenderer :name="dashboard.icon" :size="20" />
-					<span class="sidebar-item__label">{{ dashboard.name }}</span>
-				</button>
-			</div>
-		</template>
+		:class="{ open: isOpen }"
+		role="navigation"
+		:aria-hidden="ariaHiddenAttr"
+		:aria-label="t('mydash', 'Dashboards')"
+		@keydown.esc="onEscClose">
+		<div class="dashboard-switcher-sidebar__header">
+			<h2 class="dashboard-switcher-sidebar__title">
+				{{ t('mydash', 'Dashboards') }}
+			</h2>
+			<button
+				type="button"
+				class="dashboard-switcher-sidebar__close"
+				:aria-label="t('mydash', 'Close')"
+				@click="onCloseClick">
+				<Close :size="20" />
+			</button>
+		</div>
 
-		<!-- Divider between sections -->
-		<div
-			v-if="matchedGroupDashboards.length > 0 && (defaultGroupDashboards.length > 0 || userDashboardsVisible)"
-			class="sidebar-divider" />
-
-		<!-- Default group section -->
-		<template v-if="defaultGroupDashboards.length > 0">
-			<div class="sidebar-section-heading">
-				{{ t('mydash', 'Default') }}
-			</div>
-			<div class="sidebar-section">
-				<button
-					v-for="dashboard in defaultGroupDashboards"
-					:key="`default-${dashboard.id}`"
-					:class="{ active: dashboard.id === activeDashboardId }"
-					class="sidebar-item sidebar-item--dashboard"
-					:aria-label="dashboard.name"
-					@click="handleDashboardClick(dashboard.id, 'default')">
-					<IconRenderer :name="dashboard.icon" :size="20" />
-					<span class="sidebar-item__label">{{ dashboard.name }}</span>
-				</button>
-			</div>
-		</template>
-
-		<!-- Divider between sections -->
-		<div
-			v-if="(matchedGroupDashboards.length > 0 || defaultGroupDashboards.length > 0) && userDashboardsVisible"
-			class="sidebar-divider" />
-
-		<!-- My Dashboards section -->
-		<template v-if="userDashboardsVisible">
-			<div class="sidebar-section-heading">
-				{{ t('mydash', 'My Dashboards') }}
-			</div>
-			<div class="sidebar-section">
-				<!-- User dashboards -->
-				<div
-					v-for="dashboard in userDashboards"
-					:key="`user-${dashboard.id}`"
-					class="sidebar-item-wrapper">
-					<button
-						:class="{ active: dashboard.id === activeDashboardId }"
-						class="sidebar-item sidebar-item--dashboard"
+		<div class="dashboard-switcher-sidebar__body">
+			<!-- 1. Primary group dashboards -->
+			<section
+				v-if="primaryGroupDashboards.length > 0"
+				class="dashboard-switcher-sidebar__section"
+				data-section="group">
+				<h3 class="dashboard-switcher-sidebar__heading">
+					{{ primaryGroupHeading }}
+				</h3>
+				<ul class="dashboard-switcher-sidebar__list">
+					<li
+						v-for="dashboard in primaryGroupDashboards"
+						:key="`group-${dashboard.id}`"
+						class="dashboard-switcher-sidebar__item"
+						:class="{ active: isActive(dashboard.id) }"
+						data-source="group"
+						tabindex="0"
+						role="button"
 						:aria-label="dashboard.name"
-						@click="handleDashboardClick(dashboard.id, 'user')">
-						<IconRenderer :name="dashboard.icon" :size="20" />
-						<span class="sidebar-item__label">{{ dashboard.name }}</span>
-					</button>
-					<button
-						v-if="userDashboards.length > 0"
-						class="sidebar-item-delete"
-						:aria-label="t('mydash', 'Delete dashboard')"
-						@click.stop="handleDeleteClick(dashboard.id)">
-						<Close :size="16" />
-					</button>
-				</div>
+						@click="onSwitch(dashboard.id, 'group')"
+						@keydown.enter="onSwitch(dashboard.id, 'group')"
+						@keydown.space.prevent="onSwitch(dashboard.id, 'group')">
+						<span class="dashboard-switcher-sidebar__icon">
+							<IconRenderer :name="dashboard.icon" :size="20" />
+						</span>
+						<span class="dashboard-switcher-sidebar__label">{{ dashboard.name }}</span>
+					</li>
+				</ul>
+			</section>
 
-				<!-- Create dashboard button -->
-				<button
-					v-if="allowUserDashboards"
-					class="sidebar-item sidebar-item--action"
-					@click="handleCreateClick">
-					<Plus :size="20" />
-					<span class="sidebar-item__label">{{ t('mydash', '+ New Dashboard') }}</span>
-				</button>
-			</div>
-		</template>
+			<!-- Divider 1 ↔ 2 -->
+			<hr
+				v-if="primaryGroupDashboards.length > 0 && defaultGroupDashboards.length > 0"
+				class="dashboard-switcher-sidebar__divider">
+
+			<!-- 2. Default group dashboards -->
+			<section
+				v-if="defaultGroupDashboards.length > 0"
+				class="dashboard-switcher-sidebar__section"
+				data-section="default">
+				<h3 class="dashboard-switcher-sidebar__heading">
+					{{ t('mydash', 'Default') }}
+				</h3>
+				<ul class="dashboard-switcher-sidebar__list">
+					<li
+						v-for="dashboard in defaultGroupDashboards"
+						:key="`default-${dashboard.id}`"
+						class="dashboard-switcher-sidebar__item"
+						:class="{ active: isActive(dashboard.id) }"
+						data-source="default"
+						tabindex="0"
+						role="button"
+						:aria-label="dashboard.name"
+						@click="onSwitch(dashboard.id, 'default')"
+						@keydown.enter="onSwitch(dashboard.id, 'default')"
+						@keydown.space.prevent="onSwitch(dashboard.id, 'default')">
+						<span class="dashboard-switcher-sidebar__icon">
+							<IconRenderer :name="dashboard.icon" :size="20" />
+						</span>
+						<span class="dashboard-switcher-sidebar__label">{{ dashboard.name }}</span>
+					</li>
+				</ul>
+			</section>
+
+			<!-- Divider before personal section (only when prev section non-empty) -->
+			<hr
+				v-if="(primaryGroupDashboards.length > 0 || defaultGroupDashboards.length > 0) && showPersonalSection"
+				class="dashboard-switcher-sidebar__divider">
+
+			<!-- 3. Personal dashboards -->
+			<section
+				v-if="showPersonalSection"
+				class="dashboard-switcher-sidebar__section"
+				data-section="user">
+				<h3 class="dashboard-switcher-sidebar__heading">
+					{{ t('mydash', 'My Dashboards') }}
+				</h3>
+				<ul class="dashboard-switcher-sidebar__list">
+					<li
+						v-for="dashboard in userDashboards"
+						:key="`user-${dashboard.id}`"
+						class="dashboard-switcher-sidebar__item dashboard-switcher-sidebar__item--personal"
+						:class="{ active: isActive(dashboard.id) }"
+						data-source="user"
+						tabindex="0"
+						role="button"
+						:aria-label="dashboard.name"
+						@click="onSwitch(dashboard.id, 'user')"
+						@keydown.enter="onSwitch(dashboard.id, 'user')"
+						@keydown.space.prevent="onSwitch(dashboard.id, 'user')">
+						<span class="dashboard-switcher-sidebar__icon">
+							<IconRenderer :name="dashboard.icon" :size="20" />
+						</span>
+						<span class="dashboard-switcher-sidebar__label">{{ dashboard.name }}</span>
+						<button
+							type="button"
+							class="dashboard-switcher-sidebar__delete"
+							:aria-label="t('mydash', 'Delete dashboard')"
+							@click.stop="onDelete(dashboard.id)">
+							<Close :size="16" />
+						</button>
+					</li>
+
+					<li
+						v-if="allowUserDashboards"
+						class="dashboard-switcher-sidebar__item dashboard-switcher-sidebar__item--create"
+						data-action="create"
+						tabindex="0"
+						role="button"
+						:aria-label="t('mydash', '+ New Dashboard')"
+						@click="onCreate"
+						@keydown.enter="onCreate"
+						@keydown.space.prevent="onCreate">
+						<span class="dashboard-switcher-sidebar__icon">
+							<Plus :size="20" />
+						</span>
+						<span class="dashboard-switcher-sidebar__label">
+							{{ t('mydash', '+ New Dashboard') }}
+						</span>
+					</li>
+				</ul>
+			</section>
+		</div>
 	</aside>
 </template>
 
 <script>
-import { translate as t } from '@nextcloud/l10n'
+import { t } from '@nextcloud/l10n'
+
 import Close from 'vue-material-design-icons/Close.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
+
 import IconRenderer from '../Dashboard/IconRenderer.vue'
 
 export default {
 	name: 'DashboardSwitcherSidebar',
 
 	components: {
-		IconRenderer,
 		Close,
 		Plus,
+		IconRenderer,
+	},
+
+	/**
+	 * Vue 2 `v-model` rebind: parent can write `v-model="sidebarOpen"` and
+	 * we will read from `isOpen` and emit `update:open(boolean)`. This is
+	 * the Vue 2.7 equivalent of Vue 3's `v-model:open` syntax.
+	 */
+	model: {
+		prop: 'isOpen',
+		event: 'update:open',
 	},
 
 	props: {
 		/**
-		 * Whether the sidebar is open (controlled via v-model:open)
+		 * Controlled by the parent via `v-model` (rebound to `isOpen` /
+		 * `update:open` above).
 		 */
 		isOpen: {
 			type: Boolean,
-			default: false,
+			required: true,
 		},
 
 		/**
-		 * Display name of the user's primary group
+		 * Display name of the user's primary group; falls back to the
+		 * generic `Dashboards` label when omitted.
 		 */
 		groupName: {
 			type: String,
-			default: '',
+			default: null,
 		},
 
 		/**
-		 * Dashboards from the group (both matched and default-source)
-		 * Shape: {id, name, icon, source: 'group' | 'default'}
+		 * Combined matched + folded default group dashboards from
+		 * `/api/dashboards/visible`. Each row carries a `source: 'group' |
+		 * 'default'` discriminator that drives section bucketing.
 		 */
 		groupDashboards: {
 			type: Array,
-			default: () => [],
+			required: true,
+			validator(value) {
+				return Array.isArray(value)
+			},
 		},
 
 		/**
-		 * User's personal dashboards
-		 * Shape: {id, name, icon}
+		 * Personal dashboards (`source === 'user'`).
 		 */
 		userDashboards: {
 			type: Array,
-			default: () => [],
+			required: true,
+			validator(value) {
+				return Array.isArray(value)
+			},
 		},
 
 		/**
-		 * ID of the currently active dashboard (for highlighting)
+		 * Id of the currently active dashboard for highlighting
+		 * (REQ-SWITCH-003). At most one row may carry the `.active` class
+		 * at a time.
 		 */
 		activeDashboardId: {
-			type: String,
-			default: '',
+			type: [String, Number],
+			default: null,
 		},
 
 		/**
-		 * When true, the "+ New Dashboard" button is shown in the personal section
+		 * When true, the personal section ends with a `+ New Dashboard`
+		 * row; when false the row MUST NOT be in the DOM (REQ-SWITCH-005).
 		 */
 		allowUserDashboards: {
 			type: Boolean,
@@ -167,181 +280,252 @@ export default {
 	emits: ['switch', 'create-dashboard', 'delete-dashboard', 'update:open'],
 
 	computed: {
-		/**
-		 * Primary group dashboards (source !== 'default')
-		 */
-		matchedGroupDashboards() {
+		primaryGroupDashboards() {
 			return this.groupDashboards.filter(d => d.source !== 'default')
 		},
 
-		/**
-		 * Default group dashboards (source === 'default')
-		 */
 		defaultGroupDashboards() {
 			return this.groupDashboards.filter(d => d.source === 'default')
 		},
 
+		primaryGroupHeading() {
+			return this.groupName || t('mydash', 'Dashboards')
+		},
+
 		/**
-		 * Whether the "My Dashboards" section is visible
+		 * Personal section is rendered when there is at least one personal
+		 * dashboard OR the user is allowed to create one (REQ-SWITCH-001).
 		 */
-		userDashboardsVisible() {
-			return this.userDashboards.length > 0 || this.allowUserDashboards
+		showPersonalSection() {
+			return this.userDashboards.length > 0 || this.allowUserDashboards === true
+		},
+
+		/**
+		 * Vue 2's `:aria-hidden="false"` removes the attribute entirely
+		 * rather than writing the literal string `"false"`. Screen readers
+		 * (and the WCAG rule that asks for an explicit `false` while open)
+		 * need the attribute to remain present, so we bind a string
+		 * explicitly.
+		 *
+		 * @return {'true'|'false'} String form of `!isOpen`.
+		 */
+		ariaHiddenAttr() {
+			return this.isOpen ? 'false' : 'true'
 		},
 	},
 
 	methods: {
 		t,
 
+		isActive(id) {
+			return this.activeDashboardId != null && id === this.activeDashboardId
+		},
+
 		/**
-		 * Handle dashboard click: close sidebar, then emit switch
-		 * @param {string} dashboardId - The ID of the dashboard to switch to
-		 * @param {string} source - The source of the dashboard ('group', 'default', 'user')
+		 * Click handler for a dashboard row. MUST emit `update:open(false)`
+		 * BEFORE `switch(id, source)` so the parent can close the sidebar
+		 * in the same tick (REQ-SWITCH-002).
+		 *
+		 * @param {string|number} id Dashboard id of the clicked row.
+		 * @param {'group'|'default'|'user'} source Section the row was rendered in.
 		 */
-		handleDashboardClick(dashboardId, source) {
+		onSwitch(id, source) {
 			this.$emit('update:open', false)
-			this.$emit('switch', dashboardId, source)
+			this.$emit('switch', id, source)
 		},
 
 		/**
-		 * Handle delete button click (no switch emit)
-		 * @param {string} dashboardId - The ID of the dashboard to delete
+		 * Click handler for the personal-row delete button. MUST emit
+		 * `delete-dashboard(id)` only — never `switch` or `update:open`
+		 * (REQ-SWITCH-004). The template uses `@click.stop` to prevent
+		 * the parent row's switch handler from firing.
+		 *
+		 * @param {string|number} id Personal dashboard id to delete.
 		 */
-		handleDeleteClick(dashboardId) {
-			this.$emit('delete-dashboard', dashboardId)
+		onDelete(id) {
+			this.$emit('delete-dashboard', id)
 		},
 
 		/**
-		 * Handle create button click: close sidebar, then emit create-dashboard
+		 * Click handler for the `+ New Dashboard` row. MUST emit
+		 * `update:open(false)` BEFORE `create-dashboard()` (REQ-SWITCH-005).
 		 */
-		handleCreateClick() {
+		onCreate() {
 			this.$emit('update:open', false)
 			this.$emit('create-dashboard')
 		},
 
-		/**
-		 * Handle Esc key to close the sidebar
-		 */
-		handleEsc() {
+		onCloseClick() {
 			this.$emit('update:open', false)
+		},
+
+		onEscClose() {
+			if (this.isOpen) {
+				this.$emit('update:open', false)
+			}
 		},
 	},
 }
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .dashboard-switcher-sidebar {
 	position: fixed;
 	top: 50px;
 	left: 0;
+	bottom: 0;
 	width: 280px;
-	max-height: calc(100vh - 50px);
-	background: var(--color-main-background);
-	border-right: 1px solid var(--color-border);
 	z-index: 1500;
-	overflow-y: auto;
+	background: var(--color-main-background, #fff);
+	border-right: 1px solid var(--color-border, #e0e0e0);
+	box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
 	transform: translateX(-100%);
 	transition: transform 0.25s ease;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
 
-	&.open {
-		transform: translateX(0);
-	}
+.dashboard-switcher-sidebar.open {
+	transform: translateX(0);
+}
 
-	.sidebar-section-heading {
-		padding: 12px 16px;
-		font-size: 12px;
-		font-weight: 600;
-		text-transform: uppercase;
-		color: var(--color-text-maxcontrast);
-		letter-spacing: 0.5px;
-	}
+.dashboard-switcher-sidebar__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 16px;
+	border-bottom: 1px solid var(--color-border, #e0e0e0);
+	flex: 0 0 auto;
+}
 
-	.sidebar-section {
-		display: flex;
-		flex-direction: column;
-	}
+.dashboard-switcher-sidebar__title {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 600;
+	color: var(--color-main-text, #222);
+}
 
-	.sidebar-item {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 8px 16px;
-		background: none;
-		border: none;
-		cursor: pointer;
-		color: var(--color-text-base);
-		font-size: 14px;
-		text-align: left;
-		transition: background-color 0.15s ease;
+.dashboard-switcher-sidebar__close {
+	background: transparent;
+	border: 0;
+	padding: 4px;
+	border-radius: 4px;
+	cursor: pointer;
+	color: var(--color-main-text, #222);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
 
-		&:hover {
-			background-color: var(--color-background-hover);
-		}
+.dashboard-switcher-sidebar__close:hover,
+.dashboard-switcher-sidebar__close:focus {
+	background: var(--color-background-hover, #f5f5f5);
+}
 
-		&.active {
-			background-color: var(--color-primary-element-light);
-		}
+.dashboard-switcher-sidebar__body {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: 8px 0;
+}
 
-		&.active :deep(svg) {
-			color: var(--color-primary-element);
-		}
+.dashboard-switcher-sidebar__section {
+	padding: 8px 0;
+}
 
-		&--dashboard {
-			padding-left: 16px;
-		}
+.dashboard-switcher-sidebar__heading {
+	margin: 0 0 4px 0;
+	padding: 4px 16px;
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: var(--color-text-maxcontrast, #757575);
+}
 
-		&--action {
-			color: var(--color-primary-element);
-			font-weight: 500;
+.dashboard-switcher-sidebar__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
 
-			&:hover {
-				background-color: var(--color-primary-element-light);
-			}
-		}
+.dashboard-switcher-sidebar__item {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 16px;
+	cursor: pointer;
+	user-select: none;
+	color: var(--color-main-text, #222);
+	transition: background-color 0.15s ease;
+}
 
-		&__label {
-			overflow: hidden;
-			text-overflow: ellipsis;
-			white-space: nowrap;
-			flex: 1;
-		}
-	}
+.dashboard-switcher-sidebar__item:hover,
+.dashboard-switcher-sidebar__item:focus {
+	background: var(--color-background-hover, #f5f5f5);
+	outline: none;
+}
 
-	.sidebar-item-wrapper {
-		position: relative;
-		display: flex;
-		align-items: center;
+.dashboard-switcher-sidebar__item.active {
+	background: var(--color-primary-element-light, #e6f0fa);
+}
 
-		.sidebar-item {
-			flex: 1;
-		}
+.dashboard-switcher-sidebar__item.active .dashboard-switcher-sidebar__icon {
+	color: var(--color-primary, #0082c9);
+}
 
-		&:hover .sidebar-item-delete {
-			display: inline-flex;
-		}
-	}
+.dashboard-switcher-sidebar__icon {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+}
 
-	.sidebar-item-delete {
-		display: none;
-		align-items: center;
-		justify-content: center;
-		width: 32px;
-		height: 32px;
-		padding: 0;
-		background: none;
-		border: none;
-		cursor: pointer;
-		color: var(--color-text-maxcontrast);
-		transition: color 0.15s ease;
+.dashboard-switcher-sidebar__label {
+	flex: 1 1 auto;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 14px;
+}
 
-		&:hover {
-			color: var(--color-error);
-		}
-	}
+.dashboard-switcher-sidebar__delete {
+	display: none;
+	background: transparent;
+	border: 0;
+	padding: 2px;
+	border-radius: 3px;
+	cursor: pointer;
+	color: var(--color-text-maxcontrast, #757575);
+	align-items: center;
+	justify-content: center;
+}
 
-	.sidebar-divider {
-		height: 1px;
-		background: var(--color-border);
-		margin: 8px 0;
-	}
+.dashboard-switcher-sidebar__item--personal:hover .dashboard-switcher-sidebar__delete,
+.dashboard-switcher-sidebar__item--personal:focus-within .dashboard-switcher-sidebar__delete {
+	display: inline-flex;
+}
+
+.dashboard-switcher-sidebar__delete:hover,
+.dashboard-switcher-sidebar__delete:focus {
+	background: var(--color-background-darker, #ececec);
+	color: var(--color-error, #c0392b);
+}
+
+.dashboard-switcher-sidebar__item--create {
+	color: var(--color-primary, #0082c9);
+	font-weight: 500;
+}
+
+.dashboard-switcher-sidebar__item--create .dashboard-switcher-sidebar__icon {
+	color: var(--color-primary, #0082c9);
+}
+
+.dashboard-switcher-sidebar__divider {
+	border: 0;
+	border-top: 1px solid var(--color-border, #e0e0e0);
+	margin: 4px 0;
 }
 </style>
