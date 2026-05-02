@@ -155,7 +155,16 @@ OC.L10N.register(
     "Widgets" : "Widgets",
     "https://example.com or /apps/files" : "https://example.com or /apps/files",
     "SVG could not be parsed or contained no allowed content" : "SVG could not be parsed or contained no allowed content",
-    "Resource exceeds the 5 MB serving cap" : "Resource exceeds the 5 MB serving cap"
+    "Resource exceeds the 5 MB serving cap" : "Resource exceeds the 5 MB serving cap",
+    "Save Layout" : "Save Layout",
+    "Saving…" : "Saving…",
+    "No dashboards available" : "No dashboards available",
+    "Contact your administrator" : "Contact your administrator",
+    "Create your first dashboard" : "Create your first dashboard",
+    "Open menu" : "Open menu",
+    "Save failed" : "Save failed",
+    "My dashboards" : "My dashboards",
+    "Group dashboards" : "Group dashboards"
 },
 "nplurals=2; plural=(n != 1);"
 );

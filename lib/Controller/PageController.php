@@ -200,10 +200,21 @@ class PageController extends Controller
             ->setAllowUserDashboards($allowUserDashboards)
             ->apply();
 
-        return new TemplateResponse(
+        // REQ-SHELL-001: pass the chrome slot ids so Nextcloud treats
+        // `#app-workspace` as the main content slot and allocates no left
+        // navigation panel (the runtime shell renders its own slide-in
+        // sidebar via `dashboard-switcher-sidebar`). Renderer parameter
+        // names match the Nextcloud chrome conventions.
+        $response = new TemplateResponse(
             appName: Application::APP_ID,
-            templateName: 'index'
+            templateName: 'index',
+            params: [
+                'id-app-content'    => '#app-workspace',
+                'id-app-navigation' => null,
+            ]
         );
+
+        return $response;
     }//end index()
 
     /**

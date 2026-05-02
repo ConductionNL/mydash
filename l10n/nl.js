@@ -155,7 +155,16 @@ OC.L10N.register(
     "Widgets" : "Widgets",
     "https://example.com or /apps/files" : "https://voorbeeld.nl of /apps/files",
     "SVG could not be parsed or contained no allowed content" : "SVG kon niet worden ontleed of bevat geen toegestane inhoud",
-    "Resource exceeds the 5 MB serving cap" : "Bestand overschrijdt de limiet van 5 MB"
+    "Resource exceeds the 5 MB serving cap" : "Bestand overschrijdt de limiet van 5 MB",
+    "Save Layout" : "Indeling opslaan",
+    "Saving…" : "Opslaan…",
+    "No dashboards available" : "Geen dashboards beschikbaar",
+    "Contact your administrator" : "Neem contact op met je beheerder",
+    "Create your first dashboard" : "Maak je eerste dashboard",
+    "Open menu" : "Menu openen",
+    "Save failed" : "Opslaan mislukt",
+    "My dashboards" : "Mijn dashboards",
+    "Group dashboards" : "Groepsdashboards"
 },
 "nplurals=2; plural=(n != 1);"
 );
