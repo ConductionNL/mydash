@@ -163,6 +163,50 @@ export const useDashboardStore = defineStore('dashboard', {
 			}
 		},
 
+		// REQ-DASH-020: fork any dashboard the user can see (personal,
+		// group, or default-group sentinel) into a brand-new personal
+		// copy. The new dashboard becomes the user's active dashboard
+		// — we push it onto `dashboards` (tagged `source: 'user'` so
+		// the source-aware getters keep working) and pin
+		// `activeDashboard` so the UI rerenders without a reload.
+		async forkDashboard(sourceUuid, name) {
+			this.loading = true
+			try {
+				const response = await api.forkDashboard(sourceUuid, name)
+				const fork = response.data?.dashboard
+				if (fork) {
+					// Tag as `user`-source so `userDashboards` getter
+					// surfaces it without waiting for a /visible refresh.
+					this.dashboards.push({ ...fork, source: 'user', isOwner: true, sharedBy: null })
+					this.activeDashboard = { ...fork, isOwner: true, sharedBy: null }
+					// Placements come back via the next switchDashboard /
+					// loadDashboards round-trip — fork is a brand-new
+					// active dashboard but the by-id endpoint is the
+					// canonical source of truth for placements.
+					this.widgetPlacements = []
+					this.permissionLevel = 'full'
+				}
+				return fork
+			} catch (error) {
+				// REQ-ASET-003 (extended): surface the localised toast
+				// for the gating envelope. Other errors (404 source
+				// not visible, 500 rollback) are surfaced via the
+				// caller; we just log here.
+				if (error?.response?.status === 403
+					&& error?.response?.data?.error === ERR_PERSONAL_DASHBOARDS_DISABLED) {
+					showError(t('mydash', 'Personal dashboards are not enabled by your administrator'))
+				} else if (error?.response?.status === 404) {
+					showError(t('mydash', 'Dashboard not found'))
+				} else {
+					showError(t('mydash', 'Failed to fork dashboard'))
+				}
+				console.error('Failed to fork dashboard:', error)
+				throw error
+			} finally {
+				this.loading = false
+			}
+		},
+
 		async updatePlacements(placements) {
 			console.log('[DashboardStore] updatePlacements called, count:', placements.length)
 

@@ -620,6 +620,87 @@ class DashboardApiController extends Controller
     }//end setGroupDefault()
 
     /**
+     * Fork any visible dashboard into a brand-new personal copy.
+     *
+     * REQ-DASH-020 / REQ-DASH-021 / REQ-DASH-022. Body shape:
+     * `{name?: string}` — when `name` is absent the system applies the
+     * default `t('My copy of {name}', source.name)` translated via the
+     * caller's active language.
+     *
+     * Status mapping:
+     *  - HTTP 201 with the full new dashboard payload on success.
+     *  - HTTP 401 when the session has no user.
+     *  - HTTP 403 with stable error code `personal_dashboards_disabled`
+     *    when the admin flag `allow_user_dashboards` is off — REQ-ASET-003
+     *    runtime gating runs FIRST so the envelope shape is stable
+     *    regardless of body contents.
+     *  - HTTP 404 when the source UUID is not visible to the caller —
+     *    do not leak existence (REQ-DASH-020 scenario "Cannot fork a
+     *    dashboard you cannot read").
+     *  - HTTP 500 when a partial-failure rollback fires — REQ-DASH-021.
+     *
+     * @param string      $uuid The source dashboard UUID from the URL.
+     * @param string|null $name Optional explicit fork name from the body.
+     *
+     * @return JSONResponse The new dashboard payload (201) or an
+     *                      appropriate error envelope.
+     */
+    #[NoAdminRequired]
+    public function fork(
+        string $uuid,
+        ?string $name=null
+    ): JSONResponse {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
+
+        // REQ-ASET-003 (extended): gate FIRST so the body never
+        // changes the response envelope.
+        try {
+            $this->dashboardService->assertPersonalDashboardsAllowed();
+        } catch (PersonalDashboardsDisabledException $e) {
+            return new JSONResponse(
+                data: [
+                    'status'  => 'error',
+                    'error'   => $e->getErrorCode(),
+                    'message' => $e->getMessage(),
+                ],
+                statusCode: Http::STATUS_FORBIDDEN
+            );
+        }
+
+        try {
+            $fork = $this->dashboardService->forkAsPersonal(
+                userId: $this->userId,
+                sourceUuid: $uuid,
+                name: $name
+            );
+
+            return ResponseHelper::success(
+                data: ['dashboard' => $fork->jsonSerialize()],
+                statusCode: Http::STATUS_CREATED
+            );
+        } catch (DoesNotExistException $e) {
+            // REQ-DASH-020: source not visible — 404 without leaking
+            // existence (use the canonical message rather than echoing
+            // the exception detail).
+            return new JSONResponse(
+                data: ['error' => 'Dashboard not found'],
+                statusCode: Http::STATUS_NOT_FOUND
+            );
+        } catch (\Throwable $t) {
+            // REQ-DASH-021: any other failure (partial-clone rollback,
+            // factory invariant violation, etc.) — surface as a 500
+            // with the service-level message so the frontend can show
+            // a meaningful toast.
+            return new JSONResponse(
+                data: ['error' => $t->getMessage()],
+                statusCode: Http::STATUS_INTERNAL_SERVER_ERROR
+            );
+        }//end try
+    }//end fork()
+
+    /**
      * Persist the user's active-dashboard preference.
      *
      * Accepts any UUID string (including non-existent UUIDs — the resolver's
