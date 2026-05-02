@@ -36,6 +36,9 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
+use OCP\IUser;
+use OCP\IUserManager;
+use OCP\L10N\IFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -77,6 +80,12 @@ class DashboardServiceGroupSharedTest extends TestCase
     /** @var IConfig&MockObject */
     private $config;
 
+    /** @var IFactory&MockObject */
+    private $l10nFactory;
+
+    /** @var IUserManager&MockObject */
+    private $userManager;
+
     /** @var LoggerInterface&MockObject */
     private $logger;
 
@@ -98,8 +107,10 @@ class DashboardServiceGroupSharedTest extends TestCase
         $this->dashResolver         = $this->createMock(DashboardResolver::class);
         $this->groupManager         = $this->createMock(IGroupManager::class);
         $this->adminTemplateService = $this->createMock(AdminTemplateService::class);
+        $this->userManager          = $this->createMock(IUserManager::class);
         $this->db                   = $this->createMock(IDBConnection::class);
         $this->config               = $this->createMock(IConfig::class);
+        $this->l10nFactory          = $this->createMock(IFactory::class);
         $this->logger               = $this->createMock(LoggerInterface::class);
 
         $this->service = new DashboardService(
@@ -113,6 +124,7 @@ class DashboardServiceGroupSharedTest extends TestCase
             adminTemplateService: $this->adminTemplateService,
             db: $this->db,
             config: $this->config,
+            l10nFactory: $this->l10nFactory,
             logger: $this->logger,
         );
     }//end setUp()

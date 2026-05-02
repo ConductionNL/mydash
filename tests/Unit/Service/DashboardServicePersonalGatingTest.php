@@ -38,6 +38,8 @@ use OCA\MyDash\Service\TemplateService;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
+use OCP\IUserManager;
+use OCP\L10N\IFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -82,6 +84,8 @@ class DashboardServicePersonalGatingTest extends TestCase
         $db                   = $this->createMock(IDBConnection::class);
         /** @var IConfig&MockObject $config */
         $config               = $this->createMock(IConfig::class);
+        /** @var IFactory&MockObject $l10nFactory */
+        $l10nFactory          = $this->createMock(IFactory::class);
         /** @var LoggerInterface&MockObject $logger */
         $logger               = $this->createMock(LoggerInterface::class);
 
@@ -96,6 +100,7 @@ class DashboardServicePersonalGatingTest extends TestCase
             adminTemplateService: $adminTemplateService,
             db: $db,
             config: $config,
+            l10nFactory: $l10nFactory,
             logger: $logger,
         );
     }//end setUp()

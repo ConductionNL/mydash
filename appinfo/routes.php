@@ -36,6 +36,12 @@ return [
         // Lives under `/api/dashboards/...` (plural) so it is matched before
         // the singular `/api/dashboard/{id}` wildcard below.
         ['name' => 'dashboard_api#setActiveDashboard', 'url' => '/api/dashboards/active', 'verb' => 'POST'],
+        // Fork-current-layout to a personal copy (REQ-DASH-020). The
+        // route lives under `/api/dashboards/{uuid}/fork` so it is
+        // scoped to a source UUID rather than a numeric id — the
+        // resolver uses the visible-to-user chain (REQ-DASH-013) which
+        // is keyed on UUID, not on the dashboards table primary key.
+        ['name' => 'dashboard_api#fork', 'url' => '/api/dashboards/{uuid}/fork', 'verb' => 'POST'],
         // Personal-scope endpoints (must come AFTER `/api/dashboards/...`
         // specific routes above to avoid wildcard hijack).
         ['name' => 'dashboard_api#getActive', 'url' => '/api/dashboard', 'verb' => 'GET'],

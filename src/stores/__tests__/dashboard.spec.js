@@ -54,6 +54,7 @@ vi.mock('../../services/api.js', () => ({
 		removeWidget: vi.fn(),
 		setGroupDashboardDefault: vi.fn(),
 		setActiveDashboardPreference: vi.fn(),
+		forkDashboard: vi.fn(),
 	},
 }))
 
@@ -156,6 +157,96 @@ describe('useDashboardStore — createDashboard gating (REQ-ASET-003 extended)',
 
 		await expect(store.createDashboard('Try it')).rejects.toBe(err)
 		expect(showError).not.toHaveBeenCalled()
+	})
+})
+
+describe('useDashboardStore — forkDashboard (REQ-DASH-020)', () => {
+	beforeEach(async () => {
+		const { showError } = await import('@nextcloud/dialogs')
+		showError.mockReset()
+	})
+
+	it('happy path posts to /fork, pushes new dashboard, and pins it active', async () => {
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+
+		const fork = { id: 99, uuid: 'fork-uuid', name: 'My Marketing', source: 'user' }
+		mockApi.forkDashboard.mockResolvedValue({ data: { dashboard: fork } })
+
+		const returned = await store.forkDashboard('src-uuid', 'My Marketing')
+
+		expect(mockApi.forkDashboard).toHaveBeenCalledWith('src-uuid', 'My Marketing')
+		expect(returned).toEqual(fork)
+		// New dashboard pushed onto store with `source: 'user'` so the
+		// `userDashboards` getter picks it up immediately.
+		expect(store.dashboards.find(d => d.uuid === 'fork-uuid')).toBeTruthy()
+		expect(store.dashboards.find(d => d.uuid === 'fork-uuid').source).toBe('user')
+		// Active dashboard pinned so the UI rerenders without a reload.
+		expect(store.activeDashboard?.uuid).toBe('fork-uuid')
+		expect(store.permissionLevel).toBe('full')
+	})
+
+	it('surfaces the personal_dashboards_disabled toast on 403 envelope', async () => {
+		const { showError } = await import('@nextcloud/dialogs')
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+
+		const err = new Error('Forbidden')
+		err.response = {
+			status: 403,
+			data: {
+				status: 'error',
+				error: 'personal_dashboards_disabled',
+				message: 'Personal dashboards are not enabled by your administrator',
+			},
+		}
+		mockApi.forkDashboard.mockRejectedValue(err)
+
+		await expect(store.forkDashboard('src-uuid')).rejects.toBe(err)
+		expect(showError).toHaveBeenCalledWith(
+			'Personal dashboards are not enabled by your administrator',
+		)
+	})
+
+	it('shows a not-found toast on 404 (source not visible)', async () => {
+		const { showError } = await import('@nextcloud/dialogs')
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+
+		const err = new Error('Not found')
+		err.response = { status: 404, data: { error: 'Dashboard not found' } }
+		mockApi.forkDashboard.mockRejectedValue(err)
+
+		await expect(store.forkDashboard('missing-uuid')).rejects.toBe(err)
+		expect(showError).toHaveBeenCalledWith('Dashboard not found')
+	})
+
+	it('shows the generic fork-failure toast on unrelated errors', async () => {
+		const { showError } = await import('@nextcloud/dialogs')
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+
+		const err = new Error('Boom')
+		err.response = { status: 500, data: { error: 'internal_server_error' } }
+		mockApi.forkDashboard.mockRejectedValue(err)
+
+		await expect(store.forkDashboard('src-uuid')).rejects.toBe(err)
+		expect(showError).toHaveBeenCalledWith('Failed to fork dashboard')
+	})
+
+	it('omits `name` from the request body when caller passes nothing', async () => {
+		const { useDashboardStore } = await import('../dashboard.js')
+		const store = useDashboardStore()
+
+		mockApi.forkDashboard.mockResolvedValue({
+			data: { dashboard: { id: 1, uuid: 'fork', source: 'user' } },
+		})
+
+		await store.forkDashboard('src-uuid')
+
+		// The store passes `undefined` through verbatim — the api
+		// helper is responsible for building `{}` vs `{name}`.
+		expect(mockApi.forkDashboard).toHaveBeenCalledWith('src-uuid', undefined)
 	})
 })
 

@@ -85,6 +85,17 @@ export const api = {
 		)
 	},
 
+	// Fork any visible dashboard into a brand-new personal copy
+	// (REQ-DASH-020). Body shape is `{name?: string}` — when `name`
+	// is omitted the backend applies the localised default
+	// `My copy of {source name}`.
+	forkDashboard(sourceUuid, name) {
+		const payload = (name === undefined || name === null || name === '')
+			? {}
+			: { name }
+		return axios.post(`${baseUrl}/api/dashboards/${encodeURIComponent(sourceUuid)}/fork`, payload)
+	},
+
 	// Sharing endpoints
 	listShares(dashboardId) {
 		return axios.get(`${baseUrl}/api/dashboard/${dashboardId}/shares`)
