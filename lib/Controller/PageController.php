@@ -29,6 +29,7 @@ use OCA\MyDash\Service\AdminTemplateService;
 use OCA\MyDash\Service\DashboardService;
 use OCA\MyDash\Service\InitialStateBuilder;
 use OCA\MyDash\Service\Page;
+use OCA\MyDash\Service\RoleFeaturePermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
@@ -67,6 +68,7 @@ class PageController extends Controller
         private readonly AdminSettingsService $adminSettings,
         private readonly DashboardService $dashboardService,
         private readonly AdminTemplateService $templateService,
+        private readonly RoleFeaturePermissionService $roleFeaturePerm,
     ) {
         parent::__construct(appName: Application::APP_ID, request: $request);
     }//end __construct()
@@ -145,6 +147,11 @@ class PageController extends Controller
             ->setUserDashboards(userDashboards: [])
             ->setAllowUserDashboards(
                 allowUserDashboards: (bool) ($settings['allowUserDashboards'] ?? false)
+            )
+            ->setAllowedWidgets(
+                allowedWidgets: $userId !== null
+                    ? $this->roleFeaturePerm->getAllowedWidgetIds(userId: $userId)
+                    : null
             )
             ->apply();
 

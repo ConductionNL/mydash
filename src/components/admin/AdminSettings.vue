@@ -96,6 +96,9 @@
 				</div>
 			</div>
 
+			<!-- Role-based widget permissions (REQ-RFP-001..010) -->
+			<RolePermissionsSection />
+
 			<!-- Info -->
 			<div class="mydash-admin__section">
 				<h3>{{ t('mydash', 'Setting as default app') }}</h3>
@@ -176,6 +179,7 @@ import {
 import Plus from 'vue-material-design-icons/Plus.vue'
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
 import { api } from '../../services/api.js'
+import RolePermissionsSection from './RolePermissionsSection.vue'
 
 export default {
 	name: 'AdminSettings',
@@ -191,6 +195,7 @@ export default {
 		NcModal,
 		Plus,
 		ViewDashboard,
+		RolePermissionsSection,
 	},
 
 	data() {
