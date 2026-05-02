@@ -34,6 +34,28 @@ parameters:
         -
             message: '#Parameter \$statusCode of class OCP\\AppFramework\\Http\\JSONResponse constructor#'
             path: lib/Controller/ResponseHelper.php
+        # ResourceController forwards an HTTP status int into the same
+        # strict union — same rationale, same runtime safety.
+        -
+            message: '#Parameter \$statusCode of class OCP\\AppFramework\\Http\\JSONResponse constructor#'
+            path: lib/Controller/ResourceController.php
+        # DataResponse declares a `T of DataResponseType` template parameter
+        # whose union does not cover plain associative arrays. Every call
+        # site here passes a JSON-serialisable array — runtime is sound;
+        # the type system cannot narrow `array<string, X>` into the
+        # template union without a generic helper. Suppressing here keeps
+        # the controller readable until Nextcloud upstream loosens the
+        # generic bound.
+        -
+            message: '#Parameter \$data of class OCP\\AppFramework\\Http\\DataResponse constructor#'
+            path: lib/Controller/DashboardShareApiController.php
+        # ImageMimeValidator: getimagesizefromstring's stub declares the
+        # `mime` offset as always-present, so the `??` fallback is flagged
+        # as dead. The defensive null-coalesce is intentional belt-and-
+        # braces against rare edge cases (corrupt streams).
+        -
+            message: '#Offset .mime. on .* on left side of \?\? always exists#'
+            path: lib/Service/ImageMimeValidator.php
         # Entity types implement JsonSerializable on the concrete subclass;
         # the OCP stub for Entity does not declare jsonSerialize() so PHPStan
         # cannot statically prove the call. The only callers wrap entities

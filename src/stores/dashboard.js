@@ -17,6 +17,10 @@ export const useDashboardStore = defineStore('dashboard', {
 		activeDashboard: null,
 		widgetPlacements: [],
 		permissionLevel: 'full',
+		// User's primary group id — read from initial state by the
+		// workspace bootstrap. Used by `resolveActive` to mirror the
+		// backend 7-step precedence (REQ-DASH-018).
+		primaryGroup: '',
 		loading: false,
 		saving: false,
 	}),
@@ -48,6 +52,84 @@ export const useDashboardStore = defineStore('dashboard', {
 		// — REQ-DASH-012.
 		defaultGroupDashboards: (state) => {
 			return state.dashboards.filter(d => d.source === 'default')
+		},
+
+		/**
+		 * Mirror of the backend 7-step resolver (REQ-DASH-018) for purely
+		 * client-side fallback after store mutations (e.g. dashboard delete,
+		 * group dashboards refreshed). The order is identical to the PHP
+		 * resolver so the next page load picks the same dashboard:
+		 *
+		 *   1. activeDashboard if still in the visible list
+		 *   2. group-shared isDefault=1 in primaryGroup (state.primaryGroup)
+		 *   3. default-group isDefault=1
+		 *   4. first group-shared in primaryGroup
+		 *   5. first default-group dashboard
+		 *   6. first personal dashboard
+		 *   7. null  → caller renders the empty-state UI
+		 *
+		 * Returns the dashboard descriptor (the row from state.dashboards)
+		 * or null. Source is read off `descriptor.source`.
+		 *
+		 * @param {object} state The Pinia store state.
+		 * @return {object|null} The resolved dashboard row, or null.
+		 */
+		resolveActive: (state) => {
+			const list = state.dashboards || []
+			if (list.length === 0) {
+				return null
+			}
+
+			// Step 1: honour the currently-active dashboard if still visible.
+			const activeId = state.activeDashboard?.id
+			if (activeId !== undefined && activeId !== null) {
+				const stillVisible = list.find(d => d.id === activeId || d.uuid === activeId)
+				if (stillVisible !== undefined) {
+					return stillVisible
+				}
+			}
+
+			const primary = state.primaryGroup || ''
+			const inPrimary = (d) => d.source === 'group' && d.groupId === primary
+			const inDefault = (d) => d.source === 'default'
+			const isDefault = (d) => Number(d.isDefault) === 1
+
+			// Step 2: primary-group default.
+			if (primary !== '') {
+				const groupDefault = list.find(d => inPrimary(d) && isDefault(d))
+				if (groupDefault !== undefined) {
+					return groupDefault
+				}
+			}
+
+			// Step 3: default-group default.
+			const defaultDefault = list.find(d => inDefault(d) && isDefault(d))
+			if (defaultDefault !== undefined) {
+				return defaultDefault
+			}
+
+			// Step 4: first group-shared in primary group.
+			if (primary !== '') {
+				const firstInGroup = list.find(d => inPrimary(d))
+				if (firstInGroup !== undefined) {
+					return firstInGroup
+				}
+			}
+
+			// Step 5: first default-group dashboard.
+			const firstInDefault = list.find(d => inDefault(d))
+			if (firstInDefault !== undefined) {
+				return firstInDefault
+			}
+
+			// Step 6: first personal dashboard.
+			const firstPersonal = list.find(d => d.source === 'user')
+			if (firstPersonal !== undefined) {
+				return firstPersonal
+			}
+
+			// Step 7: nothing.
+			return null
 		},
 	},
 
@@ -115,11 +197,33 @@ export const useDashboardStore = defineStore('dashboard', {
 				}
 				this.widgetPlacements = response.data.placements || []
 				this.permissionLevel = response.data.permissionLevel || 'full'
+
+				// REQ-DASH-019: persist the user's choice so subsequent
+				// page loads honour it via the backend resolver. Fire and
+				// forget — failure here is logged but does not block the
+				// UI; the resolver tolerates a missing pref.
+				this.persistActivePreference(this.activeDashboard?.uuid || dashboardId)
 			} catch (error) {
 				console.error('Failed to switch dashboard:', error)
 			} finally {
 				this.loading = false
 			}
+		},
+
+		/**
+		 * Persist the active-dashboard preference (REQ-DASH-019).
+		 *
+		 * Fire-and-forget: a network error here is logged but does NOT
+		 * surface as a toast or block the UI. The backend tolerates a
+		 * missing pref — the resolver just falls through to step 2.
+		 *
+		 * @param {string} uuid The dashboard UUID, or empty string to clear.
+		 * @return {void}
+		 */
+		persistActivePreference(uuid) {
+			api.setActiveDashboardPreference(uuid || '').catch((error) => {
+				console.warn('Failed to persist active dashboard preference:', error)
+			})
 		},
 
 		async createDashboard(payload = 'My Dashboard') {

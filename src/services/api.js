@@ -18,6 +18,15 @@ export const api = {
 		return axios.get(`${baseUrl}/api/dashboard`)
 	},
 
+	// Persist the user's active-dashboard preference (REQ-DASH-019).
+	// Empty string clears the pref so the resolver falls back through the
+	// 7-step chain on next render. The endpoint does NOT validate that
+	// the UUID exists — the resolver's stale-pref path handles invalid
+	// UUIDs on the next page load.
+	setActiveDashboardPreference(uuid) {
+		return axios.post(`${baseUrl}/api/dashboards/active`, { uuid })
+	},
+
 	createDashboard(data) {
 		return axios.post(`${baseUrl}/api/dashboard`, data)
 	},

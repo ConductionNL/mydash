@@ -32,10 +32,13 @@ return [
 		['name' => 'dashboard_api#getGroup', 'url' => '/api/dashboards/group/{groupId}/{uuid}', 'verb' => 'GET'],
 		['name' => 'dashboard_api#updateGroup', 'url' => '/api/dashboards/group/{groupId}/{uuid}', 'verb' => 'PUT'],
 		['name' => 'dashboard_api#deleteGroup', 'url' => '/api/dashboards/group/{groupId}/{uuid}', 'verb' => 'DELETE'],
+		// Persist the user's active-dashboard preference (REQ-DASH-019).
+		// Lives under `/api/dashboards/...` (plural) so it is matched before
+		// the singular `/api/dashboard/{id}` wildcard below.
+		['name' => 'dashboard_api#setActiveDashboard', 'url' => '/api/dashboards/active', 'verb' => 'POST'],
 		// Personal-scope endpoints (must come AFTER `/api/dashboards/...`
 		// specific routes above to avoid wildcard hijack).
 		['name' => 'dashboard_api#getActive', 'url' => '/api/dashboard', 'verb' => 'GET'],
-		['name' => 'dashboard_api#setActiveDashboard', 'url' => '/api/dashboard/active', 'verb' => 'POST'],
 		['name' => 'dashboard_api#getById', 'url' => '/api/dashboard/{id}', 'verb' => 'GET'],
 		['name' => 'dashboard_api#create', 'url' => '/api/dashboard', 'verb' => 'POST'],
 		['name' => 'dashboard_api#update', 'url' => '/api/dashboard/{id}', 'verb' => 'PUT'],
