@@ -157,13 +157,15 @@ class DashboardApiController extends Controller
      *
      * @param mixed       $name        The dashboard name.
      * @param string|null $description The description.
+     * @param string|null $icon        The icon registry key (or NULL/empty to use the default).
      *
      * @return JSONResponse The created dashboard.
      */
     #[NoAdminRequired]
     public function create(
         $name=null,
-        ?string $description=null
+        ?string $description=null,
+        ?string $icon=null
     ): JSONResponse {
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
@@ -171,7 +173,8 @@ class DashboardApiController extends Controller
 
         $resolved = $this->resolveCreateParams(
             name: $name,
-            description: $description
+            description: $description,
+            icon: $icon
         );
 
         try {
@@ -198,7 +201,8 @@ class DashboardApiController extends Controller
             $dashboard = $this->dashboardService->createDashboard(
                 userId: $this->userId,
                 name: $resolved['name'],
-                description: $resolved['description']
+                description: $resolved['description'],
+                icon: $resolved['icon']
             );
 
             return ResponseHelper::success(
@@ -217,6 +221,7 @@ class DashboardApiController extends Controller
      * @param string|null $name        The name.
      * @param string|null $description The description.
      * @param array|null  $placements  The placements.
+     * @param string|null $icon        The icon registry key, URL, or NULL to leave unchanged.
      *
      * @return JSONResponse The updated dashboard.
      */
@@ -225,15 +230,16 @@ class DashboardApiController extends Controller
         int $id,
         ?string $name=null,
         ?string $description=null,
-        ?array $placements=null
+        ?array $placements=null,
+        ?string $icon=null
     ): JSONResponse {
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }
 
-        // REQ-PERM-007: Metadata-only updates (name, description) are allowed
-        // for all permission levels. Widget/tile/layout changes require
-        // add_only or full permission.
+        // REQ-PERM-007: Metadata-only updates (name, description, icon) are
+        // allowed for all permission levels. Widget/tile/layout changes
+        // require add_only or full permission.
         $isMetadataOnly = $placements === null;
         if ($isMetadataOnly === true) {
             if ($this->permissionService->canEditDashboardMetadata(
@@ -257,7 +263,8 @@ class DashboardApiController extends Controller
             $data = $this->buildUpdateData(
                 name: $name,
                 description: $description,
-                placements: $placements
+                placements: $placements,
+                icon: $icon
             );
 
             $dashboard = $this->dashboardService->updateDashboard(
@@ -649,23 +656,33 @@ class DashboardApiController extends Controller
      *
      * @param mixed       $name        The name parameter.
      * @param string|null $description The description parameter.
+     * @param string|null $icon        The icon parameter.
      *
-     * @return array The resolved name and description.
+     * @return array{name: string, description: ?string, icon: ?string} The resolved values.
      */
     private function resolveCreateParams(
         $name,
-        ?string $description
+        ?string $description,
+        ?string $icon=null
     ): array {
         if (is_array($name) === true) {
+            $bodyIcon     = ($name['icon'] ?? null);
+            $resolvedIcon = null;
+            if (is_string($bodyIcon) === true) {
+                $resolvedIcon = $bodyIcon;
+            }
+
             return [
                 'name'        => $name['name'] ?? 'My Dashboard',
                 'description' => $name['description'] ?? null,
+                'icon'        => $resolvedIcon,
             ];
         }
 
         return [
             'name'        => $name ?? 'My Dashboard',
             'description' => $description,
+            'icon'        => $icon,
         ];
     }//end resolveCreateParams()
 
@@ -709,13 +726,15 @@ class DashboardApiController extends Controller
      * @param string|null $name        The name.
      * @param string|null $description The description.
      * @param array|null  $placements  The placements.
+     * @param string|null $icon        The icon registry key, URL, or NULL/empty.
      *
      * @return array The non-null update data.
      */
     private function buildUpdateData(
         ?string $name,
         ?string $description,
-        ?array $placements
+        ?array $placements,
+        ?string $icon=null
     ): array {
         $fields = [
             'name'        => $name,
@@ -723,12 +742,22 @@ class DashboardApiController extends Controller
             'placements'  => $placements,
         ];
 
-        return array_filter(
+        $data = array_filter(
             array: $fields,
             callback: function ($value) {
                 return $value !== null;
             }
         );
+
+        // Icon explicitly supports NULL/empty (resets to the default
+        // glyph), so it must be merged separately from the array_filter
+        // above. Caller distinguishes "not in payload" via the default
+        // null sentinel.
+        if ($icon !== null) {
+            $data['icon'] = $icon;
+        }
+
+        return $data;
     }//end buildUpdateData()
 
     /**

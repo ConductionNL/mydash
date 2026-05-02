@@ -22,9 +22,17 @@
 			:close-after-click="true"
 			@click="$emit('switch-dashboard', dashboard.id)">
 			<template #icon>
+				<!-- Active dashboard always shows the check mark; for the rest
+				     we resolve the per-dashboard icon through the
+				     `dashboard-icons` capability so the switcher stays in
+				     lock-step with the registry (REQ-ICON-003). Shared
+				     dashboards still fall back to the AccountGroup glyph
+				     when no per-dashboard icon has been picked. -->
 				<Check v-if="dashboard.id === activeDashboardId" :size="20" />
-				<AccountGroup v-else-if="dashboard.isOwner === false" :size="20" />
-				<ViewDashboard v-else :size="20" />
+				<AccountGroup
+					v-else-if="dashboard.isOwner === false && !dashboard.icon"
+					:size="20" />
+				<IconRenderer v-else :name="dashboard.icon" :size="20" />
 			</template>
 			{{ dashboard.name }}{{ dashboard.isOwner === false ? ` (${t('mydash', 'shared by')} ${dashboard.sharedBy})` : '' }}
 		</NcActionButton>
@@ -149,13 +157,17 @@ import Plus from 'vue-material-design-icons/Plus.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Tune from 'vue-material-design-icons/Tune.vue'
-import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
 import ViewModule from 'vue-material-design-icons/ViewModule.vue'
 import ShapeRectanglePlus from 'vue-material-design-icons/ShapeRectanglePlus.vue'
 import ShapePolygonPlus from 'vue-material-design-icons/ShapePolygonPlus.vue'
 import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
+// AccountGroup is the only `dash.icon`-domain MDI import that remains in
+// this file — it acts as the fallback glyph for shared dashboards that
+// have no per-dashboard icon picked. The switcher's per-dashboard icon
+// itself resolves through `IconRenderer` (REQ-ICON-003).
 import AccountGroup from 'vue-material-design-icons/AccountGroup.vue'
 
+import IconRenderer from './Dashboard/IconRenderer.vue'
 import { listWidgetTypes } from '../constants/widgetRegistry.js'
 
 export default {
@@ -173,12 +185,12 @@ export default {
 		Pencil,
 		ContentSave,
 		Tune,
-		ViewDashboard,
 		ViewModule,
 		ShapeRectanglePlus,
 		ShapePolygonPlus,
 		BookOpenVariantOutline,
 		AccountGroup,
+		IconRenderer,
 	},
 
 	props: {

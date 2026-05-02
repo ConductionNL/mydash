@@ -34,6 +34,32 @@
 					:placeholder="t('mydash', 'What is this dashboard for?')" />
 			</div>
 
+			<!-- Icon picker — options are enumerated from the registry so the
+			     UI stays in lock-step with `DASHBOARD_ICONS` whenever icons
+			     are added or removed (REQ-ICON-003). -->
+			<div class="dashboard-config__field">
+				<label class="dashboard-config__label" for="dashboard-config-icon">
+					{{ t('mydash', 'Icon') }}
+				</label>
+				<div class="dashboard-config__icon-picker">
+					<select
+						id="dashboard-config-icon"
+						v-model="form.icon"
+						class="dashboard-config__select">
+						<option
+							v-for="iconName in iconOptions"
+							:key="iconName"
+							:value="iconName">
+							{{ iconName }}
+						</option>
+					</select>
+					<IconRenderer
+						:name="form.icon"
+						:size="24"
+						class="dashboard-config__icon-preview" />
+				</div>
+			</div>
+
 			<div v-if="!isCreate && canManageShares" class="dashboard-config__field">
 				<label class="dashboard-config__label">
 					{{ t('mydash', 'Share with users and groups') }}
@@ -134,6 +160,8 @@ import Close from 'vue-material-design-icons/Close.vue'
 import Account from 'vue-material-design-icons/Account.vue'
 import AccountGroup from 'vue-material-design-icons/AccountGroup.vue'
 
+import IconRenderer from './Dashboard/IconRenderer.vue'
+import { DASHBOARD_ICONS, DEFAULT_ICON } from '../constants/dashboardIcons.js'
 import { api } from '../services/api.js'
 
 const PERMISSION_OPTIONS = [
@@ -156,6 +184,7 @@ export default {
 		Close,
 		Account,
 		AccountGroup,
+		IconRenderer,
 	},
 
 	props: {
@@ -185,6 +214,7 @@ export default {
 			form: {
 				name: '',
 				description: '',
+				icon: DEFAULT_ICON,
 			},
 			saving: false,
 			// Server snapshot of shares as last loaded; used to compute dirty state.
@@ -234,6 +264,15 @@ export default {
 		canSave() {
 			return this.form.name.trim().length > 0
 		},
+		/**
+		 * Picker option list — derived from the registry so the UI grows
+		 * automatically when an icon is added or removed (REQ-ICON-003).
+		 *
+		 * @return {string[]} Registry keys, in insertion order.
+		 */
+		iconOptions() {
+			return Object.keys(DASHBOARD_ICONS)
+		},
 		sharesDirty() {
 			if (this.localShares.length !== this.serverShares.length) return true
 			const key = s => `${s.shareType}:${s.shareWith}:${s.permissionLevel}`
@@ -256,9 +295,16 @@ export default {
 				if (this.isCreate) {
 					this.form.name = ''
 					this.form.description = ''
+					this.form.icon = DEFAULT_ICON
 				} else if (this.dashboard) {
 					this.form.name = this.dashboard.name || ''
 					this.form.description = this.dashboard.description || ''
+					// Persisted icon may be NULL/empty/unknown — fall back to
+					// DEFAULT_ICON in the picker so the <select> always has a
+					// matching option (REQ-ICON-002).
+					this.form.icon = (this.dashboard.icon && DASHBOARD_ICONS[this.dashboard.icon])
+						? this.dashboard.icon
+						: DEFAULT_ICON
 					if (this.canManageShares) {
 						this.loadShares()
 					}
@@ -368,6 +414,7 @@ export default {
 					id: this.dashboard?.id ?? null,
 					name: this.form.name.trim(),
 					description: this.form.description.trim(),
+					icon: this.form.icon || null,
 				})
 			} finally {
 				this.saving = false
@@ -423,6 +470,37 @@ export default {
 .dashboard-config__textarea:focus {
 	border-color: var(--color-primary-element);
 	outline: none;
+}
+
+.dashboard-config__icon-picker {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.dashboard-config__select {
+	flex: 1;
+	padding: 6px 12px;
+	border: 2px solid var(--color-border-maxcontrast);
+	border-radius: var(--border-radius-large);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-family: inherit;
+	font-size: 14px;
+}
+
+.dashboard-config__select:focus {
+	border-color: var(--color-primary-element);
+	outline: none;
+}
+
+.dashboard-config__icon-preview {
+	display: inline-flex;
+	width: 32px;
+	height: 32px;
+	align-items: center;
+	justify-content: center;
+	color: var(--color-main-text);
 }
 
 .dashboard-config__hint {

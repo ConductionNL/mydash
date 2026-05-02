@@ -167,19 +167,29 @@ class DashboardService
      * @param string      $userId      The user ID.
      * @param string      $name        The dashboard name.
      * @param string|null $description The dashboard description.
+     * @param string|null $icon        Opaque icon identifier (registry key or URL); see the `dashboard-icons` capability.
      *
      * @return Dashboard The created dashboard.
      */
     public function createDashboard(
         string $userId,
         string $name,
-        ?string $description=null
+        ?string $description=null,
+        ?string $icon=null
     ): Dashboard {
         $dashboard = $this->dashboardFactory->create(
             userId: $userId,
             name: $name,
             description: $description
         );
+
+        // Icon is an opaque string (registry key or URL) — see the
+        // `dashboard-icons` capability. NULL/empty means "use the
+        // frontend default glyph".
+        if ($icon !== null && $icon !== '') {
+            // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
+            $dashboard->setIcon($icon);
+        }
 
         $this->dashboardMapper->deactivateAllForUser(userId: $userId);
 
@@ -931,6 +941,20 @@ class DashboardService
 
         if (isset($data['description']) === true) {
             $dashboard->setDescription($data['description']);
+        }
+
+        // Icon may be NULL/empty (use default), a registry key, or a URL.
+        // The discriminator + lookup live frontend-side in the
+        // `dashboard-icons` capability — we just store the opaque string.
+        if (array_key_exists(key: 'icon', array: $data) === true) {
+            $iconValue   = $data['icon'];
+            $iconToStore = null;
+            if (is_string($iconValue) === true) {
+                $iconToStore = $iconValue;
+            }
+
+            // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
+            $dashboard->setIcon($iconToStore);
         }
 
         if (isset($data['gridColumns']) === true) {

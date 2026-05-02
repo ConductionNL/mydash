@@ -84,11 +84,17 @@ export const useDashboardStore = defineStore('dashboard', {
 		},
 
 		async createDashboard(payload = 'My Dashboard') {
-			// Accept either a plain name string or an object with name/description
-			// (legacy callers may pass a string).
+			// Accept either a plain name string or an object with
+			// name/description/icon (legacy callers may pass a string).
 			const data = typeof payload === 'string'
 				? { name: payload }
-				: { name: payload.name || 'My Dashboard', description: payload.description }
+				: {
+					name: payload.name || 'My Dashboard',
+					description: payload.description,
+					// Optional registry key from the `dashboard-icons`
+					// capability — null/undefined skips the field server-side.
+					icon: payload.icon ?? null,
+				}
 			this.loading = true
 			try {
 				const response = await api.createDashboard(data)

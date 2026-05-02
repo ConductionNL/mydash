@@ -364,12 +364,12 @@ export default {
 		handleCreateDashboard() {
 			this.openCreateDashboardModal()
 		},
-		async saveDashboardConfig({ id, name, description }) {
+		async saveDashboardConfig({ id, name, description, icon }) {
 			try {
 				if (id == null) {
-					await this.createDashboard({ name, description })
+					await this.createDashboard({ name, description, icon })
 				} else {
-					await api.updateDashboard(id, { name, description })
+					await api.updateDashboard(id, { name, description, icon })
 					await this.loadDashboards()
 				}
 				this.closeConfigModal()
