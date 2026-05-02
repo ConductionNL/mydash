@@ -49,6 +49,8 @@ class DashboardShareApiController extends Controller
      *
      * @param IRequest              $request      The request.
      * @param DashboardShareService $shareService The share service.
+     * @param IUserManager          $userManager  Nextcloud user manager (sharee lookup).
+     * @param IGroupManager         $groupManager Nextcloud group manager (sharee lookup).
      * @param string|null           $userId       The calling user ID.
      */
     public function __construct(
@@ -309,6 +311,7 @@ class DashboardShareApiController extends Controller
             if ($user->getUID() === $this->userId) {
                 continue;
             }
+
             $users[] = [
                 'id'          => $user->getUID(),
                 'displayName' => $user->getDisplayName(),

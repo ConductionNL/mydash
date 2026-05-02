@@ -37,11 +37,12 @@ class PermissionService
     /**
      * Constructor
      *
-     * @param DashboardMapper        $dashboardMapper Dashboard mapper.
-     * @param WidgetPlacementMapper  $placementMapper Widget placement mapper.
-     * @param AdminSettingMapper     $settingMapper   Admin setting mapper.
-     * @param DashboardShareService  $shareService    Share resolution service.
-     * @param IGroupManager          $groupManager    Group manager for resolving recipient groups.
+     * @param DashboardMapper       $dashboardMapper Dashboard mapper.
+     * @param WidgetPlacementMapper $placementMapper Widget placement mapper.
+     * @param AdminSettingMapper    $settingMapper   Admin setting mapper.
+     * @param DashboardShareService $shareService    Share resolution service.
+     * @param IGroupManager         $groupManager    Group manager for resolving recipient groups.
+     * @param IUserManager          $userManager     User manager (used by share resolution).
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
@@ -55,6 +56,11 @@ class PermissionService
 
     /**
      * Whether the user can see a dashboard at all (owner OR has any share).
+     *
+     * @param string $userId      The acting user ID.
+     * @param int    $dashboardId The dashboard ID.
+     *
+     * @return bool True when the dashboard is visible to the user.
      */
     public function canViewDashboard(string $userId, int $dashboardId): bool
     {
@@ -174,9 +180,11 @@ class PermissionService
         if ($level === Dashboard::PERMISSION_VIEW_ONLY) {
             return false;
         }
+
         if ($level === Dashboard::PERMISSION_FULL) {
             return true;
         }
+
         if ($level === Dashboard::PERMISSION_ADD_ONLY) {
             return $placement->getIsCompulsory() === 0;
         }
@@ -296,8 +304,8 @@ class PermissionService
      */
     public function resolveAccessLevel(
         string $userId,
-        ?int $dashboardId = null,
-        ?Dashboard $dashboard = null
+        ?int $dashboardId=null,
+        ?Dashboard $dashboard=null
     ): ?string {
         if ($dashboard === null) {
             try {
@@ -378,6 +386,7 @@ class PermissionService
         if ($user === null) {
             return [];
         }
+
         return $this->groupManager->getUserGroupIds(user: $user);
     }//end getUserGroupIds()
 }//end class

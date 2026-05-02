@@ -583,16 +583,21 @@ class DashboardService
         ?string $primaryGroupId
     ): ?array {
         // Normalise the sentinel so steps 2-5 can rely on it.
-        $groupId = ($primaryGroupId === null || $primaryGroupId === '')
-            ? Dashboard::DEFAULT_GROUP_ID
-            : $primaryGroupId;
+        $groupId = $primaryGroupId;
+        if ($primaryGroupId === null || $primaryGroupId === '') {
+            $groupId = Dashboard::DEFAULT_GROUP_ID;
+        }
 
         // Pre-fetch all visible dashboards once — used for the pref lookup
         // and to avoid redundant DB round-trips.
         $visible = $this->getVisibleToUser(userId: $userId);
 
         // Build a UUID-keyed index for O(1) pref lookup.
-        /** @var array<string, array{dashboard: Dashboard, source: string}> $byUuid */
+        /**
+         * UUID-indexed view of $visible for O(1) lookup.
+         *
+         * @var array<string, array{dashboard: Dashboard, source: string}> $byUuid
+         */
         $byUuid = [];
         foreach ($visible as $entry) {
             $uuid = (string) $entry['dashboard']->getUuid();
@@ -767,13 +772,14 @@ class DashboardService
      * "first" result is already correctly ordered without a secondary sort
      * here.
      *
-     * @param array<int, array{dashboard: Dashboard, source: string}> $visible
-     *                          The full visible-to-user list.
-     * @param string            $groupId       The group ID to filter on.
-     * @param string            $source        Expected source tag
-     *                                         (`'group'` or `'default'`).
-     * @param bool              $requireDefault When true, only rows with
-     *                                          `isDefault = 1` are considered.
+     * @param array<int, array{dashboard: Dashboard, source: string}> $visible        The full visible-to-user list.
+     * @param string                                                  $groupId        The group ID to filter on.
+     * @param string                                                  $source         Expected source tag
+     *                                                                                (`'group'` or
+     *                                                                                `'default'`).
+     * @param bool                                                    $requireDefault When true, only rows with
+     *                                                                                `isDefault = 1` are
+     *                                                                                considered.
      *
      * @return array{dashboard: Dashboard, source: string}|null
      */

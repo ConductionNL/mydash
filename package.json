@@ -13,6 +13,7 @@
 		"watch": "NODE_ENV=development webpack --config webpack.config.js --progress --watch",
 		"lint": "eslint src",
 		"lint:fix": "eslint src --fix",
+		"lint:initial-state": "node ./scripts/lint-initial-state.js",
 		"stylelint": "stylelint src/**/*.vue src/**/*.scss src/**/*.css",
 		"stylelint:fix": "stylelint src/**/*.vue src/**/*.scss src/**/*.css --fix",
 		"test": "vitest run",
