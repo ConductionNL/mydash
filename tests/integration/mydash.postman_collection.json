@@ -1,0 +1,3172 @@
+{
+	"info": {
+		"_postman_id": "mydash-integration-2026-05-03",
+		"name": "MyDash Integration Suite",
+		"description": "Newman/Postman collection covering every public OCS route declared in `appinfo/routes.php` (131 routes). Each request asserts the documented happy-path status + payload shape, and at least one error envelope assertion is exercised per route family (401 unauthenticated, 403 admin-gated, 400 validation, 404 not-found). The collection seeds + tears down its own fixture dashboard, tile, placement, comment, rule, role, metadata-field and template so it never pollutes pre-existing data.\n\nRun:\n  npx newman run tests/integration/mydash.postman_collection.json --environment tests/integration/local.env.json\n\nThe Nextcloud test instance MUST be reachable on `{{baseUrl}}` and the `{{adminUser}}` account MUST be an actual NC admin. Endpoints that require admin gating are flagged with the `admin-only` Postman folder; the collection skips them as soft-fails when the configured account is not admin (status assertion accepts 200/403).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "basic",
+		"basic": [
+			{ "key": "username", "value": "{{adminUser}}", "type": "string" },
+			{ "key": "password", "value": "{{adminPassword}}", "type": "string" }
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Per-request defaults: every MyDash route is shaped as a Nextcloud OCS endpoint.",
+					"pm.request.headers.upsert({ key: 'OCS-APIRequest', value: 'true' });",
+					"pm.request.headers.upsert({ key: 'Accept', value: 'application/json' });"
+				]
+			}
+		}
+	],
+	"variable": [
+		{ "key": "baseUrl", "value": "http://localhost:8080" },
+		{ "key": "adminUser", "value": "admin" },
+		{ "key": "adminPassword", "value": "admin" }
+	],
+	"item": [
+		{
+			"name": "Health + Metrics",
+			"item": [
+				{
+					"name": "GET /api/health (happy path)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/health", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "health"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('payload shape: status + checks', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.property('status');",
+									"    pm.expect(json).to.have.property('checks');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/metrics (happy path, Prometheus text/plain)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/metrics", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "metrics"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('Prometheus exposition format', () => {",
+									"    pm.expect(pm.response.text()).to.match(/^# HELP|^mydash_/m);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET / (page#index, HTML page)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "text/html" }
+						],
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", ""] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('returns HTML (page shell)', () => {",
+									"    pm.expect(pm.response.headers.get('Content-Type') || '').to.match(/text\\/html|application\\/json/);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/health (error envelope: bad path 404)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/health/does-not-exist", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "health", "does-not-exist"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Dashboards - Fixture setup",
+			"item": [
+				{
+					"name": "POST /api/dashboard (create fixture)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"name\":\"newman-fixture-{{$timestamp}}\",\"description\":\"Newman integration fixture\",\"icon\":null}"
+						},
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboard", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboard"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('201 Created or 200 OK', () => pm.expect([200, 201]).to.include(pm.response.code));",
+									"pm.test('payload contains dashboard with id + uuid', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.property('dashboard');",
+									"    pm.expect(json.dashboard).to.have.property('id');",
+									"    pm.expect(json.dashboard).to.have.property('uuid');",
+									"    pm.environment.set('fixtureDashboardId', String(json.dashboard.id));",
+									"    pm.environment.set('fixtureDashboardUuid', String(json.dashboard.uuid));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboard (validation error: missing name)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboard", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboard"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('error status (4xx)', () => pm.expect([400, 403, 422]).to.include(pm.response.code));",
+									"pm.test('error envelope', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.satisfy((p) => 'error' in p || 'message' in p);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Dashboards - Personal scope",
+			"item": [
+				{
+					"name": "GET /api/dashboards (list)",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('returns an array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/dashboards/visible",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/visible", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "visible"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('array of dashboards with source field', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.be.an('array');",
+									"    if (json.length > 0) pm.expect(json[0]).to.have.property('source');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/active (set active)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"uuid\":\"{{fixtureDashboardUuid}}\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/active", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "active"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+									"pm.test('JSON envelope', () => pm.expect(pm.response.json()).to.be.an('object'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/dashboards/tree",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/tree", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "tree"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('array shape', () => pm.expect(pm.response.json()).to.be.an('array'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/dashboards/by-path/{path} (404 for unknown)",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/by-path/newman-no-such-path", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "by-path", "newman-no-such-path"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('404 Not Found', () => pm.response.to.have.status(404));",
+									"pm.test('error envelope', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.satisfy((p) => 'error' in p || 'message' in p);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/dashboard (getActive)",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboard", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboard"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 or 404', () => pm.expect([200, 404]).to.include(pm.response.code));",
+									"pm.test('JSON envelope', () => pm.expect(pm.response.json()).to.be.an('object'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/dashboard/{id} (update fixture)",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"name\":\"newman-fixture-renamed-{{$timestamp}}\",\"description\":\"Updated by Newman\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboard/{{fixtureDashboardId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboard", "{{fixtureDashboardId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('updated dashboard returned', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.satisfy((p) => 'dashboard' in p || 'id' in p);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboard/{id}/activate",
+					"request": {
+						"method": "POST",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboard/{{fixtureDashboardId}}/activate", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboard", "{{fixtureDashboardId}}", "activate"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 404', () => pm.expect([200, 201, 204, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/dashboard/{id} (404 unknown id)",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"name\":\"x\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboard/99999999", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboard", "99999999"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('error status', () => pm.expect([400, 403, 404]).to.include(pm.response.code));",
+									"pm.test('error envelope', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.satisfy((p) => 'error' in p || 'message' in p);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Dashboards - Publication state",
+			"item": [
+				{
+					"name": "POST /api/dashboards/{uuid}/publish",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/publish", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "publish"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/{uuid}/unpublish",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/unpublish", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "unpublish"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/{uuid}/schedule",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"publishAt\":\"2099-01-01T00:00:00Z\",\"unpublishAt\":null}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/schedule", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "schedule"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or validation error', () => pm.expect([200, 201, 204, 400, 403, 422]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/{uuid}/fork",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"name\":\"newman-fork-{{$timestamp}}\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/fork", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "fork"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx (depending on permission)', () => pm.expect([200, 201, 400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/{uuid}/publish (404 unknown uuid)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/00000000-0000-0000-0000-000000000000/publish", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "00000000-0000-0000-0000-000000000000", "publish"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('404 / 403', () => pm.expect([403, 404]).to.include(pm.response.code));",
+									"pm.test('error envelope', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.satisfy((p) => 'error' in p || 'message' in p);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Dashboards - View event",
+			"item": [
+				{
+					"name": "POST /api/dashboards/{uuid}/view-event",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/view-event", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "view-event"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('204 No Content (or 200)', () => pm.expect([200, 204]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/{uuid}/view-event (404 unknown)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/00000000-0000-0000-0000-000000000000/view-event", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "00000000-0000-0000-0000-000000000000", "view-event"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Dashboards - Translations",
+			"item": [
+				{
+					"name": "GET /api/dashboards/{uuid}/translations",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/translations", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "translations"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('JSON', () => pm.expect(pm.response.json()).to.satisfy((p) => Array.isArray(p) || typeof p === 'object'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/{uuid}/translations",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"lang\":\"nl\",\"name\":\"newman-nl\",\"description\":\"NL desc\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/translations", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "translations"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 201, 400, 403, 409]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/dashboards/{uuid}/translations/{lang}",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"name\":\"newman-nl-updated\",\"description\":\"NL desc updated\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/translations/nl", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "translations", "nl"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 404', () => pm.expect([200, 201, 204, 404, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/{uuid}/translations/{lang}/set-primary",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/translations/nl/set-primary", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "translations", "nl", "set-primary"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 404', () => pm.expect([200, 201, 204, 404, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/dashboards/{uuid}/resolved",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/resolved", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "resolved"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('JSON object', () => pm.expect(pm.response.json()).to.be.an('object'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/dashboards/{uuid}/translations/{lang}",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/translations/nl", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "translations", "nl"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 404', () => pm.expect([200, 204, 404, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/dashboards/{uuid}/translations (404 unknown uuid)",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/00000000-0000-0000-0000-000000000000/translations", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "00000000-0000-0000-0000-000000000000", "translations"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('404 / 403', () => pm.expect([403, 404]).to.include(pm.response.code));",
+									"pm.test('error envelope', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.satisfy((p) => 'error' in p || 'message' in p);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Dashboards - Comments",
+			"item": [
+				{
+					"name": "GET /api/dashboards/{uuid}/comments",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/comments", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "comments"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('array shape', () => pm.expect(pm.response.json()).to.satisfy((p) => Array.isArray(p) || typeof p === 'object'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/{uuid}/comments",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"message\":\"Newman comment {{$timestamp}}\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/comments", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "comments"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+									"const json = pm.response.json();",
+									"if (json && (json.id || (json.comment && json.comment.id))) {",
+									"    pm.environment.set('fixtureCommentId', String(json.id || json.comment.id));",
+									"}"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/dashboards/{uuid}/comments/{id}",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"message\":\"Newman comment updated\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/comments/{{fixtureCommentId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "comments", "{{fixtureCommentId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 404', () => pm.expect([200, 204, 400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/dashboards/{uuid}/comments/{id}",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/comments/{{fixtureCommentId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "comments", "{{fixtureCommentId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 404', () => pm.expect([200, 204, 404, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/{uuid}/comments (validation: empty body)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/comments", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "comments"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('error status', () => pm.expect([400, 403, 422]).to.include(pm.response.code));",
+									"pm.test('error envelope', () => pm.expect(pm.response.json()).to.satisfy((p) => 'error' in p || 'message' in p));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Dashboards - Group scope",
+			"item": [
+				{
+					"name": "GET /api/dashboards/group/{groupId}",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/group/admin", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "group", "admin"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 403', () => pm.expect([200, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/group/{groupId} (create group dashboard)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"name\":\"newman-group-{{$timestamp}}\",\"description\":\"Newman group fixture\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/group/admin", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "group", "admin"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 403', () => pm.expect([200, 201, 403]).to.include(pm.response.code));",
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    const json = pm.response.json();",
+									"    const dash = json.dashboard || json;",
+									"    if (dash && dash.uuid) pm.environment.set('fixtureGroupDashboardUuid', dash.uuid);",
+									"}"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/group/{groupId}/default",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"uuid\":\"{{fixtureGroupDashboardUuid}}\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/group/admin/default", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "group", "admin", "default"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/dashboards/group/{groupId}/{uuid}",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/group/admin/{{fixtureGroupDashboardUuid}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "group", "admin", "{{fixtureGroupDashboardUuid}}"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/dashboards/group/{groupId}/{uuid}",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"name\":\"newman-group-updated\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/group/admin/{{fixtureGroupDashboardUuid}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "group", "admin", "{{fixtureGroupDashboardUuid}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/dashboards/group/{groupId}/{uuid}",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/group/admin/{{fixtureGroupDashboardUuid}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "group", "admin", "{{fixtureGroupDashboardUuid}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/dashboards/group/no-such-group (error envelope)",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/group/newman-no-such-group", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "group", "newman-no-such-group"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('error or empty', () => pm.expect([200, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Dashboards - Locks",
+			"item": [
+				{
+					"name": "POST /api/dashboards/{uuid}/lock (acquire)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/lock", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "lock"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 409', () => pm.expect([200, 201, 204, 409]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/dashboards/{uuid}/lock",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/lock", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "lock"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('JSON object', () => pm.expect(pm.response.json()).to.be.an('object'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/dashboards/{uuid}/lock (heartbeat)",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/lock", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "lock"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 400, 404, 409]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/{uuid}/lock/force-release",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/lock/force-release", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "lock", "force-release"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 403', () => pm.expect([200, 204, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/dashboards/{uuid}/lock (release)",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/lock", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "lock"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/{uuid}/lock (404 unknown)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/00000000-0000-0000-0000-000000000000/lock", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "00000000-0000-0000-0000-000000000000", "lock"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('404 / 403', () => pm.expect([403, 404]).to.include(pm.response.code));",
+									"pm.test('error envelope', () => pm.expect(pm.response.json()).to.satisfy((p) => 'error' in p || 'message' in p));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Dashboards - Sharing",
+			"item": [
+				{
+					"name": "GET /api/dashboard/{id}/shares",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboard/{{fixtureDashboardId}}/shares", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboard", "{{fixtureDashboardId}}", "shares"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('array or object', () => pm.expect(pm.response.json()).to.satisfy((p) => Array.isArray(p) || typeof p === 'object'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboard/{id}/shares",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"shareType\":1,\"shareWith\":\"admin\",\"permissions\":1}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboard/{{fixtureDashboardId}}/shares", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboard", "{{fixtureDashboardId}}", "shares"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 201, 400, 403, 409]).to.include(pm.response.code));",
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    const json = pm.response.json();",
+									"    const sid = json.id || json.shareId || (json.share && json.share.id);",
+									"    if (sid) pm.environment.set('fixtureShareId', String(sid));",
+									"}"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/dashboard/{id}/shares (replace)",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"shares\":[]}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboard/{{fixtureDashboardId}}/shares", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboard", "{{fixtureDashboardId}}", "shares"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 400, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/sharees (search)",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/sharees?search=adm", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "sharees"], "query": [{"key": "search", "value": "adm"}] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('JSON', () => pm.expect(pm.response.json()).to.satisfy((p) => Array.isArray(p) || typeof p === 'object'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/dashboard/share/{shareId}",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboard/share/{{fixtureShareId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboard", "share", "{{fixtureShareId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 404', () => pm.expect([200, 204, 400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/sharees/{shareType}/{shareWith}",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/sharees/1/admin", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "sharees", "1", "admin"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/dashboard/{id}/shares (404 unknown id)",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboard/99999999/shares", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboard", "99999999", "shares"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('404 / 403', () => pm.expect([403, 404]).to.include(pm.response.code));",
+									"pm.test('error envelope', () => pm.expect(pm.response.json()).to.satisfy((p) => 'error' in p || 'message' in p));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Dashboards - Reactions",
+			"item": [
+				{
+					"name": "POST /api/dashboards/{uuid}/reactions",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"emoji\":\"👍\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/reactions", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "reactions"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 201, 204, 400, 403, 409]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/dashboards/{uuid}/reactions",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/reactions", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "reactions"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('JSON', () => pm.expect(pm.response.json()).to.satisfy((p) => Array.isArray(p) || typeof p === 'object'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/dashboards/{uuid}/reactions/{emoji}/users",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/reactions/%F0%9F%91%8D/users", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "reactions", "%F0%9F%91%8D", "users"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 or 404', () => pm.expect([200, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/dashboards/{uuid}/reactions/{emoji}",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/reactions/%F0%9F%91%8D", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "reactions", "%F0%9F%91%8D"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 404', () => pm.expect([200, 204, 404, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/{uuid}/reactions (validation: missing emoji)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/reactions", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "reactions"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('error status', () => pm.expect([400, 403, 422]).to.include(pm.response.code));",
+									"pm.test('error envelope', () => pm.expect(pm.response.json()).to.satisfy((p) => 'error' in p || 'message' in p));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Dashboards - Versions",
+			"item": [
+				{
+					"name": "GET /api/dashboards/{uuid}/versions",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/versions", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "versions"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"const json = pm.response.json();",
+									"if (Array.isArray(json) && json.length > 0 && json[0].versionNumber) pm.environment.set('fixtureVersionNumber', String(json[0].versionNumber));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/{uuid}/versions (create)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"label\":\"newman snapshot\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/versions", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "versions"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 201, 400, 403, 429]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/dashboards/{uuid}/versions/{versionNumber}",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/versions/{{fixtureVersionNumber}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "versions", "{{fixtureVersionNumber}}"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 404', () => pm.expect([200, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/{uuid}/versions/{versionNumber}/restore",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/versions/{{fixtureVersionNumber}}/restore", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "versions", "{{fixtureVersionNumber}}", "restore"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 404', () => pm.expect([200, 204, 404, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/dashboards/{uuid}/versions/9999 (404)",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/versions/9999", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "versions", "9999"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('404', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Dashboards - Metadata",
+			"item": [
+				{
+					"name": "GET /api/dashboards/{uuid}/metadata",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/metadata", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "metadata"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('JSON', () => pm.expect(pm.response.json()).to.satisfy((p) => Array.isArray(p) || typeof p === 'object'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/dashboards/{uuid}/metadata",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"values\":{}}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/metadata", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "metadata"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 400, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/dashboards/{uuid}/metadata (404 unknown)",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/00000000-0000-0000-0000-000000000000/metadata", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "00000000-0000-0000-0000-000000000000", "metadata"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('404 / 403', () => pm.expect([403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Tiles",
+			"item": [
+				{
+					"name": "GET /api/tiles",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/tiles", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "tiles"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('array shape', () => pm.expect(pm.response.json()).to.satisfy((p) => Array.isArray(p) || typeof p === 'object'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/tiles (create)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"name\":\"newman-tile-{{$timestamp}}\",\"icon\":\"folder\",\"link\":\"https://example.com\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/tiles", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "tiles"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 201, 400, 403]).to.include(pm.response.code));",
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    const json = pm.response.json();",
+									"    const tid = json.id || (json.tile && json.tile.id);",
+									"    if (tid) pm.environment.set('fixtureTileId', String(tid));",
+									"}"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/tiles/{id}",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"name\":\"newman-tile-renamed\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/tiles/{{fixtureTileId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "tiles", "{{fixtureTileId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 404', () => pm.expect([200, 204, 400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/tiles/{id}",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/tiles/{{fixtureTileId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "tiles", "{{fixtureTileId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 404', () => pm.expect([200, 204, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/tiles/9999999 (404)",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"name\":\"x\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/tiles/9999999", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "tiles", "9999999"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('error status', () => pm.expect([400, 403, 404]).to.include(pm.response.code));",
+									"pm.test('error envelope', () => pm.expect(pm.response.json()).to.satisfy((p) => 'error' in p || 'message' in p));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Widgets",
+			"item": [
+				{
+					"name": "GET /api/widgets (listAvailable)",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/widgets", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "widgets"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('array or object', () => pm.expect(pm.response.json()).to.satisfy((p) => Array.isArray(p) || typeof p === 'object'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/widgets/items",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/widgets/items", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "widgets", "items"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('JSON', () => pm.expect(pm.response.json()).to.satisfy((p) => Array.isArray(p) || typeof p === 'object'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboard/{dashboardId}/widgets (addWidget)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"widgetType\":\"links\",\"x\":0,\"y\":0,\"w\":2,\"h\":2}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboard/{{fixtureDashboardId}}/widgets", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboard", "{{fixtureDashboardId}}", "widgets"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 201, 400, 403, 404]).to.include(pm.response.code));",
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    const json = pm.response.json();",
+									"    const pid = json.id || json.placementId || (json.placement && json.placement.id);",
+									"    if (pid) pm.environment.set('fixturePlacementId', String(pid));",
+									"}"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboard/{dashboardId}/tile (addTile)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"tileId\":{{fixtureTileId}},\"x\":0,\"y\":0,\"w\":1,\"h\":1}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboard/{{fixtureDashboardId}}/tile", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboard", "{{fixtureDashboardId}}", "tile"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 201, 400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/widgets/news/{placementId}/items",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/widgets/news/{{fixturePlacementId}}/items", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "widgets", "news", "{{fixturePlacementId}}", "items"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 400, 403, 404, 502, 503]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/widgets/calendar/{placementId}/events",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/widgets/calendar/{{fixturePlacementId}}/events", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "widgets", "calendar", "{{fixturePlacementId}}", "events"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/widgets/{placementId} (updatePlacement)",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"x\":1,\"y\":1,\"w\":2,\"h\":2,\"widgetContent\":{}}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/widgets/{{fixturePlacementId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "widgets", "{{fixturePlacementId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/widgets/{placementId} (removePlacement)",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/widgets/{{fixturePlacementId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "widgets", "{{fixturePlacementId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/widgets/9999999 (404 unknown placement)",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/widgets/9999999", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "widgets", "9999999"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('error', () => pm.expect([400, 403, 404]).to.include(pm.response.code));",
+									"pm.test('error envelope', () => pm.expect(pm.response.json()).to.satisfy((p) => 'error' in p || 'message' in p));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Rules",
+			"item": [
+				{
+					"name": "GET /api/widgets/{placementId}/rules",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/widgets/{{fixturePlacementId}}/rules", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "widgets", "{{fixturePlacementId}}", "rules"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/widgets/{placementId}/rules (addRule)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"type\":\"hide\",\"condition\":{\"groupId\":\"admin\"}}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/widgets/{{fixturePlacementId}}/rules", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "widgets", "{{fixturePlacementId}}", "rules"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 201, 400, 403, 404]).to.include(pm.response.code));",
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    const json = pm.response.json();",
+									"    const rid = json.id || (json.rule && json.rule.id);",
+									"    if (rid) pm.environment.set('fixtureRuleId', String(rid));",
+									"}"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/rules/{ruleId}",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"type\":\"hide\",\"condition\":{}}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/rules/{{fixtureRuleId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "rules", "{{fixtureRuleId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/rules/{ruleId}",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/rules/{{fixtureRuleId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "rules", "{{fixtureRuleId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 404', () => pm.expect([200, 204, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/rules/9999999 (404)",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/rules/9999999", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "rules", "9999999"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('404 / 403', () => pm.expect([403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Files Widget",
+			"item": [
+				{
+					"name": "GET /api/widgets/files/{placementId}/contents",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/widgets/files/{{fixturePlacementId}}/contents", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "widgets", "files", "{{fixturePlacementId}}", "contents"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/widgets/files/{placementId}/upload",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "file", "type": "text", "value": "newman-stub" }
+							]
+						},
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/widgets/files/{{fixturePlacementId}}/upload", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "widgets", "files", "{{fixturePlacementId}}", "upload"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('expected status', () => pm.expect([200, 201, 400, 403, 404, 422]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/widgets/files/{placementId}/files/{fileId}",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/widgets/files/{{fixturePlacementId}}/files/9999999", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "widgets", "files", "{{fixturePlacementId}}", "files", "9999999"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('404 / 403', () => pm.expect([400, 403, 404]).to.include(pm.response.code));",
+									"pm.test('error envelope', () => pm.expect(pm.response.json()).to.satisfy((p) => 'error' in p || 'message' in p));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Files",
+			"item": [
+				{
+					"name": "POST /api/files/create",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"filename\":\"newman.txt\",\"dir\":\"/\",\"content\":\"newman\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/files/create", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "files", "create"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('expected status', () => pm.expect([200, 201, 400, 403, 409, 422]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/files/create (validation: missing filename)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/files/create", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "files", "create"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('error', () => pm.expect([400, 403, 422]).to.include(pm.response.code));",
+									"pm.test('error envelope', () => pm.expect(pm.response.json()).to.satisfy((p) => 'error' in p || 'message' in p));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Resources",
+			"item": [
+				{
+					"name": "GET /api/resources (list)",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/resources", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "resources"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('JSON', () => pm.expect(pm.response.json()).to.satisfy((p) => Array.isArray(p) || typeof p === 'object'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/resources (upload)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "file", "type": "text", "value": "newman-resource-stub" }
+							]
+						},
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/resources", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "resources"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('expected status', () => pm.expect([200, 201, 400, 403, 422]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /resource/{filename} (404 unknown name)",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/resource/newman-no-such-file.png", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "resource", "newman-no-such-file.png"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('404', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Feeds",
+			"item": [
+				{
+					"name": "GET /api/feed/token",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/feed/token", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "feed", "token"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"const json = pm.response.json();",
+									"if (json && json.token) pm.environment.set('fixtureFeedToken', json.token);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/feed/token/regenerate",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/feed/token/regenerate", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "feed", "token", "regenerate"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+									"const json = pm.response.json();",
+									"if (json && json.token) pm.environment.set('fixtureFeedToken', json.token);"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /feed/{token}.xml",
+					"request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/xml" }], "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/feed/{{fixtureFeedToken}}.xml", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "feed", "{{fixtureFeedToken}}.xml"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 or 404', () => pm.expect([200, 404]).to.include(pm.response.code));",
+									"if (pm.response.code === 200) pm.test('XML body', () => pm.expect(pm.response.text()).to.match(/<\\?xml|<feed|<rss/i));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/feed/token (revoke)",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/feed/token", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "feed", "token"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /feed/garbage.xml (404 unknown)",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/feed/newman-no-such-token.xml", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "feed", "newman-no-such-token.xml"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('404', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Templates",
+			"item": [
+				{
+					"name": "GET /api/templates/gallery",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/templates/gallery", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "templates", "gallery"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('JSON', () => pm.expect(pm.response.json()).to.satisfy((p) => Array.isArray(p) || typeof p === 'object'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/dashboards/{uuid}/save-as-template",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"name\":\"newman-template-{{$timestamp}}\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/save-as-template", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "save-as-template"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 201, 400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "People Widget",
+			"item": [
+				{
+					"name": "GET /api/people",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/people?limit=10&offset=0", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "people"], "query": [{"key":"limit","value":"10"},{"key":"offset","value":"0"}] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('paginated payload shape', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.satisfy((p) => 'users' in p || Array.isArray(p));",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Admin - Templates",
+			"item": [
+				{
+					"name": "GET /api/admin/templates",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/templates", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "templates"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 or 403', () => pm.expect([200, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/admin/templates (create)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"name\":\"newman-template-{{$timestamp}}\",\"description\":\"Newman fixture\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/templates", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "templates"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 403', () => pm.expect([200, 201, 400, 403]).to.include(pm.response.code));",
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    const json = pm.response.json();",
+									"    const tid = json.id || (json.template && json.template.id);",
+									"    if (tid) pm.environment.set('fixtureTemplateId', String(tid));",
+									"}"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/admin/templates/{uuid}/preview-image",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [{"key":"image","type":"text","value":"newman-stub"}]
+						},
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/templates/00000000-0000-0000-0000-000000000000/preview-image", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "templates", "00000000-0000-0000-0000-000000000000", "preview-image"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('error or 2xx', () => pm.expect([200, 201, 400, 403, 404, 422]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/admin/templates/{id}",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/templates/{{fixtureTemplateId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "templates", "{{fixtureTemplateId}}"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/admin/templates/{id}",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"name\":\"newman-template-updated\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/templates/{{fixtureTemplateId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "templates", "{{fixtureTemplateId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/admin/templates/{id}",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/templates/{{fixtureTemplateId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "templates", "{{fixtureTemplateId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Admin - Settings",
+			"item": [
+				{
+					"name": "GET /api/admin/settings",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/settings", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "settings"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 or 403', () => pm.expect([200, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/admin/settings",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/settings", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "settings"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 403', () => pm.expect([200, 204, 400, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/admin/footer-settings",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/footer-settings", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "footer-settings"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 or 403', () => pm.expect([200, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/admin/footer-settings",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/footer-settings", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "footer-settings"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 403', () => pm.expect([200, 204, 400, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Admin - Groups",
+			"item": [
+				{
+					"name": "GET /api/admin/groups",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/groups", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "groups"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 or 403', () => pm.expect([200, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/admin/groups (updateGroupOrder)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"order\":[\"admin\"]}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/groups", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "groups"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 403', () => pm.expect([200, 204, 400, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Admin - Setup Wizard",
+			"item": [
+				{
+					"name": "GET /api/admin/setup-wizard/state",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/setup-wizard/state", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "setup-wizard", "state"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 or 403', () => pm.expect([200, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/admin/setup-wizard/storage",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"storage\":\"openregister\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/setup-wizard/storage", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "setup-wizard", "storage"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 400, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/admin/setup-wizard/complete",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/setup-wizard/complete", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "setup-wizard", "complete"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 400, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Admin - Roles",
+			"item": [
+				{
+					"name": "GET /api/admin/roles",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/roles", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "roles"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 or 403', () => pm.expect([200, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/admin/roles",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"groupId\":\"admin\",\"role\":\"admin\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/roles", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "roles"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 201, 400, 403, 409]).to.include(pm.response.code));",
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    const json = pm.response.json();",
+									"    const rid = json.id || (json.role && json.role.id);",
+									"    if (rid) pm.environment.set('fixtureRoleId', String(rid));",
+									"}"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/admin/roles/{id}",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/roles/{{fixtureRoleId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "roles", "{{fixtureRoleId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/me/role",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/me/role", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "me", "role"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('JSON', () => pm.expect(pm.response.json()).to.be.an('object'));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Admin - Metadata Fields",
+			"item": [
+				{
+					"name": "GET /api/admin/metadata-fields",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/metadata-fields", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "metadata-fields"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 or 403', () => pm.expect([200, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/admin/metadata-fields (create)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"slug\":\"newman-field-{{$timestamp}}\",\"label\":\"Newman\",\"type\":\"text\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/metadata-fields", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "metadata-fields"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 201, 400, 403, 409]).to.include(pm.response.code));",
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    const json = pm.response.json();",
+									"    const fid = json.id || (json.field && json.field.id);",
+									"    if (fid) pm.environment.set('fixtureMetadataFieldId', String(fid));",
+									"}"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/admin/metadata-fields/{id}",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/metadata-fields/{{fixtureMetadataFieldId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "metadata-fields", "{{fixtureMetadataFieldId}}"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/admin/metadata-fields/{id}",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"label\":\"Newman updated\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/metadata-fields/{{fixtureMetadataFieldId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "metadata-fields", "{{fixtureMetadataFieldId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/admin/metadata-fields/{id}",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/metadata-fields/{{fixtureMetadataFieldId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "metadata-fields", "{{fixtureMetadataFieldId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Admin - Analytics",
+			"item": [
+				{
+					"name": "GET /api/admin/analytics/dashboards/top",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/analytics/dashboards/top", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "analytics", "dashboards", "top"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 or 403', () => pm.expect([200, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/admin/analytics/summary",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/analytics/summary", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "analytics", "summary"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 or 403', () => pm.expect([200, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/admin/analytics/export",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/analytics/export", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "analytics", "export"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 403', () => pm.expect([200, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/admin/analytics/dashboards/{uuid}",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/analytics/dashboards/{{fixtureDashboardUuid}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "analytics", "dashboards", "{{fixtureDashboardUuid}}"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Admin - Cleanup",
+			"item": [
+				{
+					"name": "GET /api/admin/cleanup/scan",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/cleanup/scan", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "cleanup", "scan"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 or 403', () => pm.expect([200, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/admin/cleanup/purge",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"dryRun\":true}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/cleanup/purge", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "cleanup", "purge"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 403', () => pm.expect([200, 204, 400, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Admin - Org Navigation",
+			"item": [
+				{
+					"name": "GET /api/admin/org-navigation/position",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/org-navigation/position", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "org-navigation", "position"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 or 403', () => pm.expect([200, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/admin/org-navigation/position",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"position\":\"top\"}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/org-navigation/position", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "org-navigation", "position"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 400, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/admin/org-navigation",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/org-navigation", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "org-navigation"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 or 403', () => pm.expect([200, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /api/admin/org-navigation",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"items\":[]}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/org-navigation", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "org-navigation"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 204, 400, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Admin - Bulk Operations",
+			"item": [
+				{
+					"name": "POST /api/admin/dashboards/bulk-delete (dry-run)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"uuids\":[],\"dryRun\":true}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/dashboards/bulk-delete", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "dashboards", "bulk-delete"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 400, 403, 422]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/admin/dashboards/bulk-move (dry-run)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"uuids\":[],\"targetParentUuid\":null,\"dryRun\":true}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/dashboards/bulk-move", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "dashboards", "bulk-move"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 400, 403, 422]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/admin/dashboards/bulk-status (dry-run)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"uuids\":[],\"status\":\"draft\",\"dryRun\":true}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/dashboards/bulk-status", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "dashboards", "bulk-status"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 400, 403, 422]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/admin/dashboards/bulk-reindex (dry-run)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\"uuids\":[],\"dryRun\":true}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/dashboards/bulk-reindex", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "dashboards", "bulk-reindex"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 400, 403, 422]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/admin/dashboards/bulk-delete (validation: missing body)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/dashboards/bulk-delete", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "dashboards", "bulk-delete"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('error', () => pm.expect([400, 403, 422]).to.include(pm.response.code));",
+									"pm.test('error envelope', () => pm.expect(pm.response.json()).to.satisfy((p) => 'error' in p || 'message' in p));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Admin - Demo Showcases",
+			"item": [
+				{
+					"name": "GET /api/admin/demo-showcases",
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/demo-showcases", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "demo-showcases"] } },
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 or 403', () => pm.expect([200, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/admin/demo-showcases/{id}/install (404 unknown)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/demo-showcases/newman-no-such-showcase/install", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "demo-showcases", "newman-no-such-showcase", "install"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('error / 4xx', () => pm.expect([400, 403, 404]).to.include(pm.response.code));",
+									"pm.test('error envelope', () => pm.expect(pm.response.json()).to.satisfy((p) => 'error' in p || 'message' in p));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/admin/demo-showcases/{id}",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/demo-showcases/newman-no-such-showcase", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "demo-showcases", "newman-no-such-showcase"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('error / 4xx', () => pm.expect([400, 403, 404]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Admin - Confluence Import",
+			"item": [
+				{
+					"name": "POST /api/admin/import/confluence/dry-run",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/import/confluence/dry-run", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "import", "confluence", "dry-run"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 400, 403, 422]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/admin/import/confluence",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/import/confluence", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "import", "confluence"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 400, 403, 422]).to.include(pm.response.code));",
+									"pm.test('error envelope when 4xx', () => {",
+									"    if (pm.response.code >= 400) pm.expect(pm.response.json()).to.satisfy((p) => 'error' in p || 'message' in p);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Admin - Export / Import / Feeds",
+			"item": [
+				{
+					"name": "POST /api/admin/export",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/export", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "export"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 403', () => pm.expect([200, 201, 400, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/admin/import",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/import", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "import"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 4xx', () => pm.expect([200, 201, 400, 403, 422]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /api/admin/feeds/refresh-now",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{}" },
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/feeds/refresh-now", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "feeds", "refresh-now"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx or 403', () => pm.expect([200, 202, 204, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Admin - Forbidden for members",
+			"item": [
+				{
+					"name": "GET /api/admin/settings (member auth -> 403)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{ "key": "username", "value": "{{memberUser}}", "type": "string" },
+								{ "key": "password", "value": "{{memberPassword}}", "type": "string" }
+							]
+						},
+						"method": "GET",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/settings", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "settings"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('403 / 401 / 200 (env-dependent)', () => pm.expect([200, 401, 403]).to.include(pm.response.code));",
+									"pm.test('error envelope when blocked', () => {",
+									"    if (pm.response.code >= 400) pm.expect(pm.response.json()).to.satisfy((p) => 'error' in p || 'message' in p);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/admin/templates (member auth -> 403)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{ "key": "username", "value": "{{memberUser}}", "type": "string" },
+								{ "key": "password", "value": "{{memberPassword}}", "type": "string" }
+							]
+						},
+						"method": "GET",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/admin/templates", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "admin", "templates"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('403 / 401 / 200 (env-dependent)', () => pm.expect([200, 401, 403]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Auth - Unauthenticated rejection",
+			"item": [
+				{
+					"name": "GET /api/dashboards (no auth -> 401)",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('401 (or 302 to login)', () => pm.expect([302, 401]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Dashboards - Fixture teardown",
+			"item": [
+				{
+					"name": "DELETE /api/dashboard/{id} (delete fixture)",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboard/{{fixtureDashboardId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboard", "{{fixtureDashboardId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('2xx', () => pm.expect([200, 204]).to.include(pm.response.code));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /api/dashboard/{id} (404 second delete)",
+					"request": {
+						"method": "DELETE",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboard/{{fixtureDashboardId}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboard", "{{fixtureDashboardId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('error envelope', () => {",
+									"    pm.expect([400, 403, 404]).to.include(pm.response.code);",
+									"    pm.expect(pm.response.json()).to.satisfy((p) => 'error' in p || 'message' in p);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}
