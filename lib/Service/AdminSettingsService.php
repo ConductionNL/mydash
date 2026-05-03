@@ -61,6 +61,8 @@ class AdminSettingsService
      * Get all admin settings with defaults.
      *
      * @return array The settings array.
+     *
+     * @spec admin-settings:REQ-ASET-001
      */
     public function getSettings(): array
     {
@@ -103,6 +105,8 @@ class AdminSettingsService
      *                                        (REQ-LBN-004).
      *
      * @return void
+     *
+     * @spec admin-settings:REQ-ASET-002
      */
     public function updateSettings(
         ?string $defaultPermLevel=null,

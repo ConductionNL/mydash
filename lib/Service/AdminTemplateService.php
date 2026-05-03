@@ -223,6 +223,8 @@ class AdminTemplateService
      * List all admin dashboard templates.
      *
      * @return Dashboard[] The list of admin templates.
+     *
+     * @spec admin-templates:REQ-TMPL-002
      */
     public function listTemplates(): array
     {
@@ -266,6 +268,8 @@ class AdminTemplateService
      * @param bool        $isDefault       Whether this is the default.
      *
      * @return Dashboard The created template.
+     *
+     * @spec admin-templates:REQ-TMPL-001
      */
     public function createTemplate(
         string $name,
@@ -324,6 +328,8 @@ class AdminTemplateService
      * @return Dashboard The updated template.
      *
      * @throws Exception If the dashboard is not an admin template.
+     *
+     * @spec admin-templates:REQ-TMPL-003
      */
     public function updateTemplate(int $id, array $data): Dashboard
     {
@@ -353,6 +359,8 @@ class AdminTemplateService
      * @return void
      *
      * @throws Exception If the dashboard is not an admin template.
+     *
+     * @spec admin-templates:REQ-TMPL-004
      */
     public function deleteTemplate(int $id): void
     {

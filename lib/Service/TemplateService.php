@@ -54,6 +54,8 @@ class TemplateService
      * @param string $userId The user ID.
      *
      * @return Dashboard|null The applicable template or null.
+     *
+     * @spec admin-templates:REQ-TMPL-005
      */
     public function getApplicableTemplate(string $userId): ?Dashboard
     {
@@ -100,6 +102,8 @@ class TemplateService
      * @param Dashboard $template The admin template.
      *
      * @return Dashboard The created dashboard.
+     *
+     * @spec admin-templates:REQ-TMPL-005
      */
     public function createDashboardFromTemplate(
         string $userId,

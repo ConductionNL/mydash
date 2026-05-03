@@ -83,6 +83,8 @@ class WidgetService
      * Get all available widgets from Nextcloud.
      *
      * @return array The list of available widgets.
+     *
+     * @spec widgets:REQ-WDG-001
      */
     public function getAvailableWidgets(): array
     {
@@ -120,6 +122,8 @@ class WidgetService
      * @param int    $limit     Maximum number of items per widget.
      *
      * @return array The widget items.
+     *
+     * @spec widgets:REQ-WDG-002
      */
     public function getWidgetItems(
         string $userId,

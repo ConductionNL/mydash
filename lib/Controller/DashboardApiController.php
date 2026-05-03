@@ -116,6 +116,8 @@ class DashboardApiController extends Controller
      * unioned listing.
      *
      * @return JSONResponse The list of dashboards.
+     *
+     * @spec dashboards:REQ-DASH-002
      */
     #[NoAdminRequired]
     public function list(): JSONResponse
@@ -167,6 +169,8 @@ class DashboardApiController extends Controller
      * Get the user's active dashboard with placements.
      *
      * @return JSONResponse The active dashboard data.
+     *
+     * @spec dashboards:REQ-DASH-003
      */
     #[NoAdminRequired]
     public function getActive(): JSONResponse
@@ -212,6 +216,8 @@ class DashboardApiController extends Controller
      *                                 (REQ-DASH-029). NULL ⇒ 0.
      *
      * @return JSONResponse The created dashboard.
+     *
+     * @spec dashboards:REQ-DASH-001
      */
     #[NoAdminRequired]
     public function create(
@@ -317,6 +323,8 @@ class DashboardApiController extends Controller
      * @param int|null    $sortOrder   Optional new sort order (REQ-DASH-029).
      *
      * @return JSONResponse The updated dashboard.
+     *
+     * @spec dashboards:REQ-DASH-004
      */
     #[NoAdminRequired]
     public function update(
@@ -409,6 +417,8 @@ class DashboardApiController extends Controller
      * @param int $id The dashboard ID.
      *
      * @return JSONResponse The deletion confirmation.
+     *
+     * @spec dashboards:REQ-DASH-005
      */
     #[NoAdminRequired]
     public function delete(int $id): JSONResponse

@@ -44,10 +44,17 @@ class RuleEvaluatorService
     /**
      * Evaluate a single rule.
      *
+     * Dispatcher for all rule types — group (REQ-VIS-005), time
+     * (REQ-VIS-006), date (REQ-VIS-007) and attribute (REQ-VIS-008) rules
+     * are all evaluated through private helpers below. Public surface is
+     * tagged against the dispatch Requirement (REQ-VIS-010).
+     *
      * @param ConditionalRule $rule   The rule to evaluate.
      * @param string          $userId The user ID.
      *
      * @return bool Whether the rule matches.
+     *
+     * @spec conditional-visibility:REQ-VIS-010
      */
     public function evaluateRule(
         ConditionalRule $rule,

@@ -57,6 +57,8 @@ class MetricsController extends Controller
      * @return TextPlainResponse Plain text response with Prometheus metrics.
      *
      * @NoCSRFRequired
+     *
+     * @spec prometheus-metrics:REQ-PROM-001
      */
     public function index(): TextPlainResponse
     {

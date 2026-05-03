@@ -106,6 +106,8 @@ class PermissionService
      * @param int    $dashboardId The dashboard ID.
      *
      * @return bool Whether the user can edit the dashboard.
+     *
+     * @spec permissions:REQ-PERM-001
      */
     public function canEditDashboard(string $userId, int $dashboardId): bool
     {
@@ -182,6 +184,8 @@ class PermissionService
      * @param int    $dashboardId The dashboard ID.
      *
      * @return bool Whether the user can add widgets.
+     *
+     * @spec permissions:REQ-PERM-002
      */
     public function canAddWidget(string $userId, int $dashboardId): bool
     {
@@ -213,6 +217,8 @@ class PermissionService
      * @param int    $placementId The placement ID.
      *
      * @return bool Whether the user can remove the widget.
+     *
+     * @spec permissions:REQ-PERM-001
      */
     public function canRemoveWidget(string $userId, int $placementId): bool
     {
@@ -352,6 +358,8 @@ class PermissionService
      *                               own permission level.
      *
      * @return string The effective permission level.
+     *
+     * @spec permissions:REQ-PERM-008
      */
     public function getEffectivePermissionLevel(
         Dashboard $dashboard,

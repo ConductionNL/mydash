@@ -40,6 +40,8 @@ class TileService
      * @param string $userId The user ID.
      *
      * @return Tile[] Array of tiles.
+     *
+     * @spec tiles:REQ-TILE-002
      */
     public function getUserTiles(string $userId): array
     {
@@ -59,6 +61,8 @@ class TileService
      * @param string $linkValue       The link value (app ID or URL).
      *
      * @return Tile The created tile.
+     *
+     * @spec tiles:REQ-TILE-001
      */
     public function createTile(
         string $userId,
@@ -97,6 +101,8 @@ class TileService
      * @return Tile The updated tile.
      * @throws \OCP\AppFramework\Db\DoesNotExistException If tile not found.
      * @throws \OCP\AppFramework\Db\MultipleObjectsReturnedException If multiple found.
+     *
+     * @spec tiles:REQ-TILE-003
      */
     public function updateTile(int $id, string $userId, array $data): Tile
     {
@@ -151,6 +157,8 @@ class TileService
      * @return void
      * @throws \OCP\AppFramework\Db\DoesNotExistException If tile not found.
      * @throws \OCP\AppFramework\Db\MultipleObjectsReturnedException If multiple found.
+     *
+     * @spec tiles:REQ-TILE-004
      */
     public function deleteTile(int $id, string $userId): void
     {

@@ -38,6 +38,8 @@ class WidgetFormatter
      * @param string  $userId The current user ID.
      *
      * @return array The formatted widget data.
+     *
+     * @spec widgets:REQ-WDG-001
      */
     public function format(IWidget $widget, string $userId): array
     {

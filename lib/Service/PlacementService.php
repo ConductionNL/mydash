@@ -52,6 +52,8 @@ class PlacementService
      * @param int    $gridHeight  Grid height.
      *
      * @return WidgetPlacement The created widget placement.
+     *
+     * @spec widgets:REQ-WDG-003
      */
     public function addWidget(
         int $dashboardId,
@@ -122,6 +124,8 @@ class PlacementService
      * @param array $data        The data to update.
      *
      * @return WidgetPlacement The updated widget placement.
+     *
+     * @spec widgets:REQ-WDG-004
      */
     public function updatePlacement(
         int $placementId,
@@ -155,6 +159,8 @@ class PlacementService
      * @param int $placementId The placement ID.
      *
      * @return void
+     *
+     * @spec widgets:REQ-WDG-005
      */
     public function removePlacement(int $placementId): void
     {

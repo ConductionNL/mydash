@@ -48,6 +48,8 @@ class DashboardResolver
      * @param string $userId The user ID.
      *
      * @return array|null The dashboard result or null.
+     *
+     * @spec dashboards:REQ-DASH-003
      */
     public function tryGetActiveDashboard(string $userId): ?array
     {
@@ -74,6 +76,8 @@ class DashboardResolver
      * @param string $userId The user ID.
      *
      * @return array|null The dashboard result or null.
+     *
+     * @spec dashboards:REQ-DASH-003
      */
     public function tryActivateExistingDashboard(string $userId): ?array
     {
@@ -166,9 +170,17 @@ class DashboardResolver
     /**
      * Get the effective permission level for a dashboard.
      *
+     * Delegating thin wrapper — the authoritative implementation lives in
+     * {@see \OCA\MyDash\Service\PermissionService::getEffectivePermissionLevel()}.
+     * This copy resolves the template chain inline for the resolver's
+     * `buildResult()` path; it MUST stay behaviourally equivalent to the
+     * canonical implementation.
+     *
      * @param Dashboard $dashboard The dashboard.
      *
      * @return string The effective permission level.
+     *
+     * @spec permissions:REQ-PERM-008
      */
     public function getEffectivePermissionLevel(
         Dashboard $dashboard

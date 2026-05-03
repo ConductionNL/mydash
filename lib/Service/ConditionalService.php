@@ -96,6 +96,8 @@ class ConditionalService
      * @param int $placementId The placement ID.
      *
      * @return ConditionalRule[] The list of rules.
+     *
+     * @spec conditional-visibility:REQ-VIS-002
      */
     public function getRules(int $placementId): array
     {
@@ -113,6 +115,8 @@ class ConditionalService
      * @param bool   $isInclude   Whether this is an include rule.
      *
      * @return ConditionalRule The created rule.
+     *
+     * @spec conditional-visibility:REQ-VIS-001
      */
     public function addRule(
         int $placementId,
@@ -139,6 +143,8 @@ class ConditionalService
      * @param array $data   The data to update.
      *
      * @return ConditionalRule The updated rule.
+     *
+     * @spec conditional-visibility:REQ-VIS-003
      */
     public function updateRule(int $ruleId, array $data): ConditionalRule
     {
@@ -165,6 +171,8 @@ class ConditionalService
      * @param int $ruleId The rule ID.
      *
      * @return void
+     *
+     * @spec conditional-visibility:REQ-VIS-004
      */
     public function deleteRule(int $ruleId): void
     {

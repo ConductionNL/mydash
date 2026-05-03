@@ -54,6 +54,8 @@ class TileApiController extends Controller
      * List all tiles for the current user.
      *
      * @return JSONResponse The list of tiles.
+     *
+     * @spec tiles:REQ-TILE-002
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -82,6 +84,8 @@ class TileApiController extends Controller
      * @param string|null $linkValue       The link value.
      *
      * @return JSONResponse The created tile.
+     *
+     * @spec tiles:REQ-TILE-001
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -132,6 +136,8 @@ class TileApiController extends Controller
      * @param string|null $linkValue       The link value.
      *
      * @return JSONResponse The updated tile.
+     *
+     * @spec tiles:REQ-TILE-003
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -240,6 +246,8 @@ class TileApiController extends Controller
      * @param int $id The tile ID.
      *
      * @return JSONResponse Success response.
+     *
+     * @spec tiles:REQ-TILE-004
      */
     #[NoAdminRequired]
     public function destroy(int $id): JSONResponse

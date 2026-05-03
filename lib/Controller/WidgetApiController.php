@@ -71,6 +71,8 @@ class WidgetApiController extends Controller
      * List all available Nextcloud widgets.
      *
      * @return JSONResponse The list of available widgets.
+     *
+     * @spec widgets:REQ-WDG-001
      */
     #[NoAdminRequired]
     public function listAvailable(): JSONResponse
@@ -87,6 +89,8 @@ class WidgetApiController extends Controller
      * @param int   $limit   Maximum items per widget.
      *
      * @return JSONResponse The widget items.
+     *
+     * @spec widgets:REQ-WDG-002
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -118,6 +122,8 @@ class WidgetApiController extends Controller
      * @param int    $gridHeight  Grid height.
      *
      * @return JSONResponse The created widget placement.
+     *
+     * @spec widgets:REQ-WDG-003
      */
     #[NoAdminRequired]
     public function addWidget(
@@ -204,6 +210,8 @@ class WidgetApiController extends Controller
      * @param int $placementId The placement ID.
      *
      * @return JSONResponse The updated widget placement.
+     *
+     * @spec widgets:REQ-WDG-004
      */
     #[NoAdminRequired]
     public function updatePlacement(int $placementId): JSONResponse
@@ -242,6 +250,8 @@ class WidgetApiController extends Controller
      * @param int $placementId The placement ID.
      *
      * @return JSONResponse The removal confirmation.
+     *
+     * @spec widgets:REQ-WDG-005
      */
     #[NoAdminRequired]
     public function removePlacement(int $placementId): JSONResponse

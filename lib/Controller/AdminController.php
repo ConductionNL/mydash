@@ -137,6 +137,8 @@ class AdminController extends Controller
      * List all admin dashboard templates.
      *
      * @return JSONResponse The list of templates.
+     *
+     * @spec admin-templates:REQ-TMPL-002
      */
     public function listTemplates(): JSONResponse
     {
@@ -188,6 +190,8 @@ class AdminController extends Controller
      * @param bool        $isDefault       Whether default.
      *
      * @return JSONResponse The created template.
+     *
+     * @spec admin-templates:REQ-TMPL-001
      */
     public function createTemplate(
         string $name,
@@ -226,6 +230,8 @@ class AdminController extends Controller
      * @param int|null    $gridColumns     The grid columns.
      *
      * @return JSONResponse The updated template.
+     *
+     * @spec admin-templates:REQ-TMPL-003
      */
     public function updateTemplate(
         int $id,
@@ -265,6 +271,8 @@ class AdminController extends Controller
      * @param int $id The template ID.
      *
      * @return JSONResponse The deletion confirmation.
+     *
+     * @spec admin-templates:REQ-TMPL-004
      */
     public function deleteTemplate(int $id): JSONResponse
     {
@@ -281,6 +289,8 @@ class AdminController extends Controller
      * Get admin settings.
      *
      * @return JSONResponse The admin settings.
+     *
+     * @spec admin-settings:REQ-ASET-001
      */
     public function getSettings(): JSONResponse
     {
@@ -301,6 +311,8 @@ class AdminController extends Controller
      *                                        (REQ-LBN-004).
      *
      * @return JSONResponse The update confirmation.
+     *
+     * @spec admin-settings:REQ-ASET-002
      */
     public function updateSettings(
         ?string $defaultPermLevel=null,

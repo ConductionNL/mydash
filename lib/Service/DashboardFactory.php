@@ -79,6 +79,8 @@ class DashboardFactory
      * @throws InvalidArgumentException When the (type, groupId) invariant
      *                                  is violated, or when an explicit
      *                                  slug fails the grammar check.
+     *
+     * @spec dashboards:REQ-DASH-001
      */
     public function create(
         ?string $userId,

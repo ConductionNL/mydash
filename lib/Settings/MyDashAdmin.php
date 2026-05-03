@@ -76,6 +76,11 @@ class MyDashAdmin implements ISettings
      * rendering the template — every required key is set on the builder
      * so the page never renders with a partial payload.
      *
+     * NOTE: Nextcloud admin-UI registration boilerplate; behaviour defined
+     * by the OCP\Settings\ISettings contract, not a MyDash spec. Intentionally
+     * left without an `@spec` tag (see
+     * `openspec/changes/archive/2026-05-03-spec-annotation-pass/design.md`).
+     *
      * @return TemplateResponse The template response.
      */
     public function getForm(): TemplateResponse

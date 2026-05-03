@@ -58,6 +58,8 @@ class RuleApiController extends Controller
      * @param int $placementId The placement ID.
      *
      * @return JSONResponse The conditional rules.
+     *
+     * @spec conditional-visibility:REQ-VIS-002
      */
     #[NoAdminRequired]
     public function getRules(int $placementId): JSONResponse
@@ -92,6 +94,8 @@ class RuleApiController extends Controller
      * @param bool   $isInclude   Whether this is an include rule.
      *
      * @return JSONResponse The created rule.
+     *
+     * @spec conditional-visibility:REQ-VIS-001
      */
     #[NoAdminRequired]
     public function addRule(
@@ -134,6 +138,8 @@ class RuleApiController extends Controller
      * @param bool|null   $isInclude  Whether this is an include rule.
      *
      * @return JSONResponse The updated rule.
+     *
+     * @spec conditional-visibility:REQ-VIS-003
      */
     #[NoAdminRequired]
     public function updateRule(
@@ -172,6 +178,8 @@ class RuleApiController extends Controller
      * @param int $ruleId The rule ID.
      *
      * @return JSONResponse The deletion confirmation.
+     *
+     * @spec conditional-visibility:REQ-VIS-004
      */
     #[NoAdminRequired]
     public function deleteRule(int $ruleId): JSONResponse

@@ -40,6 +40,11 @@ class MyDashAdminSection implements IIconSection
     /**
      * Get the section ID.
      *
+     * NOTE: Nextcloud admin-UI registration boilerplate; behaviour defined
+     * by the OCP\Settings\IIconSection contract, not a MyDash spec.
+     * Intentionally left without an `@spec` tag (see
+     * `openspec/changes/archive/2026-05-03-spec-annotation-pass/design.md`).
+     *
      * @return string The section ID.
      */
     public function getID(): string
