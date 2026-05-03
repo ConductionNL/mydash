@@ -33,6 +33,13 @@
  * `LinkButtonForm.vue`, and a `defaultContent` of `{label:'', url:'',
  * icon:'', actionType:'external', backgroundColor:'', textColor:''}`.
  *
+ * REQ-DIV-002: The widget type `divider` MUST be registered with a renderer
+ * reference to `DividerWidget.vue`, a form reference to `DividerForm.vue`,
+ * and a `defaultContent` of `{style:'line', lineColor:'',
+ * lineThickness:1, lineStyle:'solid', whitespaceSize:'medium',
+ * headingText:''}`. The divider is fully client-side; no API endpoints
+ * are required.
+ *
  * REQ-WDG-014: The set of supported widget types MUST come from this single
  * registry. Toolbar dropdown, modal type selector, and grid renderer all
  * consult `listWidgetTypes()` / `getWidgetTypeEntry()`.
@@ -48,6 +55,8 @@ import LinkButtonWidget from '../components/Widgets/Renderers/LinkButtonWidget.v
 import LinkButtonForm from '../components/Widgets/Forms/LinkButtonForm.vue'
 import NcDashboardWidget from '../components/Widgets/Renderers/NcDashboardWidget.vue'
 import NcDashboardForm from '../components/Widgets/Forms/NcDashboardForm.vue'
+import DividerWidget from '../components/Widgets/Renderers/DividerWidget.vue'
+import DividerForm from '../components/Widgets/Forms/DividerForm.vue'
 
 /**
  * @typedef {object} WidgetRegistryEntry
@@ -122,6 +131,20 @@ export const widgetRegistry = {
 		},
 		displayName: t('mydash', 'Nextcloud Widget'),
 		icon: 'ViewDashboard',
+	},
+	divider: {
+		renderer: DividerWidget,
+		form: DividerForm,
+		defaultContent: {
+			style: 'line',
+			lineColor: '',
+			lineThickness: 1,
+			lineStyle: 'solid',
+			whitespaceSize: 'medium',
+			headingText: '',
+		},
+		displayName: t('mydash', 'Divider'),
+		icon: 'Minus',
 	},
 }
 

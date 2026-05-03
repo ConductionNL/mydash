@@ -136,4 +136,24 @@ describe('widgetRegistry', () => {
 		const { listWidgetTypes } = await import('../widgetRegistry.js')
 		expect(listWidgetTypes()).toContain('image')
 	})
+
+	it('REQ-DIV-002: exposes a `divider` entry with renderer + form + defaults', async () => {
+		const { widgetRegistry } = await import('../widgetRegistry.js')
+		expect(widgetRegistry.divider).toBeDefined()
+		expect(widgetRegistry.divider.renderer).toBeTruthy()
+		expect(widgetRegistry.divider.form).toBeTruthy()
+		expect(widgetRegistry.divider.defaultContent).toEqual({
+			style: 'line',
+			lineColor: '',
+			lineThickness: 1,
+			lineStyle: 'solid',
+			whitespaceSize: 'medium',
+			headingText: '',
+		})
+	})
+
+	it('REQ-DIV-002: `divider` appears in listWidgetTypes() output', async () => {
+		const { listWidgetTypes } = await import('../widgetRegistry.js')
+		expect(listWidgetTypes()).toContain('divider')
+	})
 })
