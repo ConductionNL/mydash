@@ -17,11 +17,40 @@
  */
 
 import { chromium, request, type FullConfig } from '@playwright/test'
+import { execSync } from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
 
 const AUTH_DIR = path.resolve(__dirname, '.auth')
 const STORAGE_STATE = path.join(AUTH_DIR, 'admin.json')
+const APP_ROOT = path.resolve(__dirname, '..', '..')
+const BUNDLE_PATH = path.join(APP_ROOT, 'js', 'mydash-main.js')
+
+/**
+ * Ensure the webpack bundle exists before specs hit `/apps/mydash/`.
+ *
+ * The shared `ConductionNL/.github/quality.yml` Playwright job runs
+ * `npm ci` + `npx playwright install` before the spec run, but never
+ * `npm run build`. On a fresh CI VM the `js/mydash-main.js` artefact
+ * doesn't exist, so the rendered page loads a 404 script tag and the
+ * Vue app never mounts — every selector wait then times out.
+ *
+ * This helper detects the missing bundle and invokes the build once
+ * before specs run. Local dev usually has the bundle present (latest
+ * webpack output is cached on disk) so the build is a no-op there.
+ *
+ * Skipping the build entirely on CI would require a cross-repo PR to
+ * `ConductionNL/.github` adding a `npm run build` step to the shared
+ * workflow; doing it here keeps the fix self-contained.
+ */
+function ensureBundleBuilt(): void {
+	if (fs.existsSync(BUNDLE_PATH)) {
+		return
+	}
+	// eslint-disable-next-line no-console
+	console.log(`[playwright globalSetup] bundle missing at ${BUNDLE_PATH}; running 'npm run build' once…`)
+	execSync('npm run build', { cwd: APP_ROOT, stdio: 'inherit' })
+}
 
 async function ensureNextcloudReachable(baseURL: string): Promise<void> {
 	const ctx = await request.newContext()
@@ -51,6 +80,7 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
 	const username = process.env.NC_ADMIN_USER ?? 'admin'
 	const password = process.env.NC_ADMIN_PASS ?? 'admin'
 
+	ensureBundleBuilt()
 	await ensureNextcloudReachable(baseURL)
 	fs.mkdirSync(AUTH_DIR, { recursive: true })
 
