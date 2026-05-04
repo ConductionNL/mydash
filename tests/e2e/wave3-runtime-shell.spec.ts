@@ -72,19 +72,26 @@ test.describe('wave3 runtime-shell + sidebar UX', () => {
 		expect(box!.width).toBeGreaterThan(800)
 	})
 
-	test('PR #113: sidebar header has cog menu with Edit/Configure/Add-widget/Delete', async ({ page }) => {
+	test('wave3.6: each dashboard row has its own cog menu with Edit/Configure/Add-widget/Delete', async ({ page }) => {
 		await page.locator('.mydash-sidebar-toggle').click()
 		await page.waitForSelector('.dashboard-switcher-sidebar.open', { timeout: 5_000 })
 
-		const cog = page.locator('.dashboard-switcher-sidebar__menu button').first()
-		await expect(cog).toBeVisible()
+		// Header has NO cog after wave3.6 — only the X close button.
+		await expect(page.locator('.dashboard-switcher-sidebar__menu')).toHaveCount(0)
 
-		// Open the cog popover. NcActions teleports the menu to a
-		// portal at the body root, so we don't scope the assertions to
-		// the trigger's subtree — the menu items only exist while the
-		// popover is open which is itself the assertion.
-		await cog.click()
-		await expect(page.getByRole('menuitem', { name: /Edit dashboard|Save dashboard/ })).toBeVisible()
+		// One cog per dashboard row, rendered by `<DashboardRowActions>`.
+		const rowCogs = page.locator('.dashboard-row-actions button')
+		const cogCount = await rowCogs.count()
+		expect(cogCount).toBeGreaterThan(0)
+
+		// Open the cog on a personal dashboard (admin owns all rows in
+		// the test fixture, so the personal section always exposes the
+		// full action set including the owner-gated Configure / Delete).
+		const personalRow = page.locator('[data-section="user"] li.dashboard-switcher-sidebar__item').first()
+		await expect(personalRow).toBeVisible()
+		await personalRow.locator('.dashboard-row-actions button').click()
+
+		await expect(page.getByRole('menuitem', { name: /Edit dashboard/ })).toBeVisible()
 		await expect(page.getByRole('menuitem', { name: /Dashboard configuration/ })).toBeVisible()
 		await expect(page.getByRole('menuitem', { name: /Add custom widget/ })).toBeVisible()
 		await expect(page.getByRole('menuitem', { name: /Delete dashboard/ })).toBeVisible()
@@ -94,7 +101,8 @@ test.describe('wave3 runtime-shell + sidebar UX', () => {
 		await page.locator('.mydash-sidebar-toggle').click()
 		await page.waitForSelector('.dashboard-switcher-sidebar.open', { timeout: 5_000 })
 
-		// Wave3.3 dropped these in favour of the header cog → Delete entry.
+		// Wave3.3 dropped the inline `.__delete` X buttons; wave3.6
+		// moved Delete into the per-row cog (DashboardRowActions).
 		await expect(page.locator('.dashboard-switcher-sidebar__delete')).toHaveCount(0)
 	})
 
