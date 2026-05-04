@@ -28,7 +28,7 @@
 			</span>
 		</div>
 
-		<hr class="mydash-export-import__divider" />
+		<hr class="mydash-export-import__divider">
 
 		<!-- Import controls -->
 		<div class="mydash-export-import__row mydash-export-import__row--column">
@@ -41,7 +41,7 @@
 				type="file"
 				accept=".zip,application/zip"
 				data-test="import-file-input"
-				@change="onFileSelected" />
+				@change="onFileSelected">
 
 			<NcCheckboxRadioSwitch
 				:checked="preserveUuids"

@@ -10,6 +10,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 
+import ContainerForm from '../ContainerForm.vue'
+
 vi.mock('@conduction/nextcloud-vue', () => ({
 	NcTextField: {
 		name: 'NcTextField',
@@ -22,8 +24,6 @@ vi.mock('@conduction/nextcloud-vue', () => ({
 		template: '<select :value="value" :data-input-label="inputLabel" @change="$emit(\'input\', $event.target.value)"><option v-for="opt in options" :key="opt.value || opt" :value="opt.value || opt">{{ opt.label || opt }}</option></select>',
 	},
 }))
-
-import ContainerForm from '../ContainerForm.vue'
 
 beforeEach(() => {
 	globalThis.t = (_app, key) => key

@@ -30,7 +30,7 @@
 						v-if="showcase.thumbnailUrl"
 						:src="showcase.thumbnailUrl"
 						:alt="showcase.name"
-						@error="onThumbError($event)" />
+						@error="onThumbError($event)">
 					<ViewDashboard v-else :size="64" />
 				</div>
 
@@ -40,7 +40,9 @@
 						<span class="mydash-demo-showcases__lang-badge">{{ showcase.language.toUpperCase() }}</span>
 					</div>
 
-					<p class="mydash-demo-showcases__desc">{{ showcase.description }}</p>
+					<p class="mydash-demo-showcases__desc">
+						{{ showcase.description }}
+					</p>
 
 					<div v-if="warnings[showcase.id]" class="mydash-demo-showcases__warning">
 						{{ t('mydash', 'Installed but skipped widgets: {list}', { list: warnings[showcase.id].join(', ') }) }}

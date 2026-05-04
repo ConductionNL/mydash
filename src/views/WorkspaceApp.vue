@@ -275,7 +275,7 @@ export default {
 		 * Falls back to the initial-state injection when the active
 		 * dashboard hasn't been hydrated yet.
 		 *
-		 * @return {Object|null}
+		 * @return {object | null}
 		 */
 		effectiveFooter() {
 			if (!this.injectedActiveDashboardId) {

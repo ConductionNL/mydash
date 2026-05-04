@@ -32,7 +32,7 @@
 							:checked="allSelected"
 							:indeterminate.prop="someSelected && !allSelected"
 							data-test="bulk-ops-select-all"
-							@change="toggleSelectAll" />
+							@change="toggleSelectAll">
 					</th>
 					<th>{{ t('mydash', 'Name') }}</th>
 					<th>{{ t('mydash', 'Status') }}</th>
@@ -49,7 +49,7 @@
 							:value="dash.uuid"
 							:checked="selectedUuids.includes(dash.uuid)"
 							data-test="bulk-ops-row-select"
-							@change="toggleRow(dash.uuid)" />
+							@change="toggleRow(dash.uuid)">
 					</td>
 					<td>{{ dash.name }}</td>
 					<td>{{ dash.publicationStatus || 'published' }}</td>
@@ -62,11 +62,21 @@
 				v-model="selectedAction"
 				:disabled="selectedUuids.length === 0"
 				data-test="bulk-ops-action-select">
-				<option value="">{{ t('mydash', 'Actions…') }}</option>
-				<option value="delete">{{ t('mydash', 'Delete') }}</option>
-				<option value="move">{{ t('mydash', 'Move to…') }}</option>
-				<option value="status">{{ t('mydash', 'Set status') }}</option>
-				<option value="reindex">{{ t('mydash', 'Reindex') }}</option>
+				<option value="">
+					{{ t('mydash', 'Actions…') }}
+				</option>
+				<option value="delete">
+					{{ t('mydash', 'Delete') }}
+				</option>
+				<option value="move">
+					{{ t('mydash', 'Move to…') }}
+				</option>
+				<option value="status">
+					{{ t('mydash', 'Set status') }}
+				</option>
+				<option value="reindex">
+					{{ t('mydash', 'Reindex') }}
+				</option>
 			</select>
 			<button
 				:disabled="selectedUuids.length === 0 || selectedAction === '' || running"
@@ -86,33 +96,41 @@
 					<input
 						v-model="parentUuidInput"
 						type="text"
-						data-test="bulk-ops-parent-uuid" />
+						data-test="bulk-ops-parent-uuid">
 				</div>
 
 				<div v-if="modal.action === 'status'" class="mydash-bulk-ops__field">
 					<label>{{ t('mydash', 'Publication status') }}</label>
 					<select v-model="statusInput" data-test="bulk-ops-status-select">
-						<option value="draft">{{ t('mydash', 'Draft') }}</option>
-						<option value="published">{{ t('mydash', 'Published') }}</option>
-						<option value="scheduled">{{ t('mydash', 'Scheduled') }}</option>
+						<option value="draft">
+							{{ t('mydash', 'Draft') }}
+						</option>
+						<option value="published">
+							{{ t('mydash', 'Published') }}
+						</option>
+						<option value="scheduled">
+							{{ t('mydash', 'Scheduled') }}
+						</option>
 					</select>
 					<input
 						v-if="statusInput === 'scheduled'"
 						v-model="publishAtInput"
 						type="datetime-local"
-						data-test="bulk-ops-publish-at" />
+						data-test="bulk-ops-publish-at">
 				</div>
 
 				<label class="mydash-bulk-ops__dryrun">
 					<input
 						v-model="dryRun"
 						type="checkbox"
-						data-test="bulk-ops-dryrun" />
+						data-test="bulk-ops-dryrun">
 					{{ t('mydash', 'Dry run (preview only)') }}
 				</label>
 
 				<div class="mydash-bulk-ops__modal-actions">
-					<button @click="cancelModal">{{ t('mydash', 'Cancel') }}</button>
+					<button @click="cancelModal">
+						{{ t('mydash', 'Cancel') }}
+					</button>
 					<button
 						:disabled="running"
 						data-test="bulk-ops-confirm"

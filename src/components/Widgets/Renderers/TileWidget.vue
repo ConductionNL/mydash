@@ -223,7 +223,7 @@ export default {
 			if (this.linkType === 'url') {
 				event.preventDefault()
 				window.open(this.linkValue, '_blank', 'noopener,noreferrer')
-				return
+
 			}
 			// `linkType === 'app'` falls through to the anchor's default
 			// behaviour, which navigates to the resolved Nextcloud route.

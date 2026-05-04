@@ -13,6 +13,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 
+import axios from '@nextcloud/axios'
+import CalendarWidget from '../CalendarWidget.vue'
+
 vi.mock('@nextcloud/axios', () => {
 	return {
 		default: {
@@ -32,9 +35,6 @@ vi.mock('@nextcloud/router', () => {
 		},
 	}
 })
-
-import axios from '@nextcloud/axios'
-import CalendarWidget from '../CalendarWidget.vue'
 
 beforeEach(() => {
 	globalThis.t = (_app, key) => key
@@ -62,7 +62,7 @@ describe('CalendarWidget', () => {
 				placementId: 42,
 			},
 		})
-		await new Promise((r) => setTimeout(r, 0))
+		await new Promise((resolve) => setTimeout(resolve, 0))
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('No events in the next 7 days')
 	})
@@ -75,7 +75,7 @@ describe('CalendarWidget', () => {
 				placementId: 42,
 			},
 		})
-		await new Promise((r) => setTimeout(r, 0))
+		await new Promise((resolve) => setTimeout(resolve, 0))
 		await wrapper.vm.$nextTick()
 		expect(wrapper.text()).toContain('Failed to load events')
 		expect(wrapper.text()).toContain('Retry')
@@ -111,7 +111,7 @@ describe('CalendarWidget', () => {
 				placementId: 42,
 			},
 		})
-		await new Promise((r) => setTimeout(r, 0))
+		await new Promise((resolve) => setTimeout(resolve, 0))
 		await wrapper.vm.$nextTick()
 		const txt = wrapper.text()
 		expect(txt).toContain('Meeting one')
@@ -127,7 +127,7 @@ describe('CalendarWidget', () => {
 				placementId: 42,
 			},
 		})
-		await new Promise((r) => setTimeout(r, 0))
+		await new Promise((resolve) => setTimeout(resolve, 0))
 		await wrapper.vm.$nextTick()
 		expect(wrapper.find('.calendar-widget__month').exists()).toBe(true)
 		// 7 weekday headers + at least 28 day cells = >= 35 children
@@ -143,7 +143,7 @@ describe('CalendarWidget', () => {
 				placementId: 42,
 			},
 		})
-		await new Promise((r) => setTimeout(r, 0))
+		await new Promise((resolve) => setTimeout(resolve, 0))
 		await wrapper.vm.$nextTick()
 		const cols = wrapper.findAll('.calendar-widget__week-col')
 		expect(cols.length).toBe(7)
@@ -170,7 +170,7 @@ describe('CalendarWidget', () => {
 				placementId: 42,
 			},
 		})
-		await new Promise((r) => setTimeout(r, 0))
+		await new Promise((resolve) => setTimeout(resolve, 0))
 		await wrapper.vm.$nextTick()
 		expect(wrapper.find('.calendar-widget__failures').exists()).toBe(true)
 		expect(wrapper.text()).toContain('1 calendar source(s) unavailable')

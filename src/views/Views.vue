@@ -204,6 +204,22 @@ export default {
 		DashboardSwitcherSidebar,
 		SidebarBackdrop,
 	},
+	// REQ-INIT-004 / REQ-ASET-003 / REQ-TMPL-012: pull typed initial-state
+	// values down the tree. Defaults keep the UX safe when keys are missing.
+	inject: {
+		allowUserDashboards: {
+			from: 'allowUserDashboards',
+			default: false,
+		},
+		primaryGroup: {
+			from: 'primaryGroup',
+			default: 'default',
+		},
+		primaryGroupName: {
+			from: 'primaryGroupName',
+			default: '',
+		},
+	},
 	// Inject the typed initial-state snapshot pushed from `src/main.js`
 	// (REQ-INIT-003..005). Defaults match the reader contract so the
 	// sidebar still mounts when running under tests that don't set a
@@ -238,22 +254,6 @@ export default {
 		})
 
 		return { canEditRef, grid }
-	},
-	// REQ-INIT-004 / REQ-ASET-003 / REQ-TMPL-012: pull typed initial-state
-	// values down the tree. Defaults keep the UX safe when keys are missing.
-	inject: {
-		allowUserDashboards: {
-			from: 'allowUserDashboards',
-			default: false,
-		},
-		primaryGroup: {
-			from: 'primaryGroup',
-			default: 'default',
-		},
-		primaryGroupName: {
-			from: 'primaryGroupName',
-			default: '',
-		},
 	},
 	data() {
 		return {

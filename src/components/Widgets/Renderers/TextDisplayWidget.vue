@@ -139,10 +139,6 @@ export default {
 		},
 	},
 
-	created() {
-		ensureDomPurifyHook()
-	},
-
 	computed: {
 		text() {
 			return typeof this.content?.text === 'string' ? this.content.text : ''
@@ -284,6 +280,10 @@ export default {
 				width: '100%',
 			}
 		},
+	},
+
+	created() {
+		ensureDomPurifyHook()
 	},
 
 	methods: {

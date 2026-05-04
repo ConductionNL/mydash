@@ -54,7 +54,9 @@
 						:src="item.thumbnailUrl"
 						:alt="''">
 					<div class="news-widget__body">
-						<h4 class="news-widget__title">{{ item.title }}</h4>
+						<h4 class="news-widget__title">
+							{{ item.title }}
+						</h4>
 						<p
 							v-if="showSummary && item.summary"
 							class="news-widget__summary"

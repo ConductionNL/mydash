@@ -54,7 +54,9 @@
 					:id="`mdfl-${field.id}`"
 					v-model="localValues[field.key]"
 					class="dashboard-metadata-panel__input">
-					<option value="">{{ t('mydash', '— Choose —') }}</option>
+					<option value="">
+						{{ t('mydash', '— Choose —') }}
+					</option>
 					<option
 						v-for="option in (field.options || [])"
 						:key="option"
@@ -68,9 +70,15 @@
 					:id="`mdfl-${field.id}`"
 					v-model="localValues[field.key]"
 					class="dashboard-metadata-panel__input">
-					<option value="">{{ t('mydash', '— Choose —') }}</option>
-					<option value="1">{{ t('mydash', 'Yes') }}</option>
-					<option value="0">{{ t('mydash', 'No') }}</option>
+					<option value="">
+						{{ t('mydash', '— Choose —') }}
+					</option>
+					<option value="1">
+						{{ t('mydash', 'Yes') }}
+					</option>
+					<option value="0">
+						{{ t('mydash', 'No') }}
+					</option>
 				</select>
 
 				<input

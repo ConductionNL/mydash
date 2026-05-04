@@ -215,10 +215,6 @@ export default {
 		},
 	},
 
-	mounted() {
-		this.fetchPage(0)
-	},
-
 	watch: {
 		queryParams: {
 			handler() {
@@ -231,6 +227,10 @@ export default {
 			},
 			deep: true,
 		},
+	},
+
+	mounted() {
+		this.fetchPage(0)
 	},
 
 	methods: {

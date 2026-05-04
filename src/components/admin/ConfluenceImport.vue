@@ -21,7 +21,7 @@
 				type="file"
 				accept=".zip,application/zip"
 				data-test="confluence-import-file"
-				@change="onFileSelected" />
+				@change="onFileSelected">
 
 			<label for="mydash-cfli-parent" class="mydash-confluence-import__label">
 				{{ t('mydash', 'Optional parent dashboard UUID (root pages will be slotted under this dashboard)') }}
@@ -31,7 +31,7 @@
 				v-model="parentUuid"
 				type="text"
 				class="mydash-confluence-import__text-input"
-				:placeholder="t('mydash', 'Leave empty to import as root dashboards')" />
+				:placeholder="t('mydash', 'Leave empty to import as root dashboards')">
 
 			<div class="mydash-confluence-import__actions">
 				<NcButton

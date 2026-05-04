@@ -22,9 +22,15 @@
 				v-model="period"
 				class="mydash-analytics__select"
 				@change="reload">
-				<option value="7d">{{ t('mydash', 'Last 7 days') }}</option>
-				<option value="30d">{{ t('mydash', 'Last 30 days') }}</option>
-				<option value="90d">{{ t('mydash', 'Last 90 days') }}</option>
+				<option value="7d">
+					{{ t('mydash', 'Last 7 days') }}
+				</option>
+				<option value="30d">
+					{{ t('mydash', 'Last 30 days') }}
+				</option>
+				<option value="90d">
+					{{ t('mydash', 'Last 90 days') }}
+				</option>
 			</select>
 		</div>
 
@@ -73,15 +79,23 @@
 				<thead>
 					<tr>
 						<th>{{ t('mydash', 'Dashboard') }}</th>
-						<th class="mydash-analytics__num">{{ t('mydash', 'Views') }}</th>
-						<th class="mydash-analytics__num">{{ t('mydash', 'Unique viewers') }}</th>
+						<th class="mydash-analytics__num">
+							{{ t('mydash', 'Views') }}
+						</th>
+						<th class="mydash-analytics__num">
+							{{ t('mydash', 'Unique viewers') }}
+						</th>
 					</tr>
 				</thead>
 				<tbody>
 					<tr v-for="row in topDashboards" :key="row.dashboardUuid">
 						<td>{{ row.name || row.dashboardUuid }}</td>
-						<td class="mydash-analytics__num">{{ row.viewCount }}</td>
-						<td class="mydash-analytics__num">{{ row.uniqueViewerCount }}</td>
+						<td class="mydash-analytics__num">
+							{{ row.viewCount }}
+						</td>
+						<td class="mydash-analytics__num">
+							{{ row.uniqueViewerCount }}
+						</td>
 					</tr>
 				</tbody>
 			</table>

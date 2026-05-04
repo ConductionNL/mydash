@@ -208,6 +208,7 @@ export default {
 		 * empty string. The parent layer is responsible for inserting the
 		 * dashboard primary-language fallback before this component sees
 		 * the map.
+		 * @param map
 		 */
 		pickVariant(map) {
 			if (!map || typeof map !== 'object') {

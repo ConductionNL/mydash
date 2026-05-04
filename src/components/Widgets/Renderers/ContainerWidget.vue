@@ -5,7 +5,9 @@
 
 <template>
 	<div class="container-widget" :style="wrapperStyle">
-		<h4 v-if="hasTitle" class="container-widget__title">{{ titleText }}</h4>
+		<h4 v-if="hasTitle" class="container-widget__title">
+			{{ titleText }}
+		</h4>
 
 		<div ref="innerGrid" class="grid-stack mydash-container-grid">
 			<div
