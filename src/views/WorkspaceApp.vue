@@ -10,25 +10,18 @@
 		     a side rail. The component itself decides whether to
 		     render anything based on the empty-state + position rules. -->
 		<OrgNavigationPanel v-if="orgNavStore.shouldRender" />
-		<!-- Region 1: slide-in sidebar (REQ-SHELL-006).
-		     The DashboardSwitcherSidebar capability owns the slide-in
-		     panel; the backdrop intercepts off-panel clicks and emits
-		     `close`. The sidebar is mounted whenever `sidebarOpen` is
-		     true so its CSS transition can run. -->
-		<template v-if="sidebarOpen">
-			<SidebarBackdrop @close="closeSidebar" />
-			<DashboardSwitcherSidebar
-				:is-open="sidebarOpen"
-				:group-name="injectedPrimaryGroupName"
-				:user-dashboards="injectedUserDashboards"
-				:group-dashboards="injectedGroupDashboards"
-				:active-dashboard-id="injectedActiveDashboardId"
-				:allow-user-dashboards="injectedAllowUserDashboards"
-				@update:open="onSidebarUpdateOpen"
-				@switch="onSidebarSwitch"
-				@create-dashboard="onSidebarCreate"
-				@delete-dashboard="onSidebarDelete" />
-		</template>
+		<!-- Region 1 (REQ-SHELL-006): the slide-in sidebar mount lived
+		     here historically. It is now owned exclusively by the inner
+		     `Views.vue` component (the user-facing sidebar with the
+		     header cog menu + per-row entries shipped in wave3.2 / 3.3),
+		     so this region intentionally renders nothing. The local
+		     `sidebarOpen` ref + `toggleSidebar` / `closeSidebar` methods
+		     are kept so the REQ-SHELL-004 strip + its lifecycle tests
+		     (REQ-SHELL-007 outside-click listener) keep their existing
+		     contract; production never flips `sidebarOpen` true because
+		     the in-strip hamburger is the only writer and the strip is
+		     itself gated on `sidebarOpen` (wave3.1). -->
+		<!-- (no Region 1 mount) -->
 
 		<!-- Region 2: hamburger + active-dashboard label strip
 		     (REQ-SHELL-004). Always visible regardless of canEdit.
@@ -109,8 +102,6 @@ import { t } from '@nextcloud/l10n'
 import MenuIcon from 'vue-material-design-icons/Menu.vue'
 
 import Views from './Views.vue'
-import SidebarBackdrop from '../components/Workspace/SidebarBackdrop.vue'
-import DashboardSwitcherSidebar from '../components/Workspace/DashboardSwitcherSidebar.vue'
 import DashboardFooter from '../components/DashboardFooter.vue'
 import OrgNavigationPanel from '../components/OrgNavigationPanel.vue'
 
@@ -155,8 +146,6 @@ export default {
 		NcButton,
 		MenuIcon,
 		Views,
-		SidebarBackdrop,
-		DashboardSwitcherSidebar,
 		DashboardFooter,
 		OrgNavigationPanel,
 	},
@@ -366,64 +355,6 @@ export default {
 		 */
 		handleClickOutside(_event) {
 			// no-op
-		},
-
-		/**
-		 * Switch the active dashboard from the sidebar list. The sidebar
-		 * already emits `update:open(false)` BEFORE this `switch(id, source)`
-		 * event (REQ-SWITCH-002), so we just defer to the store.
-		 *
-		 * @param {string|number} id the clicked dashboard id
-		 * @param {'group'|'default'|'user'} source the section the row came from
-		 */
-		async onSidebarSwitch(id, source) {
-			if (!id) {
-				return
-			}
-			const store = useDashboardStore()
-			try {
-				await store.switchDashboard(id, source)
-			} catch (error) {
-				console.error('[WorkspaceApp] Failed to switch dashboard:', error)
-			}
-		},
-
-		/**
-		 * Sidebar v-model echo — close the sidebar when the panel emits
-		 * `update:open(false)` (REQ-SWITCH-002, REQ-SWITCH-005).
-		 *
-		 * @param {boolean} value desired open state
-		 */
-		onSidebarUpdateOpen(value) {
-			this.sidebarOpen = Boolean(value)
-		},
-
-		/**
-		 * `+ New Dashboard` row clicked (REQ-SWITCH-005). Defer to the
-		 * existing first-dashboard creation path — the sidebar has
-		 * already emitted `update:open(false)` so the panel is closing.
-		 */
-		async onSidebarCreate() {
-			await this.onCreateFirstDashboard()
-		},
-
-		/**
-		 * Personal-row delete clicked (REQ-SWITCH-004). Forward to the
-		 * dashboard store; the store decides whether to reload the
-		 * visible-dashboards payload.
-		 *
-		 * @param {string|number} id personal dashboard id to delete
-		 */
-		async onSidebarDelete(id) {
-			if (!id) {
-				return
-			}
-			const store = useDashboardStore()
-			try {
-				await store.deleteDashboard(id)
-			} catch (error) {
-				console.error('[WorkspaceApp] Failed to delete dashboard:', error)
-			}
 		},
 
 		/**
