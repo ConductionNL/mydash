@@ -3,15 +3,18 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  *
  * Vitest unit tests for `DashboardConfigMenu.vue` after the
- * `runtime-shell-trim` change. The action menu must:
+ * `runtime-shell-trim` + wave3.2 cleanup changes. The action menu must:
  *  - keep "Add custom widget…" (REQ-WDG-014, unified-add-widget-flow),
- *  - keep "Save dashboard" / "Edit dashboard" + "Dashboard configuration…"
- *    + "Documentation",
+ *  - keep "Save dashboard" / "Edit dashboard" + "Dashboard configuration…",
  *  - drop the inline list of dashboards (sidebar owns navigation),
  *  - drop the legacy "Add tile…" and "Add widget…" entries (already
  *    consolidated by `unified-add-widget-flow`),
  *  - drop the "Powered by Sendent / Conduction" footer (moved to the
- *    sidebar by `dashboard-switcher-extensions`).
+ *    sidebar by `dashboard-switcher-extensions`),
+ *  - drop "Create dashboard…" — the left sidebar's "+" affordance is the
+ *    only entry point now (wave3.2),
+ *  - drop "Documentation" — the sidebar footer hosts the only link now
+ *    (wave3.2).
  */
 
 import { describe, it, expect, beforeEach } from 'vitest'
@@ -102,12 +105,10 @@ describe('DashboardConfigMenu', () => {
 		expect(labels).toContain('Dashboard configuration…')
 	})
 
-	it('keeps "Documentation" link', () => {
+	it('wave3.2: does NOT render "Documentation" link (sidebar footer hosts it)', () => {
 		const wrapper = mountMenu()
-		const link = wrapper.find('.nc-action-link-stub')
-		expect(link.exists()).toBe(true)
-		expect(link.text()).toBe('Documentation')
-		expect(link.attributes('href')).toBe('https://mydash.app')
+		const links = wrapper.findAll('.nc-action-link-stub').wrappers.map(w => w.text())
+		expect(links).not.toContain('Documentation')
 	})
 
 	it('runtime-shell-trim: does NOT render the inline dashboards list', () => {
@@ -136,9 +137,12 @@ describe('DashboardConfigMenu', () => {
 		expect(links).not.toContain('https://conduction.nl')
 	})
 
-	it('hides "Create dashboard…" when allowUserDashboards is false', () => {
-		const wrapper = mountMenu({ inject: { allowUserDashboards: false } })
-		const labels = wrapper.findAll('.nc-action-button-stub').wrappers.map(w => w.text())
-		expect(labels).not.toContain('Create dashboard…')
+	it('wave3.2: never renders "Create dashboard…" (sidebar "+" is the only entry point)', () => {
+		const wrapperOn = mountMenu({ inject: { allowUserDashboards: true } })
+		const wrapperOff = mountMenu({ inject: { allowUserDashboards: false } })
+		for (const w of [wrapperOn, wrapperOff]) {
+			const labels = w.findAll('.nc-action-button-stub').wrappers.map(b => b.text())
+			expect(labels).not.toContain('Create dashboard…')
+		}
 	})
 })

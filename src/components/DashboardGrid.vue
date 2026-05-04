@@ -39,14 +39,19 @@
 			</div>
 		</div>
 
-		<!-- Widget context menu popover -->
+		<!-- Widget context menu popover.
+		     `v-if` gates the render on the local `contextMenu.show` flag.
+		     Without it the popover renders unconditionally with no inline
+		     top/left and stacks at flow position (visible leftover at
+		     0,0). The newer composable-driven popover in Views.vue already
+		     handles the right-click flow; this component remains for
+		     legacy callers, but must not paint when no menu is open. -->
 		<WidgetContextMenu
-			:show="contextMenu.show"
-			:x="contextMenu.x"
-			:y="contextMenu.y"
-			:widget="contextMenu.widget"
-			@edit="onContextEdit"
-			@remove="onContextRemove"
+			v-if="contextMenu.show"
+			:top="contextMenu.y"
+			:left="contextMenu.x"
+			@edit="onContextEdit(contextMenu.widget)"
+			@remove="onContextRemove(contextMenu.widget)"
 			@close="closeContextMenu" />
 	</div>
 </template>

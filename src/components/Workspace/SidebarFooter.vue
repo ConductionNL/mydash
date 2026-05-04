@@ -161,15 +161,18 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	flex-wrap: wrap;
-	gap: 8px 16px;
+	flex-wrap: nowrap;
+	gap: 12px;
 	width: 100%;
+	min-width: 0;
 }
 
 .dashboard-switcher-sidebar-footer__brand-link {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	flex: 0 1 auto;
+	min-width: 0;
 	padding: 2px 4px;
 	border-radius: 4px;
 	transition: background-color 0.15s ease;
@@ -182,9 +185,9 @@ export default {
 }
 
 .dashboard-switcher-sidebar-footer__brand-image {
-	height: 18px;
+	height: 16px;
 	width: auto;
-	max-width: 100px;
+	max-width: 100%;
 	object-fit: contain;
 	display: block;
 }

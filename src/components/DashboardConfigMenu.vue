@@ -13,27 +13,12 @@
 			<Cog :size="20" />
 		</template>
 
-		<!-- REQ-ASET-003 (extended): personal-dashboard creation is gated by
-		     the admin `allow_user_dashboards` flag. The trigger is hidden
-		     when the flag is off so the UI stays in sync with the 403 the
-		     backend would return. The flag itself comes from the typed
-		     initial-state contract via the root `provide` (REQ-INIT-004).
-
-		     The `runtime-shell-trim` change removed the inline list of
-		     dashboards above this entry — the left sidebar (`dashboard-
-		     switcher` capability) owns dashboard navigation now. -->
-		<NcActionButton
-			v-if="allowUserDashboards"
-			:close-after-click="true"
-			@click="$emit('create-dashboard')">
-			<template #icon>
-				<Plus :size="20" />
-			</template>
-			{{ t('mydash', 'Create dashboard…') }}
-		</NcActionButton>
-
-		<NcActionSeparator />
-
+		<!-- "Create dashboard…" was removed from this menu — the left
+		     sidebar's "+" affordance is the only entry point now (the
+		     redundant cog-menu entry was confusing alongside it). The
+		     `create-dashboard` emit is preserved on the component contract
+		     in case any host wires programmatic creation, but the menu no
+		     longer surfaces it. -->
 		<NcActionButton
 			v-if="canEdit"
 			:close-after-click="true"
@@ -72,20 +57,9 @@
 			{{ t('mydash', 'Add custom widget…') }}
 		</NcActionButton>
 
-		<NcActionSeparator />
-
-		<!-- The "Powered by Sendent / Conduction" footer was removed by
-		     the `runtime-shell-trim` change; it now lives in the left
-		     sidebar's footer per `dashboard-switcher-extensions`. -->
-		<NcActionLink
-			href="https://mydash.app"
-			target="_blank"
-			rel="noopener noreferrer">
-			<template #icon>
-				<BookOpenVariantOutline :size="20" />
-			</template>
-			{{ t('mydash', 'Documentation') }}
-		</NcActionLink>
+		<!-- "Documentation" was removed from this menu — the left
+		     sidebar footer now hosts the only Documentation link (next to
+		     the Sendent + Conduction "Powered by" logos). -->
 	</NcActions>
 </template>
 
@@ -93,18 +67,14 @@
 import {
 	NcActions,
 	NcActionButton,
-	NcActionLink,
-	NcActionSeparator,
 } from '@nextcloud/vue'
 import { t } from '@nextcloud/l10n'
 
 import Cog from 'vue-material-design-icons/Cog.vue'
-import Plus from 'vue-material-design-icons/Plus.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Tune from 'vue-material-design-icons/Tune.vue'
 import ShapePolygonPlus from 'vue-material-design-icons/ShapePolygonPlus.vue'
-import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
 
 import { listWidgetTypes } from '../constants/widgetRegistry.js'
 
@@ -114,15 +84,11 @@ export default {
 	components: {
 		NcActions,
 		NcActionButton,
-		NcActionLink,
-		NcActionSeparator,
 		Cog,
-		Plus,
 		Pencil,
 		ContentSave,
 		Tune,
 		ShapePolygonPlus,
-		BookOpenVariantOutline,
 	},
 
 	// REQ-INIT-004: read the typed initial-state snapshot via root
@@ -156,7 +122,6 @@ export default {
 	},
 
 	emits: [
-		'create-dashboard',
 		'toggle-edit',
 		'open-config',
 		'add-custom-widget',

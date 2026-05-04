@@ -532,3 +532,23 @@ export default {
 	margin-top: 8px;
 }
 </style>
+
+<!--
+  Global (unscoped) layout rules for the chrome wrapper that wraps the
+  Vue mount point. Nextcloud's `#app-mydash` is a `display: flex` row
+  container (so apps with a left navigation can sit nav + content side
+  by side). MyDash opts out of the navigation rail (the PageController
+  sets `id-app-navigation: null`), so the workspace wrapper must claim
+  the full available width — without this, `.mydash-workspace` collapses
+  to 0px and the dashboard grid renders empty over a blue background.
+-->
+<style>
+.mydash-workspace,
+#app-workspace.mydash-workspace,
+#app-workspace.mydash-workspace #workspace-vue {
+	flex: 1 1 auto;
+	min-width: 0;
+	width: 100%;
+	min-height: 100vh;
+}
+</style>

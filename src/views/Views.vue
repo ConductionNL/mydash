@@ -54,7 +54,6 @@
 				:is-edit-mode="isEditMode"
 				:can-edit="canEdit"
 				:is-active-owner="activeDashboard?.isOwner !== false"
-				@create-dashboard="handleCreateDashboard"
 				@toggle-edit="toggleEditMode"
 				@open-config="openConfigModal"
 				@add-custom-widget="openCustomWidgetModal()" />
@@ -146,9 +145,9 @@
 		     as `editingWidget`; Remove calls the placement-delete path
 		     of REQ-WDG-005; Cancel is a no-op close. -->
 		<WidgetContextMenu
-			v-if="grid.state.contextMenuOpen"
-			:top="grid.state.contextMenuPosition.y"
-			:left="grid.state.contextMenuPosition.x"
+			v-if="contextMenuVisible"
+			:top="contextMenuTop"
+			:left="contextMenuLeft"
 			@edit="grid.triggerEdit()"
 			@remove="grid.triggerRemove()"
 			@close="grid.closeContextMenu()" />
@@ -310,6 +309,27 @@ export default {
 		 */
 		canEditForContextMenu() {
 			return this.canEdit && this.isEditMode
+		},
+		/*
+		 * Reactive bridges to `grid.state.*` (from the `useGridManager`
+		 * composable in `setup()`). Vue 2.7's template compiler does NOT
+		 * track property reads on plain objects returned from `setup()` —
+		 * binding `v-if="grid.state.contextMenuOpen"` directly captures
+		 * the *initial* truthy/falsy value but never re-renders when the
+		 * composable mutates the state. Wrapping each access in a computed
+		 * forces Vue's dependency tracker to subscribe to the
+		 * `Vue.observable()` getter, so subsequent state changes (open via
+		 * right-click, close via outside-click / Cancel) correctly mount
+		 * and unmount the popover.
+		 */
+		contextMenuVisible() {
+			return this.grid.state.contextMenuOpen
+		},
+		contextMenuTop() {
+			return this.grid.state.contextMenuPosition.y
+		},
+		contextMenuLeft() {
+			return this.grid.state.contextMenuPosition.x
 		},
 		placedWidgetIds() {
 			return this.widgetPlacements.map(p => p.widgetId)
