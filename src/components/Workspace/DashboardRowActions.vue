@@ -69,6 +69,15 @@
 			{{ t('mydash', 'Add custom widget…') }}
 		</NcActionButton>
 		<NcActionButton
+			:close-after-click="true"
+			@click="$emit('set-default')">
+			<template #icon>
+				<StarCheck v-if="isDefault" :size="20" />
+				<Star v-else :size="20" />
+			</template>
+			{{ isDefault ? t('mydash', 'Default dashboard') : t('mydash', 'Set as default') }}
+		</NcActionButton>
+		<NcActionButton
 			v-if="isOwner"
 			:close-after-click="true"
 			@click="$emit('delete')">
@@ -88,6 +97,8 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Tune from 'vue-material-design-icons/Tune.vue'
 import ShapePolygonPlus from 'vue-material-design-icons/ShapePolygonPlus.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
+import Star from 'vue-material-design-icons/Star.vue'
+import StarCheck from 'vue-material-design-icons/StarCheck.vue'
 
 export default {
 	name: 'DashboardRowActions',
@@ -100,6 +111,8 @@ export default {
 		Tune,
 		ShapePolygonPlus,
 		TrashCanOutline,
+		Star,
+		StarCheck,
 	},
 
 	props: {
@@ -116,9 +129,21 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+		/*
+		 * Wave3.7 — UUID of the user's pinned default dashboard, or
+		 * empty/null when no pin is set. The host fetches it once on
+		 * mount via `GET /api/dashboards/default` and forwards it here
+		 * so the cog menu can render the "Set as default" entry as
+		 * either a star (this row is NOT default) or a filled star
+		 * (this row IS the default).
+		 */
+		defaultUuid: {
+			type: String,
+			default: '',
+		},
 	},
 
-	emits: ['toggle-edit', 'open-config', 'add-custom-widget', 'delete'],
+	emits: ['toggle-edit', 'open-config', 'add-custom-widget', 'delete', 'set-default'],
 
 	computed: {
 		/*
@@ -136,6 +161,17 @@ export default {
 				return true
 			}
 			return this.dashboard?.isOwner === true
+		},
+
+		/*
+		 * Wave3.7 — true when THIS row's dashboard is the user's
+		 * pinned default. Drives the cog entry's icon (star vs
+		 * StarCheck) and label ("Set as default" vs "Default
+		 * dashboard").
+		 */
+		isDefault() {
+			const uuid = this.dashboard?.uuid
+			return !!uuid && uuid === this.defaultUuid
 		},
 	},
 

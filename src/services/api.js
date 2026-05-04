@@ -53,6 +53,24 @@ export const api = {
 		return axios.post(`${baseUrl}/api/dashboards/active`, { uuid })
 	},
 
+	/*
+	 * Wave3.7 — pin (or clear) the user's EXPLICIT default-dashboard
+	 * choice. Distinct from `setActiveDashboardPreference` above which
+	 * auto-overwrites on every switch — this one is only ever written
+	 * when the user clicks "Set as default" on a row's cog menu, and
+	 * the resolver checks it before the active pref so the pin
+	 * survives across switches.
+	 */
+	setDefaultDashboardPreference(uuid) {
+		return axios.post(`${baseUrl}/api/dashboards/default`, { uuid })
+	},
+	clearDefaultDashboardPreference() {
+		return axios.post(`${baseUrl}/api/dashboards/default`, { uuid: '' })
+	},
+	getDefaultDashboardPreference() {
+		return axios.get(`${baseUrl}/api/dashboards/default`)
+	},
+
 	createDashboard(data) {
 		return axios.post(`${baseUrl}/api/dashboard`, data)
 	},

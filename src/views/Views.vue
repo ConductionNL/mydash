@@ -14,12 +14,14 @@
 			:active-dashboard-id="activeDashboard?.id"
 			:allow-user-dashboards="allowUserDashboards"
 			:can-edit="canEdit"
+			:default-uuid="defaultDashboardUuid"
 			@switch="onSidebarSwitch"
 			@create-dashboard="onSidebarCreateDashboard"
 			@delete-dashboard="onSidebarDeleteDashboard"
 			@toggle-edit="onRowToggleEdit"
 			@open-config="onRowOpenConfig"
-			@add-custom-widget="onRowAddCustomWidget" />
+			@add-custom-widget="onRowAddCustomWidget"
+			@set-default="onRowSetDefault" />
 		<SidebarBackdrop
 			v-if="sidebarOpen"
 			@close="sidebarOpen = false" />
@@ -274,6 +276,12 @@ export default {
 			// Different uuids are tracked independently per spec
 			// scenario "Different dashboards are not debounced".
 			viewEventLastSent: Object.create(null),
+
+			// Wave3.7 — UUID of the user's pinned default dashboard, or
+			// '' when no pin is set. Fetched once on mount via
+			// `GET /api/dashboards/default` and refreshed locally
+			// whenever the user picks a new default via the cog menu.
+			defaultDashboardUuid: '',
 		}
 	},
 	computed: {
@@ -435,6 +443,18 @@ export default {
 			widgetStore.loadAvailableWidgets(),
 			tileStore.loadTiles(),
 		])
+
+		// Wave3.7 — fetch the user's pinned default-dashboard UUID
+		// once on mount so the per-row cog can render the right "Set
+		// as default" / "Default dashboard" state. Failure here is
+		// non-fatal: the cog falls back to "Set as default" for every
+		// row when the pref can't be read.
+		try {
+			const res = await api.getDefaultDashboardPreference()
+			this.defaultDashboardUuid = res?.data?.uuid ?? ''
+		} catch (error) {
+			console.error('[Views] Failed to load default-dashboard preference:', error)
+		}
 	},
 	mounted() {
 		// Attach the document-level click listener (REQ-WDG-016 outside-
@@ -782,6 +802,34 @@ export default {
 		async onRowAddCustomWidget(dashboard, source) {
 			await this.maybeSwitchTo(dashboard.id, source)
 			this.openCustomWidgetModal()
+		},
+
+		/*
+		 * Wave3.7 — pin the row's dashboard as the user's default.
+		 * Toggle semantics: clicking on the already-pinned row clears
+		 * the pin (so the cog shows "Set as default" again on next
+		 * open); clicking on any other row replaces the pin with that
+		 * dashboard's UUID. The new pref takes effect on the next
+		 * page load — visiting `/apps/mydash/` will resolve to this
+		 * dashboard via the resolver's Step 0.
+		 */
+		// eslint-disable-next-line no-unused-vars
+		async onRowSetDefault(dashboard, source) {
+			const uuid = dashboard?.uuid ?? ''
+			if (uuid === '') {
+				return
+			}
+			try {
+				if (this.defaultDashboardUuid === uuid) {
+					await api.clearDefaultDashboardPreference()
+					this.defaultDashboardUuid = ''
+				} else {
+					await api.setDefaultDashboardPreference(uuid)
+					this.defaultDashboardUuid = uuid
+				}
+			} catch (error) {
+				console.error('[Views] Failed to update default-dashboard preference:', error)
+			}
 		},
 
 		/*

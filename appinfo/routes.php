@@ -27,6 +27,10 @@ return [
 		// the group-scoped routes that share the /api/dashboards/ prefix so the
 		// router matches the literal 'active' segment before any {groupId} wildcard.
 		['name' => 'dashboard_api#setActiveDashboard', 'url' => '/api/dashboards/active', 'verb' => 'POST'],
+		// Wave3.7: explicit default-dashboard pin. Distinct from the
+		// `active` pref above which auto-overwrites on every switch.
+		['name' => 'dashboard_api#setDefaultDashboard', 'url' => '/api/dashboards/default', 'verb' => 'POST'],
+		['name' => 'dashboard_api#getDefaultDashboard', 'url' => '/api/dashboards/default', 'verb' => 'GET'],
 		// REQ-DASH-020..022: fork a visible dashboard as a personal copy.
 		// Registered BEFORE the group-scoped {groupId} wildcard routes to
 		// prevent the literal 'fork' suffix being consumed by any wildcard.

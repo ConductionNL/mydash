@@ -109,10 +109,12 @@
 							:dashboard="dashboard"
 							source="group"
 							:can-edit="canEdit"
+							:default-uuid="defaultUuid"
 							@toggle-edit="onRowToggleEdit(dashboard, 'group')"
 							@open-config="onRowOpenConfig(dashboard, 'group')"
 							@add-custom-widget="onRowAddCustomWidget(dashboard, 'group')"
-							@delete="onRowDelete(dashboard, 'group')" />
+							@delete="onRowDelete(dashboard, 'group')"
+							@set-default="onRowSetDefault(dashboard, 'group')" />
 					</li>
 				</ul>
 			</section>
@@ -151,10 +153,12 @@
 							:dashboard="dashboard"
 							source="default"
 							:can-edit="canEdit"
+							:default-uuid="defaultUuid"
 							@toggle-edit="onRowToggleEdit(dashboard, 'default')"
 							@open-config="onRowOpenConfig(dashboard, 'default')"
 							@add-custom-widget="onRowAddCustomWidget(dashboard, 'default')"
-							@delete="onRowDelete(dashboard, 'default')" />
+							@delete="onRowDelete(dashboard, 'default')"
+							@set-default="onRowSetDefault(dashboard, 'default')" />
 					</li>
 				</ul>
 			</section>
@@ -193,10 +197,12 @@
 							:dashboard="dashboard"
 							source="user"
 							:can-edit="canEdit"
+							:default-uuid="defaultUuid"
 							@toggle-edit="onRowToggleEdit(dashboard, 'user')"
 							@open-config="onRowOpenConfig(dashboard, 'user')"
 							@add-custom-widget="onRowAddCustomWidget(dashboard, 'user')"
-							@delete="onRowDelete(dashboard, 'user')" />
+							@delete="onRowDelete(dashboard, 'user')"
+							@set-default="onRowSetDefault(dashboard, 'user')" />
 					</li>
 				</ul>
 
@@ -343,6 +349,17 @@ export default {
 			type: Boolean,
 			default: false,
 		},
+
+		/*
+		 * Wave3.7 — UUID of the user's pinned default dashboard, or
+		 * empty string when no pin is set. Forwarded to each
+		 * DashboardRowActions so the cog menu can show "Set as default"
+		 * vs "Default dashboard" with the right icon.
+		 */
+		defaultUuid: {
+			type: String,
+			default: '',
+		},
 	},
 
 	emits: [
@@ -357,6 +374,9 @@ export default {
 		'toggle-edit',
 		'open-config',
 		'add-custom-widget',
+		// wave3.7 — `(dashboard, source)`. The host pins this row as
+		// the user's default via `POST /api/dashboards/default`.
+		'set-default',
 	],
 
 	computed: {
@@ -433,6 +453,9 @@ export default {
 		},
 		onRowDelete(dashboard, source) {
 			this.$emit('delete-dashboard', dashboard.id, source)
+		},
+		onRowSetDefault(dashboard, source) {
+			this.$emit('set-default', dashboard, source)
 		},
 
 		/**

@@ -936,6 +936,60 @@ class DashboardApiController extends Controller
     }//end setActiveDashboard()
 
     /**
+     * Pin (or clear) the user's EXPLICIT default-dashboard choice
+     * (wave3.7).
+     *
+     * Distinct from {@see self::setActiveDashboard()} — this pref is
+     * only ever written when the user explicitly clicks "Set as
+     * default" on a row's cog menu, and is NOT auto-overwritten on
+     * every switch. The resolver checks it before the active pref so
+     * the pin survives across switches.
+     *
+     * Body shape: `{uuid: string}` — empty string clears the pin.
+     *
+     * @param string|null $uuid The dashboard UUID, or empty string to clear.
+     *
+     * @return JSONResponse 200 `{status: 'success'}` on success; 401
+     *                      when the session has no user.
+     */
+    #[NoAdminRequired]
+    public function setDefaultDashboard(?string $uuid=null): JSONResponse
+    {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
+
+        $this->dashboardService->setDefaultPreference(
+            userId: $this->userId,
+            uuid: ($uuid ?? '')
+        );
+
+        return ResponseHelper::success(data: ['status' => 'success']);
+    }//end setDefaultDashboard()
+
+    /**
+     * Read the user's EXPLICIT default-dashboard pin (wave3.7).
+     *
+     * @return JSONResponse 200 `{uuid: string}` — empty string when no
+     *                      pin set; 401 when the session has no user.
+     */
+    #[NoAdminRequired]
+    public function getDefaultDashboard(): JSONResponse
+    {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
+
+        return ResponseHelper::success(
+            data: [
+                'uuid' => $this->dashboardService->getDefaultPreference(
+                    userId: $this->userId
+                ),
+            ]
+        );
+    }//end getDefaultDashboard()
+
+    /**
      * Fork any visible dashboard into a brand-new personal copy.
      *
      * REQ-DASH-020 / REQ-DASH-021 / REQ-DASH-022. Body shape:

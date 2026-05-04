@@ -97,6 +97,18 @@ class DashboardService
     public const ACTIVE_DASHBOARD_UUID_PREF_KEY = 'active_dashboard_uuid';
 
     /**
+     * User-pref key for the EXPLICIT default dashboard (wave3.7).
+     * Distinct from `active_dashboard_uuid` — this one is only ever
+     * written when the user explicitly pins a dashboard via the
+     * per-row "Set as default" action; it is NOT auto-overwritten on
+     * every switch. The resolver checks it BEFORE the active pref so
+     * an explicit pin survives across switches.
+     *
+     * @var string
+     */
+    public const DEFAULT_DASHBOARD_UUID_PREF_KEY = 'default_dashboard_uuid';
+
+    /**
      * HTTP-like error message for non-owner / non-admin attempting a
      * publication state mutation. REQ-DASH-032..034.
      *
@@ -293,6 +305,27 @@ class DashboardService
      */
     public function getEffectiveDashboard(string $userId): ?array
     {
+        // Wave3.7 Step 0 — explicit default-dashboard pin wins over
+        // the auto-overwriting active flag. Resolves the pinned UUID
+        // through the user's visible set so a stale UUID falls
+        // through to the legacy chain rather than 404'ing.
+        $defaultUuid = $this->getDefaultPreference(userId: $userId);
+        if ($defaultUuid !== '') {
+            $visible = $this->getVisibleToUser(userId: $userId);
+            foreach ($visible as $entry) {
+                $candidate = $entry['dashboard'];
+                if ((string) $candidate->getUuid() === $defaultUuid) {
+                    $placements = $this->placementMapper->findByDashboardId(
+                        dashboardId: $candidate->getId()
+                    );
+                    return $this->dashResolver->buildResult(
+                        dashboard: $candidate,
+                        placements: $placements
+                    );
+                }
+            }
+        }
+
         $result = $this->dashResolver->tryGetActiveDashboard(
             userId: $userId
         );
@@ -1016,6 +1049,35 @@ class DashboardService
             }
         }
 
+        // Step 0 (wave3.7): explicit default — if the user has pinned
+        // a default dashboard via the per-row "Set as default" action,
+        // it always wins over the auto-overwriting `active_dashboard_uuid`
+        // pref so visiting `/apps/mydash/` consistently opens the same
+        // dashboard regardless of where the user navigated last.
+        $defaultUuid = $this->config->getUserValue(
+            userId: $userId,
+            appName: Application::APP_ID,
+            key: self::DEFAULT_DASHBOARD_UUID_PREF_KEY,
+            default: ''
+        );
+
+        if ($defaultUuid !== '') {
+            if (isset($byUuid[$defaultUuid]) === true) {
+                return $byUuid[$defaultUuid];
+            }
+
+            // Stale default: UUID is no longer visible — clear and fall through.
+            $this->config->deleteUserValue(
+                userId: $userId,
+                appName: Application::APP_ID,
+                key: self::DEFAULT_DASHBOARD_UUID_PREF_KEY
+            );
+            $this->logger->warning(
+                message: 'mydash: stale default_dashboard_uuid "{uuid}" cleared for user "{user}"',
+                context: ['uuid' => $defaultUuid, 'user' => $userId]
+            );
+        }
+
         // Step 1: saved preference.
         $savedUuid = $this->config->getUserValue(
             userId: $userId,
@@ -1132,6 +1194,66 @@ class DashboardService
             value: $uuid
         );
     }//end setActivePreference()
+
+    /**
+     * Persist (or clear) the user's EXPLICIT default-dashboard pin
+     * (wave3.7).
+     *
+     * Distinct from {@see self::setActivePreference()} — this pref is
+     * only ever written when the user clicks "Set as default" on a
+     * row's cog menu (it is NOT auto-overwritten on every switch).
+     * The resolver checks it before the active pref so an explicit
+     * pin survives across switches.
+     *
+     * Same write semantics as `setActivePreference`: no existence
+     * check on write, the resolver's stale-pref path handles missing
+     * UUIDs on next read.
+     *
+     * @param string $userId The user ID.
+     * @param string $uuid   The dashboard UUID, or empty string to clear.
+     *
+     * @return void
+     */
+    public function setDefaultPreference(string $userId, string $uuid): void
+    {
+        if ($uuid === '') {
+            $this->config->deleteUserValue(
+                userId: $userId,
+                appName: Application::APP_ID,
+                key: self::DEFAULT_DASHBOARD_UUID_PREF_KEY
+            );
+            return;
+        }
+
+        $this->config->setUserValue(
+            userId: $userId,
+            appName: Application::APP_ID,
+            key: self::DEFAULT_DASHBOARD_UUID_PREF_KEY,
+            value: $uuid
+        );
+    }//end setDefaultPreference()
+
+    /**
+     * Read the user's explicit default-dashboard pin (wave3.7).
+     *
+     * Returns the empty string when no pin is set. No existence
+     * check is performed here — callers should treat the return
+     * value as advisory; the resolver's stale-pref path is the
+     * authoritative source-of-truth.
+     *
+     * @param string $userId The user ID.
+     *
+     * @return string The pinned dashboard UUID, or '' when unset.
+     */
+    public function getDefaultPreference(string $userId): string
+    {
+        return (string) $this->config->getUserValue(
+            userId: $userId,
+            appName: Application::APP_ID,
+            key: self::DEFAULT_DASHBOARD_UUID_PREF_KEY,
+            default: ''
+        );
+    }//end getDefaultPreference()
 
     /**
      * Transition a dashboard to `published` and stamp `publishedAt`
