@@ -63,62 +63,13 @@
 				{{ t('mydash', 'Dashboards') }}
 			</h2>
 			<!--
-				Per-active-dashboard action menu (cog). Hosts the actions
-				that previously lived in the top-right floating
-				`DashboardConfigMenu` (Edit / Configure / Add widget) plus
-				the per-active-dashboard Delete (trashcan) — the per-row
-				X delete buttons were removed in favour of this single
-				menu so the destructive action lives where the rest of
-				the per-dashboard actions sit.
+				Wave3.6 moved the per-dashboard actions out of the header
+				cog and into a per-row cog (rendered next to each <li>),
+				so each dashboard's Edit / Configure / Add widget / Delete
+				operate on that specific row regardless of which dashboard
+				is currently active. The header keeps only the X close
+				now.
 			-->
-			<NcActions
-				v-if="activeDashboardId"
-				:aria-label="t('mydash', 'Dashboard menu')"
-				:force-menu="true"
-				placement="bottom-end"
-				type="tertiary"
-				class="dashboard-switcher-sidebar__menu">
-				<template #icon>
-					<Cog :size="20" />
-				</template>
-				<NcActionButton
-					v-if="canEdit"
-					:close-after-click="true"
-					@click="onToggleEdit">
-					<template #icon>
-						<ContentSave v-if="isEditMode" :size="20" />
-						<Pencil v-else :size="20" />
-					</template>
-					{{ isEditMode ? t('mydash', 'Save dashboard') : t('mydash', 'Edit dashboard') }}
-				</NcActionButton>
-				<NcActionButton
-					v-if="isActiveOwner"
-					:close-after-click="true"
-					@click="onOpenConfig">
-					<template #icon>
-						<Tune :size="20" />
-					</template>
-					{{ t('mydash', 'Dashboard configuration…') }}
-				</NcActionButton>
-				<NcActionButton
-					v-if="canEdit"
-					:close-after-click="true"
-					@click="onAddCustomWidget">
-					<template #icon>
-						<ShapePolygonPlus :size="20" />
-					</template>
-					{{ t('mydash', 'Add custom widget…') }}
-				</NcActionButton>
-				<NcActionButton
-					v-if="isActiveOwner"
-					:close-after-click="true"
-					@click="onDeleteActive">
-					<template #icon>
-						<TrashCanOutline :size="20" />
-					</template>
-					{{ t('mydash', 'Delete dashboard') }}
-				</NcActionButton>
-			</NcActions>
 			<button
 				type="button"
 				class="dashboard-switcher-sidebar__close"
@@ -154,6 +105,14 @@
 							<IconRenderer :name="dashboard.icon" :size="20" />
 						</span>
 						<span class="dashboard-switcher-sidebar__label">{{ dashboard.name }}</span>
+						<DashboardRowActions
+							:dashboard="dashboard"
+							source="group"
+							:can-edit="canEdit"
+							@toggle-edit="onRowToggleEdit(dashboard, 'group')"
+							@open-config="onRowOpenConfig(dashboard, 'group')"
+							@add-custom-widget="onRowAddCustomWidget(dashboard, 'group')"
+							@delete="onRowDelete(dashboard, 'group')" />
 					</li>
 				</ul>
 			</section>
@@ -188,6 +147,14 @@
 							<IconRenderer :name="dashboard.icon" :size="20" />
 						</span>
 						<span class="dashboard-switcher-sidebar__label">{{ dashboard.name }}</span>
+						<DashboardRowActions
+							:dashboard="dashboard"
+							source="default"
+							:can-edit="canEdit"
+							@toggle-edit="onRowToggleEdit(dashboard, 'default')"
+							@open-config="onRowOpenConfig(dashboard, 'default')"
+							@add-custom-widget="onRowAddCustomWidget(dashboard, 'default')"
+							@delete="onRowDelete(dashboard, 'default')" />
 					</li>
 				</ul>
 			</section>
@@ -222,6 +189,14 @@
 							<IconRenderer :name="dashboard.icon" :size="20" />
 						</span>
 						<span class="dashboard-switcher-sidebar__label">{{ dashboard.name }}</span>
+						<DashboardRowActions
+							:dashboard="dashboard"
+							source="user"
+							:can-edit="canEdit"
+							@toggle-edit="onRowToggleEdit(dashboard, 'user')"
+							@open-config="onRowOpenConfig(dashboard, 'user')"
+							@add-custom-widget="onRowAddCustomWidget(dashboard, 'user')"
+							@delete="onRowDelete(dashboard, 'user')" />
 					</li>
 				</ul>
 
@@ -261,19 +236,13 @@
 <script>
 import { t } from '@nextcloud/l10n'
 import { NcButton } from '@conduction/nextcloud-vue'
-import { NcActions, NcActionButton } from '@nextcloud/vue'
 
 import Close from 'vue-material-design-icons/Close.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
-import Cog from 'vue-material-design-icons/Cog.vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
-import ContentSave from 'vue-material-design-icons/ContentSave.vue'
-import Tune from 'vue-material-design-icons/Tune.vue'
-import ShapePolygonPlus from 'vue-material-design-icons/ShapePolygonPlus.vue'
-import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
 
 import IconRenderer from '../Dashboard/IconRenderer.vue'
 import SidebarFooter from './SidebarFooter.vue'
+import DashboardRowActions from './DashboardRowActions.vue'
 
 export default {
 	name: 'DashboardSwitcherSidebar',
@@ -281,17 +250,10 @@ export default {
 	components: {
 		Close,
 		Plus,
-		Cog,
-		Pencil,
-		ContentSave,
-		Tune,
-		ShapePolygonPlus,
-		TrashCanOutline,
 		IconRenderer,
 		NcButton,
-		NcActions,
-		NcActionButton,
 		SidebarFooter,
+		DashboardRowActions,
 	},
 
 	/**
@@ -368,20 +330,16 @@ export default {
 		},
 
 		/*
-		 * Per-active-dashboard menu state. Hosted in the sidebar header
-		 * (cog NcActions) since wave3.3 — replaces the floating top-right
-		 * `DashboardConfigMenu`. Each prop mirrors the prop of the same
-		 * name on the old menu so the host wiring stays one-to-one.
+		 * `canEdit` flows down to each per-row cog (wave3.6) so the
+		 * Edit / Add-custom-widget entries can hide for view-only
+		 * users. Configure / Delete remain owner-gated per row via
+		 * `dashboard.isOwner`. The wave3.3 `isEditMode` /
+		 * `isActiveOwner` props were removed when the cog moved out
+		 * of the header — per-row gating uses each row's own
+		 * `dashboard.isOwner`, and Edit/Save toggle is implicit
+		 * (the host enters edit mode after switching).
 		 */
-		isEditMode: {
-			type: Boolean,
-			default: false,
-		},
 		canEdit: {
-			type: Boolean,
-			default: false,
-		},
-		isActiveOwner: {
 			type: Boolean,
 			default: false,
 		},
@@ -392,8 +350,10 @@ export default {
 		'create-dashboard',
 		'delete-dashboard',
 		'update:open',
-		// wave3.3 — emitted by the new in-sidebar cog menu, mirroring the
-		// retired floating `DashboardConfigMenu` events one-to-one.
+		// wave3.6 — per-row events. Each carries `(dashboard, source)`
+		// so the host can switch to that dashboard and then apply the
+		// action. The sidebar emits the raw event; the host owns the
+		// switch-then-apply orchestration.
 		'toggle-edit',
 		'open-config',
 		'add-custom-widget',
@@ -454,33 +414,25 @@ export default {
 			this.$emit('switch', id, source)
 		},
 
-		/**
-		 * Click handler for the cog menu's Delete entry. Emits
-		 * `delete-dashboard(activeDashboardId)`. Wave3.3 replaced the
-		 * per-row X delete buttons with this single header-menu action
-		 * so the destructive path lives next to Edit / Configure / Add
-		 * widget instead of being scattered along the rows.
+		/*
+		 * Per-row action handlers (wave3.6). Each receives the row's
+		 * dashboard payload + its source bucket; they wrap each cog
+		 * action by first emitting `update:open(false)` so the
+		 * sidebar collapses, THEN re-emitting the action upward with
+		 * `(dashboard, source)` so the host can switch to that
+		 * dashboard before applying the action.
 		 */
-		onDeleteActive() {
-			if (this.activeDashboardId != null) {
-				this.$emit('delete-dashboard', this.activeDashboardId)
-			}
+		onRowToggleEdit(dashboard, source) {
+			this.$emit('toggle-edit', dashboard, source)
 		},
-
-		/**
-		 * Cog-menu pass-throughs — these mirror the old floating
-		 * `DashboardConfigMenu` events one-to-one so the host (Views.vue
-		 * / WorkspaceApp.vue) can keep using the same handler bodies it
-		 * already has.
-		 */
-		onToggleEdit() {
-			this.$emit('toggle-edit')
+		onRowOpenConfig(dashboard, source) {
+			this.$emit('open-config', dashboard, source)
 		},
-		onOpenConfig() {
-			this.$emit('open-config')
+		onRowAddCustomWidget(dashboard, source) {
+			this.$emit('add-custom-widget', dashboard, source)
 		},
-		onAddCustomWidget() {
-			this.$emit('add-custom-widget')
+		onRowDelete(dashboard, source) {
+			this.$emit('delete-dashboard', dashboard.id, source)
 		},
 
 		/**

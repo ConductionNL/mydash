@@ -13,15 +13,13 @@
 			:user-dashboards="sidebarUserDashboards"
 			:active-dashboard-id="activeDashboard?.id"
 			:allow-user-dashboards="allowUserDashboards"
-			:is-edit-mode="isEditMode"
 			:can-edit="canEdit"
-			:is-active-owner="activeDashboard?.isOwner !== false"
 			@switch="onSidebarSwitch"
 			@create-dashboard="onSidebarCreateDashboard"
 			@delete-dashboard="onSidebarDeleteDashboard"
-			@toggle-edit="toggleEditMode"
-			@open-config="openConfigModal"
-			@add-custom-widget="openCustomWidgetModal()" />
+			@toggle-edit="onRowToggleEdit"
+			@open-config="onRowOpenConfig"
+			@add-custom-widget="onRowAddCustomWidget" />
 		<SidebarBackdrop
 			v-if="sidebarOpen"
 			@close="sidebarOpen = false" />
@@ -760,6 +758,43 @@ export default {
 			// without re-touching this view (and so the load-bearing
 			// REQ-SWITCH-002 contract is visible at the call site).
 			await this.switchDashboard(id)
+		},
+
+		/*
+		 * Wave3.6 per-row action handlers. Each cog action emits the
+		 * row's full dashboard payload (not just the active one), so
+		 * we first switch to that dashboard (when not already active)
+		 * and then apply the requested action. This lets the user
+		 * Edit / Configure / Add-widget on any row without manually
+		 * switching first.
+		 *
+		 * @param {object} dashboard Row payload (`id`, `name`, `isOwner`, …).
+		 * @param {'group'|'default'|'user'} source Row section discriminator.
+		 */
+		async onRowToggleEdit(dashboard, source) {
+			await this.maybeSwitchTo(dashboard.id, source)
+			this.toggleEditMode()
+		},
+		async onRowOpenConfig(dashboard, source) {
+			await this.maybeSwitchTo(dashboard.id, source)
+			this.openConfigModal()
+		},
+		async onRowAddCustomWidget(dashboard, source) {
+			await this.maybeSwitchTo(dashboard.id, source)
+			this.openCustomWidgetModal()
+		},
+
+		/*
+		 * Switch the active dashboard only when the requested id
+		 * differs from the current active. Avoids a redundant API
+		 * round-trip when the per-row action targets the row that is
+		 * already active.
+		 */
+		async maybeSwitchTo(id, source) {
+			if (this.activeDashboard?.id === id) {
+				return
+			}
+			await this.onSidebarSwitch(id, source)
 		},
 		/**
 		 * Sidebar `+ New Dashboard` row handler — opens the create
