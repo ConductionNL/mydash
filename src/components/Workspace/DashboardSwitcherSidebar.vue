@@ -110,6 +110,8 @@
 							source="group"
 							:can-edit="canEdit"
 							:default-uuid="defaultUuid"
+							:is-edit-mode="isEditMode"
+							:active-dashboard-id="activeDashboardId"
 							@toggle-edit="onRowToggleEdit(dashboard, 'group')"
 							@open-config="onRowOpenConfig(dashboard, 'group')"
 							@add-custom-widget="onRowAddCustomWidget(dashboard, 'group')"
@@ -154,6 +156,8 @@
 							source="default"
 							:can-edit="canEdit"
 							:default-uuid="defaultUuid"
+							:is-edit-mode="isEditMode"
+							:active-dashboard-id="activeDashboardId"
 							@toggle-edit="onRowToggleEdit(dashboard, 'default')"
 							@open-config="onRowOpenConfig(dashboard, 'default')"
 							@add-custom-widget="onRowAddCustomWidget(dashboard, 'default')"
@@ -198,6 +202,8 @@
 							source="user"
 							:can-edit="canEdit"
 							:default-uuid="defaultUuid"
+							:is-edit-mode="isEditMode"
+							:active-dashboard-id="activeDashboardId"
 							@toggle-edit="onRowToggleEdit(dashboard, 'user')"
 							@open-config="onRowOpenConfig(dashboard, 'user')"
 							@add-custom-widget="onRowAddCustomWidget(dashboard, 'user')"
@@ -359,6 +365,16 @@ export default {
 		defaultUuid: {
 			type: String,
 			default: '',
+		},
+
+		/*
+		 * Wave3.9 — host's edit-mode boolean. Forwarded down so the
+		 * cog button on the active row flips to "Save dashboard" +
+		 * ContentSave icon while editing.
+		 */
+		isEditMode: {
+			type: Boolean,
+			default: false,
 		},
 	},
 

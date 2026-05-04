@@ -46,9 +46,10 @@
 			:close-after-click="true"
 			@click="$emit('toggle-edit')">
 			<template #icon>
-				<Pencil :size="20" />
+				<ContentSave v-if="showSave" :size="20" />
+				<Pencil v-else :size="20" />
 			</template>
-			{{ t('mydash', 'Edit dashboard') }}
+			{{ showSave ? t('mydash', 'Save dashboard') : t('mydash', 'Edit dashboard') }}
 		</NcActionButton>
 		<NcActionButton
 			v-if="isOwner"
@@ -94,6 +95,7 @@ import { t } from '@nextcloud/l10n'
 import { NcActions, NcActionButton } from '@nextcloud/vue'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
+import ContentSave from 'vue-material-design-icons/ContentSave.vue'
 import Tune from 'vue-material-design-icons/Tune.vue'
 import ShapePolygonPlus from 'vue-material-design-icons/ShapePolygonPlus.vue'
 import TrashCanOutline from 'vue-material-design-icons/TrashCanOutline.vue'
@@ -108,6 +110,7 @@ export default {
 		NcActionButton,
 		Cog,
 		Pencil,
+		ContentSave,
 		Tune,
 		ShapePolygonPlus,
 		TrashCanOutline,
@@ -141,6 +144,23 @@ export default {
 			type: String,
 			default: '',
 		},
+
+		/*
+		 * Wave3.9 — when this row matches the currently active
+		 * dashboard AND the host is in edit mode, the cog's
+		 * Edit / Save toggle button flips to "Save dashboard" with
+		 * the ContentSave icon. The host owns the edit-mode boolean
+		 * (lives on Views.vue's `isEditMode` data field) and the
+		 * active id (`activeDashboard.id`) and forwards both down.
+		 */
+		isEditMode: {
+			type: Boolean,
+			default: false,
+		},
+		activeDashboardId: {
+			type: [String, Number],
+			default: null,
+		},
 	},
 
 	emits: ['toggle-edit', 'open-config', 'add-custom-widget', 'delete', 'set-default'],
@@ -172,6 +192,20 @@ export default {
 		isDefault() {
 			const uuid = this.dashboard?.uuid
 			return !!uuid && uuid === this.defaultUuid
+		},
+
+		/*
+		 * Wave3.9 — true when the cog button should show the Save
+		 * variant (icon + label). Only true on the row whose
+		 * dashboard is currently active AND the host is in edit
+		 * mode. Other rows keep showing "Edit dashboard" so the
+		 * user can still enter edit mode on them by switching first
+		 * (the host's `maybeSwitchTo` helper handles that).
+		 */
+		showSave() {
+			return this.isEditMode
+				&& this.activeDashboardId != null
+				&& this.dashboard?.id === this.activeDashboardId
 		},
 	},
 

@@ -15,6 +15,7 @@
 			:allow-user-dashboards="allowUserDashboards"
 			:can-edit="canEdit"
 			:default-uuid="defaultDashboardUuid"
+			:is-edit-mode="isEditMode"
 			@switch="onSidebarSwitch"
 			@create-dashboard="onSidebarCreateDashboard"
 			@delete-dashboard="onSidebarDeleteDashboard"
