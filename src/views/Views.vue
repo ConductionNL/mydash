@@ -116,9 +116,11 @@
 			:dashboard="configModalMode === 'create' ? null : activeDashboard"
 			:mode="configModalMode"
 			:can-delete="dashboards.length > 1"
+			:default-uuid="defaultDashboardUuid"
 			@close="closeConfigModal"
 			@save="saveDashboardConfig"
-			@delete="deleteCurrentDashboard" />
+			@delete="deleteCurrentDashboard"
+			@set-default="onModalSetDefault" />
 
 		<!-- Style editor modal -->
 		<WidgetStyleEditor
@@ -829,6 +831,30 @@ export default {
 				}
 			} catch (error) {
 				console.error('[Views] Failed to update default-dashboard preference:', error)
+			}
+		},
+
+		/*
+		 * Wave3.8 — modal `set-default` handler. Honours the explicit
+		 * boolean from the toggle (unlike the row-cog toggle which
+		 * inverts based on current pin state). Lets the user clear
+		 * the pin from the dashboard's own configuration without
+		 * having to hunt for the same dashboard's row.
+		 */
+		async onModalSetDefault({ uuid, isDefault }) {
+			if (!uuid) {
+				return
+			}
+			try {
+				if (isDefault) {
+					await api.setDefaultDashboardPreference(uuid)
+					this.defaultDashboardUuid = uuid
+				} else if (this.defaultDashboardUuid === uuid) {
+					await api.clearDefaultDashboardPreference()
+					this.defaultDashboardUuid = ''
+				}
+			} catch (error) {
+				console.error('[Views] Failed to update default-dashboard preference from modal:', error)
 			}
 		},
 

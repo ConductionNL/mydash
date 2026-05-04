@@ -60,6 +60,24 @@
 				</div>
 			</div>
 
+			<!--
+				Wave3.8 — explicit "default dashboard" pin lives in the
+				config modal too (in addition to the per-row cog from
+				wave3.7). Wrapped in `v-if="!isCreate"` because pinning
+				a not-yet-saved dashboard is meaningless.
+			-->
+			<div v-if="!isCreate" class="dashboard-config__field dashboard-config__field--toggle">
+				<NcCheckboxRadioSwitch
+					:checked="form.isDefault"
+					type="switch"
+					@update:checked="form.isDefault = $event">
+					<strong>{{ t('mydash', 'Default dashboard') }}</strong>
+					<span class="dashboard-config__hint">
+						{{ t('mydash', 'Open this dashboard automatically when visiting MyDash.') }}
+					</span>
+				</NcCheckboxRadioSwitch>
+			</div>
+
 			<div v-if="!isCreate && canManageShares" class="dashboard-config__field">
 				<label class="dashboard-config__label">
 					{{ t('mydash', 'Share with users and groups') }}
@@ -150,7 +168,7 @@
 </template>
 
 <script>
-import { NcModal, NcButton, NcTextField, NcSelect } from '@nextcloud/vue'
+import { NcModal, NcButton, NcTextField, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { t } from '@nextcloud/l10n'
 
 import Delete from 'vue-material-design-icons/Delete.vue'
@@ -178,6 +196,7 @@ export default {
 		NcButton,
 		NcTextField,
 		NcSelect,
+		NcCheckboxRadioSwitch,
 		Delete,
 		ContentSave,
 		Plus,
@@ -205,9 +224,21 @@ export default {
 			default: 'edit',
 			validator: v => ['edit', 'create'].includes(v),
 		},
+
+		/*
+		 * Wave3.8 — UUID currently pinned as the user's default
+		 * dashboard, or '' when none. Drives the initial state of
+		 * the "Default dashboard" switch. The host (Views.vue)
+		 * fetches it once via `GET /api/dashboards/default` and
+		 * passes it down both here and to `DashboardSwitcherSidebar`.
+		 */
+		defaultUuid: {
+			type: String,
+			default: '',
+		},
 	},
 
-	emits: ['close', 'save', 'delete'],
+	emits: ['close', 'save', 'delete', 'set-default'],
 
 	data() {
 		return {
@@ -215,6 +246,15 @@ export default {
 				name: '',
 				description: '',
 				icon: DEFAULT_ICON,
+				/*
+				 * Wave3.8 — toggle state for the "Default dashboard"
+				 * switch. Initialised from `defaultUuid === dashboard.uuid`
+				 * in `syncFormFromDashboard`; emitted as a separate
+				 * `set-default` event from `onSave` only when its value
+				 * changed since the modal opened (so re-saving without
+				 * touching the toggle never re-pins).
+				 */
+				isDefault: false,
 			},
 			saving: false,
 			// Server snapshot of shares as last loaded; used to compute dirty state.
@@ -296,6 +336,7 @@ export default {
 					this.form.name = ''
 					this.form.description = ''
 					this.form.icon = DEFAULT_ICON
+					this.form.isDefault = false
 				} else if (this.dashboard) {
 					this.form.name = this.dashboard.name || ''
 					this.form.description = this.dashboard.description || ''
@@ -305,6 +346,11 @@ export default {
 					this.form.icon = (this.dashboard.icon && DASHBOARD_ICONS[this.dashboard.icon])
 						? this.dashboard.icon
 						: DEFAULT_ICON
+					// Wave3.8 — initial toggle state mirrors whether
+					// THIS dashboard's UUID matches the user's pinned
+					// default. Snapshot for the dirty-check in onSave.
+					this.form.isDefault = !!this.dashboard.uuid && this.dashboard.uuid === this.defaultUuid
+					this._initialIsDefault = this.form.isDefault
 					if (this.canManageShares) {
 						this.loadShares()
 					}
@@ -416,6 +462,22 @@ export default {
 					description: this.form.description.trim(),
 					icon: this.form.icon || null,
 				})
+
+				// Wave3.8 — propagate the default-pin toggle when its
+				// state changed since the modal opened. Emitted after
+				// save so the host can issue the API call without
+				// blocking the rest of the save flow. Skip on create
+				// (no UUID yet — pin via the per-row cog after the
+				// row appears in the list).
+				if (!this.isCreate
+					&& this.dashboard
+					&& this.form.isDefault !== this._initialIsDefault
+				) {
+					this.$emit('set-default', {
+						uuid: this.dashboard.uuid,
+						isDefault: this.form.isDefault,
+					})
+				}
 			} finally {
 				this.saving = false
 			}
