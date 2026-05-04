@@ -107,6 +107,17 @@ class ExtensionTest extends TestCase
     {
         parent::setUp();
 
+        // DebounceHelper falls through to APCu when the extension is
+        // loaded, which persists claims across tests in the same suite
+        // and causes `testPublishPopulatesCanonicalFields` to drop the
+        // EVENT_REACTED publish whenever it runs after another test
+        // that already claimed the same `(actor, uuid)` key. Flushing
+        // here keeps each test's debounce state isolated regardless of
+        // test execution order.
+        if (function_exists(function: 'apcu_clear_cache') === true) {
+            apcu_clear_cache();
+        }
+
         $this->manager      = $this->createMock(originalClassName: IManager::class);
         $this->groupManager = $this->createMock(originalClassName: IGroupManager::class);
         $this->userManager  = $this->createMock(originalClassName: IUserManager::class);

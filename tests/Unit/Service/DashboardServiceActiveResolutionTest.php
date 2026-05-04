@@ -192,10 +192,21 @@ class DashboardServiceActiveResolutionTest extends TestCase
             ['dashboard' => $personal, 'source' => Dashboard::SOURCE_USER],
         ]);
 
+        // Wave3.7 added a Step 0 default-dashboard pref read before the
+        // active-dashboard pref. Return '' for the default key so the
+        // resolver falls through to Step 1, which is what the original
+        // assertion exercises.
         $this->config
             ->method('getUserValue')
-            ->with('alice', Application::APP_ID, DashboardService::ACTIVE_DASHBOARD_UUID_PREF_KEY, '')
-            ->willReturn('uuid-pref');
+            ->willReturnCallback(function ($uid, $app, $key, $default) {
+                if ($key === DashboardService::DEFAULT_DASHBOARD_UUID_PREF_KEY) {
+                    return '';
+                }
+                if ($key === DashboardService::ACTIVE_DASHBOARD_UUID_PREF_KEY) {
+                    return 'uuid-pref';
+                }
+                return $default;
+            });
 
         // Pure read: never delete on a hit.
         $this->config->expects($this->never())->method('deleteUserValue');
@@ -229,9 +240,19 @@ class DashboardServiceActiveResolutionTest extends TestCase
             ['dashboard' => $groupDefault, 'source' => Dashboard::SOURCE_GROUP],
         ]);
 
+        // Wave3.7: keep the default-key read empty so the stale-pref
+        // exercise applies to the active-key path the test was written for.
         $this->config
             ->method('getUserValue')
-            ->willReturn('stale-uuid');
+            ->willReturnCallback(function ($uid, $app, $key, $default) {
+                if ($key === DashboardService::DEFAULT_DASHBOARD_UUID_PREF_KEY) {
+                    return '';
+                }
+                if ($key === DashboardService::ACTIVE_DASHBOARD_UUID_PREF_KEY) {
+                    return 'stale-uuid';
+                }
+                return $default;
+            });
 
         $this->config
             ->expects($this->once())
@@ -471,9 +492,19 @@ class DashboardServiceActiveResolutionTest extends TestCase
             ['dashboard' => $current, 'source' => Dashboard::SOURCE_GROUP],
         ]);
 
+        // Wave3.7: keep default-key empty so the stale exercise applies
+        // to the active-key path only.
         $this->config
             ->method('getUserValue')
-            ->willReturn('uuid-old-engineering');
+            ->willReturnCallback(function ($uid, $app, $key, $default) {
+                if ($key === DashboardService::DEFAULT_DASHBOARD_UUID_PREF_KEY) {
+                    return '';
+                }
+                if ($key === DashboardService::ACTIVE_DASHBOARD_UUID_PREF_KEY) {
+                    return 'uuid-old-engineering';
+                }
+                return $default;
+            });
 
         $this->config
             ->expects($this->once())
@@ -501,7 +532,21 @@ class DashboardServiceActiveResolutionTest extends TestCase
     public function testStalePrefDeletedExactlyOncePerResolve(): void
     {
         $this->stubVisible('alice', []);
-        $this->config->method('getUserValue')->willReturn('stale');
+        // Wave3.7: only the active-key read returns the stale value; the
+        // default-key returns '' so Step 0 is skipped and the assertion
+        // about exactly-one deleteUserValue continues to apply to the
+        // active-key clear.
+        $this->config
+            ->method('getUserValue')
+            ->willReturnCallback(function ($uid, $app, $key, $default) {
+                if ($key === DashboardService::DEFAULT_DASHBOARD_UUID_PREF_KEY) {
+                    return '';
+                }
+                if ($key === DashboardService::ACTIVE_DASHBOARD_UUID_PREF_KEY) {
+                    return 'stale';
+                }
+                return $default;
+            });
 
         $this->config
             ->expects($this->once())

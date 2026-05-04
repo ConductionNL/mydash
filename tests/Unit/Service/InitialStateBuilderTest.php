@@ -108,6 +108,7 @@ class InitialStateBuilderTest extends TestCase
             ->setGroupDashboards($groupDashboards)
             ->setUserDashboards($userDashboards)
             ->setAllowUserDashboards(true)
+            ->setAllowedWidgets(null)
             ->apply();
 
         $this->assertSame($widgets, $sink['widgets']);
@@ -163,6 +164,7 @@ class InitialStateBuilderTest extends TestCase
             ->setGroupDashboards([])
             ->setUserDashboards([])
             ->setAllowUserDashboards(false)
+            ->setAllowedWidgets(null)
             ->apply();
 
         $this->assertArrayHasKey(InitialStateBuilder::KEY_SCHEMA_VERSION, $sink);

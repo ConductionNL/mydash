@@ -35,7 +35,6 @@ use OCA\MyDash\Db\RoleLayoutDefaultMapper;
 use OCA\MyDash\Db\WidgetPlacement;
 use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\IGroupManager;
 use OCP\IUserManager;
 
 /**
@@ -55,19 +54,22 @@ class RoleFeaturePermissionService
     /**
      * Constructor.
      *
-     * @param RoleFeaturePermissionMapper $permissionMapper Permission mapper.
-     * @param RoleLayoutDefaultMapper     $defaultMapper    Layout default mapper.
-     * @param WidgetPlacementMapper       $placementMapper  Widget placement mapper.
-     * @param AdminSettingsService        $adminSettings    Admin settings reader.
-     * @param IGroupManager               $groupManager     Nextcloud group manager.
-     * @param IUserManager                $userManager      Nextcloud user manager.
+     * @param RoleFeaturePermissionMapper $permissionMapper     Permission mapper.
+     * @param RoleLayoutDefaultMapper     $defaultMapper        Layout default mapper.
+     * @param WidgetPlacementMapper       $placementMapper      Widget placement mapper.
+     * @param AdminSettingsService        $adminSettings        Admin settings reader.
+     * @param AdminTemplateService        $adminTemplateService Routing resolver — single
+     *                                                          source of truth for
+     *                                                          `IGroupManager::getUserGroupIds`
+     *                                                          (REQ-TMPL-013).
+     * @param IUserManager                $userManager          Nextcloud user manager.
      */
     public function __construct(
         private readonly RoleFeaturePermissionMapper $permissionMapper,
         private readonly RoleLayoutDefaultMapper $defaultMapper,
         private readonly WidgetPlacementMapper $placementMapper,
         private readonly AdminSettingsService $adminSettings,
-        private readonly IGroupManager $groupManager,
+        private readonly AdminTemplateService $adminTemplateService,
         private readonly IUserManager $userManager,
     ) {
     }//end __construct()
@@ -510,11 +512,16 @@ class RoleFeaturePermissionService
      */
     private function groupIdsForUser(string $userId): array
     {
+        // REQ-TMPL-013: the routing resolver invariant requires every
+        // `getUserGroupIds(...)` call to live inside AdminTemplateService.
+        // Delegating here keeps the role-feature-permission resolver
+        // honest with the grep guard while still letting the service
+        // make a per-user group-membership decision.
         $user = $this->userManager->get(uid: $userId);
         if ($user === null) {
             return [];
         }
 
-        return $this->groupManager->getUserGroupIds(user: $user);
+        return $this->adminTemplateService->getUserGroupIdsFor(userId: $userId);
     }//end groupIdsForUser()
 }//end class
