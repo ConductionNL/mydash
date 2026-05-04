@@ -18,23 +18,23 @@ jobs:
       enable-phpmetrics: true
       enable-frontend: true
       enable-eslint: true
-      # Hard gates wired in wave3.10..3.11:
-      #   - PHPUnit (3.10) — `phpunit.xml` rename (was phpunit-unit.xml)
-      #     plus a `$roleFeaturePerm` nullable shim so existing PHPUnit
+      # Hard gate wired in wave3.10:
+      #   - PHPUnit — `phpunit.xml` rename (was phpunit-unit.xml) plus
+      #     a `$roleFeaturePerm` nullable shim so existing PHPUnit
       #     fixtures keep building. 4-way matrix (PHP 8.3/8.4 × NC
       #     stable31/stable32) all green.
-      #   - Playwright (3.11) — the shared job runs `npm ci` +
-      #     `playwright install` but never `npm run build`. The bundle
-      #     `js/mydash-main.js` therefore wouldn't exist on a fresh CI
-      #     runner, the page would 404 the script tag, and every spec
-      #     would time out on `.mydash-sidebar-toggle`. The Playwright
-      #     `globalSetup` (tests/e2e/global-setup.ts) now detects the
-      #     missing bundle and runs `npm run build` once before specs
-      #     start. Local runs short-circuit when the bundle is already
-      #     on disk (no rebuild penalty).
       #
-      # Newman is still disabled — the postman collection has
-      # pre-existing assertion drift (e.g. an endpoint returns 204
-      # where the test expects [400, 403, 404]). Tracked separately.
+      # Playwright + Newman remain disabled:
+      #   - Playwright: this branch ALSO landed the
+      #     `tests/e2e/global-setup.ts` `ensureBundleBuilt()` helper —
+      #     a future-prep change so when the shared workflow's
+      #     PHP-built-in-server lifetime is fixed (cross-repo PR to
+      #     `ConductionNL/.github`), flipping the gate Just Works.
+      #     Today the server appears to die between the build step and
+      #     the spec phase — every spec times out on
+      #     `.mydash-sidebar-toggle` even though the bundle compiles
+      #     successfully. Locally `npx playwright test` still passes
+      #     against the dev container.
+      #   - Newman: postman collection has pre-existing assertion
+      #     drift; needs its own sweep.
       enable-phpunit: true
-      enable-playwright: true
