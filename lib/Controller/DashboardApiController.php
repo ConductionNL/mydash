@@ -242,7 +242,11 @@ class DashboardApiController extends Controller
         }
 
         $dashboard = $result['dashboard'];
-        $isOwner = ($dashboard->getUserId() === $this->userId);
+        $isOwner   = ($dashboard->getUserId() === $this->userId);
+        $sharedBy  = null;
+        if ($isOwner === false) {
+            $sharedBy = $dashboard->getUserId();
+        }
 
         return ResponseHelper::success(
             data: [
@@ -252,7 +256,7 @@ class DashboardApiController extends Controller
                 ),
                 'permissionLevel' => $result['permissionLevel'],
                 'isOwner'         => $isOwner,
-                'sharedBy'        => ($isOwner === false ? $dashboard->getUserId() : null),
+                'sharedBy'        => $sharedBy,
             ]
         );
     }//end show()

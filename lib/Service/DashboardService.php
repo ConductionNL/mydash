@@ -259,11 +259,11 @@ class DashboardService
         // entity — calling `getId()` on the wrapper triggers the
         // "member function on array" fatal that broke the switch flow
         // when this method first shipped.
-        $visible = $this->getVisibleToUser(userId: $userId);
+        $visible   = $this->getVisibleToUser(userId: $userId);
         $dashboard = null;
         foreach ($visible as $entry) {
-            $candidate = $entry['dashboard'] ?? null;
-            if ($candidate !== null && $candidate->getId() === $dashboardId) {
+            $candidate = $entry['dashboard'];
+            if ($candidate->getId() === $dashboardId) {
                 $dashboard = $candidate;
                 break;
             }
