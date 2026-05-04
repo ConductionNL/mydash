@@ -132,7 +132,7 @@ class DebounceHelper
     {
         $now = ($this->clock)();
 
-        if (function_exists(function: 'apcu_add') === true && function_exists(function: 'apcu_exists') === true) {
+        if ($this->apcuUsable() === true) {
             // `apcu_add` returns false when the key already exists,
             // which is exactly the semantics we want for a debounce
             // claim. The TTL is enforced by APCu itself.
@@ -154,4 +154,34 @@ class DebounceHelper
         $this->memory[$key] = ($now + self::TTL_SECONDS);
         return true;
     }//end claim()
+
+    /**
+     * True when APCu is actually usable for debounce claims.
+     *
+     * `function_exists('apcu_add')` alone is not enough — the function
+     * is loaded by the extension even when APCu is disabled at runtime
+     * (most notably under CLI when `apc.enable_cli=0`), in which case
+     * `apcu_add()` silently returns false on every call. That breaks
+     * the debounce semantics: the helper would treat every claim as
+     * "already taken" and reject every emission.
+     *
+     * `apcu_enabled()` was introduced in APCu 4.0.5 specifically for
+     * this gate; when it's available we trust it. When it isn't (very
+     * old APCu builds), fall back to the existence check + an
+     * `ini_get('apc.enabled')` probe.
+     *
+     * @return bool True when APCu is loaded AND enabled at runtime.
+     */
+    private function apcuUsable(): bool
+    {
+        if (function_exists(function: 'apcu_add') === false || function_exists(function: 'apcu_exists') === false) {
+            return false;
+        }
+
+        if (function_exists(function: 'apcu_enabled') === true) {
+            return (bool) apcu_enabled();
+        }
+
+        return (bool) ini_get(option: 'apc.enabled');
+    }//end apcuUsable()
 }//end class

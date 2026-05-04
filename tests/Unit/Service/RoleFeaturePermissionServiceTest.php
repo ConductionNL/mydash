@@ -201,7 +201,7 @@ class RoleFeaturePermissionServiceTest extends TestCase
             ->willReturn(value: ['existing-placement']);
 
         // No mapper / group manager calls expected because the guard fires first.
-        $this->defaultMapper->expects(invocationOrder: $this->never())
+        $this->defaultMapper->expects($this->never())
             ->method('findByGroupId');
 
         $created = $this->service->seedLayoutFromRoleDefaults(
@@ -244,7 +244,7 @@ class RoleFeaturePermissionServiceTest extends TestCase
         $this->defaultMapper->method('findByGroupId')
             ->willReturn(value: [$rld]);
 
-        $this->placementMapper->expects(invocationOrder: $this->once())
+        $this->placementMapper->expects($this->once())
             ->method('insert');
 
         $created = $this->service->seedLayoutFromRoleDefaults(
