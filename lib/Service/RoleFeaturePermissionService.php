@@ -39,6 +39,12 @@ use OCP\IGroupManager;
 use OCP\IUserManager;
 
 /**
+ * Service for the role-based-content / role-feature-permissions feature.
+ *
+ * Owns CRUD over the `RoleFeaturePermission` and `RoleLayoutDefault`
+ * tables and exposes the per-user widget allow-list resolver consumed
+ * by `WidgetApiController` and `PageController`.
+ *
  * @spec openspec/changes/role-based-content/tasks.md#task-2
  *
  * All public methods are stateless — no per-request memoisation. Caller
@@ -115,28 +121,54 @@ class RoleFeaturePermissionService
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
             $entity->setName((string) $data['name']);
         }
+
         if (array_key_exists(key: 'description', array: $data) === true) {
+            $description = null;
+            if ($data['description'] !== null) {
+                $description = (string) $data['description'];
+            }
+
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
-            $entity->setDescription($data['description'] !== null ? (string) $data['description'] : null);
+            $entity->setDescription($description);
         }
+
         if (array_key_exists(key: 'allowedWidgets', array: $data) === true) {
-            $allowed = is_array(value: $data['allowedWidgets']) === true ? $data['allowedWidgets'] : [];
+            $allowed = [];
+            if (is_array(value: $data['allowedWidgets']) === true) {
+                $allowed = $data['allowedWidgets'];
+            }
+
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
             $entity->setAllowedWidgets(json_encode(value: array_values(array: $allowed)));
         }
+
         if (array_key_exists(key: 'deniedWidgets', array: $data) === true) {
-            $denied = is_array(value: $data['deniedWidgets']) === true ? $data['deniedWidgets'] : [];
+            $denied = [];
+            if (is_array(value: $data['deniedWidgets']) === true) {
+                $denied = $data['deniedWidgets'];
+            }
+
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
             $entity->setDeniedWidgets(json_encode(value: array_values(array: $denied)));
         }
+
         if (array_key_exists(key: 'priorityWeights', array: $data) === true) {
-            $weights = is_array(value: $data['priorityWeights']) === true ? $data['priorityWeights'] : [];
+            $weights = [];
+            if (is_array(value: $data['priorityWeights']) === true) {
+                $weights = $data['priorityWeights'];
+            }
+
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
             $entity->setPriorityWeights(json_encode(value: $weights));
         }
+
         // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
         $entity->setUpdatedAt((new DateTime())->format(format: 'c'));
 
+        // Entity::getId() can return null when the row hasn't been
+        // persisted yet (REQ-RFP-007 — upsert semantics). PHPStan's
+        // PHPDoc says `int` but the runtime allows null until insert.
+        // @phpstan-ignore-next-line identical.alwaysFalse — null on insert, ok.
         if ($entity->getId() === null) {
             return $this->permissionMapper->insert(entity: $entity);
         }
@@ -196,37 +228,57 @@ class RoleFeaturePermissionService
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
             $entity->setName((string) $data['name']);
         }
+
         if (array_key_exists(key: 'description', array: $data) === true) {
+            $description = null;
+            if ($data['description'] !== null) {
+                $description = (string) $data['description'];
+            }
+
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
-            $entity->setDescription($data['description'] !== null ? (string) $data['description'] : null);
+            $entity->setDescription($description);
         }
+
         if (array_key_exists(key: 'gridX', array: $data) === true) {
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
             $entity->setGridX((int) $data['gridX']);
         }
+
         if (array_key_exists(key: 'gridY', array: $data) === true) {
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
             $entity->setGridY((int) $data['gridY']);
         }
+
         if (array_key_exists(key: 'gridWidth', array: $data) === true) {
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
             $entity->setGridWidth(max(1, (int) $data['gridWidth']));
         }
+
         if (array_key_exists(key: 'gridHeight', array: $data) === true) {
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
             $entity->setGridHeight(max(1, (int) $data['gridHeight']));
         }
+
         if (array_key_exists(key: 'sortOrder', array: $data) === true) {
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
             $entity->setSortOrder((int) $data['sortOrder']);
         }
+
         if (array_key_exists(key: 'isCompulsory', array: $data) === true) {
+            $isCompulsory = 0;
+            if ((bool) $data['isCompulsory'] === true) {
+                $isCompulsory = 1;
+            }
+
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
-            $entity->setIsCompulsory(((bool) $data['isCompulsory']) === true ? 1 : 0);
+            $entity->setIsCompulsory($isCompulsory);
         }
+
         // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
         $entity->setUpdatedAt((new DateTime())->format(format: 'c'));
 
+        // Same upsert semantics as above — null-on-insert tolerated.
+        // @phpstan-ignore-next-line identical.alwaysFalse — null on insert, ok.
         if ($entity->getId() === null) {
             return $this->defaultMapper->insert(entity: $entity);
         }
@@ -293,10 +345,12 @@ class RoleFeaturePermissionService
             if (in_array(needle: $gid, haystack: $userGroups, strict: true) === false) {
                 continue;
             }
+
             if (array_key_exists(key: $gid, array: $byGid) === false) {
                 continue;
             }
-            $row     = $byGid[$gid];
+
+            $row      = $byGid[$gid];
             $rowAllow = $row->getAllowedWidgetsDecoded();
             $rowDeny  = $row->getDeniedWidgetsDecoded();
             if ($base === null) {
@@ -307,6 +361,7 @@ class RoleFeaturePermissionService
                     array: array_unique(array: array_merge($allowed, $rowAllow))
                 );
             }
+
             $denied = array_values(
                 array: array_unique(array: array_merge($denied, $rowDeny))
             );
@@ -378,6 +433,7 @@ class RoleFeaturePermissionService
             if (in_array(needle: $gid, haystack: $userGroups, strict: true) === false) {
                 continue;
             }
+
             $defaults = $this->defaultMapper->findByGroupId(groupId: $gid);
             if (count(value: $defaults) > 0) {
                 break;

@@ -140,7 +140,11 @@ class RoleFeaturePermission extends Entity implements JsonSerializable
         }
 
         $decoded = json_decode(json: $this->allowedWidgets, associative: true);
-        return is_array($decoded) === true ? array_values(array: $decoded) : [];
+        if (is_array($decoded) === false) {
+            return [];
+        }
+
+        return array_values(array: $decoded);
     }//end getAllowedWidgetsDecoded()
 
     /**
@@ -155,7 +159,11 @@ class RoleFeaturePermission extends Entity implements JsonSerializable
         }
 
         $decoded = json_decode(json: $this->deniedWidgets, associative: true);
-        return is_array($decoded) === true ? array_values(array: $decoded) : [];
+        if (is_array($decoded) === false) {
+            return [];
+        }
+
+        return array_values(array: $decoded);
     }//end getDeniedWidgetsDecoded()
 
     /**
@@ -170,7 +178,11 @@ class RoleFeaturePermission extends Entity implements JsonSerializable
         }
 
         $decoded = json_decode(json: $this->priorityWeights, associative: true);
-        return is_array($decoded) === true ? $decoded : [];
+        if (is_array($decoded) === false) {
+            return [];
+        }
+
+        return $decoded;
     }//end getPriorityWeightsDecoded()
 
     /**
@@ -181,15 +193,15 @@ class RoleFeaturePermission extends Entity implements JsonSerializable
     public function jsonSerialize(): array
     {
         return [
-            'id'               => $this->getId(),
-            'name'             => $this->name,
-            'description'      => $this->description,
-            'groupId'          => $this->groupId,
-            'allowedWidgets'   => $this->getAllowedWidgetsDecoded(),
-            'deniedWidgets'    => $this->getDeniedWidgetsDecoded(),
-            'priorityWeights'  => (object) $this->getPriorityWeightsDecoded(),
-            'createdAt'        => $this->createdAt,
-            'updatedAt'        => $this->updatedAt,
+            'id'              => $this->getId(),
+            'name'            => $this->name,
+            'description'     => $this->description,
+            'groupId'         => $this->groupId,
+            'allowedWidgets'  => $this->getAllowedWidgetsDecoded(),
+            'deniedWidgets'   => $this->getDeniedWidgetsDecoded(),
+            'priorityWeights' => (object) $this->getPriorityWeightsDecoded(),
+            'createdAt'       => $this->createdAt,
+            'updatedAt'       => $this->updatedAt,
         ];
     }//end jsonSerialize()
 }//end class

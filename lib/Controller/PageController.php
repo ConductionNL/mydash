@@ -56,18 +56,21 @@ class PageController extends Controller
     /**
      * Constructor.
      *
-     * @param IRequest             $request              The request.
-     * @param IManager             $dashboardManager     Nextcloud dashboard widget manager.
-     * @param IInitialState        $initialState         The Nextcloud initial-state service.
-     * @param IUserSession         $userSession          Active user session.
-     * @param WidgetService        $widgetService        Available-widgets descriptor formatter.
-     * @param DashboardService     $dashboardService     Dashboard listing + resolver
-     *                                                   (also exposes the
-     *                                                   `allow_user_dashboards` flag
-     *                                                   — REQ-ASET-003).
-     * @param AdminTemplateService $adminTemplateService Primary-group routing
-     *                                                   resolver (REQ-TMPL-012,
-     *                                                   REQ-TMPL-013).
+     * @param IRequest                     $request              The request.
+     * @param IManager                     $dashboardManager     Nextcloud dashboard widget manager.
+     * @param IInitialState                $initialState         The Nextcloud initial-state service.
+     * @param IUserSession                 $userSession          Active user session.
+     * @param WidgetService                $widgetService        Available-widgets descriptor formatter.
+     * @param DashboardService             $dashboardService     Dashboard listing + resolver
+     *                                                           (also exposes the
+     *                                                           `allow_user_dashboards` flag
+     *                                                           — REQ-ASET-003).
+     * @param AdminTemplateService         $adminTemplateService Primary-group routing
+     *                                                           resolver (REQ-TMPL-012,
+     *                                                           REQ-TMPL-013).
+     * @param RoleFeaturePermissionService $roleFeaturePerm      Per-user widget
+     *                                                           allow-list source
+     *                                                           (REQ-RFP-009..010).
      */
     public function __construct(
         IRequest $request,
@@ -203,14 +206,19 @@ class PageController extends Controller
             ->setDashboardSource($dashboardSource)
             ->setGroupDashboards($groupDashboards)
             ->setUserDashboards($userDashboards)
-            ->setAllowUserDashboards($allowUserDashboards)
-            // PR #95 (role-based-content): per-user widget allow-list.
-            // `null` = no admin policy for this user (unlimited).
-            ->setAllowedWidgets(
-                $userId !== null
-                    ? $this->roleFeaturePerm->getAllowedWidgetIds(userId: $userId)
-                    : null
-            )
+            ->setAllowUserDashboards($allowUserDashboards);
+
+        // PR #95 (role-based-content): per-user widget allow-list.
+        // `null` = no admin policy for this user (unlimited).
+        $allowedWidgets = null;
+        if ($userId !== '') {
+            $allowedWidgets = $this->roleFeaturePerm->getAllowedWidgetIds(
+                userId: $userId
+            );
+        }
+
+        $builder
+            ->setAllowedWidgets($allowedWidgets)
             ->apply();
 
         // REQ-SHELL-001: pass the chrome slot ids so Nextcloud treats

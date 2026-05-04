@@ -43,9 +43,9 @@ class RoleFeaturePermissionApiController extends Controller
     /**
      * Constructor.
      *
-     * @param IRequest                     $request    The HTTP request.
-     * @param RoleFeaturePermissionService $service    Permission service.
-     * @param IGroupManager                $groupMgr   Group manager (admin guard).
+     * @param IRequest                     $request     The HTTP request.
+     * @param RoleFeaturePermissionService $service     Permission service.
+     * @param IGroupManager                $groupMgr    Group manager (admin guard).
      * @param IUserSession                 $userSession The current user session.
      */
     public function __construct(
@@ -67,7 +67,8 @@ class RoleFeaturePermissionApiController extends Controller
      */
     public function listPermissions(): JSONResponse
     {
-        if (($guard = $this->requireAdmin()) !== null) {
+        $guard = $this->requireAdmin();
+        if ($guard !== null) {
             return $guard;
         }
 
@@ -87,7 +88,8 @@ class RoleFeaturePermissionApiController extends Controller
      */
     public function savePermission(): JSONResponse
     {
-        if (($guard = $this->requireAdmin()) !== null) {
+        $guard = $this->requireAdmin();
+        if ($guard !== null) {
             return $guard;
         }
 
@@ -117,7 +119,8 @@ class RoleFeaturePermissionApiController extends Controller
      */
     public function deletePermission(int $id): JSONResponse
     {
-        if (($guard = $this->requireAdmin()) !== null) {
+        $guard = $this->requireAdmin();
+        if ($guard !== null) {
             return $guard;
         }
 
@@ -139,7 +142,8 @@ class RoleFeaturePermissionApiController extends Controller
      */
     public function listLayoutDefaults(): JSONResponse
     {
-        if (($guard = $this->requireAdmin()) !== null) {
+        $guard = $this->requireAdmin();
+        if ($guard !== null) {
             return $guard;
         }
 
@@ -156,7 +160,8 @@ class RoleFeaturePermissionApiController extends Controller
      */
     public function saveLayoutDefault(): JSONResponse
     {
-        if (($guard = $this->requireAdmin()) !== null) {
+        $guard = $this->requireAdmin();
+        if ($guard !== null) {
             return $guard;
         }
 
@@ -186,7 +191,8 @@ class RoleFeaturePermissionApiController extends Controller
      */
     public function deleteLayoutDefault(int $id): JSONResponse
     {
-        if (($guard = $this->requireAdmin()) !== null) {
+        $guard = $this->requireAdmin();
+        if ($guard !== null) {
             return $guard;
         }
 

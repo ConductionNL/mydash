@@ -10,7 +10,7 @@
  */
 
 import { defineStore } from 'pinia'
-import { generateOcsUrl, generateUrl } from '@nextcloud/router'
+import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
 
 const PERMS_URL = generateUrl('/apps/mydash/api/role-feature-permissions')

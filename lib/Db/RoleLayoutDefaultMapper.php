@@ -24,6 +24,7 @@ namespace OCA\MyDash\Db;
 
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\QBMapper;
+use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
 /**
@@ -46,6 +47,33 @@ class RoleLayoutDefaultMapper extends QBMapper
             entityClass: RoleLayoutDefault::class
         );
     }//end __construct()
+
+    /**
+     * Find a layout-default row by primary key id.
+     *
+     * @param int $id The row id.
+     *
+     * @return RoleLayoutDefault The found row.
+     *
+     * @throws DoesNotExistException When no row with that id exists.
+     */
+    public function find(int $id): RoleLayoutDefault
+    {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select(selects: '*')
+            ->from(from: $this->getTableName())
+            ->where(
+                $qb->expr()->eq(
+                    x: 'id',
+                    y: $qb->createNamedParameter(
+                        value: $id,
+                        type: IQueryBuilder::PARAM_INT
+                    )
+                )
+            );
+
+        return $this->findEntity(query: $qb);
+    }//end find()
 
     /**
      * List all default layout rows ordered by group then sort_order.

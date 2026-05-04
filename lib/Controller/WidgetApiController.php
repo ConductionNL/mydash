@@ -32,7 +32,6 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
-use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
@@ -56,7 +55,6 @@ class WidgetApiController extends Controller
      * @param CalendarWidgetService        $calendarWidgetService  The calendar widget service (REQ-CAL-003).
      * @param WidgetPlacementService       $widgetPlacementService Placement-payload validators (REQ-CONT-006).
      * @param RoleFeaturePermissionService $roleFeaturePerm        Role-feature filter (REQ-RFP-001..010).
-     * @param LoggerInterface              $logger                 Logger (for audit).
      * @param string|null                  $userId                 The user ID.
      */
     public function __construct(
@@ -67,7 +65,6 @@ class WidgetApiController extends Controller
         private readonly CalendarWidgetService $calendarWidgetService,
         private readonly WidgetPlacementService $widgetPlacementService,
         private readonly RoleFeaturePermissionService $roleFeaturePerm,
-        private readonly LoggerInterface $logger,
         private readonly ?string $userId,
     ) {
         parent::__construct(

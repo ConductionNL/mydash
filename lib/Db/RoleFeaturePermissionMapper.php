@@ -49,6 +49,33 @@ class RoleFeaturePermissionMapper extends QBMapper
     }//end __construct()
 
     /**
+     * Find a permission row by primary key id.
+     *
+     * @param int $id The row id.
+     *
+     * @return RoleFeaturePermission The found row.
+     *
+     * @throws DoesNotExistException When no row with that id exists.
+     */
+    public function find(int $id): RoleFeaturePermission
+    {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select(selects: '*')
+            ->from(from: $this->getTableName())
+            ->where(
+                $qb->expr()->eq(
+                    x: 'id',
+                    y: $qb->createNamedParameter(
+                        value: $id,
+                        type: IQueryBuilder::PARAM_INT
+                    )
+                )
+            );
+
+        return $this->findEntity(query: $qb);
+    }//end find()
+
+    /**
      * Find all RoleFeaturePermission rows.
      *
      * @return RoleFeaturePermission[] All rows ordered by group_id.

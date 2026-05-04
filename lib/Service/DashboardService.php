@@ -162,6 +162,9 @@ class DashboardService
      *                                                               fork name
      *                                                               (REQ-DASH-020).
      * @param LoggerInterface                  $logger               PSR logger.
+     * @param RoleFeaturePermissionService     $roleFeaturePerm      Role-default
+     *                                                               layout seeding
+     *                                                               (REQ-RFP-002).
      * @param DashboardTranslationService|null $translationService   Optional
      *                                                               translation
      *                                                               service
@@ -207,9 +210,6 @@ class DashboardService
      *                                                               compat with
      *                                                               existing
      *                                                               test doubles.
-     * @param RoleFeaturePermissionService     $roleFeaturePerm      Role-default
-     *                                                               layout seeding
-     *                                                               (REQ-RFP-002).
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
@@ -1795,7 +1795,7 @@ class DashboardService
         }
 
         if ($allowUserDashboards === true) {
-            $dashboard  = $this->createDashboard(
+            $dashboard = $this->createDashboard(
                 userId: $userId,
                 name: 'My Dashboard'
             );
@@ -1823,7 +1823,7 @@ class DashboardService
                 'placements'      => $placements,
                 'permissionLevel' => Dashboard::PERMISSION_FULL,
             ];
-        }
+        }//end if
 
         return null;
     }//end tryCreateFromTemplate()

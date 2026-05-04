@@ -57,6 +57,7 @@ use OCP\AppFramework\Db\Entity;
  */
 class RoleLayoutDefault extends Entity implements JsonSerializable
 {
+
     /**
      * Display name (e.g. "Manager — activiteiten").
      *
@@ -88,42 +89,42 @@ class RoleLayoutDefault extends Entity implements JsonSerializable
     /**
      * Column position (0-based).
      *
-     * @var int
+     * @var integer
      */
     protected int $gridX = 0;
 
     /**
      * Row position (0-based).
      *
-     * @var int
+     * @var integer
      */
     protected int $gridY = 0;
 
     /**
      * Widget width in grid columns (min 1).
      *
-     * @var int
+     * @var integer
      */
     protected int $gridWidth = 4;
 
     /**
      * Widget height in grid rows (min 1).
      *
-     * @var int
+     * @var integer
      */
     protected int $gridHeight = 4;
 
     /**
      * Sort order within the layout (lower = rendered first).
      *
-     * @var int
+     * @var integer
      */
     protected int $sortOrder = 0;
 
     /**
      * 0/1 — when 1, the user cannot remove this widget from a seeded layout.
      *
-     * @var int
+     * @var integer
      */
     protected int $isCompulsory = 0;
 
