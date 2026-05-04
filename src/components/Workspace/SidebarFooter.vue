@@ -192,9 +192,17 @@ export default {
 	display: block;
 }
 
-/* Conduction wordmark renders dark on dark NC themes — invert so it
-   reads on either background. */
+/*
+ * The Conduction logo is shipped as a WHITE wordmark on transparent —
+ * designed for dark backgrounds. The Nextcloud `--background-invert-if-bright`
+ * CSS variable resolves to `invert(100%)` on light themes and `no` (i.e.
+ * the fallback `none`) on dark themes. Using it directly inverts on
+ * light (white → black, visible on the white footer) and leaves the
+ * logo untouched on dark themes (white → still white, visible on the
+ * dark footer). No fallback `invert(1)` is needed — and adding one
+ * causes a double-invert that cancels out on light themes.
+ */
 .dashboard-switcher-sidebar-footer__brand-image--invert {
-	filter: var(--background-invert-if-dark, none);
+	filter: var(--background-invert-if-bright, none);
 }
 </style>

@@ -242,29 +242,15 @@ describe('DashboardSwitcherSidebar', () => {
 		})
 	})
 
-	describe('REQ-SWITCH-004 personal-row delete affordance', () => {
-		it('emits delete-dashboard(id) on delete button click', async () => {
+	describe('wave3.3: per-row delete affordance is REMOVED', () => {
+		it('user rows no longer render an inline `__delete` button', () => {
 			const wrapper = mountSidebar({
 				userDashboards: [userRow, userRow2],
 			})
-			const deleteBtn = wrapper.findAll('.dashboard-switcher-sidebar__delete').at(0)
-			await deleteBtn.trigger('click')
-			expect(wrapper.emitted('delete-dashboard')).toBeTruthy()
-			expect(wrapper.emitted('delete-dashboard')[0]).toEqual(['p1'])
+			expect(wrapper.findAll('.dashboard-switcher-sidebar__delete').length).toBe(0)
 		})
 
-		it('delete click does not also emit switch or update:open (@click.stop)', async () => {
-			const wrapper = mountSidebar({
-				userDashboards: [userRow],
-			})
-			const deleteBtn = wrapper.find('.dashboard-switcher-sidebar__delete')
-			await deleteBtn.trigger('click')
-			expect(wrapper.emitted('delete-dashboard')).toBeTruthy()
-			expect(wrapper.emitted('switch')).toBeFalsy()
-			expect(wrapper.emitted('update:open')).toBeFalsy()
-		})
-
-		it('group / default rows have NO delete button', () => {
+		it('group / default rows still have NO delete button', () => {
 			const wrapper = mountSidebar({
 				groupDashboards: [groupRow, defaultRow],
 				userDashboards: [],

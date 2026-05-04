@@ -233,6 +233,57 @@ class DashboardService
     }//end getUserDashboards()
 
     /**
+     * Get a single dashboard with its placements + permission level when
+     * the user is allowed to read it.
+     *
+     * Visibility is delegated to {@see self::getVisibleToUser()} so
+     * ownership, group-share, and publication-state filters all share one
+     * implementation. The returned shape mirrors {@see DashboardResolver::buildResult()}
+     * so the front-end's switch flow consumes the same envelope it gets
+     * from `GET /api/dashboard` (active dashboard).
+     *
+     * @param int    $dashboardId The dashboard ID to load.
+     * @param string $userId      The caller's user ID.
+     *
+     * @return array|null `{dashboard, placements, permissionLevel}` when
+     *                    visible; null when the user has no read access.
+     */
+    public function getDashboardForUser(
+        int $dashboardId,
+        string $userId
+    ): ?array {
+        // `getVisibleToUser` returns entries shaped as
+        // `{dashboard: Dashboard, source: string}` (per
+        // {@see self::filterByPublicationState()} contract). Match on
+        // `dashboard.id` rather than treating the entry itself as an
+        // entity — calling `getId()` on the wrapper triggers the
+        // "member function on array" fatal that broke the switch flow
+        // when this method first shipped.
+        $visible = $this->getVisibleToUser(userId: $userId);
+        $dashboard = null;
+        foreach ($visible as $entry) {
+            $candidate = $entry['dashboard'] ?? null;
+            if ($candidate !== null && $candidate->getId() === $dashboardId) {
+                $dashboard = $candidate;
+                break;
+            }
+        }
+
+        if ($dashboard === null) {
+            return null;
+        }
+
+        $placements = $this->placementMapper->findByDashboardId(
+            dashboardId: $dashboard->getId()
+        );
+
+        return $this->dashResolver->buildResult(
+            dashboard: $dashboard,
+            placements: $placements
+        );
+    }//end getDashboardForUser()
+
+    /**
      * Get the effective dashboard for a user.
      * Returns user's active dashboard or applicable admin template.
      *

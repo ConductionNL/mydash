@@ -202,6 +202,62 @@ class DashboardApiController extends Controller
     }//end getActive()
 
     /**
+     * Get a single dashboard by id with its placements + permission level.
+     *
+     * Powers the front-end's `switchDashboard` flow: clicking a row in the
+     * sidebar issues `GET /api/dashboard/{id}` and the response is the
+     * same envelope shape as {@see self::getActive()}, so the store can
+     * write `activeDashboard`, `widgetPlacements`, and `permissionLevel`
+     * with no per-source branching.
+     *
+     * Returns 404 (not 403) when the dashboard exists but is not visible
+     * to the caller — this matches the `getVisibleToUser` policy and
+     * intentionally does not leak existence (REQ-DASH-020 scenario
+     * "Cannot see what you cannot read").
+     *
+     * @param int $id The dashboard ID.
+     *
+     * @return JSONResponse The dashboard envelope (200) or
+     *                      `{'error': 'Not found'}` (404).
+     *
+     * @spec dashboards:REQ-SWITCH-002
+     */
+    #[NoAdminRequired]
+    public function show(int $id): JSONResponse
+    {
+        if ($this->userId === null) {
+            return ResponseHelper::unauthorized();
+        }
+
+        $result = $this->dashboardService->getDashboardForUser(
+            dashboardId: $id,
+            userId: $this->userId
+        );
+
+        if ($result === null) {
+            return ResponseHelper::success(
+                data: ['error' => 'Not found'],
+                statusCode: Http::STATUS_NOT_FOUND
+            );
+        }
+
+        $dashboard = $result['dashboard'];
+        $isOwner = ($dashboard->getUserId() === $this->userId);
+
+        return ResponseHelper::success(
+            data: [
+                'dashboard'       => $dashboard->jsonSerialize(),
+                'placements'      => ResponseHelper::serializeList(
+                    entities: $result['placements']
+                ),
+                'permissionLevel' => $result['permissionLevel'],
+                'isOwner'         => $isOwner,
+                'sharedBy'        => ($isOwner === false ? $dashboard->getUserId() : null),
+            ]
+        );
+    }//end show()
+
+    /**
      * Create a new dashboard.
      *
      * @param mixed       $name        The dashboard name.

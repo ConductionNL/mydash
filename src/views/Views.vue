@@ -13,14 +13,26 @@
 			:user-dashboards="sidebarUserDashboards"
 			:active-dashboard-id="activeDashboard?.id"
 			:allow-user-dashboards="allowUserDashboards"
+			:is-edit-mode="isEditMode"
+			:can-edit="canEdit"
+			:is-active-owner="activeDashboard?.isOwner !== false"
 			@switch="onSidebarSwitch"
 			@create-dashboard="onSidebarCreateDashboard"
-			@delete-dashboard="onSidebarDeleteDashboard" />
+			@delete-dashboard="onSidebarDeleteDashboard"
+			@toggle-edit="toggleEditMode"
+			@open-config="openConfigModal"
+			@add-custom-widget="openCustomWidgetModal()" />
 		<SidebarBackdrop
 			v-if="sidebarOpen"
 			@close="sidebarOpen = false" />
 
-		<!-- Floating controls in top right -->
+		<!-- Floating controls in top right.
+		     Wave3.3 removed the floating `DashboardConfigMenu` (cog) — its
+		     entries (Edit / Configure / Add widget / Delete) now live in
+		     the left sidebar's header NcActions menu so the per-dashboard
+		     destructive + edit actions sit alongside switching. The
+		     hamburger keeps its place (top-right entry point when the
+		     sidebar is closed). -->
 		<div class="mydash-floating-controls">
 			<NcButton
 				type="secondary"
@@ -43,20 +55,6 @@
 				:title="t('mydash', 'Your primary group for shared dashboards')">
 				{{ primaryGroupLabel }}
 			</div>
-			<!--
-				`runtime-shell-trim` removed the standalone "Active dashboard"
-				`<NcSelect>` switcher (`DashboardSwitcher`). The left sidebar
-				(`dashboard-switcher` capability) is now the only surface for
-				switching between dashboards (REQ-SHELL-004, REQ-SWITCH-002).
-			-->
-			<DashboardConfigMenu
-				:active-dashboard-id="activeDashboard?.id"
-				:is-edit-mode="isEditMode"
-				:can-edit="canEdit"
-				:is-active-owner="activeDashboard?.isOwner !== false"
-				@toggle-edit="toggleEditMode"
-				@open-config="openConfigModal"
-				@add-custom-widget="openCustomWidgetModal()" />
 		</div>
 
 		<!-- Main dashboard grid -->
@@ -169,7 +167,6 @@ import DashboardGrid from '../components/DashboardGrid.vue'
 import WidgetPickerModal from '../components/WidgetPickerModal.vue'
 import WidgetStyleEditor from '../components/WidgetStyleEditor.vue'
 import TileEditor from '../components/TileEditor.vue'
-import DashboardConfigMenu from '../components/DashboardConfigMenu.vue'
 import DashboardConfigModal from '../components/DashboardConfigModal.vue'
 import AddWidgetModal from '../components/Widgets/AddWidgetModal.vue'
 import WidgetContextMenu from '../components/Widgets/WidgetContextMenu.vue'
@@ -196,7 +193,6 @@ export default {
 		WidgetPickerModal,
 		WidgetStyleEditor,
 		TileEditor,
-		DashboardConfigMenu,
 		DashboardConfigModal,
 		AddWidgetModal,
 		WidgetContextMenu,
