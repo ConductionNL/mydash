@@ -127,89 +127,108 @@ class DashboardService
     /**
      * Constructor
      *
-     * @param DashboardMapper                  $dashboardMapper      Dashboard mapper.
-     * @param WidgetPlacementMapper            $placementMapper      Widget placement mapper.
-     * @param AdminSettingMapper               $settingMapper        Admin setting mapper.
-     * @param TemplateService                  $templateService      Template service.
-     * @param DashboardFactory                 $dashboardFactory     Dashboard factory.
-     * @param DashboardResolver                $dashResolver         Dashboard resolver.
-     * @param DashboardTreeService             $treeService          Tree-aware
-     *                                                               validation
-     *                                                               / cascade
-     *                                                               walker
-     *                                                               (REQ-DASH-023..030).
-     * @param IGroupManager                    $groupManager         Group manager (used for
-     *                                                               `isAdmin` only —
-     *                                                               group membership
-     *                                                               lookups go through the
-     *                                                               routing resolver per
-     *                                                               REQ-TMPL-013).
-     * @param AdminTemplateService             $adminTemplateService Routing resolver —
-     *                                                               single source of truth
-     *                                                               for
-     *                                                               `IGroupManager::getUserGroupIds`
-     *                                                               (REQ-TMPL-013).
-     * @param IDBConnection                    $db                   DB connection (for the
-     *                                                               transactional default
-     *                                                               flip —
-     *                                                               REQ-DASH-015).
-     * @param IConfig                          $config               Nextcloud per-user
-     *                                                               preference
-     *                                                               storage.
-     * @param IFactory                         $l10nFactory          L10N factory used to
-     *                                                               build the "My copy
-     *                                                               of {name}" default
-     *                                                               fork name
-     *                                                               (REQ-DASH-020).
-     * @param LoggerInterface                  $logger               PSR logger.
-     * @param RoleFeaturePermissionService     $roleFeaturePerm      Role-default
-     *                                                               layout seeding
-     *                                                               (REQ-RFP-002).
-     * @param DashboardTranslationService|null $translationService   Optional
-     *                                                               translation
-     *                                                               service
-     *                                                               for the
-     *                                                               per-language
-     *                                                               content
-     *                                                               variants
-     *                                                               (REQ-DASH-038..044).
-     *                                                               Nullable
-     *                                                               so
-     *                                                               legacy
-     *                                                               test
-     *                                                               doubles
-     *                                                               constructed
-     *                                                               without
-     *                                                               it keep
-     *                                                               working.
-     * @param DashboardLockMapper|null         $lockMapper           Optional lock
-     *                                                               mapper. When
-     *                                                               provided the
-     *                                                               delete path
-     *                                                               cascades the
-     *                                                               row removal
-     *                                                               to the
-     *                                                               editing-lock
-     *                                                               table per
-     *                                                               REQ-LOCK-008.
-     *                                                               Nullable to
-     *                                                               keep the
-     *                                                               constructor
-     *                                                               backwards-
-     *                                                               compatible
-     *                                                               with existing
-     *                                                               unit tests.
-     * @param FooterService|null               $footerService        Optional
-     *                                                               per-dashboard
-     *                                                               footer
-     *                                                               sanitiser +
-     *                                                               resolver
-     *                                                               (REQ-FTR-006).
-     *                                                               Nullable for
-     *                                                               backwards-
-     *                                                               compat with
-     *                                                               existing
-     *                                                               test doubles.
+     * @param DashboardMapper                   $dashboardMapper      Dashboard mapper.
+     * @param WidgetPlacementMapper             $placementMapper      Widget placement mapper.
+     * @param AdminSettingMapper                $settingMapper        Admin setting mapper.
+     * @param TemplateService                   $templateService      Template service.
+     * @param DashboardFactory                  $dashboardFactory     Dashboard factory.
+     * @param DashboardResolver                 $dashResolver         Dashboard resolver.
+     * @param DashboardTreeService              $treeService          Tree-aware
+     *                                                                validation
+     *                                                                / cascade
+     *                                                                walker
+     *                                                                (REQ-DASH-023..030).
+     * @param IGroupManager                     $groupManager         Group manager (used for
+     *                                                                `isAdmin` only —
+     *                                                                group membership
+     *                                                                lookups go through the
+     *                                                                routing resolver per
+     *                                                                REQ-TMPL-013).
+     * @param AdminTemplateService              $adminTemplateService Routing resolver
+     *                                                                — single source
+     *                                                                of truth for
+     *                                                                `IGroupManager::getUserGroupIds`
+     *                                                                (REQ-TMPL-013).
+     * @param IDBConnection                     $db                   DB connection (for the
+     *                                                                transactional default
+     *                                                                flip —
+     *                                                                REQ-DASH-015).
+     * @param IConfig                           $config               Nextcloud per-user
+     *                                                                preference
+     *                                                                storage.
+     * @param IFactory                          $l10nFactory          L10N factory used to
+     *                                                                build the "My copy
+     *                                                                of {name}" default
+     *                                                                fork name
+     *                                                                (REQ-DASH-020).
+     * @param LoggerInterface                   $logger               PSR logger.
+     * @param DashboardTranslationService|null  $translationService   Optional
+     *                                                                translation
+     *                                                                service
+     *                                                                for the
+     *                                                                per-language
+     *                                                                content
+     *                                                                variants
+     *                                                                (REQ-DASH-038..044).
+     *                                                                Nullable
+     *                                                                so
+     *                                                                legacy
+     *                                                                test
+     *                                                                doubles
+     *                                                                constructed
+     *                                                                without
+     *                                                                it keep
+     *                                                                working.
+     * @param DashboardLockMapper|null          $lockMapper           Optional lock
+     *                                                                mapper. When
+     *                                                                provided the
+     *                                                                delete path
+     *                                                                cascades the
+     *                                                                row removal
+     *                                                                to the
+     *                                                                editing-lock
+     *                                                                table per
+     *                                                                REQ-LOCK-008.
+     *                                                                Nullable to
+     *                                                                keep the
+     *                                                                constructor
+     *                                                                backwards-
+     *                                                                compatible
+     *                                                                with existing
+     *                                                                unit tests.
+     * @param FooterService|null                $footerService        Optional
+     *                                                                per-dashboard
+     *                                                                footer
+     *                                                                sanitiser
+     *                                                                +
+     *                                                                resolver
+     *                                                                (REQ-FTR-006).
+     *                                                                Nullable
+     *                                                                for
+     *                                                                backwards-
+     *                                                                compat
+     *                                                                with
+     *                                                                existing
+     *                                                                test
+     *                                                                doubles.
+     * @param RoleFeaturePermissionService|null $roleFeaturePerm      Role-default
+     *                                                                layout
+     *                                                                seeding
+     *                                                                (REQ-RFP-002).
+     *                                                                Nullable to
+     *                                                                keep legacy
+     *                                                                PHPUnit
+     *                                                                doubles
+     *                                                                working —
+     *                                                                the
+     *                                                                seedLayoutFromRoleDefaults
+     *                                                                call site
+     *                                                                below guards
+     *                                                                on null and
+     *                                                                degrades to
+     *                                                                the original
+     *                                                                no- op
+     *                                                                behaviour.
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
@@ -225,10 +244,10 @@ class DashboardService
         private readonly IConfig $config,
         private readonly IFactory $l10nFactory,
         private readonly LoggerInterface $logger,
-        private readonly RoleFeaturePermissionService $roleFeaturePerm,
         private readonly ?DashboardTranslationService $translationService=null,
         private readonly ?DashboardLockMapper $lockMapper=null,
         private readonly ?FooterService $footerService=null,
+        private readonly ?RoleFeaturePermissionService $roleFeaturePerm=null,
     ) {
     }//end __construct()
 
@@ -1804,10 +1823,17 @@ class DashboardService
             // from the user's RoleLayoutDefault rows. Only fall back to the
             // hardcoded recommendations + activity pair when no role-defaults
             // exist for any of the user's groups (or the user is in no group).
-            $seeded = $this->roleFeaturePerm->seedLayoutFromRoleDefaults(
-                userId: $userId,
-                dashboard: $dashboard
-            );
+            // The dependency is nullable to keep legacy PHPUnit doubles (built
+            // before role-based-content shipped) working — when null we treat
+            // it as "no defaults seeded" so the legacy hardcoded fallback runs.
+            $seeded = false;
+            if ($this->roleFeaturePerm !== null) {
+                $seeded = $this->roleFeaturePerm->seedLayoutFromRoleDefaults(
+                    userId: $userId,
+                    dashboard: $dashboard
+                );
+            }
+
             if ($seeded > 0) {
                 $placements = $this->placementMapper->findByDashboardId(
                     dashboardId: $dashboard->getId()
