@@ -18,10 +18,19 @@ jobs:
       enable-phpmetrics: true
       enable-frontend: true
       enable-eslint: true
-      # PHPUnit + Newman + Playwright stay disabled here for now —
-      # see the wave3.5 follow-up note. Local runs of all three pass;
-      # the shared `ConductionNL/.github` quality.yml runner needs
-      # additional setup steps (occ app:enable mydash, fixture seed,
-      # CSRF-aware login) before any of them can run green on a fresh
-      # CI VM. Tracked separately so it doesn't block wave3 e2e
-      # coverage from landing.
+      # Hard gate added wave3.10: PHPUnit. The shared workflow runs
+      # `./vendor/bin/phpunit -c phpunit.xml`; mydash historically
+      # used `phpunit-unit.xml` so the validation step accepted the
+      # name but the run step failed with "Could not read XML from
+      # file `phpunit.xml`". This branch renames the file to
+      # `phpunit.xml` so the run step works without a cross-repo
+      # input change to `ConductionNL/.github/quality.yml`. The
+      # composer scripts that drive local runs (`test`, `test:unit`,
+      # `test:all`, `test:coverage`) were updated in the same commit.
+      #
+      # Newman + Playwright are still disabled — the postman
+      # collection has pre-existing assertion drift, and the shared
+      # Playwright job needs an `occ app:enable mydash` + fixture
+      # seed step before specs run on a fresh CI VM. Tracked
+      # separately as their own follow-up commits.
+      enable-phpunit: true
