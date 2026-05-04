@@ -23,7 +23,7 @@
 		<!-- Floating controls in top right -->
 		<div class="mydash-floating-controls">
 			<NcButton
-				type="tertiary"
+				type="secondary"
 				:aria-label="t('mydash', 'Dashboards')"
 				class="mydash-sidebar-toggle"
 				@click="sidebarOpen = !sidebarOpen">
@@ -31,14 +31,14 @@
 					<MenuIcon :size="20" />
 				</template>
 			</NcButton>
-			<!-- Primary-group label (REQ-TMPL-012). Surfaces the resolved
-			     primary group's display name so the user can see which
-			     group's dashboards they are currently viewing. The label
-			     is hidden when the resolver returned the `default`
-			     sentinel AND no friendly name was pushed (avoids a noisy
-			     "Default" badge for one-group installations). -->
+			<!-- Primary-group label (REQ-TMPL-012) is suppressed for the
+			     `default` sentinel — REQ-TMPL-012 documents the literal
+			     'Default' as the absence of a configured primary group, so
+			     surfacing it adds noise without information. The label
+			     remains visible whenever a real Nextcloud group display
+			     name is resolved. -->
 			<div
-				v-if="primaryGroupLabel"
+				v-if="primaryGroupLabel && primaryGroupLabel !== 'Default'"
 				class="mydash-primary-group-label"
 				:title="t('mydash', 'Your primary group for shared dashboards')">
 				{{ primaryGroupLabel }}

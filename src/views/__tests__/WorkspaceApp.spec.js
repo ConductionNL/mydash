@@ -123,31 +123,43 @@ describe('WorkspaceApp', () => {
 		expect(wrapper.vm.saving).toBeUndefined()
 	})
 
-	it('REQ-SHELL-004: hamburger toggles sidebar state', async () => {
+	it('REQ-SHELL-004: title strip is hidden when sidebar is closed', () => {
 		const wrapper = mountShell({ inject: { activeDashboardId: 'd1' } })
+		// Default state: sidebar closed → strip should NOT render.
 		expect(wrapper.vm.sidebarOpen).toBe(false)
-		await wrapper.find('.workspace-shell__hamburger').trigger('click')
-		expect(wrapper.vm.sidebarOpen).toBe(true)
-		await wrapper.find('.workspace-shell__hamburger').trigger('click')
-		expect(wrapper.vm.sidebarOpen).toBe(false)
+		expect(wrapper.find('.workspace-shell__strip').exists()).toBe(false)
+		expect(wrapper.find('.workspace-shell__hamburger').exists()).toBe(false)
+		expect(wrapper.find('.workspace-shell__title').exists()).toBe(false)
 	})
 
-	it('REQ-SHELL-004: hamburger renders as NcButton type="tertiary"', () => {
+	it('REQ-SHELL-004: title strip with hamburger appears when sidebar is open', async () => {
 		const wrapper = mountShell({ inject: { activeDashboardId: 'd1' } })
+		// Open the sidebar via the exposed setter on the component.
+		wrapper.vm.sidebarOpen = true
+		await wrapper.vm.$nextTick()
+		const strip = wrapper.find('.workspace-shell__strip')
+		expect(strip.exists()).toBe(true)
 		const hamburger = wrapper.find('.workspace-shell__hamburger')
 		expect(hamburger.exists()).toBe(true)
-		// The stubbed NcButton mirrors the `type` prop onto a data
-		// attribute so we can assert on the variant the shell selected.
+		// Stubbed NcButton mirrors the `type` prop onto a data attribute
+		// so we can assert on the variant the shell selected.
 		expect(hamburger.attributes('data-nc-button-type')).toBe('tertiary')
+		// Clicking the in-strip hamburger closes the sidebar (it's the only
+		// affordance available while the strip is mounted).
+		await hamburger.trigger('click')
+		expect(wrapper.vm.sidebarOpen).toBe(false)
 	})
 
-	it('REQ-SHELL-004: title strip shows dashboard name as a heading, NOT as a select', () => {
+	it('REQ-SHELL-004: title strip shows dashboard name as a heading, NOT as a select', async () => {
 		const wrapper = mountShell({
 			inject: {
 				activeDashboardId: 'd1',
 				userDashboards: [{ id: 'd1', name: 'Marketing Overview' }],
 			},
 		})
+		// Title only renders when the sidebar is open.
+		wrapper.vm.sidebarOpen = true
+		await wrapper.vm.$nextTick()
 		const title = wrapper.find('.workspace-shell__title')
 		expect(title.exists()).toBe(true)
 		expect(title.element.tagName).toBe('H1')

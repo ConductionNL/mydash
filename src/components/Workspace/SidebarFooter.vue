@@ -160,7 +160,10 @@ export default {
 .dashboard-switcher-sidebar-footer__brand-logos {
 	display: flex;
 	align-items: center;
-	gap: 16px;
+	justify-content: center;
+	flex-wrap: wrap;
+	gap: 8px 16px;
+	width: 100%;
 }
 
 .dashboard-switcher-sidebar-footer__brand-link {
@@ -181,6 +184,8 @@ export default {
 .dashboard-switcher-sidebar-footer__brand-image {
 	height: 18px;
 	width: auto;
+	max-width: 100px;
+	object-fit: contain;
 	display: block;
 }
 

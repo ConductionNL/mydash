@@ -42,7 +42,11 @@
 		     persistence path (REQ-GRID-005), and the action menu
 		     (gear) reachable inside Views.vue covers Add Custom
 		     Widget. -->
-		<div class="workspace-shell__strip">
+		<!-- Title strip is only visible when the sidebar is OPEN.
+		     When closed, the floating sidebar-toggle in mydash-floating-controls
+		     (top-right) is the only entry point — keeps the dashboard surface
+		     uncluttered. -->
+		<div v-if="sidebarOpen" class="workspace-shell__strip">
 			<NcButton
 				type="tertiary"
 				:aria-label="t('mydash', 'Open menu')"
