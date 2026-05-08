@@ -68,6 +68,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setTileLinkValue(?string $tileLinkValue)
  * @method string|null getCustomIcon()
  * @method void setCustomIcon(?string $customIcon)
+ * @method string|null getContent()
+ * @method void setContent(?string $content)
  * @method string|null getCreatedAt()
  * @method void setCreatedAt(?string $createdAt)
  * @method string|null getUpdatedAt()
@@ -237,6 +239,19 @@ class WidgetPlacement extends Entity implements JsonSerializable
     protected ?string $tileLinkValue = null;
 
     /**
+     * The custom widget content blob (JSON-encoded).
+     *
+     * Stores the per-type configuration payload collected by AddWidgetModal
+     * for the 17 registry-driven custom widget types (see
+     * `src/constants/widgetRegistry.js`). The JSON shape is type-specific and
+     * mirrors each widget's `defaultContent`. Existing rows created before
+     * this column existed return an empty array via getContentArray().
+     *
+     * @var string|null
+     */
+    protected ?string $content = null;
+
+    /**
      * The creation timestamp as string.
      *
      * @var string|null
@@ -310,6 +325,41 @@ class WidgetPlacement extends Entity implements JsonSerializable
     }//end setStyleConfigArray()
 
     /**
+     * Get the custom widget content blob as an associative array.
+     *
+     * @return array The decoded content payload, or [] when the column is null
+     *               or holds an unparseable string.
+     */
+    public function getContentArray(): array
+    {
+        if (empty($this->content) === true) {
+            return [];
+        }
+
+        $decoded = json_decode(json: $this->content, associative: true);
+        if (is_array($decoded) === true) {
+            return $decoded;
+        }
+
+        return [];
+    }//end getContentArray()
+
+    /**
+     * Set the custom widget content blob from an associative array.
+     *
+     * @param array $content The content payload to JSON-encode and persist.
+     *
+     * @return void
+     */
+    public function setContentArray(array $content): void
+    {
+        // Entity setters resolve via __call which uses $args[0]; named args
+        // would break the magic forwarding (see project memory).
+        // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
+        $this->setContent(json_encode($content));
+    }//end setContentArray()
+
+    /**
      * Serialize to JSON.
      *
      * @return array The serialized widget placement.
@@ -329,6 +379,7 @@ class WidgetPlacement extends Entity implements JsonSerializable
             'styleConfig'  => $this->getStyleConfigArray(),
             'customTitle'  => $this->customTitle,
             'customIcon'   => $this->customIcon,
+            'content'      => $this->getContentArray(),
             'showTitle'    => $this->showTitle,
             'sortOrder'    => $this->sortOrder,
             'createdAt'    => $this->createdAt,
