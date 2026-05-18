@@ -1,0 +1,27 @@
+# MyDash
+
+> MyDash is an open-source dashboard app for the Nextcloud workspace.
+
+MyDash is an open-source dashboard app for the Nextcloud workspace. It lets each user compose multiple personal dashboards from drag-and-drop widgets and shortcut tiles on a responsive GridStack canvas, and supports both the v1 and v2 Nextcloud Dashboard widget APIs out of the box. Administrators can ship pre-configured templates to user groups, pin compulsory widgets, and set conditional visibility rules based on group, time of day, or date range. Released under EUPL-1.2 and maintained by Conduction since 2019.
+
+## Docs
+
+- [Tutorials](https://mydash.conduction.nl/tutorials): step-by-step walkthroughs.
+- [Features](https://mydash.conduction.nl/Features): what the app does, organised by capability.
+- [Use cases](https://mydash.conduction.nl/UseCases): real customer scenarios.
+- [Integrations](https://mydash.conduction.nl/Integrations): which external systems the app talks to.
+- [Technical](https://mydash.conduction.nl/Technical): architecture, data model, security posture.
+- [User guide](https://mydash.conduction.nl/user-guide): end-user documentation.
+- [API](https://mydash.conduction.nl/api): OpenAPI reference.
+
+## Optional
+
+- [Install](https://mydash.conduction.nl/installation): install from the Nextcloud app store.
+- [Source](https://mydash.conduction.nl): repository and issue tracker.
+- [App page](https://www.conduction.nl/apps/mydash): product positioning on conduction.nl.
+
+## Contact
+
+- Email: info@conduction.nl
+- GitHub: https://github.com/ConductionNL/mydash
+- Conduction B.V. · KvK 76741850 · Lauriergracht 14h, Amsterdam, Netherlands
