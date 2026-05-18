@@ -77,6 +77,7 @@ OC.L10N.register(
     "Create Document" : "Document aanmaken",
     "Create File" : "Bestand aanmaken",
     "Create dashboard" : "Dashboard aanmaken",
+    "Fork as personal…" : "Kopiëren als persoonlijk…",
     "Create dashboard templates that will be applied to users based on their groups." : "Maak dashboardsjablonen die op basis van groepslidmaatschap aan gebruikers worden toegewezen.",
     "Create template" : "Sjabloon aanmaken",
     "Create tile" : "Tegel aanmaken",

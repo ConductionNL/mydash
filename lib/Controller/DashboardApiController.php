@@ -317,19 +317,6 @@ class DashboardApiController extends Controller
             sortOrder: $sortOrder
         );
 
-        try {
-            $this->dashboardService->assertPersonalDashboardsAllowed();
-        } catch (PersonalDashboardsDisabledException $e) {
-            return new JSONResponse(
-                data: [
-                    'status'  => 'error',
-                    'error'   => $e->getErrorCode(),
-                    'message' => $e->getMessage(),
-                ],
-                statusCode: Http::STATUS_FORBIDDEN
-            );
-        }
-
         $permError = $this->checkCreatePermissions(
             userId: $this->userId
         );

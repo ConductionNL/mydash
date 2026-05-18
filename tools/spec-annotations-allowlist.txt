@@ -733,3 +733,8 @@ OCA\MyDash\Db\RoleFeaturePermission::getPriorityWeightsDecoded
 OCA\MyDash\Db\RoleFeaturePermission::jsonSerialize
 OCA\MyDash\Db\RoleLayoutDefault::jsonSerialize
 OCA\MyDash\Migration\Version001007Date20260501120000::changeSchema
+# --- allow-personal-dashboards-flag (pre-existing, missed by 2026-05-03 pass) ---
+OCA\MyDash\Controller\PageController::deepLink
+OCA\MyDash\Controller\DashboardApiController::computePath
+OCA\MyDash\Service\DashboardService::findPlacements
+OCA\MyDash\Service\InitialStateBuilder::setDeepLinkPath

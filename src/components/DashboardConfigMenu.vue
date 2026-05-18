@@ -39,6 +39,23 @@
 			{{ t('mydash', 'Dashboard configuration…') }}
 		</NcActionButton>
 		<!--
+			REQ-ASET-003 (extended) / REQ-DASH-020: fork the active group or
+			admin-template dashboard into a brand-new personal copy. The
+			button is hidden when the admin has disabled personal-dashboard
+			creation (`allowUserDashboards === false`) or when the user
+			already owns the active dashboard (nothing to fork).
+		-->
+		<NcActionButton
+			v-if="allowUserDashboards && !isActiveOwner && activeDashboardId"
+			:close-after-click="true"
+			@click="$emit('fork-dashboard')">
+			<template #icon>
+				<ContentCopy :size="20" />
+			</template>
+			{{ t('mydash', 'Fork as personal…') }}
+		</NcActionButton>
+
+		<!--
 			REQ-WDG-022 / unified-add-widget-flow: the standalone "Add tile…"
 			and "Add widget…" entries were removed in favour of the single
 			unified picker below. Tile is now a registry-driven widget type
@@ -71,10 +88,11 @@ import {
 import { t } from '@nextcloud/l10n'
 
 import Cog from 'vue-material-design-icons/Cog.vue'
-import Pencil from 'vue-material-design-icons/Pencil.vue'
+import ContentCopy from 'vue-material-design-icons/ContentCopy.vue'
 import ContentSave from 'vue-material-design-icons/ContentSave.vue'
-import Tune from 'vue-material-design-icons/Tune.vue'
+import Pencil from 'vue-material-design-icons/Pencil.vue'
 import ShapePolygonPlus from 'vue-material-design-icons/ShapePolygonPlus.vue'
+import Tune from 'vue-material-design-icons/Tune.vue'
 
 import { listWidgetTypes } from '../constants/widgetRegistry.js'
 
@@ -85,10 +103,11 @@ export default {
 		NcActions,
 		NcActionButton,
 		Cog,
-		Pencil,
+		ContentCopy,
 		ContentSave,
-		Tune,
+		Pencil,
 		ShapePolygonPlus,
+		Tune,
 	},
 
 	// REQ-INIT-004: read the typed initial-state snapshot via root
@@ -122,9 +141,10 @@ export default {
 	},
 
 	emits: [
-		'toggle-edit',
-		'open-config',
 		'add-custom-widget',
+		'fork-dashboard',
+		'open-config',
+		'toggle-edit',
 	],
 
 	computed: {

@@ -77,6 +77,7 @@ OC.L10N.register(
     "Create Document" : "Create Document",
     "Create File" : "Create File",
     "Create dashboard" : "Create dashboard",
+    "Fork as personal…" : "Fork as personal…",
     "Create dashboard templates that will be applied to users based on their groups." : "Create dashboard templates that will be applied to users based on their groups.",
     "Create template" : "Create template",
     "Create tile" : "Create tile",
