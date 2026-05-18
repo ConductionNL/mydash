@@ -1,57 +1,32 @@
 # Tasks — default-dashboard-flag
 
-## 1. Domain model
+## Tasks
 
-- [ ] 1.1 Confirm `isDefault SMALLINT` already exists on the `Dashboard` entity from the original `admin-templates` change (no schema migration needed)
-- [ ] 1.2 Confirm `Dashboard::jsonSerialize()` already emits `isDefault` as an integer (0|1) — add to serialiser if missing
+- [ ] Task 1: Confirm `isDefault SMALLINT` already exists on the `Dashboard` entity (no migration) and ensure `jsonSerialize()` emits it as 0|1 — add to the serialiser if missing
+- [ ] Task 2: Add `DashboardMapper::clearGroupDefaults($groupId, ?$exceptUuid = null): int` — `UPDATE oc_mydash_dashboards SET isDefault = 0 WHERE type = 'group_shared' AND groupId = ? AND (uuid <> ? OR ? IS NULL)`, returns affected row count
+- [ ] Task 3: Add `DashboardMapper::setGroupDefaultUuid($groupId, $uuid): int` — `UPDATE ... SET isDefault = 1 WHERE type='group_shared' AND groupId=? AND uuid=?`, returns 0 when the uuid isn't in the group
+- [ ] Task 4: Add `DashboardService::setGroupDefault($groupId, $uuid): void` — admin-only via `IGroupManager::isAdmin`; both mapper calls wrapped in `IDBConnection::beginTransaction()` / `commit()` / `rollBack()`; if `setGroupDefaultUuid` returns 0 throw the HTTP-404 not-found exception and roll back so the existing default is preserved
+- [ ] Task 5: Defense-in-depth — `DashboardService::saveGroupShared` and `updateGroupShared` strip any `isDefault` field from incoming payload/patch before persistence (REQ-DASH-017)
+- [ ] Task 6: Add `DashboardController::setGroupDefault($groupId)` reading `uuid` from body, mapped to `POST /api/dashboards/group/{groupId}/default`; `#[NoAdminRequired]` + in-body `IGroupManager::isAdmin` check returning 403 on failure; service-layer not-found surfaces as 404; route registered in `appinfo/routes.php` with the same `{groupId}` regex as `multi-scope-dashboards`
+- [ ] Task 7: Frontend — add "Set Default" action button to the admin dashboard list row (visible only when `dash.isDefault === 0` AND current user is admin) and a "Default" badge where `isDefault === 1`
+- [ ] Task 8: Frontend — optimistic store update on click flips target to `isDefault=1` and all other dashboards in the same `groupId` to 0, calls the API, rolls back both flips on 4xx/5xx, surfaces 403/404 toasts via existing i18n keys
+- [ ] Task 9: PHPUnit service coverage — `setGroupDefault` flips others off; cross-group uuid throws not-found and preserves the source-group default; transaction rolls back when the second UPDATE fails
+- [ ] Task 10: PHPUnit controller coverage — non-admin gets 403; POST with `isDefault: 1` in body still persists `isDefault=0`; PUT with `isDefault` in patch does not mutate the flag in either direction (REQ-DASH-017)
+- [ ] Task 11: Playwright — admin "Set Default" badge moves optimistically and persists on reload; non-admins do not see the button on group-shared rows; two-tab same-admin scenario shows only one badge after reload
+- [ ] Task 12: Quality gates — `composer check:strict`, ESLint+Stylelint, OpenAPI/Postman regen for the new endpoint, `nl`+`en` i18n for the new error messages + "Default" badge + "Set Default" label, SPDX-in-docblock on new PHP, all 10 hydra-gates green
 
-## 2. Mapper layer
+## Verification
 
-- [ ] 2.1 Add `DashboardMapper::clearGroupDefaults(string $groupId, ?string $exceptUuid = null): int` — issues `UPDATE oc_mydash_dashboards SET isDefault = 0 WHERE type = 'group_shared' AND groupId = ? AND (uuid <> ? OR ? IS NULL)` and returns the row-count affected
-- [ ] 2.2 Add `DashboardMapper::setGroupDefaultUuid(string $groupId, string $uuid): int` — issues `UPDATE oc_mydash_dashboards SET isDefault = 1 WHERE type = 'group_shared' AND groupId = ? AND uuid = ?` and returns the row-count affected (0 if uuid not in group)
+`openspec validate` exits clean. Setting the default is transactional + admin-only and cross-group/payload-smuggling vectors are closed.
 
-## 3. Service layer
+## Tests (company-wide ADR-009)
 
-- [ ] 3.1 Add `DashboardService::setGroupDefault(string $groupId, string $uuid): void` — admin-only via `IGroupManager::isAdmin($currentUserId)` guard; wraps both mapper calls in a single `IDBConnection::beginTransaction()` / `commit()` / `rollBack()` block
-- [ ] 3.2 If `setGroupDefaultUuid` returns 0 (uuid not in group), throw the not-found exception that maps to HTTP 404 — DO NOT clear other defaults in that case (the transaction MUST roll back so the existing default is preserved)
-- [ ] 3.3 Update `DashboardService::saveGroupShared` to drop any `isDefault` field from the incoming payload before persistence (defense-in-depth against payload smuggling)
-- [ ] 3.4 Update `DashboardService::updateGroupShared` to drop any `isDefault` field from the patch before applying it (REQ-DASH-017)
+PHPUnit per Tasks 9–10; Playwright per Task 11. Newman/Postman updated for the new endpoint.
 
-## 4. Controller + routes
+## Documentation (company-wide ADR-010)
 
-- [ ] 4.1 Add `DashboardController::setGroupDefault(string $groupId)` accepting `uuid` from the request body, mapped to `POST /api/dashboards/group/{groupId}/default`
-- [ ] 4.2 Annotate the new method with `#[NoAdminRequired]` and perform the runtime admin check inside the body via `IGroupManager::isAdmin($currentUserId)` (matches the pattern used by `updateGroup`/`deleteGroup` in `multi-scope-dashboards`); HTTP 403 on failure
-- [ ] 4.3 Reject when target uuid does not belong to the given groupId — HTTP 404 (delegated to the service-layer exception from task 3.2)
-- [ ] 4.4 Register the new route in `appinfo/routes.php` with the same `{groupId}` regex requirement used by the `multi-scope-dashboards` group routes
-- [ ] 4.5 Confirm the new method passes `gate-route-auth` and `gate-semantic-auth`
+Changelog entry covering the new default-flag transaction semantics and the admin UI affordance.
 
-## 5. Frontend
+## i18n (company-wide ADR-005)
 
-- [ ] 5.1 Add "Set Default" action button to the admin dashboard list row — only visible when `dash.isDefault === 0` and the current user is an admin
-- [ ] 5.2 Add a "Default" badge to the row where `isDefault === 1`
-- [ ] 5.3 Implement optimistic store update on click — set `isDefault=1` on the target and `isDefault=0` on all other dashboards in the same `groupId` immediately, then call the API; rollback both flips on 4xx/5xx
-- [ ] 5.4 Surface 403 / 404 error toasts using existing i18n keys
-
-## 6. PHPUnit tests
-
-- [ ] 6.1 `DashboardServiceTest::testSetGroupDefaultFlipsOthersOff` — three dashboards in a group, one is default, calling setGroupDefault on a different one moves the flag and clears the previous default
-- [ ] 6.2 `DashboardServiceTest::testSetGroupDefaultRejectsCrossGroupUuid` — uuid belongs to group A, called against group B path → throws not-found and existing default in group A is preserved
-- [ ] 6.3 `DashboardServiceTest::testSetGroupDefaultIsTransactional` — simulate failure between the two UPDATE calls and assert rollback restores the previous default
-- [ ] 6.4 `DashboardControllerTest::testSetGroupDefaultRejectsNonAdmin` — HTTP 403 for non-admin caller
-- [ ] 6.5 `DashboardControllerTest::testCreateGroupSharedIgnoresIsDefaultInBody` — POST with `isDefault: 1` in body still results in `isDefault = 0`
-- [ ] 6.6 `DashboardControllerTest::testUpdateGroupSharedDoesNotMutateIsDefault` — PUT with `isDefault: 0` on a default dashboard leaves the flag at 1; PUT with `isDefault: 1` on a non-default dashboard leaves it at 0
-
-## 7. End-to-end Playwright tests
-
-- [ ] 7.1 Admin clicks "Set Default" on a non-default group-shared dashboard row — badge moves to that row immediately (optimistic) and persists on reload
-- [ ] 7.2 Non-admin user does not see the "Set Default" button on group-shared dashboard rows
-- [ ] 7.3 Two browser tabs as the same admin: clicking "Set Default" in tab A is reflected in tab B on next reload (no two badges)
-
-## 8. Quality gates
-
-- [ ] 8.1 `composer check:strict` (PHPCS, PHPMD, Psalm, PHPStan) passes — fix any pre-existing issues encountered along the way
-- [ ] 8.2 ESLint + Stylelint clean on touched Vue/JS files
-- [ ] 8.3 Update generated OpenAPI spec / Postman collection to include `POST /api/dashboards/group/{groupId}/default`
-- [ ] 8.4 i18n keys for new error messages and the "Default" badge / "Set Default" button label exist in both `nl` and `en`
-- [ ] 8.5 SPDX headers on every new PHP file (inside the docblock per the SPDX-in-docblock convention) — `gate-spdx` must pass
-- [ ] 8.6 Run all 10 `hydra-gates` locally before opening PR
+`nl_NL` + `en_US` per Task 12.

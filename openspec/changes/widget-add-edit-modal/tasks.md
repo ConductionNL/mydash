@@ -1,56 +1,32 @@
 # Tasks — widget-add-edit-modal
 
-## 1. Registry + composable foundations
+## Tasks
 
-- [ ] 1.1 Create `src/constants/widgetRegistry.js` mapping `type → {component, label, defaults}` for the 5 widget types (`text`, `label`, `image`, `linkButton`, `ncDashboardProxy`)
-- [ ] 1.2 Create `src/composables/useWidgetForm.js` exposing `resetForm()`, `loadEditingWidget(widget)`, `validate()`, `assembleContent()` helpers
-- [ ] 1.3 Add a `getActiveSubForm()` ref accessor so the modal can call `validate()` on the currently-mounted sub-form via `<component :is ref="...">`
-- [ ] 1.4 Verify the toolbar dropdown is rewired to consume `widgetRegistry` rather than a local hard-coded list — REQ-WDG-014 single-source-of-truth
+- [ ] Task 1: Create `src/constants/widgetRegistry.js` mapping `type → {component, label, defaults}` for the 5 widget types (`text`, `label`, `image`, `linkButton`, `ncDashboardProxy`) — single source of truth (REQ-WDG-014)
+- [ ] Task 2: Create `src/composables/useWidgetForm.js` exposing `resetForm()`, `loadEditingWidget(widget)`, `validate()`, `assembleContent()`, and a `getActiveSubForm()` ref accessor so the modal can call `validate()` on the currently-mounted sub-form
+- [ ] Task 3: Rewire the toolbar dropdown to consume `widgetRegistry` instead of any hard-coded local list
+- [ ] Task 4: Build `src/components/Widgets/AddWidgetModal.vue` with conditional header (`Add Widget` vs `Edit Widget`), conditional type `<select>`, `<component :is="activeSubFormComponent">` slot, and Cancel/Add(Save) action buttons; the modal performs NO API calls itself
+- [ ] Task 5: Implement open lifecycle — `show:false→true` triggers `resetForm()`; non-null `editingWidget` also calls `loadEditingWidget(editingWidget)`; hide the type selector whenever `preselectedType` or `editingWidget` is non-null
+- [ ] Task 6: Type-switch handler swaps the active sub-form and resets form state (no cross-type leakage); submit computes `{type, content}` via `assembleContent()` and emits `submit`
+- [ ] Task 7: Close discipline — Cancel emits `close`; backdrop `@click.self` emits `close`; Esc key listener added on mount, removed on `beforeDestroy`/`show=false` (no leaks), emits `close`; on close restore focus to the trigger element via prop or `data-trigger-id`
+- [ ] Task 8: Validation pipeline — each sub-form exposes `validate(): string[]` (empty = valid); modal computes `isValid = activeSubFormRef.value?.validate().length === 0`; action button binds `:disabled="!isValid"` and surfaces first error via `title`/`aria-describedby`
+- [ ] Task 9: Ship per-type sub-forms under `src/components/Widgets/forms/` — `TextForm`, `LabelForm`, `ImageForm`, `LinkButtonForm`, `NcDashboardProxyForm` — each importing its defaults from `widgetRegistry.defaults` on mount
+- [ ] Task 10: Vitest — registry-driven select renders 5 options; type switch clears irrelevant fields (no text→image leak); edit mode pre-fills correctly per type; submit emits `{type, content}` with only the selected type's fields; validation gating disables/re-enables correctly on input
+- [ ] Task 11: Playwright — backdrop click + Esc key + Cancel all emit `close` (none submit); open in edit mode, close, reopen — `editingWidget` content restored (no stale state)
+- [ ] Task 12: Quality + a11y — ESLint clean; focus trap inside modal; ARIA `labelledby`/`describedby` on modal root; `nl`+`en` translations for `Add Widget`, `Edit Widget`, `Add`, `Save`, `Cancel`, `Type`; remove pre-existing per-widget edit dialogs replaced by the unified modal
 
-## 2. Modal host component
+## Verification
 
-- [ ] 2.1 Create `src/components/Widgets/AddWidgetModal.vue` with header (`Add Widget` / `Edit Widget` based on `editingWidget` prop), conditional type `<select>`, `<component :is="activeSubFormComponent">` slot, action buttons (`Cancel` + `Add`/`Save`)
-- [ ] 2.2 Implement open lifecycle: `show: false → true` triggers `resetForm()`; if `editingWidget` non-null also calls `loadEditingWidget(editingWidget)`
-- [ ] 2.3 Hide type selector when `preselectedType` non-null OR `editingWidget` non-null
-- [ ] 2.4 Implement type-switch handler: on `<select>` change, swap active sub-form and reset form state (no cross-type leakage)
-- [ ] 2.5 Submit button computes `{type, content}` via `assembleContent()` and emits `submit` — modal performs no API calls itself
+`openspec validate` exits clean. Modal works for both add + edit flows on all 5 widget types; no stale state between opens.
 
-## 3. Close discipline
+## Tests (company-wide ADR-009)
 
-- [ ] 3.1 Cancel button click emits `close` (no submit)
-- [ ] 3.2 Backdrop overlay click emits `close` (do not bubble inner clicks — guard via `@click.self`)
-- [ ] 3.3 Esc key listener registered on `mounted` (`document.addEventListener('keydown')`) and removed on `beforeDestroy` / when `show=false` to prevent leaks; emits `close` when fired
-- [ ] 3.4 On close, restore focus to the element that triggered the open (track via prop or a `data-trigger-id` attribute)
+Vitest + Playwright per Tasks 10–11. No backend surface.
 
-## 4. Validation pipeline
+## Documentation (company-wide ADR-010)
 
-- [ ] 4.1 Each per-type sub-form exposes `validate(): string[]` — empty array == valid
-- [ ] 4.2 Modal computed `isValid = activeSubFormRef.value?.validate().length === 0`
-- [ ] 4.3 Action button binds `:disabled="!isValid"` so it re-enables reactively on form input
-- [ ] 4.4 Optional UX: surface first validation error as button `title` / aria-describedby
+Changelog entry noting the unified add/edit modal replaces per-widget dialogs; user-guide screenshot of the unified flow.
 
-## 5. Per-type sub-forms
+## i18n (company-wide ADR-005)
 
-- [ ] 5.1 `src/components/Widgets/forms/TextForm.vue` — fields per `text-display-widget` capability spec
-- [ ] 5.2 `src/components/Widgets/forms/LabelForm.vue` — fields per `label-widget` capability spec
-- [ ] 5.3 `src/components/Widgets/forms/ImageForm.vue` — fields per `image-widget` capability spec
-- [ ] 5.4 `src/components/Widgets/forms/LinkButtonForm.vue` — fields per `link-button-widget` capability spec
-- [ ] 5.5 `src/components/Widgets/forms/NcDashboardProxyForm.vue` — fields per `nc-dashboard-widget-proxy` capability spec
-- [ ] 5.6 Each sub-form imports its defaults from `widgetRegistry`'s `defaults` entry on mount (single source of truth)
-
-## 6. Tests
-
-- [ ] 6.1 Vitest: registry-driven type select renders 5 options
-- [ ] 6.2 Vitest: type switch clears irrelevant fields (no leak from `text` to `image`)
-- [ ] 6.3 Vitest: edit mode pre-fills correctly per type (image, text)
-- [ ] 6.4 Vitest: submit emits `{type, content}` containing only the selected type's fields
-- [ ] 6.5 Vitest: validation gating — submit disabled until required fields complete; re-enables on input
-- [ ] 6.6 Playwright: backdrop click, Esc key, cancel button — all emit `close`, none submit
-- [ ] 6.7 Playwright: open in edit mode then close — reopen restores `editingWidget` content (not stale state)
-
-## 7. Quality
-
-- [ ] 7.1 ESLint clean (no warnings)
-- [ ] 7.2 WCAG: focus trap inside modal, ARIA `labelledby` and `describedby` on modal root
-- [ ] 7.3 Translation entries (nl + en) for `Add Widget`, `Edit Widget`, `Add`, `Save`, `Cancel`, `Type`
-- [ ] 7.4 Remove any pre-existing per-widget edit dialogs replaced by the unified modal
+`nl_NL` + `en_US` per Task 12.
