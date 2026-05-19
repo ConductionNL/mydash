@@ -26,7 +26,6 @@ use OCA\MyDash\AppInfo\Application;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
-use OCP\AppFramework\Http\Http;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
 use Psr\Container\ContainerInterface;
@@ -43,7 +42,6 @@ use Psr\Log\LoggerInterface;
  */
 class ManifestController extends Controller
 {
-
     /**
      * OpenRegister register slug for mydash dashboards.
      *
@@ -59,12 +57,11 @@ class ManifestController extends Controller
     private const SCHEMA = 'dashboard';
 
     /**
-     * v2 manifest schema URL.
+     * V2 manifest schema URL.
      *
      * @var string
      */
     private const SCHEMA_URL = 'https://raw.githubusercontent.com/ConductionNL/nextcloud-vue/main/src/schemas/app-manifest-v2.schema.json';
-
 
     /**
      * Constructor.
@@ -88,9 +85,7 @@ class ManifestController extends Controller
             appName: Application::APP_ID,
             request: $request
         );
-
     }//end __construct()
-
 
     /**
      * Build and return the v2 app manifest for the authenticated user.
@@ -120,7 +115,9 @@ class ManifestController extends Controller
         // every instance. Returning an empty manifest (not an error) lets the
         // frontend render its "no dashboards yet" CTA without a red alert.
         try {
-            /** @var \OCA\OpenRegister\Service\ObjectService $objectService */
+            /**
+             * @var \OCA\OpenRegister\Service\ObjectService $objectService
+             */
             $objectService = $this->container->get('OCA\OpenRegister\Service\ObjectService');
         } catch (\Throwable $e) {
             $this->logger->warning(
@@ -129,7 +126,7 @@ class ManifestController extends Controller
             );
 
             return new JSONResponse($this->buildManifest(dashboards: [], userId: $this->userId));
-        }
+        }//end try
 
         // Fetch all dashboard objects owned by or shared with the current user.
         $dashboards = $this->fetchUserDashboards(objectService: $objectService, userId: $this->userId);
@@ -137,7 +134,6 @@ class ManifestController extends Controller
         return new JSONResponse($this->buildManifest(dashboards: $dashboards, userId: $this->userId));
 
     }//end index()
-
 
     /**
      * Fetch dashboard objects from OpenRegister for the given user.
@@ -168,7 +164,7 @@ class ManifestController extends Controller
 
             if (is_array($ownedResults) === true) {
                 foreach ($ownedResults as $item) {
-                    $data = $this->extractData($item);
+                    $data = $this->extractData(item: $item);
                     if (empty($data) === true) {
                         continue;
                     }
@@ -185,12 +181,11 @@ class ManifestController extends Controller
                 'MyDash: failed to fetch dashboards from OpenRegister: '.$e->getMessage(),
                 ['app' => Application::APP_ID, 'userId' => $userId]
             );
-        }
+        }//end try
 
         return $dashboards;
 
     }//end fetchUserDashboards()
-
 
     /**
      * Normalise a raw ObjectService result item to a plain data array.
@@ -210,24 +205,31 @@ class ManifestController extends Controller
 
         if (is_object($item) === true && method_exists($item, 'getObject') === true) {
             $data = $item->getObject();
-            return is_array($data) === true ? $data : [];
+            if (is_array($data) === true) {
+                return $data;
+            }
+
+            return [];
         }
 
         if (is_object($item) === true && method_exists($item, 'jsonSerialize') === true) {
             $data = $item->jsonSerialize();
-            return is_array($data) === true ? $data : [];
+            if (is_array($data) === true) {
+                return $data;
+            }
+
+            return [];
         }
 
         return [];
 
     }//end extractData()
 
-
     /**
      * Build the v2 manifest array from a list of dashboard data arrays.
      *
      * @param array<int, array<string, mixed>> $dashboards Flat list of dashboard data.
-     * @param string                            $userId     The current user ID.
+     * @param string                           $userId     The current user ID.
      *
      * @return array<string, mixed> The v2 manifest document.
      */
@@ -280,6 +282,4 @@ class ManifestController extends Controller
         ];
 
     }//end buildManifest()
-
-
 }//end class

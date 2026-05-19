@@ -59,7 +59,6 @@ use Psr\Log\LoggerInterface;
  */
 class Version002000Date20260519000000 extends SimpleMigrationStep
 {
-
     /**
      * OpenRegister register slug.
      *
@@ -81,7 +80,6 @@ class Version002000Date20260519000000 extends SimpleMigrationStep
      */
     private const MAX_MIGRATE = 2000;
 
-
     /**
      * Constructor.
      *
@@ -93,7 +91,6 @@ class Version002000Date20260519000000 extends SimpleMigrationStep
         private readonly LoggerInterface $logger,
     ) {
     }//end __construct()
-
 
     /**
      * No schema changes — this migration only moves data.
@@ -113,12 +110,12 @@ class Version002000Date20260519000000 extends SimpleMigrationStep
 
     }//end changeSchema()
 
-
     /**
      * Copy dashboard rows from mydash tables into OpenRegister.
      *
-     * @param IOutput $output  Migration output.
-     * @param Closure $options Options (ignored).
+     * @param IOutput $output        Migration output.
+     * @param Closure $schemaClosure Schema closure (unused).
+     * @param array   $options       Options (unused).
      *
      * @return void
      */
@@ -127,21 +124,25 @@ class Version002000Date20260519000000 extends SimpleMigrationStep
         // Retrieve ObjectService via the DI container. If OpenRegister is not
         // installed / enabled on this instance, skip silently.
         try {
-            /** @var \OCA\OpenRegister\Service\ObjectService $objectService */
+            /**
+             * @var \OCA\OpenRegister\Service\ObjectService $objectService
+             */
             $objectService = $this->container->get('OCA\OpenRegister\Service\ObjectService');
         } catch (\Throwable $e) {
             $output->info('MyDash migration: OpenRegister not available — skipping dashboard copy.');
             return;
-        }
+        }//end try
 
         // Retrieve the DB connection to query the legacy tables.
         try {
-            /** @var \OCP\IDBConnection $db */
+            /**
+             * @var \OCP\IDBConnection $db
+             */
             $db = $this->container->get(\OCP\IDBConnection::class);
         } catch (\Throwable $e) {
             $output->info('MyDash migration: could not get DB connection — skipping dashboard copy.');
             return;
-        }
+        }//end try
 
         if ($this->legacyTableExists(db: $db) === false) {
             $output->info('MyDash migration: legacy mydash_dashboards table not found — nothing to migrate.');
@@ -161,8 +162,9 @@ class Version002000Date20260519000000 extends SimpleMigrationStep
                 ->setMaxResults(self::MAX_MIGRATE);
 
             $result = $qb->executeQuery();
+            $row    = $result->fetch();
 
-            while ($row = $result->fetch()) {
+            while ($row !== false) {
                 try {
                     $widgetData = $this->loadPlacements(db: $db, dashboardId: (int) $row['id']);
 
@@ -190,6 +192,8 @@ class Version002000Date20260519000000 extends SimpleMigrationStep
                         ['app' => 'mydash']
                     );
                 }//end try
+
+                $row = $result->fetch();
             }//end while
 
             $result->closeCursor();
@@ -201,7 +205,6 @@ class Version002000Date20260519000000 extends SimpleMigrationStep
         $output->info("MyDash migration complete: {$migrated} migrated, {$failed} failed.");
 
     }//end postSchemaChange()
-
 
     /**
      * Check whether the legacy dashboards table exists in the database.
@@ -217,10 +220,9 @@ class Version002000Date20260519000000 extends SimpleMigrationStep
             return $schema->hasTable('mydash_dashboards');
         } catch (\Throwable) {
             return false;
-        }
+        }//end try
 
     }//end legacyTableExists()
-
 
     /**
      * Load widget placements for a given dashboard and return the v2 widget array.
@@ -240,9 +242,10 @@ class Version002000Date20260519000000 extends SimpleMigrationStep
                 ->from('mydash_widget_placements', 'p')
                 ->where($qb->expr()->eq('p.dashboard_id', $qb->createNamedParameter($dashboardId)));
 
-            $result = $qb->executeQuery();
+            $result    = $qb->executeQuery();
+            $placement = $result->fetch();
 
-            while ($placement = $result->fetch()) {
+            while ($placement !== false) {
                 $widgets[] = [
                     'widgetKey'  => $placement['widget_id'] ?? '',
                     'slot'       => 'main',
@@ -251,7 +254,9 @@ class Version002000Date20260519000000 extends SimpleMigrationStep
                     'gridWidth'  => (int) ($placement['grid_width'] ?? 4),
                     'gridHeight' => (int) ($placement['grid_height'] ?? 4),
                 ];
-            }
+
+                $placement = $result->fetch();
+            }//end while
 
             $result->closeCursor();
         } catch (\Throwable $e) {
@@ -259,11 +264,9 @@ class Version002000Date20260519000000 extends SimpleMigrationStep
                 'MyDash migration: could not load placements for dashboard '.$dashboardId.': '.$e->getMessage(),
                 ['app' => 'mydash']
             );
-        }
+        }//end try
 
         return $widgets;
 
     }//end loadPlacements()
-
-
 }//end class

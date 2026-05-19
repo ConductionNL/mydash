@@ -104,3 +104,28 @@ parameters:
         -
             message: "#Comparison operation \"<\" between .* and 5 is always true#"
             path: lib/Service/DashboardTreeService.php
+        # OpenRegister is an optional runtime dependency. ManifestController
+        # and the v2 migration load ObjectService lazily via the DI container
+        # so that mydash degrades gracefully when OpenRegister is absent.
+        # PHPStan cannot resolve the class from our vendor/ — suppress.
+        -
+            message: '#unknown class OCA\\OpenRegister\\Service\\ObjectService#'
+            path: lib/Controller/ManifestController.php
+        -
+            message: '#Call to method .* on an unknown class OCA\\OpenRegister\\Service\\ObjectService#'
+            path: lib/Controller/ManifestController.php
+        -
+            message: '#unknown class OCA\\OpenRegister\\Service\\ObjectService#'
+            path: lib/Migration/Version002000Date20260519000000.php
+        -
+            message: '#Call to method .* on an unknown class OCA\\OpenRegister\\Service\\ObjectService#'
+            path: lib/Migration/Version002000Date20260519000000.php
+        # Doctrine\DBAL\Schema\Schema is provided by Nextcloud server's
+        # 3rdparty bundle, not by our vendor/. The hasTable() call in the
+        # migration is sound at runtime; suppress the unknown-class error.
+        -
+            message: '#unknown class Doctrine\\DBAL\\Schema\\Schema#'
+            path: lib/Migration/Version002000Date20260519000000.php
+        -
+            message: '#Call to method hasTable\(\) on an unknown class Doctrine\\DBAL\\Schema\\Schema#'
+            path: lib/Migration/Version002000Date20260519000000.php
