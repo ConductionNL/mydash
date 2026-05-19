@@ -252,7 +252,7 @@ export default function Home() {
   return (
     <Layout
       title="MyDash, customizable dashboards for Nextcloud workspaces"
-      description="Personal and team dashboards built directly on your Nextcloud registers. No separate BI tool, no extra login, no ETL."
+      description="Build customizable dashboards on Nextcloud. Widgets, KPIs, and live charts on top of OpenRegister data with no separate BI stack."
     >
       <main className="marketing-page">
         <DetailHero
