@@ -218,7 +218,10 @@ class WidgetApiController extends Controller
         // Tolerant of legacy callers that send only `widgetId` and grid
         // coords with no content blob: $contentParam stays null and
         // PlacementService leaves the column NULL.
-        $contentToPersist = (is_array($contentParam) === true) ? $contentParam : null;
+        $contentToPersist = null;
+        if (is_array($contentParam) === true) {
+            $contentToPersist = $contentParam;
+        }
 
         try {
             $placement = $this->widgetService->addWidget(
