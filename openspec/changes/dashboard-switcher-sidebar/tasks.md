@@ -1,40 +1,33 @@
 # Tasks — dashboard-switcher-sidebar
 
-## 1. Component
+## Tasks
 
-- [ ] 1.1 Create `src/components/Workspace/DashboardSwitcherSidebar.vue` with props (`isOpen`, `groupName`, `groupDashboards`, `userDashboards`, `activeDashboardId`, `allowUserDashboards`) and emits (`switch`, `create-dashboard`, `delete-dashboard`, `update:open`) per REQ-SWITCH-001..007
-- [ ] 1.2 Add internal computed `matchedGroupDashboards = groupDashboards.filter(d => d.source !== 'default')` and `defaultGroupDashboards = groupDashboards.filter(d => d.source === 'default')` (REQ-SWITCH-001)
-- [ ] 1.3 Use `<IconRenderer>` for every icon (no inline `v-if="iconUrl"` branches in this template) (REQ-SWITCH-007)
-- [ ] 1.4 CSS root: `position: fixed; top: 50px; width: 280px; z-index: 1500; transform: translateX(-100%); transition: transform .25s ease` (REQ-SWITCH-006)
-- [ ] 1.5 `&.open` selector toggles `transform: translateX(0)` when `isOpen === true` (REQ-SWITCH-006)
-- [ ] 1.6 Personal-row delete button: `display: none` by default, `inline-flex` on row hover; click handler uses `@click.stop` and emits `delete-dashboard(id)` only (REQ-SWITCH-004)
-- [ ] 1.7 Active-item highlight: row with `id === activeDashboardId` gets `.active` class with `--color-primary-element-light` background and `--color-primary` icon tint (REQ-SWITCH-003)
-- [ ] 1.8 Click on dashboard row emits `update:open(false)` THEN `switch(id, source)` where `source` is derived from the row's section (REQ-SWITCH-002)
-- [ ] 1.9 `+ New Dashboard` row only rendered when `allowUserDashboards === true`; click emits `update:open(false)` THEN `create-dashboard()` (REQ-SWITCH-005)
-- [ ] 1.10 Add companion `src/components/Workspace/SidebarBackdrop.vue` (click-to-close backdrop) for the runtime shell to wire alongside the sidebar
+- [ ] Task 1: Create `src/components/Workspace/DashboardSwitcherSidebar.vue` with props (`isOpen`, `groupName`, `groupDashboards`, `userDashboards`, `activeDashboardId`, `allowUserDashboards`) and emits (`switch`, `create-dashboard`, `delete-dashboard`, `update:open`) per REQ-SWITCH-001..007
+- [ ] Task 2: Internal computeds `matchedGroupDashboards = groupDashboards.filter(d => d.source !== 'default')` and `defaultGroupDashboards = groupDashboards.filter(d => d.source === 'default')` (REQ-SWITCH-001)
+- [ ] Task 3: Every icon rendered via `<IconRenderer>` (no inline `v-if="iconUrl"` branches in this template) — REQ-SWITCH-007
+- [ ] Task 4: CSS root: `position: fixed; top: 50px; width: 280px; z-index: 1500; transform: translateX(-100%); transition: transform .25s ease`; `&.open` selector toggles `transform: translateX(0)` when `isOpen === true` (REQ-SWITCH-006)
+- [ ] Task 5: Personal-row delete button — `display:none` by default, `inline-flex` on row hover; click handler uses `@click.stop` and emits `delete-dashboard(id)` only (REQ-SWITCH-004)
+- [ ] Task 6: Active-item highlight — row with `id === activeDashboardId` gets `.active` class with `--color-primary-element-light` background + `--color-primary` icon tint (REQ-SWITCH-003)
+- [ ] Task 7: Dashboard-row click emits `update:open(false)` THEN `switch(id, source)` where `source` is derived from the row's section (REQ-SWITCH-002)
+- [ ] Task 8: `+ New Dashboard` row only rendered when `allowUserDashboards === true`; click emits `update:open(false)` THEN `create-dashboard()` (REQ-SWITCH-005)
+- [ ] Task 9: Add companion `src/components/Workspace/SidebarBackdrop.vue` (click-to-close backdrop) for the runtime shell to wire alongside the sidebar
+- [ ] Task 10: Wire `<DashboardSwitcherSidebar>` from `src/views/WorkspaceApp.vue` with `v-model:open="sidebarOpen"`; parent maps `@switch (id, source)` to the correct API per REQ-DASH-013 (user/group/default-group endpoints), handles `@create-dashboard` (REQ-DASH-020) + `@delete-dashboard` (REQ-DASH-005), and renders `<SidebarBackdrop>` whose click sets `sidebarOpen = false`
+- [ ] Task 11: Vitest — section visibility table (3 sections × empty/non-empty); emit order on switch (`update:open(false)` BEFORE `switch(id, source)`); `source` discriminator matches the section the row was rendered in; `delete-dashboard` does NOT also emit `switch` or `update:open`; `+ New Dashboard` absent when `allowUserDashboards: false`; `.active` class is reactive to `activeDashboardId` changes
+- [ ] Task 12: Playwright — hover reveals delete button only on personal items (group/default have no delete affordance); clicking backdrop or topbar hamburger closes the sidebar (clicking the sidebar itself does not); open/close animation completes ~250ms via `transform: translateX`
+- [ ] Task 13: Quality + a11y — ESLint + Stylelint clean; translations present (`'Dashboards'`, `'Default'`, `'My Dashboards'`, `'+ New Dashboard'`, `'Delete dashboard'`, `'Close'`); keyboard focus trap inside open sidebar; Esc closes (emits `update:open(false)`); every actionable row has an accessible name; delete button has `aria-label="Delete dashboard"`
 
-## 2. Integration
+## Verification
 
-- [ ] 2.1 Wire `<DashboardSwitcherSidebar>` from `src/views/WorkspaceApp.vue` (runtime-shell) with `v-model:open="sidebarOpen"`
-- [ ] 2.2 Parent maps `@switch` payload `(id, source)` to the correct API endpoint per REQ-DASH-013 (`source === 'user' → personal endpoint`, `'group' → group endpoint`, `'default' → default-group endpoint`)
-- [ ] 2.3 Parent handles `@create-dashboard` per REQ-DASH-020 (or current personal-create endpoint) and `@delete-dashboard` per REQ-DASH-005
-- [ ] 2.4 Parent renders `<SidebarBackdrop>` when `sidebarOpen === true`; clicking the backdrop sets `sidebarOpen = false`
+`openspec validate` exits clean. Sidebar opens/closes via keyboard + backdrop; all three sections render correctly and the active row stays highlighted across switches.
 
-## 3. Tests
+## Tests (company-wide ADR-009)
 
-- [ ] 3.1 Vitest: section visibility table — three sections × empty/non-empty matrix (REQ-SWITCH-001)
-- [ ] 3.2 Vitest: emit order on switch — `update:open(false)` MUST be emitted before `switch(id, source)` (REQ-SWITCH-002)
-- [ ] 3.3 Vitest: `source` discriminator on switch matches the section the row was rendered in (REQ-SWITCH-002)
-- [ ] 3.4 Vitest: `delete-dashboard` does not also emit `switch` or `update:open` (REQ-SWITCH-004)
-- [ ] 3.5 Vitest: `+ New Dashboard` row absent from the DOM when `allowUserDashboards: false` (REQ-SWITCH-005)
-- [ ] 3.6 Vitest: `.active` class is on exactly the row whose id matches `activeDashboardId`, and updates reactively when the prop changes (REQ-SWITCH-003)
-- [ ] 3.7 Playwright: hover reveals delete button on personal items only; group/default items have no delete affordance (REQ-SWITCH-004)
-- [ ] 3.8 Playwright: clicking the backdrop or the topbar hamburger closes the sidebar; clicking the sidebar itself does not
-- [ ] 3.9 Playwright: open/close animation completes in ~250 ms with `transform: translateX` driving the slide (REQ-SWITCH-006)
+Vitest per Task 11; Playwright per Task 12. No backend surface.
 
-## 4. Quality
+## Documentation (company-wide ADR-010)
 
-- [ ] 4.1 ESLint + Stylelint clean
-- [ ] 4.2 Translation entries present in catalogue: `'Dashboards'`, `'Default'`, `'My Dashboards'`, `'+ New Dashboard'`, `'Delete dashboard'`, `'Close'`
-- [ ] 4.3 WCAG: keyboard focus trap inside open sidebar, Esc key closes the sidebar (emits `update:open(false)`)
-- [ ] 4.4 WCAG: every actionable row exposes an accessible name; delete button has `aria-label="Delete dashboard"`
+Changelog entry covering the new sidebar component and the parent wiring contract.
+
+## i18n (company-wide ADR-005)
+
+`nl_NL` + `en_US` per Task 13.

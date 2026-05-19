@@ -1,44 +1,33 @@
 # Tasks — resource-uploads
 
-## 1. Backend
+## Tasks
 
-- [ ] Create `lib/Service/ResourceService.php` with `upload(string $base64DataUrl): array` returning `{url, name, size}` or throwing typed exceptions
-- [ ] Create `lib/Service/ImageMimeValidator.php::validate(string $declaredType, string $bytes): void`
-- [ ] Create `lib/Controller/ResourceController.php::upload` mapped to `POST /api/resources`
-- [ ] Read raw input via `file_get_contents('php://input')` + `json_decode`
-- [ ] Admin guard via `IGroupManager::isAdmin`
-- [ ] 5 MB cap on decoded bytes (guard before `getimagesizefromstring` to bound memory)
-- [ ] Cross-MIME check for raster types
-- [ ] Delegate SVG sanitisation to `SvgSanitiser` (separate change)
-- [ ] Persist via `IAppData->getFolder('resources')` (auto-create); filename `uniqid('resource_', true) . '.' . $ext`
-- [ ] Define typed exceptions with stable error codes: `ForbiddenException`, `InvalidImageFormatException`, `InvalidDataUrlException`, `FileTooLargeException`, `MimeMismatchException`, `CorruptImageException`
-- [ ] Map exceptions to standardised error envelope in controller (no raw `$e->getMessage()`)
+- [ ] Task 1: Create `lib/Service/ResourceService::upload(string $base64DataUrl): array` returning `{url, name, size}` or throwing typed exceptions; create `lib/Service/ImageMimeValidator::validate(string $declaredType, string $bytes): void`
+- [ ] Task 2: Define typed exceptions with stable error codes — `ForbiddenException`, `InvalidImageFormatException`, `InvalidDataUrlException`, `FileTooLargeException`, `MimeMismatchException`, `CorruptImageException`
+- [ ] Task 3: Add `lib/Controller/ResourceController::upload` mapped to `POST /api/resources`; read raw input via `file_get_contents('php://input') + json_decode`; admin guard via `IGroupManager::isAdmin`
+- [ ] Task 4: 5MB cap on decoded bytes (guard BEFORE `getimagesizefromstring` to bound memory); cross-MIME check for raster types via `ImageMimeValidator`; delegate SVG sanitisation to the `SvgSanitiser` (separate change)
+- [ ] Task 5: Persist via `IAppData->getFolder('resources')` (auto-create); filename `uniqid('resource_', true) . '.' . $ext`
+- [ ] Task 6: Map exceptions to a standardised error envelope in the controller — never surface raw `$e->getMessage()` (every response uses the stable error code)
+- [ ] Task 7: Add `src/services/resourceService.js::uploadDataUrl(dataUrl): Promise<{url}>` wrapper consumed by `image-widget` form, `link-button-widget` icon picker, and `IconPicker`
+- [ ] Task 8: PHPUnit — 403 on non-admin; each rejection path returns the exact error code; oversize rejected before `getimagesizefromstring` (mock memory check); MIME mismatch table (declared png, actual jpeg/gif/webp); successful upload writes to app-data and returns the URL
+- [ ] Task 9: PHPUnit — error responses NEVER contain `Exception` / stack-trace strings (regression guard against raw message leakage)
+- [ ] Task 10: Playwright — file upload from icon picker → URL appears in the form on success; non-admin attempt surfaces the 403 message via the existing toast
+- [ ] Task 11: Quality — `composer check:strict` passes; OpenAPI updated for `POST /api/resources`; SPDX-in-docblock on every new PHP file
+- [ ] Task 12: i18n — `nl_NL` + `en_US` for `Personal dashboards are not enabled by your administrator`, `Failed to upload image`, plus an error-message string per stable error code; document v1 limits in admin help text (5MB cap, allowed types)
+- [ ] Task 13: File follow-ups (separate changes) — `resource-serving` GET endpoint (in flight), `svg-sanitisation` DOM whitelist (in flight), future `resource-gc` (orphan cleanup), future `resource-acl` (per-resource access control if non-public assets are added)
 
-## 2. Frontend
+## Verification
 
-- [ ] Add `src/services/resourceService.js::uploadDataUrl(dataUrl): Promise<{url}>` wrapper
-- [ ] Used by `image-widget` form, `link-button-widget` icon picker, `IconPicker`
+`openspec validate` exits clean. Rejection paths return their stable error code and no exception text leaks; admin-only enforcement holds.
 
-## 3. Tests
+## Tests (company-wide ADR-009)
 
-- [ ] PHPUnit: 403 on non-admin
-- [ ] PHPUnit: each rejection path returns the exact error code
-- [ ] PHPUnit: oversize rejected before `getimagesizefromstring` (mock memory check)
-- [ ] PHPUnit: MIME mismatch table (declared png, actual jpeg/gif/webp)
-- [ ] PHPUnit: successful upload writes to app-data, returns URL
-- [ ] PHPUnit: error responses NEVER contain `Exception` / stack trace strings
-- [ ] Playwright: file upload from icon picker → URL appears in form
+PHPUnit per Tasks 8–9; Playwright per Task 10. Newman/Postman updated for the new endpoint.
 
-## 4. Quality
+## Documentation (company-wide ADR-010)
 
-- [ ] `composer check:strict` passes
-- [ ] OpenAPI updated for `POST /api/resources`
-- [ ] Translation entries: `Personal dashboards are not enabled by your administrator`, `Failed to upload image`, error message strings (one per error code)
-- [ ] Document v1 limits in admin help text: 5 MB cap, allowed types
+Admin help text per Task 12; changelog entry covering the new endpoint and the v1 limits.
 
-## 5. Follow-ups (separate changes)
+## i18n (company-wide ADR-005)
 
-- [ ] `resource-serving` — GET endpoint
-- [ ] `svg-sanitisation` — DOM-based whitelist sanitiser
-- [ ] (Future) `resource-gc` — cleanup of orphaned resources
-- [ ] (Future) `resource-acl` — per-resource access control if non-public assets are added
+`nl_NL` + `en_US` per Task 12.

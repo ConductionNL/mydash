@@ -1,46 +1,30 @@
 # Tasks — nc-dashboard-widget-proxy
 
-## 1. Bridge
+## Tasks
 
-- [ ] Add `WidgetBridge::pollForCallback(widgetId, options)` returning a cancellable Promise<boolean>
-- [ ] Use `setInterval` with cleanup on resolve, abort, or max retries
-- [ ] First check is synchronous (no `setInterval` if already registered)
-- [ ] Internally calls `hasWidgetCallback` (single source of truth)
+- [ ] Task 1: Add `WidgetBridge::pollForCallback(widgetId, options)` returning a cancellable `Promise<boolean>` — `setInterval` with cleanup on resolve/abort/max-retries; first check synchronous (no `setInterval` if already registered); internally calls `hasWidgetCallback` as the single source of truth
+- [ ] Task 2: Create `src/components/Widgets/Renderers/NcDashboardWidget.vue` — on mount try native; if absent fire API request AND `pollForCallback`; switch to native if poll resolves true (race winner wins, no flicker)
+- [ ] Task 3: Renderer hardening — defensive normalisation for PHP-serialised sequential arrays (`Array.isArray(injected) ? injected : Object.values(injected)`); header shows title + iconUrl from `widgetMeta`; two display modes per REQ-WDG-020 CSS
+- [ ] Task 4: Create `src/components/Widgets/Forms/NcDashboardForm.vue` — picker `<select>` from initial-state `widgets`; display-mode `<select>` (vertical/horizontal); `validate()` requires non-empty `widgetId`; pre-fill from `editingWidget.content`
+- [ ] Task 5: Register `nc-widget` in `widgetRegistry.js` with defaults `{widgetId:'', displayMode:'vertical'}`
+- [ ] Task 6: Vitest bridge — `pollForCallback` happy path (callback registers mid-poll → resolves true); timeout (no registration → resolves false after ~3s); abort (signal aborts → resolves false immediately); synchronous resolve when already registered
+- [ ] Task 7: Vitest renderer — switches mode mid-flight when poll wins; array normalisation handles object-with-numeric-keys input
+- [ ] Task 8: Playwright — `weather_status` widget renders natively when the bundle is present; widget falls back to API list when the bundle is absent; empty-list state shows the translated string
+- [ ] Task 9: Quality — ESLint clean
+- [ ] Task 10: i18n — `nl_NL` + `en_US` translations for `Nextcloud Widget`, `Select Widget`, `Choose a widget…`, `Display Mode`, `Vertical (list)`, `Horizontal (cards)`, `Loading…`, `No items available`
 
-## 2. Renderer
+## Verification
 
-- [ ] Create `src/components/Widgets/Renderers/NcDashboardWidget.vue`
-- [ ] On mount: try native; if absent, fire API request AND `pollForCallback`
-- [ ] Switch to native if poll resolves true (race winner wins, no flicker)
-- [ ] Defensive normalisation: PHP can serialise sequential arrays as objects; do `Array.isArray(injected) ? injected : Object.values(injected)`
-- [ ] Header: title + iconUrl from `widgetMeta`
-- [ ] Two display modes per REQ-WDG-020 CSS
+`openspec validate` exits clean. Both rendering modes (native + API fallback) work for at least one stock NC widget; poll cancellation leaks no intervals.
 
-## 3. Form
+## Tests (company-wide ADR-009)
 
-- [ ] Create `src/components/Widgets/Forms/NcDashboardForm.vue`
-- [ ] Picker `<select>` from initial-state `widgets`
-- [ ] Display-mode `<select>` (vertical/horizontal)
-- [ ] `validate()` requires non-empty `widgetId`
-- [ ] Pre-fill from `editingWidget.content`
+Vitest per Tasks 6–7; Playwright per Task 8. No new backend surface.
 
-## 4. Registry
+## Documentation (company-wide ADR-010)
 
-- [ ] Add `nc-widget` to `widgetRegistry.js` with defaults `{widgetId:'', displayMode:'vertical'}`
+Changelog entry covering the new widget type + the bridging + fallback behaviour.
 
-## 5. Tests
+## i18n (company-wide ADR-005)
 
-- [ ] Vitest: `pollForCallback` happy path (callback registers mid-poll → resolves true)
-- [ ] Vitest: timeout (no registration → resolves false after ~3 s)
-- [ ] Vitest: abort (signal aborts → resolves false immediately)
-- [ ] Vitest: synchronous resolve when already registered
-- [ ] Vitest: renderer switches mode mid-flight when poll wins
-- [ ] Vitest: array normalisation handles object-with-numeric-keys input
-- [ ] Playwright: weather_status widget renders natively when bundle present
-- [ ] Playwright: widget falls back to API list when bundle absent
-- [ ] Playwright: empty-list state translated string
-
-## 6. Quality
-
-- [ ] ESLint clean
-- [ ] Translation entries: `Nextcloud Widget`, `Select Widget`, `Choose a widget…`, `Display Mode`, `Vertical (list)`, `Horizontal (cards)`, `Loading…`, `No items available`
+`nl_NL` + `en_US` per Task 10.
