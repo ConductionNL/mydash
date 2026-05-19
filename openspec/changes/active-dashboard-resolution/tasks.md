@@ -1,52 +1,33 @@
 # Tasks — active-dashboard-resolution
 
-## 1. Backend resolver
+## Tasks
 
-- [ ] 1.1 Add user pref key constant `DashboardService::ACTIVE_DASHBOARD_UUID_PREF_KEY = 'active_dashboard_uuid'`
-- [ ] 1.2 Add `DashboardService::resolveActiveDashboard(string $userId, ?string $primaryGroupId): ?array` returning `['dashboard' => Dashboard, 'source' => 'user'|'group'|'default']` or `null`
-- [ ] 1.3 Implement the 7-step precedence chain exactly as REQ-DASH-018 lists (saved pref → group default → default-group default → first-in-group → first-in-default-group → first personal → null)
-- [ ] 1.4 Implement stale-preference auto-clear: when the saved UUID is not in `findVisibleToUser` results, call `IConfig::deleteUserValue` (write-on-read) and emit a `LoggerInterface::warning` line
-- [ ] 1.5 Resolver MUST be otherwise pure (no other side effects on read)
+- [ ] Task 1: Define `DashboardService::ACTIVE_DASHBOARD_UUID_PREF_KEY = 'active_dashboard_uuid'` and `DashboardService::resolveActiveDashboard($userId, ?$primaryGroupId): ?array` returning `['dashboard' => Dashboard, 'source' => 'user'|'group'|'default']` or `null`
+- [ ] Task 2: Implement the 7-step precedence chain in the resolver exactly as REQ-DASH-018 lists (saved pref → group default → default-group default → first-in-group → first-in-default-group → first personal → null); resolver MUST be otherwise pure (no other read-side effects)
+- [ ] Task 3: Stale-preference auto-clear — when the saved UUID is not in `findVisibleToUser` results, call `IConfig::deleteUserValue` (write-on-read) and emit a `LoggerInterface::warning` line
+- [ ] Task 4: Add `DashboardService::setActivePreference($userId, $uuid): void` that writes via `IConfig::setUserValue` (or deletes when uuid is empty); no existence check on write per REQ-DASH-019
+- [ ] Task 5: Add `DashboardController::setActiveDashboard()` mapped to `POST /api/dashboards/active` with `#[NoAdminRequired]` — accepts `{uuid: string}`, returns HTTP 200 `{status:'success'}`; route registered in `appinfo/routes.php`
+- [ ] Task 6: Wire `WorkspaceController` to call `resolveActiveDashboard($currentUserId, $primaryGroupId)` on first render and push `activeDashboardId` (or `''` when null) + `dashboardSource` into initial-state JSON via `IInitialState`; null resolver result renders the empty-state UI
+- [ ] Task 7: Frontend — mirror the 7-step precedence in `useDashboardsStore.resolveActive()` for client-side `switchDashboard()` flows after store mutations
+- [ ] Task 8: Add `switchDashboard(uuid)` store action — updates store state and POSTs to `/api/dashboards/active` fire-and-forget (failure surfaces as a toast but does not block the UI)
+- [ ] Task 9: Add the empty-state component shown when `resolveActive()` returns null, including a "Create your first dashboard" affordance
+- [ ] Task 10: PHPUnit — table-driven test exercising all 7 precedence steps + permutations (saved pref / no pref; group default present/absent; default-group default present/absent; first-in-group present/absent; first personal present/absent; nothing-at-all); cross-group preference invalidated correctly
+- [ ] Task 11: PHPUnit — stale preference cleared exactly once per request (not on every visibility check); `setActivePreference` accepts non-existent UUIDs without erroring; empty-string uuid clears the preference (REQ-DASH-019)
+- [ ] Task 12: Playwright — empty state shows on a fresh user with no dashboards; `switchDashboard` POSTs the new UUID and the next page load picks it up; stale preference (dashboard deleted between sessions) silently falls through to step 2 — no error toast
+- [ ] Task 13: Quality gates — `composer check:strict`, ESLint+Stylelint, OpenAPI/Postman regen for the new endpoint, `nl`+`en` i18n for the empty-state copy + new error strings, SPDX-in-docblock on new PHP, all 10 hydra-gates green; document in `design.md` why stale prefs are cleaned per-request rather than via cron
 
-## 2. Backend write endpoint
+## Verification
 
-- [ ] 2.1 Add `DashboardService::setActivePreference(string $userId, string $uuid): void` that writes to `IConfig::setUserValue` (or deletes when uuid is empty string)
-- [ ] 2.2 Add `DashboardController::setActiveDashboard()` mapped to `POST /api/dashboards/active` with `#[NoAdminRequired]` — accepts `{uuid: string}`, returns HTTP 200 `{status: 'success'}`
-- [ ] 2.3 Register the route in `appinfo/routes.php`
-- [ ] 2.4 No existence check on write (per REQ-DASH-019 scenario "no existence check on write")
+`openspec validate` exits clean. Resolver returns the correct dashboard for all 7 precedence rows in the test matrix; stale prefs self-heal.
 
-## 3. Workspace integration
+## Tests (company-wide ADR-009)
 
-- [ ] 3.1 Update `WorkspaceController` to call `resolveActiveDashboard($currentUserId, $primaryGroupId)` on first render
-- [ ] 3.2 Push `activeDashboardId` (or `''` when null) and `dashboardSource` into initial-state JSON via `IInitialState`
-- [ ] 3.3 When resolver returns null, ensure the page renders the empty-state UI (per REQ-DASH-018 scenario "empty state")
+PHPUnit per Tasks 10–11; Playwright per Task 12. Newman/Postman updated for the new endpoint.
 
-## 4. Frontend
+## Documentation (company-wide ADR-010)
 
-- [ ] 4.1 Mirror the 7-step precedence in `useDashboardsStore.resolveActive()` for client-side `switchDashboard()` flows after store mutations
-- [ ] 4.2 Add `switchDashboard(uuid)` action that updates store state and POSTs to `/api/dashboards/active` (fire-and-forget; surface failure as a toast but do not block UI)
-- [ ] 4.3 Empty-state component shown when `resolveActive()` returns null — includes a "Create your first dashboard" affordance
+Changelog entry covering the active-dashboard resolution chain + the empty-state UX.
 
-## 5. PHPUnit tests
+## i18n (company-wide ADR-005)
 
-- [ ] 5.1 Table-driven test covering all 7 steps with permutations (saved pref / no pref; group default present / absent; default-group default present / absent; first-in-group present / absent; first personal present / absent; nothing-at-all)
-- [ ] 5.2 Stale preference cleared exactly once per request (not on every visibility check)
-- [ ] 5.3 Cross-group preference invalidated correctly — alice pref points to a dashboard whose group she no longer belongs to
-- [ ] 5.4 `setActivePreference` accepts non-existent UUIDs without erroring (REQ-DASH-019 scenario "no existence check on write")
-- [ ] 5.5 Empty-string uuid clears the preference (REQ-DASH-019 scenario "empty uuid clears the preference")
-
-## 6. Playwright tests
-
-- [ ] 6.1 Empty state shows on a fresh user with no dashboards (any type, any group)
-- [ ] 6.2 Switching dashboard fires `POST /api/dashboards/active` with the new UUID and the next page load picks up the saved choice
-- [ ] 6.3 Stale preference (dashboard deleted between sessions) silently falls through to step 2 of the chain — no error toast
-
-## 7. Quality gates
-
-- [ ] 7.1 `composer check:strict` (PHPCS, PHPMD, Psalm, PHPStan) passes — fix any pre-existing issues encountered along the way
-- [ ] 7.2 ESLint + Stylelint clean on touched Vue/JS files
-- [ ] 7.3 Update generated OpenAPI spec / Postman collection so external API consumers see the new endpoint
-- [ ] 7.4 `i18n` keys for new error messages and the empty-state copy in both `nl` and `en` per the i18n requirement
-- [ ] 7.5 SPDX headers on every new PHP file (inside the docblock per the SPDX-in-docblock convention) — gate-spdx must pass
-- [ ] 7.6 Run all 10 `hydra-gates` locally before opening PR
-- [ ] 7.7 Stale prefs are cleaned per request, not via cron — document the rationale in `design.md` if added (see proposal Notes)
+`nl_NL` + `en_US` for the empty-state copy and new error strings.

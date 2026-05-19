@@ -25,4 +25,4 @@ Dashboards are the core organizational unit in MyDash. Each user can create and 
 
 ## Screenshot
 
-![Dashboard Overview](../screenshots/mydash-dashboard-overview.png)
+![Dashboard Overview](/screenshots/mydash-dashboard-overview.png)

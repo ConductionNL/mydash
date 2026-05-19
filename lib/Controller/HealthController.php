@@ -54,6 +54,8 @@ class HealthController extends Controller
      * @return JSONResponse JSON response with health status and checks.
      *
      * @NoCSRFRequired
+     *
+     * @spec prometheus-metrics:REQ-PROM-007
      */
     public function index(): JSONResponse
     {

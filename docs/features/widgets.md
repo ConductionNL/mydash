@@ -23,4 +23,4 @@ Widgets are the primary content blocks on MyDash dashboards. MyDash integrates w
 
 ## Screenshot
 
-![Dashboard with Widgets](../screenshots/mydash-dashboard-overview.png)
+![Dashboard with Widgets](/screenshots/mydash-dashboard-overview.png)

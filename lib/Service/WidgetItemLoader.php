@@ -36,6 +36,8 @@ class WidgetItemLoader
      * @param int    $limit     Maximum items per widget.
      *
      * @return array The widget items keyed by widget ID.
+     *
+     * @spec widgets:REQ-WDG-002
      */
     public function loadItems(
         array $widgets,

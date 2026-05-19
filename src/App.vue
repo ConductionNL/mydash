@@ -4,20 +4,25 @@
 -->
 
 <template>
-	<Views />
+	<WorkspaceApp />
 </template>
 
 <script>
-import Views from './views/Views.vue'
+import WorkspaceApp from './views/WorkspaceApp.vue'
 
+/**
+ * Root component — mounts the runtime-shell orchestrator
+ * (`WorkspaceApp.vue`) which owns the four-region page chrome and
+ * delegates the grid surface to the existing `Views.vue`.
+ */
 export default {
 	name: 'App',
 	components: {
-		Views,
+		WorkspaceApp,
 	},
 }
 </script>
 
 <style>
-/* No styles needed here - all styling is in Views.vue. */
+/* No styles needed here - all styling lives inside WorkspaceApp/Views. */
 </style>

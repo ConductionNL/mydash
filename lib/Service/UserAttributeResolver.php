@@ -41,10 +41,16 @@ class UserAttributeResolver
     /**
      * Get a user attribute value by name.
      *
+     * Backs the attribute lookup half of REQ-VIS-008 (attribute-based
+     * conditional rules). The matching operator-evaluation half lives in
+     * {@see self::evaluateOperator()}.
+     *
      * @param string $userId    The user ID.
      * @param string $attribute The attribute name.
      *
      * @return string|null The attribute value or null.
+     *
+     * @spec conditional-visibility:REQ-VIS-008
      */
     public function getUserAttributeValue(
         string $userId,

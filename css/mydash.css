@@ -1,7 +1,17 @@
 /**
  * SPDX-FileCopyrightText: 2024 MyDash Contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
+ *
+ * --mydash-cell-height is set by `useGridManager.syncCellHeightCssVar()` at
+ * grid-init time from the JS `CELL_HEIGHT` constant (REQ-GRID-012). The
+ * `:root` declaration below is a fallback for the brief flash before init
+ * runs and for any non-Vue rendering surface (e.g. settings page admin
+ * shell) that still references the variable.
  */
+
+:root {
+	--mydash-cell-height: 60px;
+}
 
 /* ============================================
    MYDASH APP CONTENT
@@ -32,11 +42,11 @@
 	opacity: 1;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-	.grid-stack-item {
-		width: 100% !important;
-		position: relative !important;
-		left: 0 !important;
-	}
-}
+/*
+ * Responsive layout is handled by GridStack v12 via `columnOpts.breakpoints`
+ * (see REQ-GRID-007 and `src/composables/useGridManager.js`). We deliberately
+ * do NOT force `width: 100% !important` on `.grid-stack-item` at narrow
+ * viewports here — that override fought with GridStack's own column-reflow
+ * math and produced double-stacking artefacts. The `c: 1` entry in the
+ * BREAKPOINTS table already gives every widget the full row at <= 480 px.
+ */

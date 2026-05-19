@@ -45,6 +45,12 @@ Thumbs.db
 /phpqa/
 /quality-reports/
 
+# Playwright e2e
+/tests/e2e/.auth/
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
 # PHP
 /composer.phar
 
@@ -60,3 +66,8 @@ Thumbs.db
 sbom.cdx.json
 bom-php.cdx.json
 bom-npm.cdx.json
+
+# Research notes (local-only)
+/docs/sendent-analysis.md
+/sendent-workspace-main/
+/2026.*_sendent-workspace-main.zip

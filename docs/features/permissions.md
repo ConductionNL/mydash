@@ -20,4 +20,4 @@ Permission levels control what users can do with their dashboards, especially fo
 
 ## Screenshot
 
-![Dashboard Overview](../screenshots/mydash-dashboard-overview.png)
+![Dashboard Overview](/screenshots/mydash-dashboard-overview.png)

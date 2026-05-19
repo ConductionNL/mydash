@@ -21,7 +21,10 @@ declare(strict_types=1);
 namespace Unit\Controller;
 
 use OCA\MyDash\Controller\DashboardApiController;
+use OCA\MyDash\Service\AnalyticsService;
 use OCA\MyDash\Service\DashboardService;
+use OCA\MyDash\Service\DashboardTreeService;
+use OCA\MyDash\Service\DashboardVersionService;
 use OCA\MyDash\Service\PermissionService;
 use OCP\AppFramework\Http;
 use OCP\IRequest;
@@ -40,14 +43,23 @@ class DashboardApiControllerActiveTest extends TestCase
     private $dashboardService;
     /** @var PermissionService&MockObject */
     private $permissionService;
+    /** @var DashboardTreeService&MockObject */
+    private $treeService;
+    /** @var DashboardVersionService&MockObject */
+    private $versionService;
     /** @var LoggerInterface&MockObject */
     private $logger;
+    /** @var AnalyticsService&MockObject */
+    private $analyticsService;
 
     protected function setUp(): void
     {
         $this->request           = $this->createMock(IRequest::class);
         $this->dashboardService  = $this->createMock(DashboardService::class);
         $this->permissionService = $this->createMock(PermissionService::class);
+        $this->treeService       = $this->createMock(DashboardTreeService::class);
+        $this->versionService    = $this->createMock(DashboardVersionService::class);
+        $this->analyticsService  = $this->createMock(AnalyticsService::class);
         $this->logger            = $this->createMock(LoggerInterface::class);
     }//end setUp()
 
@@ -60,6 +72,9 @@ class DashboardApiControllerActiveTest extends TestCase
             request: $this->request,
             dashboardService: $this->dashboardService,
             permissionService: $this->permissionService,
+            treeService: $this->treeService,
+            versionService: $this->versionService,
+            analyticsService: $this->analyticsService,
             logger: $this->logger,
             userId: $userId,
         );

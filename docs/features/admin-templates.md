@@ -31,4 +31,4 @@ Admin templates allow Nextcloud administrators to create pre-configured dashboar
 
 ## Screenshot
 
-![Dashboard Overview](../screenshots/mydash-dashboard-overview.png)
+![Dashboard Overview](/screenshots/mydash-dashboard-overview.png)

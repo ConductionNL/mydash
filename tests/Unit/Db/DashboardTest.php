@@ -12,6 +12,9 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
+ *
+ * SPDX-FileCopyrightText: 2024 MyDash Contributors
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
 declare(strict_types=1);
@@ -237,16 +240,32 @@ class DashboardTest extends TestCase
     {
         $this->assertSame('admin_template', Dashboard::TYPE_ADMIN_TEMPLATE);
         $this->assertSame('user', Dashboard::TYPE_USER);
-        $this->assertSame('group_shared', Dashboard::TYPE_GROUP_SHARED);
-        $this->assertSame('default', Dashboard::DEFAULT_GROUP_ID);
-        $this->assertSame('user', Dashboard::SOURCE_USER);
-        $this->assertSame('group', Dashboard::SOURCE_GROUP);
-        $this->assertSame('default', Dashboard::SOURCE_DEFAULT);
         $this->assertSame('view_only', Dashboard::PERMISSION_VIEW_ONLY);
         $this->assertSame('add_only', Dashboard::PERMISSION_ADD_ONLY);
         $this->assertSame('full', Dashboard::PERMISSION_FULL);
     }
 
+    /**
+     * REQ-DASH-011 / REQ-DASH-012 / REQ-DASH-013: the new constants for
+     * the third dashboard scope, the default-group sentinel, and the
+     * three source tags MUST be exposed on the entity.
+     *
+     * @return void
+     */
+    public function testGroupSharedConstants(): void
+    {
+        $this->assertSame('group_shared', Dashboard::TYPE_GROUP_SHARED);
+        $this->assertSame('default', Dashboard::DEFAULT_GROUP_ID);
+        $this->assertSame('user', Dashboard::SOURCE_USER);
+        $this->assertSame('group', Dashboard::SOURCE_GROUP);
+        $this->assertSame('default', Dashboard::SOURCE_DEFAULT);
+    }
+
+    /**
+     * REQ-DASH-011: the entity MUST expose getter/setter for `groupId`.
+     *
+     * @return void
+     */
     public function testSetAndGetGroupId(): void
     {
         $this->dashboard->setGroupId('marketing');
@@ -256,14 +275,143 @@ class DashboardTest extends TestCase
         $this->assertNull($this->dashboard->getGroupId());
     }
 
+    /**
+     * REQ-DASH-014: every serialised dashboard MUST carry `groupId`
+     * (null for personal / admin_template, non-null string for
+     * group_shared).
+     *
+     * @return void
+     */
     public function testJsonSerializeIncludesGroupId(): void
     {
+        $this->dashboard->setGroupId('marketing');
+        $this->dashboard->setType(Dashboard::TYPE_GROUP_SHARED);
+
         $serialized = $this->dashboard->jsonSerialize();
+
+        $this->assertArrayHasKey('groupId', $serialized);
+        $this->assertSame('marketing', $serialized['groupId']);
+    }
+
+    /**
+     * REQ-DASH-014: groupId is null in the default serialisation when
+     * the dashboard is not group-shared.
+     *
+     * @return void
+     */
+    public function testJsonSerializeGroupIdDefaultsNull(): void
+    {
+        $serialized = $this->dashboard->jsonSerialize();
+
         $this->assertArrayHasKey('groupId', $serialized);
         $this->assertNull($serialized['groupId']);
+    }
 
-        $this->dashboard->setGroupId('engineering');
+    /**
+     * REQ-DASH-031: the entity MUST expose the three publication-state
+     * constants matching the column enum vocabulary.
+     *
+     * @return void
+     */
+    public function testPublicationStatusConstants(): void
+    {
+        $this->assertSame('draft', Dashboard::STATUS_DRAFT);
+        $this->assertSame('published', Dashboard::STATUS_PUBLISHED);
+        $this->assertSame('scheduled', Dashboard::STATUS_SCHEDULED);
+    }
+
+    /**
+     * REQ-DASH-035: the PHP default mirrors the database column default
+     * (`'published'`) so legacy / pre-migration entity hydrations remain
+     * visible until explicitly transitioned. New dashboards override
+     * this to `'draft'` via the factory (REQ-DASH-031, design D2).
+     *
+     * @return void
+     */
+    public function testDefaultPublicationStatusIsPublished(): void
+    {
+        $this->assertSame(
+            Dashboard::STATUS_PUBLISHED,
+            $this->dashboard->getPublicationStatus()
+        );
+        $this->assertNull($this->dashboard->getPublishAt());
+        $this->assertNull($this->dashboard->getPublishedAt());
+    }
+
+    /**
+     * REQ-DASH-031: the publication-state setters must round-trip the
+     * three legal values plus null for the timestamps.
+     *
+     * @return void
+     */
+    public function testPublicationStateSettersRoundTrip(): void
+    {
+        $this->dashboard->setPublicationStatus(Dashboard::STATUS_DRAFT);
+        $this->assertSame('draft', $this->dashboard->getPublicationStatus());
+
+        $this->dashboard->setPublishAt('2026-04-01 10:00:00');
+        $this->assertSame('2026-04-01 10:00:00', $this->dashboard->getPublishAt());
+
+        $this->dashboard->setPublishedAt('2026-03-20 14:30:00');
+        $this->assertSame('2026-03-20 14:30:00', $this->dashboard->getPublishedAt());
+
+        $this->dashboard->setPublishAt(null);
+        $this->assertNull($this->dashboard->getPublishAt());
+    }
+
+    /**
+     * REQ-DASH-031: jsonSerialize MUST include the three publication
+     * fields with stable key names, including null timestamps.
+     *
+     * @return void
+     */
+    public function testJsonSerializeIncludesPublicationFields(): void
+    {
+        $this->dashboard->setPublicationStatus(Dashboard::STATUS_SCHEDULED);
+        $this->dashboard->setPublishAt('2026-04-01 10:00:00');
+
         $serialized = $this->dashboard->jsonSerialize();
-        $this->assertSame('engineering', $serialized['groupId']);
+
+        $this->assertArrayHasKey('publicationStatus', $serialized);
+        $this->assertArrayHasKey('publishAt', $serialized);
+        $this->assertArrayHasKey('publishedAt', $serialized);
+        $this->assertSame('scheduled', $serialized['publicationStatus']);
+        $this->assertSame('2026-04-01 10:00:00', $serialized['publishAt']);
+        $this->assertNull($serialized['publishedAt']);
+    }
+
+    /**
+     * REQ-CMNT-007: `commentsEnabled` defaults to NULL on a fresh entity
+     * and surfaces in the JSON envelope.
+     *
+     * @return void
+     */
+    public function testCommentsEnabledDefaultsNullAndSerialises(): void
+    {
+        $serialized = $this->dashboard->jsonSerialize();
+        $this->assertArrayHasKey('commentsEnabled', $serialized);
+        $this->assertNull($serialized['commentsEnabled']);
+
+        $this->dashboard->setCommentsEnabled(1);
+        $this->assertSame(1, $this->dashboard->jsonSerialize()['commentsEnabled']);
+    }
+
+    /**
+     * REQ-CMNT-007: `isCommentsEffectivelyEnabled` honours per-dashboard
+     * overrides and falls back to the global default when NULL.
+     *
+     * @return void
+     */
+    public function testIsCommentsEffectivelyEnabledPrecedence(): void
+    {
+        $this->dashboard->setCommentsEnabled(null);
+        $this->assertTrue($this->dashboard->isCommentsEffectivelyEnabled(globalDefault: true));
+        $this->assertFalse($this->dashboard->isCommentsEffectivelyEnabled(globalDefault: false));
+
+        $this->dashboard->setCommentsEnabled(1);
+        $this->assertTrue($this->dashboard->isCommentsEffectivelyEnabled(globalDefault: false));
+
+        $this->dashboard->setCommentsEnabled(0);
+        $this->assertFalse($this->dashboard->isCommentsEffectivelyEnabled(globalDefault: true));
     }
 }

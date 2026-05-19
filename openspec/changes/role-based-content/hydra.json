@@ -1,0 +1,8 @@
+{
+  "spec_slug": "role-based-content",
+  "title": "Role-based dashboard content and defaults",
+  "app": "mydash",
+  "repo": "https://github.com/ConductionNL/mydash",
+  "depends_on": [],
+  "issue": null
+}

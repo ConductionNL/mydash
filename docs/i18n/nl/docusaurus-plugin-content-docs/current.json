@@ -2,5 +2,45 @@
   "version.label": {
     "message": "Volgende",
     "description": "The label for version current"
+  },
+  "sidebar.tutorialSidebar.category.Tutorials": {
+    "message": "Tutorials",
+    "description": "The label for category 'Tutorials' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Tutorials.link.generated-index.title": {
+    "message": "MyDash tutorials",
+    "description": "The generated-index page title for category 'Tutorials' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Tutorials.link.generated-index.description": {
+    "message": "Step-by-step walkthroughs for everyday MyDash tasks. The user track covers personal-dashboard workflows; the admin track covers org-wide configuration and policy.",
+    "description": "The generated-index page description for category 'Tutorials' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.User guide": {
+    "message": "User guide",
+    "description": "The label for category 'User guide' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.User guide.link.generated-index.title": {
+    "message": "User guide",
+    "description": "The generated-index page title for category 'User guide' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.User guide.link.generated-index.description": {
+    "message": "Workflows for individual MyDash users — opening the app, customizing dashboards, switching between them, and pinning a default.",
+    "description": "The generated-index page description for category 'User guide' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Admin guide": {
+    "message": "Admin guide",
+    "description": "The label for category 'Admin guide' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Admin guide.link.generated-index.title": {
+    "message": "Admin guide",
+    "description": "The generated-index page title for category 'Admin guide' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Admin guide.link.generated-index.description": {
+    "message": "Org-wide MyDash administration — toggling personal dashboards, authoring admin templates, marking group defaults, and restricting widgets per role.",
+    "description": "The generated-index page description for category 'Admin guide' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.MyDash — Features": {
+    "message": "MyDash — Features",
+    "description": "The label for category 'MyDash — Features' in sidebar 'tutorialSidebar'"
   }
 }

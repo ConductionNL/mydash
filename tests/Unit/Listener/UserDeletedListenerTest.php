@@ -28,6 +28,7 @@ use OCA\MyDash\Db\DashboardShareMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCA\MyDash\Listener\UserDeletedListener;
 use OCA\MyDash\Service\DashboardShareService;
+use OCA\MyDash\Service\RoleService;
 use OCP\IDBConnection;
 use OCP\IGroup;
 use OCP\IGroupManager;
@@ -36,6 +37,7 @@ use OCP\IUserManager;
 use OCP\User\Events\UserDeletedEvent;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 /**
  * Tests for UserDeletedListener.
@@ -61,6 +63,10 @@ class UserDeletedListenerTest extends TestCase
     private $userManager;
     /** @var IDBConnection&MockObject */
     private $db;
+    /** @var LoggerInterface&MockObject */
+    private $logger;
+    /** @var RoleService&MockObject */
+    private $roleService;
 
     private UserDeletedListener $listener;
 
@@ -80,6 +86,8 @@ class UserDeletedListenerTest extends TestCase
         $this->groupManager    = $this->createMock(IGroupManager::class);
         $this->userManager     = $this->createMock(IUserManager::class);
         $this->db              = $this->createMock(IDBConnection::class);
+        $this->logger          = $this->createMock(LoggerInterface::class);
+        $this->roleService     = $this->createMock(RoleService::class);
 
         // Default: transaction methods succeed (void return).
         $this->db->method('beginTransaction');
@@ -93,6 +101,8 @@ class UserDeletedListenerTest extends TestCase
             groupManager: $this->groupManager,
             userManager: $this->userManager,
             db: $this->db,
+            logger: $this->logger,
+            roleService: $this->roleService,
         );
     }//end setUp()
 

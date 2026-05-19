@@ -44,14 +44,14 @@ class Version001004Date20260204150000 extends SimpleMigrationStep
         $schema = $schemaClosure();
 
         $table = $schema->getTable(
-            tableName: 'mydash_widget_placements'
+            'mydash_widget_placements'
         );
 
-        if ($table->hasColumn(name: 'custom_icon') === false) {
+        if ($table->hasColumn('custom_icon') === false) {
             $table->addColumn(
-                name: 'custom_icon',
-                typeName: Types::TEXT,
-                options: [
+                'custom_icon',
+                Types::TEXT,
+                [
                     'notnull' => false,
                     'length'  => 2000,
                 ]

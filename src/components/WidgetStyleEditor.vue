@@ -9,7 +9,7 @@
 		:name="t('mydash', 'Widget style')"
 		size="normal"
 		@close="$emit('close')">
-		<div class="style-editor">
+		<div class="style-editor" data-testid="widget-style-editor">
 			<h2 class="style-editor__title">
 				{{ t('mydash', 'Customize widget') }}
 			</h2>
@@ -107,7 +107,7 @@
 					<NcButton type="secondary" @click="resetStyle">
 						{{ t('mydash', 'Reset') }}
 					</NcButton>
-					<NcButton type="primary" @click="saveStyle">
+					<NcButton type="primary" data-testid="widget-style-save" @click="saveStyle">
 						{{ t('mydash', 'Save') }}
 					</NcButton>
 				</div>

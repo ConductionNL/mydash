@@ -36,14 +36,14 @@ class SettingsTableBuilder
     public static function create(ISchemaWrapper $schema): void
     {
         if ($schema->hasTable(
-            tableName: 'mydash_admin_settings'
+            'mydash_admin_settings'
         ) === true
         ) {
             return;
         }
 
         $table = $schema->createTable(
-            tableName: 'mydash_admin_settings'
+            'mydash_admin_settings'
         );
 
         self::addColumns(table: $table);
@@ -60,33 +60,33 @@ class SettingsTableBuilder
     private static function addColumns($table): void
     {
         $table->addColumn(
-            name: 'id',
-            typeName: Types::BIGINT,
-            options: [
+            'id',
+            Types::BIGINT,
+            [
                 'autoincrement' => true,
                 'notnull'       => true,
                 'unsigned'      => true,
             ]
         );
         $table->addColumn(
-            name: 'setting_key',
-            typeName: Types::STRING,
-            options: [
+            'setting_key',
+            Types::STRING,
+            [
                 'notnull' => true,
                 'length'  => 255,
             ]
         );
         $table->addColumn(
-            name: 'setting_value',
-            typeName: Types::TEXT,
-            options: [
+            'setting_value',
+            Types::TEXT,
+            [
                 'notnull' => false,
             ]
         );
         $table->addColumn(
-            name: 'updated_at',
-            typeName: Types::DATETIME,
-            options: [
+            'updated_at',
+            Types::DATETIME,
+            [
                 'notnull' => true,
             ]
         );
@@ -101,10 +101,10 @@ class SettingsTableBuilder
      */
     private static function addIndexes($table): void
     {
-        $table->setPrimaryKey(columnNames: ['id']);
+        $table->setPrimaryKey(['id']);
         $table->addUniqueIndex(
-            columnNames: ['setting_key'],
-            indexName: 'mydash_setting_key'
+            ['setting_key'],
+            'mydash_setting_key'
         );
     }//end addIndexes()
 }//end class

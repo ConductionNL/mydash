@@ -35,71 +35,38 @@ This means tile placements store a COPY of the tile configuration at creation ti
 
 ## Requirements
 
-### REQ-TILE-001: Create Custom Tile
+### Requirement: REQ-TILE-001 Reusable tile entity model \u2014 DEPRECATED
 
-Users MUST be able to create reusable custom tile definitions.
+The reusable tile entity model (rows in `oc_mydash_tiles`, accessed via `TileService::createTile / updateTile / deleteTile` and `POST/PUT/DELETE /api/tiles[/{id}]`) MUST be treated as deprecated as of the `unified-add-widget-flow` change. The unified add-widget flow (REQ-WDG-022) introduces `tile` as a registry-driven widget type that stores its data inline on each placement, removing the need for a separate reusable-entity table; existing rows MUST remain readable for backwards compatibility.
 
-#### Scenario: Create a tile linking to a Nextcloud app
-- GIVEN a logged-in user "alice"
-- WHEN she sends POST /api/tiles with body:
-  ```json
-  {
-    "title": "My Files",
-    "icon": "icon-folder",
-    "iconType": "class",
-    "backgroundColor": "#3b82f6",
-    "textColor": "#ffffff",
-    "linkType": "app",
-    "linkValue": "/apps/files"
-  }
-  ```
-- THEN the system MUST create a tile with an auto-increment integer ID (no UUID)
-- AND `userId` MUST be set to "alice"
-- AND the response MUST return HTTP 201 with the full tile object
+The following behaviour MUST hold during the deprecation window:
 
-#### Scenario: Create a tile linking to an external URL
-- GIVEN a logged-in user "alice"
-- WHEN she sends POST /api/tiles with body:
-  ```json
-  {
-    "title": "Company Wiki",
-    "icon": "https://wiki.example.com/favicon.ico",
-    "iconType": "url",
-    "backgroundColor": "#10b981",
-    "textColor": "#ffffff",
-    "linkType": "url",
-    "linkValue": "https://wiki.example.com"
-  }
-  ```
-- THEN the system MUST create the tile with `linkType: "url"`
-- AND the icon MUST be stored as a URL reference
+1. `POST /api/tiles`, `PUT /api/tiles/{id}`, and `DELETE /api/tiles/{id}` MUST return HTTP 410 Gone with envelope `{status: 'gone', message: '<localised>', replacement: 'POST /api/dashboards/{uuid}/widgets with type:tile'}`.
+2. `GET /api/tiles` and `GET /api/tiles/{id}` MUST continue to return existing rows for backwards compatibility (read-only \u2014 admin tooling, migration scripts).
+3. The `oc_mydash_tiles` table MUST remain in the schema. No destructive migration. A future `tile-table-removal` change MAY drop it after at least one full release of read-deprecation.
+4. Existing tile placements (rows in `oc_mydash_widget_placements` with the legacy inline `tileTitle`/`tileIcon`/`tileIconType`/`tileBackgroundColor`/`tileTextColor`/`tileLinkType`/`tileLinkValue` fields) MUST continue to render. The new `TileWidget` renderer MUST handle the legacy field shape AND the new `placement.content.{title, icon, ...}` shape.
 
-#### Scenario: Create a tile with an emoji icon
-- GIVEN a logged-in user "alice"
-- WHEN she sends POST /api/tiles with body:
-  ```json
-  {"title": "Calendar", "icon": "\ud83d\udcc5", "iconType": "emoji", "linkType": "app", "linkValue": "/apps/calendar"}
-  ```
-- THEN the system MUST store the emoji character as the icon value
-- AND the frontend MUST render the emoji directly as the tile icon
+#### Scenario: Write endpoints return 410 Gone
 
-#### Scenario: Create a tile with SVG path icon
-- GIVEN a logged-in user "alice"
-- WHEN she sends POST /api/tiles with `iconType: "svg"` and `icon: "M12 2L2 7v10l10 5 10-5V7z"`
-- THEN the system MUST store the SVG path data as the icon value
-- AND the frontend MUST render the path inside an SVG element
+- **GIVEN** an admin user authenticated to mydash
+- **WHEN** they `POST /api/tiles` with any payload
+- **THEN** the response MUST be HTTP 410 Gone
+- **AND** the body MUST include `status: 'gone'`, a localised `message`, and `replacement: 'POST /api/dashboards/{uuid}/widgets with type:tile'`
+- **AND** no row MUST be inserted into `oc_mydash_tiles`
 
-#### Scenario: Create a tile with missing required fields
-- GIVEN a logged-in user
-- WHEN they send POST /api/tiles with body `{"title": "Incomplete"}`
-- THEN the system MUST create the tile with default values: `iconType: 'class'`, `backgroundColor: '#0082c9'`, `textColor: '#ffffff'`, `linkType: 'url'`, `linkValue: '#'`
-- NOTE: The current implementation does NOT validate required fields. All fields have defaults.
+#### Scenario: Read endpoints still serve existing rows
 
-#### Scenario: Create a tile with invalid link_type
-- GIVEN a logged-in user
-- WHEN they send POST /api/tiles with body `{"title": "Bad", "linkType": "ftp", "linkValue": "ftp://server"}`
-- THEN the system SHOULD return HTTP 400 with an error indicating that `linkType` must be either "app" or "url"
-- NOTE: Link type validation is NOT currently implemented -- any string value is accepted
+- **GIVEN** the database contains a tile row created prior to the unified-add-widget-flow change
+- **WHEN** an authenticated user calls `GET /api/tiles`
+- **THEN** the response MUST be HTTP 200 with the row's fields in the documented shape
+- **AND** this MUST work as long as the `oc_mydash_tiles` table exists in the schema
+
+#### Scenario: Existing tile placements still render
+
+- **GIVEN** a dashboard with a tile placement created prior to the unified-add-widget-flow change (legacy field shape on the placement row)
+- **WHEN** the dashboard renders via the merged `TileWidget` (REQ-WDG-022)
+- **THEN** the tile MUST display with title + icon + colours + click-through correctly
+- **AND** no console errors MUST occur
 
 ### REQ-TILE-002: List User Tiles
 
@@ -348,6 +315,21 @@ Users MUST be able to manage their tile definitions through a dedicated UI.
 - WHEN the tile editor opens
 - THEN `TileEditor.vue` MUST provide fields for title, icon, iconType, colors, linkType, and linkValue
 - AND changes MUST be saved via the tile API
+
+### Requirement: REQ-TILE-PLACEMENT Inline-content placement model — promoted to canonical
+
+Tile placements (rows in `oc_mydash_widget_placements` with `tileType: 'custom'` historically, or `widgetId: 'tile'` going forward) MUST store their data INLINE on the placement. This MUST be treated as the canonical model for tile data on dashboards going forward.
+
+New tile placements created via the unified add-widget flow (REQ-WDG-010 + REQ-WDG-022) MUST store their data in `placement.content.{title, icon, iconType, backgroundColor, textColor, linkType, linkValue}` — the standard widget-content shape. Legacy placements with the flat `placement.tileTitle / tileIcon / ...` shape MUST continue to work via the renderer's dual-shape support (REQ-WDG-022 scenario "Tile renderer supports legacy and new content shapes").
+
+A future migration MAY rewrite legacy placements into the new content shape, but this is OUT OF SCOPE for the unified-add-widget-flow change.
+
+#### Scenario: New tile placement uses standard content shape
+
+- **GIVEN** a user opens the unified Add Custom Widget modal and picks "Tile"
+- **WHEN** they fill the form and save
+- **THEN** the resulting `oc_mydash_widget_placements` row MUST have its data in `content` (JSON column)
+- **AND** the legacy flat `tileTitle`/`tileIcon`/etc. columns MUST NOT be populated for new placements
 
 ## Non-Functional Requirements
 

@@ -8,9 +8,41 @@
 		<CnSettingsSection
 			:name="t('mydash', 'MyDash settings')"
 			:description="t('mydash', 'Configure dashboard permissions and defaults')"
-			doc-url="https://mydash.app">
+			doc-url="https://mydash.conduction.nl/docs/intro">
+			<!-- Setup wizard banner (REQ-WIZ-001). Stays visible until the
+			     admin clicks Finish in the wizard; after completion a less
+			     prominent re-run link replaces it (REQ-WIZ-011). -->
+			<div
+				v-if="wizardState && !wizardState.complete"
+				class="mydash-admin__wizard-banner"
+				data-test="setup-wizard-banner">
+				<div>
+					<strong>{{ t('mydash', 'Run setup wizard') }}</strong>
+					<p>
+						{{ t('mydash', 'Get your intranet started: choose storage, configure groups, install demo data, and set up admin roles.') }}
+					</p>
+				</div>
+				<NcButton
+					type="primary"
+					data-test="setup-wizard-open"
+					@click="openWizard">
+					{{ t('mydash', 'Run setup wizard') }}
+				</NcButton>
+			</div>
+			<div
+				v-else-if="wizardState && wizardState.complete"
+				class="mydash-admin__wizard-rerun"
+				data-test="setup-wizard-rerun">
+				<NcButton
+					type="tertiary"
+					data-test="setup-wizard-rerun-open"
+					@click="openWizard">
+					{{ t('mydash', 'Run setup wizard again') }}
+				</NcButton>
+			</div>
+
 			<!-- Global Settings -->
-			<div class="mydash-admin__section">
+			<div class="mydash-admin__section" data-testid="admin-default-settings">
 				<h3>{{ t('mydash', 'Default settings') }}</h3>
 
 				<div class="mydash-admin__field">
@@ -24,11 +56,21 @@
 						@input="saveSettings" />
 				</div>
 
+				<!-- REQ-ASET-003 (extended). The toggle is wired to
+				     `PUT /api/admin/settings`. Toggling does NOT mutate
+				     dashboard rows: existing personal dashboards remain
+				     readable and editable; only NEW creations and forks
+				     are blocked. The helper text below makes this clear
+				     to admins so they don't fear data loss. -->
 				<NcCheckboxRadioSwitch
 					:checked="settings.allowUserDashboards"
+					data-testid="admin-allow-user-dashboards"
 					@update:checked="updateSetting('allowUserDashboards', $event)">
 					{{ t('mydash', 'Allow users to create custom dashboards') }}
 				</NcCheckboxRadioSwitch>
+				<p class="mydash-admin__hint mydash-admin__hint--inline">
+					{{ t('mydash', 'Disabling this only blocks creating new personal dashboards. Existing personal dashboards remain visible and editable.') }}
+				</p>
 
 				<NcCheckboxRadioSwitch
 					:checked="settings.allowMultipleDashboards"
@@ -46,11 +88,16 @@
 				</div>
 			</div>
 
-			<!-- Template Management -->
+			<!-- Group priority order (REQ-ASET-012/013/014) -->
 			<div class="mydash-admin__section">
+				<GroupPriorityOrder :initial-active="configuredGroups" />
+			</div>
+
+			<!-- Template Management -->
+			<div class="mydash-admin__section" data-testid="admin-templates-section">
 				<div class="mydash-admin__section-header">
 					<h3>{{ t('mydash', 'Dashboard templates') }}</h3>
-					<NcButton type="primary" @click="createTemplate">
+					<NcButton type="primary" data-testid="admin-create-template" @click="createTemplate">
 						<template #icon>
 							<Plus :size="20" />
 						</template>
@@ -96,6 +143,94 @@
 				</div>
 			</div>
 
+			<!-- Group-shared dashboards (REQ-DASH-015..017) -->
+			<div class="mydash-admin__section">
+				<div class="mydash-admin__section-header">
+					<h3>{{ t('mydash', 'Group-shared dashboards') }}</h3>
+				</div>
+
+				<p class="mydash-admin__hint">
+					{{ t('mydash', 'Promote a single dashboard per group as the default. Members of the group will land on it when they have no personal preference yet.') }}
+				</p>
+
+				<div v-if="loadingGroupDashboards" class="mydash-admin__hint">
+					{{ t('mydash', 'Loading group dashboards…') }}
+				</div>
+
+				<div
+					v-for="(rows, groupId) in groupSharedDashboards"
+					:key="groupId"
+					class="mydash-admin__group">
+					<h4 class="mydash-admin__group-title">
+						{{ groupId }}
+					</h4>
+					<div v-if="rows.length === 0" class="mydash-admin__hint">
+						{{ t('mydash', 'No group-shared dashboards in this group yet.') }}
+					</div>
+					<div v-else class="mydash-admin__templates">
+						<div
+							v-for="dash in rows"
+							:key="dash.uuid"
+							class="mydash-admin__template">
+							<div class="mydash-admin__template-info">
+								<strong>{{ dash.name }}</strong>
+								<span
+									v-if="dash.isDefault === 1"
+									class="mydash-admin__badge"
+									data-test="group-default-badge">
+									{{ t('mydash', 'Default') }}
+								</span>
+							</div>
+							<div class="mydash-admin__template-actions">
+								<NcButton
+									v-if="dash.isDefault !== 1"
+									type="secondary"
+									data-test="set-group-default"
+									:disabled="settingGroupDefault === dash.uuid"
+									@click="setGroupDefault(groupId, dash.uuid)">
+									{{ t('mydash', 'Set as default') }}
+								</NcButton>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Org-wide navigation editor (REQ-ONAV-001..012) -->
+			<div class="mydash-admin__section">
+				<OrgNavigationEditor :groups="injectedAllGroups" />
+			</div>
+
+			<!-- Backup & migration (REQ-EXIM-001..010) -->
+			<div class="mydash-admin__section">
+				<DashboardExportImport />
+			</div>
+
+			<!-- Bulk dashboard operations (REQ-BULK-001..011) -->
+			<div class="mydash-admin__section" data-testid="admin-bulk-section">
+				<DashboardBulkOperations />
+			</div>
+
+			<!-- Confluence HTML import (REQ-CFLI-001..012) -->
+			<div class="mydash-admin__section">
+				<ConfluenceImport />
+			</div>
+
+			<!-- Dashboard view-analytics (REQ-ANLT-006..010) -->
+			<div class="mydash-admin__section">
+				<AdminAnalytics />
+			</div>
+
+			<!-- Demo data showcases (REQ-DEMO-001..009) -->
+			<div class="mydash-admin__section">
+				<AdminDemoData />
+			</div>
+
+			<!-- Role-based widget permissions (REQ-RFP-001..010) -->
+			<div class="mydash-admin__section" data-testid="admin-roles-section">
+				<RolePermissionsSection />
+			</div>
+
 			<!-- Info -->
 			<div class="mydash-admin__section">
 				<h3>{{ t('mydash', 'Setting as default app') }}</h3>
@@ -104,6 +239,14 @@
 				</p>
 			</div>
 		</CnSettingsSection>
+
+		<!-- Setup wizard modal (REQ-WIZ-002). Mounted lazily so step
+		     components only execute when the admin opens the flow. -->
+		<SetupWizardModal
+			v-if="showWizard"
+			data-test="setup-wizard-modal"
+			@close="closeWizard"
+			@completed="onWizardCompleted" />
 
 		<!-- Template Editor Modal -->
 		<NcModal
@@ -163,8 +306,8 @@
 </template>
 
 <script>
-import { CnSettingsSection } from '@conduction/nextcloud-vue'
 import {
+	CnSettingsSection,
 	NcButton,
 	NcSelect,
 	NcSelectTags,
@@ -175,13 +318,29 @@ import {
 } from '@conduction/nextcloud-vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import ViewDashboard from 'vue-material-design-icons/ViewDashboard.vue'
+import AdminAnalytics from './AdminAnalytics.vue'
+import GroupPriorityOrder from './GroupPriorityOrder.vue'
+import DashboardExportImport from './DashboardExportImport.vue'
+import DashboardBulkOperations from './DashboardBulkOperations.vue'
+import ConfluenceImport from './ConfluenceImport.vue'
+import OrgNavigationEditor from './OrgNavigationEditor.vue'
+import AdminDemoData from './AdminDemoData.vue'
+import SetupWizardModal from './SetupWizardModal.vue'
 import { api } from '../../services/api.js'
+import RolePermissionsSection from './RolePermissionsSection.vue'
 
 export default {
 	name: 'AdminSettings',
 
 	components: {
+		AdminAnalytics,
+		AdminDemoData,
 		CnSettingsSection,
+		ConfluenceImport,
+		DashboardBulkOperations,
+		DashboardExportImport,
+		GroupPriorityOrder,
+		OrgNavigationEditor,
 		NcButton,
 		NcSelect,
 		NcSelectTags,
@@ -190,7 +349,27 @@ export default {
 		NcEmptyContent,
 		NcModal,
 		Plus,
+		SetupWizardModal,
 		ViewDashboard,
+		RolePermissionsSection,
+	},
+
+	// REQ-INIT-004: read the initial-state snapshot the PHP admin form
+	// pushes via `MyDashAdmin::getForm()`. Treated as a hint for the
+	// initial render only — `loadData()` overwrites with the API truth.
+	inject: {
+		injectedAllGroups: { from: 'allGroups', default: () => [] },
+		injectedConfiguredGroups: { from: 'configuredGroups', default: () => [] },
+		allowUserDashboards: {
+			from: 'allowUserDashboards',
+			default: false,
+		},
+		// Initial seed for the group-priority component (REQ-ASET-013).
+		// `GroupPriorityOrder.loadGroups()` overwrites with API truth.
+		configuredGroups: {
+			from: 'configuredGroups',
+			default: () => [],
+		},
 	},
 
 	data() {
@@ -198,7 +377,8 @@ export default {
 			loading: true,
 			settings: {
 				defaultPermissionLevel: { id: 'add_only', label: this.t('mydash', 'Add only') },
-				allowUserDashboards: true,
+				// Default mirrors the spec — admins MUST opt in.
+				allowUserDashboards: this.allowUserDashboards ?? false,
 				allowMultipleDashboards: true,
 				defaultGridColumns: 12,
 			},
@@ -211,11 +391,26 @@ export default {
 				{ id: 'full', label: this.t('mydash', 'Full customization') },
 			],
 			gridColumnOptions: [6, 8, 12],
+			// REQ-DASH-015..017 — group-shared dashboards listing for the
+			// "Set as default" UI. Keyed by groupId, value is an array of
+			// dashboard rows (each carrying `isDefault` 0|1).
+			groupSharedDashboards: {},
+			loadingGroupDashboards: false,
+			// uuid currently being promoted (disables the row's button to
+			// avoid double-clicks during the in-flight call).
+			settingGroupDefault: null,
+			// Setup wizard banner state (REQ-WIZ-001). Keeping it in this
+			// component avoids a dedicated store; the modal emits
+			// `completed` which triggers a state re-fetch.
+			wizardState: null,
+			showWizard: false,
 		}
 	},
 
 	async created() {
 		await this.loadData()
+		await this.loadGroupSharedDashboards()
+		await this.loadWizardState()
 	},
 
 	methods: {
@@ -251,11 +446,18 @@ export default {
 
 		async saveSettings() {
 			try {
+				// REQ-ASET-002: the PUT /api/admin/settings endpoint accepts
+				// the abbreviated camelCase parameter names — the long
+				// camelCase forms returned by GET are NOT accepted on
+				// write. Mismatched keys silently no-op (controller leaves
+				// the matching arg null), which would have left the toggle
+				// permanently stuck. REQ-ASET-003 explicitly demands the
+				// admin can flip the flag at runtime.
 				await api.updateAdminSettings({
-					defaultPermissionLevel: this.settings.defaultPermissionLevel?.id,
-					allowUserDashboards: this.settings.allowUserDashboards,
-					allowMultipleDashboards: this.settings.allowMultipleDashboards,
-					defaultGridColumns: this.settings.defaultGridColumns,
+					defaultPermLevel: this.settings.defaultPermissionLevel?.id,
+					allowUserDash: this.settings.allowUserDashboards,
+					allowMultiDash: this.settings.allowMultipleDashboards,
+					defaultGridCols: this.settings.defaultGridColumns,
 				})
 			} catch (error) {
 				console.error('Failed to save settings:', error)
@@ -332,6 +534,132 @@ export default {
 				return this.t('mydash', 'All users')
 			}
 			return groups.join(', ')
+		},
+
+		/**
+		 * Resolve the list of group ids the admin curates: prefer the
+		 * `configuredGroups` initial-state slot (curated order) and fall
+		 * back to the synthetic `'default'` group so the admin always sees
+		 * at least one section. REQ-DASH-015.
+		 *
+		 * @return {string[]} Group ids to render.
+		 */
+		resolveAdminGroupIds() {
+			const configured = Array.isArray(this.injectedConfiguredGroups)
+				? this.injectedConfiguredGroups
+				: []
+			if (configured.length > 0) {
+				return configured.includes('default')
+					? configured
+					: ['default', ...configured]
+			}
+			return ['default']
+		},
+
+		/**
+		 * Fetch group-shared dashboards for every curated group via
+		 * `GET /api/dashboards/group/{groupId}` (REQ-DASH-014). Errors
+		 * for one group MUST NOT abort the others — a missing group is
+		 * common (e.g. the admin removed it but the order was kept).
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadGroupSharedDashboards() {
+			this.loadingGroupDashboards = true
+			const groupIds = this.resolveAdminGroupIds()
+			const next = {}
+			await Promise.all(
+				groupIds.map(async (groupId) => {
+					try {
+						const response = await api.listGroupDashboards(groupId)
+						next[groupId] = Array.isArray(response.data) ? response.data : []
+					} catch (e) {
+						console.warn(`Failed to load group dashboards for ${groupId}:`, e)
+						next[groupId] = []
+					}
+				}),
+			)
+			this.groupSharedDashboards = next
+			this.loadingGroupDashboards = false
+		},
+
+		/**
+		 * Promote a group-shared dashboard to the group default
+		 * (REQ-DASH-015). Optimistically flips the in-memory rows
+		 * (target → 1, every other row in the same group → 0) before the
+		 * API call; on 4xx/5xx restores the snapshot so the badge never
+		 * lies.
+		 *
+		 * @param {string} groupId The group id from the row context.
+		 * @param {string} uuid The dashboard uuid to promote.
+		 * @return {Promise<void>}
+		 */
+		/**
+		 * Fetch the wizard state for the banner gate (REQ-WIZ-001,
+		 * REQ-WIZ-008). A failed call is silently swallowed so the rest
+		 * of the admin page stays usable; the banner just doesn't render.
+		 *
+		 * @return {Promise<void>}
+		 */
+		async loadWizardState() {
+			try {
+				const { data } = await api.getSetupWizardState()
+				this.wizardState = data || null
+			} catch (e) {
+				console.warn('Failed to load setup wizard state:', e)
+				this.wizardState = null
+			}
+		},
+
+		openWizard() {
+			this.showWizard = true
+		},
+
+		closeWizard() {
+			this.showWizard = false
+		},
+
+		async onWizardCompleted() {
+			this.showWizard = false
+			// REQ-WIZ-002 final scenario: the banner MUST disappear without
+			// requiring a full page reload. Re-fetch the state so the
+			// reactive guard updates.
+			await this.loadWizardState()
+		},
+
+		async setGroupDefault(groupId, uuid) {
+			const rows = this.groupSharedDashboards[groupId] || []
+			// Snapshot prior `isDefault` values for rollback.
+			const snapshot = rows.map(d => ({ uuid: d.uuid, isDefault: d.isDefault }))
+			// Optimistic update.
+			this.groupSharedDashboards = {
+				...this.groupSharedDashboards,
+				[groupId]: rows.map(d => ({
+					...d,
+					isDefault: d.uuid === uuid ? 1 : 0,
+				})),
+			}
+			this.settingGroupDefault = uuid
+			try {
+				await api.setGroupDashboardDefault(groupId, uuid)
+			} catch (error) {
+				// Roll back to the snapshot. Surface the failure via the
+				// console; the parent page already wires Nextcloud
+				// notifications for axios errors at the global level.
+				this.groupSharedDashboards = {
+					...this.groupSharedDashboards,
+					[groupId]: rows.map((d) => {
+						const prev = snapshot.find(s => s.uuid === d.uuid)
+						return prev ? { ...d, isDefault: prev.isDefault } : d
+					}),
+				}
+				console.error(
+					this.t('mydash', 'Failed to set the group default dashboard'),
+					error,
+				)
+			} finally {
+				this.settingGroupDefault = null
+			}
 		},
 	},
 }
@@ -430,10 +758,47 @@ export default {
 	margin: 0 0 24px;
 }
 
+.mydash-admin__group {
+	margin-bottom: 24px;
+}
+
+.mydash-admin__group-title {
+	margin: 16px 0 8px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
 .mydash-admin__modal-actions {
 	display: flex;
 	justify-content: flex-end;
 	gap: 12px;
 	margin-top: 24px;
+}
+
+.mydash-admin__wizard-banner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 16px 20px;
+	margin-bottom: 24px;
+	background: var(--color-primary-element-light);
+	border: 1px solid var(--color-primary-element);
+	border-radius: var(--border-radius);
+}
+
+.mydash-admin__wizard-banner p {
+	margin: 4px 0 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 13px;
+}
+
+.mydash-admin__wizard-rerun {
+	margin-bottom: 16px;
+	display: flex;
+	justify-content: flex-end;
 }
 </style>

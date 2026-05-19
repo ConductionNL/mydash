@@ -45,6 +45,8 @@ class MetricsCollector
      * Collect all metrics lines for Prometheus exposition.
      *
      * @return array The lines of Prometheus metrics output.
+     *
+     * @spec prometheus-metrics:REQ-PROM-001
      */
     public function collectAll(): array
     {

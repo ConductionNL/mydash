@@ -38,6 +38,7 @@ class WidgetService
      * @param WidgetFormatter  $widgetFormatter  Widget formatter service.
      * @param WidgetItemLoader $widgetItemLoader Widget item loader service.
      * @param IUserSession     $userSession      User session interface.
+     * @param MenuService      $menuService      Validator for `menu` widgets (REQ-MENU-002).
      */
     public function __construct(
         private readonly IManager $dashboardManager,
@@ -45,13 +46,45 @@ class WidgetService
         private readonly WidgetFormatter $widgetFormatter,
         private readonly WidgetItemLoader $widgetItemLoader,
         private readonly IUserSession $userSession,
+        private readonly MenuService $menuService=new MenuService(),
     ) {
     }//end __construct()
+
+    /**
+     * Validate the `content` blob of a widget placement before save.
+     *
+     * REQ-MENU-002 server-side hook. Currently only the `menu` widget type
+     * has a server-side validator; any future widget that needs save-time
+     * validation should add its own branch here so the dispatcher stays
+     * single-responsibility.
+     *
+     * @param string $widgetType Widget type identifier (e.g. `menu`).
+     * @param array  $content    Widget content blob.
+     *
+     * @return void
+     * @throws \InvalidArgumentException When the content blob is invalid.
+     */
+    public function validateWidgetContent(string $widgetType, array $content): void
+    {
+        if ($widgetType !== 'menu') {
+            return;
+        }
+
+        $items = [];
+        if (isset($content['items']) === true && is_array($content['items']) === true) {
+            $items = $content['items'];
+        }
+
+        $this->menuService->validateMenuConfig(content: $content);
+        $this->menuService->validateMenuItems(items: $items);
+    }//end validateWidgetContent()
 
     /**
      * Get all available widgets from Nextcloud.
      *
      * @return array The list of available widgets.
+     *
+     * @spec widgets:REQ-WDG-001
      */
     public function getAvailableWidgets(): array
     {
@@ -89,6 +122,8 @@ class WidgetService
      * @param int    $limit     Maximum number of items per widget.
      *
      * @return array The widget items.
+     *
+     * @spec widgets:REQ-WDG-002
      */
     public function getWidgetItems(
         string $userId,

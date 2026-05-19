@@ -3,14 +3,17 @@
 /**
  * FileController
  *
- * HTTP entry point for the file-creation capability (REQ-LBN-004). Exposes a
- * single non-admin `POST /api/files/create` endpoint that accepts
- * `{filename, dir, content}` and returns a `{status, fileId, url}` success
- * envelope or a `{status, error, message}` error envelope on validation
- * failures.
+ * HTTP entry point for the link-button-widget capability's createFile
+ * flow. Exposes:
  *
- * All errors are mapped to typed envelopes — raw exception messages are NEVER
- * returned to the client.
+ * - `POST /api/files/create` (any logged-in user) — accepts JSON
+ *   `{filename, dir, content}` and returns `{status, fileId, url}`
+ *   where `url` deep-links into the Files app at `?openfile=<fileId>`.
+ *
+ * Every typed exception from {@see \OCA\MyDash\Service\FileService} is
+ * mapped to the standardised `{status, error, message}` error envelope
+ * — raw underlying exception messages are NEVER returned to the
+ * caller (REQ-LBN-004).
  *
  * @category  Controller
  * @package   OCA\MyDash\Controller
@@ -28,21 +31,24 @@ declare(strict_types=1);
 
 namespace OCA\MyDash\Controller;
 
-use OCA\MyDash\Exception\ForbiddenExtensionException;
-use OCA\MyDash\Exception\InvalidDirectoryException;
-use OCA\MyDash\Exception\InvalidFilenameException;
+use OCA\MyDash\AppInfo\Application;
+use OCA\MyDash\Exception\ForbiddenException;
+use OCA\MyDash\Exception\ResourceException;
+use OCA\MyDash\Exception\StorageFailureException;
 use OCA\MyDash\Service\FileService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
-use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
+use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
- * Controller for the link-button file-creation endpoint.
+ * Controller for the link-button-widget createFile flow.
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class FileController extends Controller
 {
@@ -50,116 +56,121 @@ class FileController extends Controller
      * Constructor.
      *
      * @param IRequest        $request     The HTTP request.
-     * @param FileService     $fileService The file creation service.
+     * @param FileService     $fileService File-creation pipeline.
+     * @param IUserSession    $userSession Session accessor.
      * @param LoggerInterface $logger      PSR logger.
-     * @param string|null     $userId      The authenticated user ID.
      */
     public function __construct(
         IRequest $request,
         private readonly FileService $fileService,
+        private readonly IUserSession $userSession,
         private readonly LoggerInterface $logger,
-        private readonly ?string $userId,
     ) {
         parent::__construct(
-            appName: 'mydash',
+            appName: Application::APP_ID,
             request: $request
         );
     }//end __construct()
 
     /**
-     * Handle `POST /api/files/create`.
+     * Handle `POST /api/files/create` (REQ-LBN-004).
      *
-     * Accepts `filename`, `dir` (default `/`), and `content` (default `''`)
-     * from the request, delegates strict validation and file I/O to
-     * FileService, and returns a typed envelope on success or error.
+     * @param string|null $filename Leaf filename.
+     * @param string|null $dir      Target subdirectory (default `/`).
+     * @param string|null $content  Bytes to write (default empty).
      *
-     * @param string $filename The desired filename (basename only).
-     * @param string $dir      Target directory inside the user folder.
-     * @param string $content  Initial file content (may be empty).
+     * @return JSONResponse Either `{status, fileId, url}` on HTTP 200
+     *                      or `{status, error, message}` on failure.
      *
-     * @return JSONResponse Either `{status:'success', fileId, url}` (HTTP 200)
-     *                      or `{status:'error', error:<code>, message:<text>}`
-     *                      (HTTP 400 or 500).
-     *
-     * @NoAdminRequired
      * @NoCSRFRequired
      */
     #[NoAdminRequired]
-    #[NoCSRFRequired]
     public function createFile(
-        string $filename='',
-        string $dir='/',
-        string $content=''
+        ?string $filename=null,
+        ?string $dir='/',
+        ?string $content=''
     ): JSONResponse {
-        if ($this->userId === null) {
+        try {
+            $userId = $this->resolveUserId();
+
+            $result = $this->fileService->createFile(
+                userId: $userId,
+                filename: ($filename ?? ''),
+                dir: ($dir ?? '/'),
+                content: ($content ?? '')
+            );
+
+            return new JSONResponse(
+                data: $result,
+                statusCode: Http::STATUS_OK
+            );
+        } catch (ForbiddenException $e) {
             return new JSONResponse(
                 data: [
                     'status'  => 'error',
-                    'error'   => 'not_logged_in',
-                    'message' => 'Not logged in',
+                    'error'   => 'forbidden',
+                    'message' => 'Authentication required',
                 ],
                 statusCode: Http::STATUS_UNAUTHORIZED
             );
-        }
+        } catch (ResourceException $e) {
+            if ($e instanceof StorageFailureException) {
+                $this->logger->error(
+                    message: 'File create storage failure',
+                    context: ['exception' => $e->getMessage()]
+                );
+            }
 
-        try {
-            $result = $this->fileService->createFile(
-                userId: $this->userId,
-                filename: $filename,
-                dir: $dir,
-                content: $content
-            );
-
-            return new JSONResponse(
-                data: [
-                    'status' => 'success',
-                    'fileId' => $result['fileId'],
-                    'url'    => $result['url'],
-                ],
-                statusCode: Http::STATUS_OK
-            );
-        } catch (InvalidFilenameException $e) {
-            return new JSONResponse(
-                data: [
-                    'status'  => 'error',
-                    'error'   => $e->getErrorCode(),
-                    'message' => $e->getDisplayMessage(),
-                ],
-                statusCode: Http::STATUS_BAD_REQUEST
-            );
-        } catch (InvalidDirectoryException $e) {
-            return new JSONResponse(
-                data: [
-                    'status'  => 'error',
-                    'error'   => $e->getErrorCode(),
-                    'message' => $e->getDisplayMessage(),
-                ],
-                statusCode: Http::STATUS_BAD_REQUEST
-            );
-        } catch (ForbiddenExtensionException $e) {
-            return new JSONResponse(
-                data: [
-                    'status'  => 'error',
-                    'error'   => $e->getErrorCode(),
-                    'message' => $e->getDisplayMessage(),
-                ],
-                statusCode: Http::STATUS_BAD_REQUEST
-            );
+            return $this->errorResponse(exception: $e);
         } catch (Throwable $e) {
-            // Defence in depth — never leak raw messages.
+            // Defence in depth — never leak raw messages on
+            // truly unexpected paths.
             $this->logger->error(
-                message: 'Unexpected file creation failure',
+                message: 'Unexpected file create failure',
                 context: ['exception' => $e->getMessage()]
             );
 
-            return new JSONResponse(
-                data: [
-                    'status'  => 'error',
-                    'error'   => 'file_creation_failed',
-                    'message' => 'Failed to create file',
-                ],
-                statusCode: Http::STATUS_INTERNAL_SERVER_ERROR
+            $fallback = new StorageFailureException(
+                message: 'Failed to create file'
             );
+
+            return $this->errorResponse(exception: $fallback);
         }//end try
     }//end createFile()
+
+    /**
+     * Resolve the logged-in user's ID.
+     *
+     * @return string The user's UID.
+     *
+     * @throws ForbiddenException When the request is not authenticated.
+     */
+    private function resolveUserId(): string
+    {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            throw new ForbiddenException();
+        }
+
+        return $user->getUID();
+    }//end resolveUserId()
+
+    /**
+     * Build the standardised error envelope from a typed exception.
+     *
+     * @param ResourceException $exception The typed exception.
+     *
+     * @return JSONResponse The error response.
+     */
+    private function errorResponse(ResourceException $exception): JSONResponse
+    {
+        return new JSONResponse(
+            data: [
+                'status'  => 'error',
+                'error'   => $exception->getErrorCode(),
+                'message' => $exception->getDisplayMessage(),
+            ],
+            statusCode: $exception->getHttpStatus()
+        );
+    }//end errorResponse()
 }//end class

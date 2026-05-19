@@ -18,3 +18,21 @@ jobs:
       enable-phpmetrics: true
       enable-frontend: true
       enable-eslint: true
+      # Hard gates:
+      #   - PHPUnit — wired in wave3.10. 4-way matrix (PHP 8.3/8.4 ×
+      #     NC stable31/stable32) all green.
+      #   - Newman — wired alongside the postman collection drift
+      #     sweep (PR #123 follow-up): six real backend bugs fixed
+      #     (Templates SQL, Feeds 2× constraint, addWidget TypeError,
+      #     Lock-on-nonexistent, share TypeError, addRule TypeError),
+      #     postman fixture-id wiring repaired and assertion drift
+      #     resolved. 196 assertions / 0 failures locally.
+      #
+      # Playwright remains disabled — the shared workflow's
+      # PHP-built-in-server lifetime is the blocker (cross-repo PR
+      # `ConductionNL/.github#37`). The `tests/e2e/global-setup.ts`
+      # `ensureBundleBuilt()` helper is in place so once the shared
+      # workflow lands, flipping the gate Just Works.
+      enable-phpunit: true
+      enable-newman: true
+      newman-environment-path: "tests/integration/local.env.json"

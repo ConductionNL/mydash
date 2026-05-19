@@ -7,7 +7,7 @@ import { mount } from '@vue/test-utils'
 
 import LabelWidget from '../components/Widgets/Renderers/LabelWidget.vue'
 import LabelForm from '../components/Widgets/Forms/LabelForm.vue'
-import { widgetRegistry, getWidgetRegistryEntry } from '../constants/widgetRegistry.js'
+import { widgetRegistry, getWidgetTypeEntry } from '../constants/widgetRegistry.js'
 
 beforeAll(() => {
 	// Stub the Nextcloud `t` global with an identity function so components
@@ -201,11 +201,10 @@ describe('widgetRegistry — label entry (REQ-LBL-007)', () => {
 		})
 	})
 
-	it('is reachable via getWidgetRegistryEntry("label")', () => {
-		const entry = getWidgetRegistryEntry('label')
+	it('is reachable via getWidgetTypeEntry("label")', () => {
+		const entry = getWidgetTypeEntry('label')
 		expect(entry).toBeTruthy()
-		expect(entry.type).toBe('label')
-		expect(entry.component).toBeTruthy()
+		expect(entry.renderer).toBeTruthy()
 		expect(entry.form).toBeTruthy()
 	})
 })

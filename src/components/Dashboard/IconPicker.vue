@@ -4,19 +4,21 @@
 -->
 
 <!--
-	IconPicker — capability `custom-icon-upload-pattern` (REQ-ICON-008..009)
+	IconPicker — capability `dashboard-icons` (REQ-ICON-008..009)
 
-	Combined select + file-upload picker for the `icon` field following the
-	dashboards.icon convention. Lets users pick from a built-in registry OR
-	upload a custom image URL, both updating the same v-model value.
+	Combined select + file-upload picker for any field that follows the
+	dashboards.icon convention (see src/constants/dashboardIcons.js):
 
-	- Built-in select emits the registry key string (e.g. 'Star')
-	- File upload reads as data URL, POSTs to resource-uploads endpoint,
-	  emits the returned URL string
-	- 24×24 preview via IconRenderer
-	- Inline error display on upload failure (preserves previous value)
+	  - Built-in `<select>` of registry options (REQ-ICON-003) emits the
+	    registry key string, e.g. `'Star'`
+	  - File-upload input reads the file as a data URL, POSTs it via
+	    `uploadDataUrl()` (resource-uploads capability), and emits the
+	    returned URL string
+	  - 24×24 live preview rendered through `IconRenderer`
+	  - On upload failure the previous v-model value is preserved and an
+	    inline error message is surfaced
 
-	Uses v-model per Vue 2 convention: value prop + input event.
+	Vue 2 v-model convention: `value` prop in, `input` event out.
 -->
 
 <template>
@@ -24,16 +26,17 @@
 		<div class="icon-picker__preview">
 			<IconRenderer
 				:name="value"
-				:alt="null"
-				:size="24" />
+				:size="24"
+				:alt="t('mydash', 'Icon preview')" />
 		</div>
 
 		<select
-			:value="value"
+			:value="builtInValue"
 			class="icon-picker__select"
+			:disabled="uploading"
 			@change="selectIcon">
-			<option :value="null" disabled>
-				{{ tt('Select icon...') }}
+			<option value="" disabled>
+				{{ t('mydash', 'Select icon…') }}
 			</option>
 			<option
 				v-for="(_, name) in DASHBOARD_ICONS"
@@ -45,24 +48,30 @@
 
 		<label class="icon-picker__upload-label">
 			<input
+				ref="fileInput"
 				type="file"
 				accept="image/*"
 				class="icon-picker__file-input"
+				:disabled="uploading"
 				@change="handleFileSelect">
 			<span class="icon-picker__upload-button">
-				{{ tt('Upload icon') }}
+				<span v-if="uploading">{{ t('mydash', 'Uploading…') }}</span>
+				<span v-else>{{ t('mydash', 'Upload icon') }}</span>
 			</span>
 		</label>
 
-		<p v-if="uploadError" class="icon-picker__error">
+		<p
+			v-if="uploadError"
+			class="icon-picker__error"
+			role="alert">
 			{{ uploadError }}
 		</p>
 	</div>
 </template>
 
 <script>
-import { DASHBOARD_ICONS } from '../../constants/dashboardIcons.js'
-import { uploadDataUrl } from '../../services/resourceService.js'
+import { DASHBOARD_ICONS, isCustomIconUrl } from '../../constants/dashboardIcons.js'
+import { uploadDataUrl, ResourceUploadError } from '../../services/resourceService.js'
 import IconRenderer from './IconRenderer.vue'
 
 export default {
@@ -74,8 +83,9 @@ export default {
 
 	props: {
 		/**
-		 * The current icon value: either a registry key, a URL, or null.
-		 * Uses Vue 2 v-model convention (value prop + input event).
+		 * The current icon value: either a registry key, a URL, or
+		 * null. Uses the Vue 2 v-model convention (value prop +
+		 * `input` event).
 		 */
 		value: {
 			type: String,
@@ -89,17 +99,26 @@ export default {
 		return {
 			DASHBOARD_ICONS,
 			uploadError: '',
+			uploading: false,
 		}
 	},
 
-	methods: {
-		tt(key) {
-			if (typeof t === 'function') {
-				return t('mydash', key)
+	computed: {
+		/**
+		 * Show the registry value in the `<select>` only when v-model
+		 * holds a registry key — when the user has uploaded a custom
+		 * URL, leave the select on the disabled placeholder so it's
+		 * obvious the upload has taken priority.
+		 */
+		builtInValue() {
+			if (this.value && !isCustomIconUrl(this.value)) {
+				return this.value
 			}
-			return key
+			return ''
 		},
+	},
 
+	methods: {
 		selectIcon(event) {
 			const selected = event.target.value
 			this.uploadError = ''
@@ -113,30 +132,44 @@ export default {
 			}
 
 			this.uploadError = ''
+			this.uploading = true
+
 			const reader = new FileReader()
 
 			reader.onload = async (e) => {
 				try {
 					const dataUrl = e.target.result
+					if (typeof dataUrl !== 'string') {
+						throw new Error('FileReader did not return a data URL')
+					}
 					const response = await uploadDataUrl(dataUrl)
 					this.$emit('input', response.url)
-					// Reset file input
-					event.target.value = ''
-				} catch (error) {
-					this.uploadError = this.tt('Failed to upload icon')
-					console.error('Icon upload failed:', error)
-					// Reset file input
-					event.target.value = ''
+				} catch (err) {
+					if (err instanceof ResourceUploadError && err.message) {
+						this.uploadError = err.message
+					} else {
+						this.uploadError = t('mydash', 'Failed to upload icon')
+					}
+					console.error('Icon upload failed:', err)
+				} finally {
+					this.uploading = false
+					this.resetFileInput()
 				}
 			}
 
 			reader.onerror = () => {
-				this.uploadError = this.tt('Failed to upload icon')
-				// Reset file input
-				event.target.value = ''
+				this.uploadError = t('mydash', 'Failed to upload icon')
+				this.uploading = false
+				this.resetFileInput()
 			}
 
 			reader.readAsDataURL(file)
+		},
+
+		resetFileInput() {
+			if (this.$refs.fileInput) {
+				this.$refs.fileInput.value = ''
+			}
 		},
 	},
 }
@@ -157,7 +190,7 @@ export default {
 	height: 40px;
 	border: 1px solid var(--color-border);
 	border-radius: 4px;
-	background-color: var(--color-background-secondary);
+	background-color: var(--color-background-hover);
 }
 
 .icon-picker__select {
@@ -184,13 +217,13 @@ export default {
 	padding: 6px 12px;
 	border: 1px solid var(--color-border);
 	border-radius: 4px;
-	background-color: var(--color-background-secondary);
+	background-color: var(--color-background-hover);
 	font-size: 14px;
 	transition: background-color 0.2s;
 }
 
 .icon-picker__upload-label:hover .icon-picker__upload-button {
-	background-color: var(--color-background-tertiary);
+	background-color: var(--color-background-dark);
 }
 
 .icon-picker__error {
@@ -198,7 +231,7 @@ export default {
 	padding: 4px 8px;
 	font-size: 12px;
 	color: var(--color-error);
-	background-color: rgba(192, 0, 0, 0.1);
+	background-color: var(--color-background-hover);
 	border-radius: 2px;
 }
 </style>

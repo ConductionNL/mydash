@@ -185,6 +185,54 @@ class DashboardShareMapper extends QBMapper
     }//end findShare()
 
     /**
+     * Find every share that grants access to a given user, considering both
+     * direct user shares and group shares. REQ-SHARE-002.
+     *
+     * @param string   $userId   The recipient user id.
+     * @param string[] $groupIds The recipient's group ids.
+     *
+     * @return DashboardShare[] The shares.
+     */
+    public function findForRecipient(string $userId, array $groupIds): array
+    {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select(selects: '*')
+            ->from(from: $this->getTableName());
+
+        $userClause = $qb->expr()->andX(
+            $qb->expr()->eq(
+                x: 'share_type',
+                y: $qb->createNamedParameter(value: DashboardShare::SHARE_TYPE_USER)
+            ),
+            $qb->expr()->eq(
+                x: 'share_with',
+                y: $qb->createNamedParameter(value: $userId)
+            )
+        );
+
+        if (count($groupIds) > 0) {
+            $groupClause = $qb->expr()->andX(
+                $qb->expr()->eq(
+                    x: 'share_type',
+                    y: $qb->createNamedParameter(value: DashboardShare::SHARE_TYPE_GROUP)
+                ),
+                $qb->expr()->in(
+                    x: 'share_with',
+                    y: $qb->createNamedParameter(
+                        value: $groupIds,
+                        type: IQueryBuilder::PARAM_STR_ARRAY
+                    )
+                )
+            );
+            $qb->where($qb->expr()->orX($userClause, $groupClause));
+        } else {
+            $qb->where($userClause);
+        }
+
+        return $this->findEntities(query: $qb);
+    }//end findForRecipient()
+
+    /**
      * Delete all shares for a dashboard.
      *
      * @param int $dashboardId The dashboard ID.
@@ -265,6 +313,89 @@ class DashboardShareMapper extends QBMapper
 
         return $deleted;
     }//end deleteNotIn()
+
+    /**
+     * Count share rows whose `dashboard_id` no longer points at any
+     * row in `mydash_dashboards`.
+     *
+     * Used by the orphaned-data-cleanup scan path (REQ-CLN-001)
+     * to surface the count of dangling shares that survived a manual
+     * SQL delete or a corrupted cascade. Shares are normally cleared
+     * by `DashboardService::delete()` in-band, so this number SHOULD
+     * be 0 on a healthy install.
+     *
+     * @return int The number of orphaned share rows.
+     */
+    public function countOrphaned(): int
+    {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select($qb->func()->count('s.id'))
+            ->from(from: $this->getTableName(), alias: 's')
+            ->leftJoin(
+                fromAlias: 's',
+                join: 'mydash_dashboards',
+                alias: 'd',
+                condition: 'd.id = s.dashboard_id'
+            )
+            ->where($qb->expr()->isNull(x: 'd.id'));
+
+        $result = $qb->executeQuery();
+        $count  = $result->fetchOne();
+        $result->closeCursor();
+
+        return (int) ($count ?? 0);
+    }//end countOrphaned()
+
+    /**
+     * Delete share rows whose `dashboard_id` no longer points at any
+     * row in `mydash_dashboards`.
+     *
+     * Companion to {@see self::countOrphaned()} on the purge path
+     * (REQ-CLN-002). Resolves the orphan IDs first via a SELECT and
+     * then deletes them by primary key — Doctrine DBAL doesn't
+     * support DELETE…JOIN portably across MySQL/Postgres/SQLite.
+     *
+     * @return int The number of rows deleted.
+     */
+    public function deleteOrphaned(): int
+    {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select(selects: 's.id')
+            ->from(from: $this->getTableName(), alias: 's')
+            ->leftJoin(
+                fromAlias: 's',
+                join: 'mydash_dashboards',
+                alias: 'd',
+                condition: 'd.id = s.dashboard_id'
+            )
+            ->where($qb->expr()->isNull(x: 'd.id'));
+
+        $result = $qb->executeQuery();
+        $ids    = [];
+        while (($row = $result->fetch()) !== false) {
+            $ids[] = (int) $row['id'];
+        }
+
+        $result->closeCursor();
+
+        if (count(value: $ids) === 0) {
+            return 0;
+        }
+
+        $delete = $this->db->getQueryBuilder();
+        $delete->delete(delete: $this->getTableName())
+            ->where(
+                $delete->expr()->in(
+                    x: 'id',
+                    y: $delete->createNamedParameter(
+                        value: $ids,
+                        type: IQueryBuilder::PARAM_INT_ARRAY
+                    )
+                )
+            );
+
+        return $delete->executeStatement();
+    }//end deleteOrphaned()
 
     /**
      * Delete all shares the caller owns that target a specific recipient.

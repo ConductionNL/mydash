@@ -58,6 +58,8 @@ class RuleApiController extends Controller
      * @param int $placementId The placement ID.
      *
      * @return JSONResponse The conditional rules.
+     *
+     * @spec conditional-visibility:REQ-VIS-002
      */
     #[NoAdminRequired]
     public function getRules(int $placementId): JSONResponse
@@ -86,22 +88,45 @@ class RuleApiController extends Controller
     /**
      * Add a conditional rule to a widget placement.
      *
-     * @param int    $placementId The placement ID.
-     * @param string $ruleType    The rule type.
-     * @param array  $ruleConfig  The rule configuration.
-     * @param bool   $isInclude   Whether this is an include rule.
+     * @param int         $placementId The placement ID.
+     * @param string|null $ruleType    The rule type.
+     * @param array|null  $ruleConfig  The rule configuration.
+     * @param bool        $isInclude   Whether this is an include rule.
      *
      * @return JSONResponse The created rule.
+     *
+     * @spec conditional-visibility:REQ-VIS-001
      */
     #[NoAdminRequired]
     public function addRule(
         int $placementId,
-        string $ruleType,
-        array $ruleConfig,
+        ?string $ruleType=null,
+        ?array $ruleConfig=null,
         bool $isInclude=true
     ): JSONResponse {
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
+        }
+
+        // Validate body shape explicitly so missing fields return a clean
+        // 400 instead of a TypeError 500 from the dispatcher. Mirrors the
+        // hardening on WidgetApiController::addWidget.
+        if ($ruleType === null || $ruleType === '') {
+            return ResponseHelper::error(
+                exception: new \InvalidArgumentException(
+                    'Missing required field: ruleType'
+                ),
+                statusCode: Http::STATUS_BAD_REQUEST
+            );
+        }
+
+        if ($ruleConfig === null) {
+            return ResponseHelper::error(
+                exception: new \InvalidArgumentException(
+                    'Missing required field: ruleConfig'
+                ),
+                statusCode: Http::STATUS_BAD_REQUEST
+            );
         }
 
         try {
@@ -134,6 +159,8 @@ class RuleApiController extends Controller
      * @param bool|null   $isInclude  Whether this is an include rule.
      *
      * @return JSONResponse The updated rule.
+     *
+     * @spec conditional-visibility:REQ-VIS-003
      */
     #[NoAdminRequired]
     public function updateRule(
@@ -172,6 +199,8 @@ class RuleApiController extends Controller
      * @param int $ruleId The rule ID.
      *
      * @return JSONResponse The deletion confirmation.
+     *
+     * @spec conditional-visibility:REQ-VIS-004
      */
     #[NoAdminRequired]
     public function deleteRule(int $ruleId): JSONResponse

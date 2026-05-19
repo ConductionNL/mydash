@@ -27,6 +27,7 @@ use InvalidArgumentException;
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Db\DashboardMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IL10N;
 use OCP\IURLGenerator;
 use OCP\L10N\IFactory;
 use OCP\Notification\INotification;
@@ -36,12 +37,16 @@ use OCP\Notification\UnknownNotificationException;
 /**
  * MyDash notification renderer.
  *
- * Handles two subjects:
+ * Handles three subjects:
  * - `dashboard_shared` — published when a dashboard is shared with a user or
  *   when a share's permission_level is upgraded (REQ-SHARE-008).
  * - `dashboard_ownership_transferred` — published when a UserDeletedEvent
  *   causes ownership of a dashboard to be transferred to a new owner
  *   (REQ-SHARE-013).
+ * - `mentioned_in_comment` — published when a user is `@-mentioned` inside
+ *   a dashboard comment (REQ-CMNT-006). For this subject the
+ *   `INotification::getObjectId()` is the dashboard UUID directly (not
+ *   the DB id), so the URL builder takes a different branch.
  */
 class Notifier implements INotifier
 {
@@ -103,15 +108,30 @@ class Notifier implements INotifier
             );
         }
 
-        $l   = $this->l10nFactory->get(
+        $l       = $this->l10nFactory->get(
             app: Application::APP_ID,
             lang: $languageCode
         );
+        $subject = $notification->getSubject();
+
+        // The mention subject ships the dashboard UUID directly as the
+        // notification's objectId; the share / transfer subjects ship the
+        // dashboard DB id (legacy contract). REQ-CMNT-006.
+        if ($subject === 'mentioned_in_comment') {
+            $url = $this->buildDashboardUrlFromUuid(
+                uuid: $notification->getObjectId()
+            );
+
+            return $this->prepareMentionedInComment(
+                notification: $notification,
+                l: $l,
+                url: $url
+            );
+        }
+
         $url = $this->buildDashboardUrl(
             objectId: $notification->getObjectId()
         );
-
-        $subject = $notification->getSubject();
 
         if ($subject === 'dashboard_shared') {
             return $this->prepareDashboardShared(
@@ -135,19 +155,60 @@ class Notifier implements INotifier
     }//end prepare()
 
     /**
+     * Prepare a `mentioned_in_comment` notification (REQ-CMNT-006).
+     *
+     * Subject parameters: [authorUserId, dashboardUuid].
+     *
+     * @param INotification $notification The notification.
+     * @param IL10N         $l            The L10N instance.
+     * @param string        $url          The deep-link URL.
+     *
+     * @return INotification The prepared notification.
+     */
+    private function prepareMentionedInComment(
+        INotification $notification,
+        IL10N $l,
+        string $url
+    ): INotification {
+        $params = $notification->getSubjectParameters();
+        $author = (string) ($params[0] ?? '');
+
+        $richSubject = $l->t(
+            '%1$s mentioned you in a dashboard comment',
+            [$author]
+        );
+        $notification->setRichSubject(
+            subject: $richSubject,
+            parameters: []
+        );
+        $notification->setParsedSubject(subject: $richSubject);
+
+        $message = $l->t('Open the dashboard to read the comment');
+        $notification->setRichMessage(
+            message: $message,
+            parameters: []
+        );
+        $notification->setParsedMessage(message: $message);
+
+        $notification->setLink(link: $url);
+
+        return $notification;
+    }//end prepareMentionedInComment()
+
+    /**
      * Prepare a `dashboard_shared` notification.
      *
      * Subject parameters: [sharerUserId, dashboardName, permissionLevel].
      *
      * @param INotification $notification The notification.
-     * @param \OCP\IL10N    $l            The L10N instance.
+     * @param IL10N         $l            The L10N instance.
      * @param string        $url          The deep-link URL.
      *
      * @return INotification The prepared notification.
      */
     private function prepareDashboardShared(
         INotification $notification,
-        \OCP\IL10N $l,
+        IL10N $l,
         string $url
     ): INotification {
         $params = $notification->getSubjectParameters();
@@ -188,14 +249,14 @@ class Notifier implements INotifier
      * Subject parameters: [dashboardName].
      *
      * @param INotification $notification The notification.
-     * @param \OCP\IL10N    $l            The L10N instance.
+     * @param IL10N         $l            The L10N instance.
      * @param string        $url          The deep-link URL.
      *
      * @return INotification The prepared notification.
      */
     private function prepareOwnershipTransferred(
         INotification $notification,
-        \OCP\IL10N $l,
+        IL10N $l,
         string $url
     ): INotification {
         $params = $notification->getSubjectParameters();
@@ -259,15 +320,36 @@ class Notifier implements INotifier
     }//end buildDashboardUrl()
 
     /**
+     * Build a deep-link URL when the objectId is already the dashboard
+     * UUID — used by the comment-mention notification (REQ-CMNT-006).
+     *
+     * @param string $uuid The dashboard UUID.
+     *
+     * @return string The URL.
+     */
+    private function buildDashboardUrlFromUuid(string $uuid): string
+    {
+        $base = $this->urlGenerator->linkToRouteAbsolute(
+            routeName: 'mydash.page.index'
+        );
+
+        if ($uuid === '') {
+            return $base;
+        }
+
+        return $base.'?dashboard='.urlencode(string: $uuid);
+    }//end buildDashboardUrlFromUuid()
+
+    /**
      * Return the human-readable label for a permission level.
      *
-     * @param \OCP\IL10N $l     The L10N instance.
-     * @param string     $level The permission level identifier.
+     * @param IL10N  $l     The L10N instance.
+     * @param string $level The permission level identifier.
      *
      * @return string The translated label.
      */
     private function permissionLabel(
-        \OCP\IL10N $l,
+        IL10N $l,
         string $level
     ): string {
         return match ($level) {

@@ -44,6 +44,8 @@ class MetricsQueryService
      * @return array<string, int> Map of type to count.
      *
      * @throws \Exception When the database query fails.
+     *
+     * @spec prometheus-metrics:REQ-PROM-004
      */
     public function queryDashboardCounts(): array
     {

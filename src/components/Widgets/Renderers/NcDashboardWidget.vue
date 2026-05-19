@@ -5,283 +5,301 @@
 
 <template>
 	<div class="nc-dashboard-widget">
-		<!-- Header: title + icon from widgetMeta -->
-		<div
-			v-if="widgetMeta"
-			class="nc-dashboard-widget__header">
+		<header class="nc-dashboard-widget__header">
 			<img
-				v-if="widgetMeta.iconUrl"
-				:src="widgetMeta.iconUrl"
-				:alt="widgetMeta.title || ''"
-				class="nc-dashboard-widget__header-icon">
-			<span class="nc-dashboard-widget__header-title">{{ widgetMeta.title || actualWidgetId }}</span>
-		</div>
+				v-if="widgetIconUrl"
+				class="nc-dashboard-widget__header-icon"
+				:src="widgetIconUrl"
+				alt="">
+			<span class="nc-dashboard-widget__header-title">{{ widgetTitle }}</span>
+		</header>
 
-		<!-- Native callback container (hidden until usesRegisteredCallback = true) -->
+		<!--
+			Native callback container — always rendered, but kept hidden until
+			we actually mount via the bridge. This avoids any flicker when the
+			poll wins after the API list has already painted: we mount into
+			this container, flip the visibility flag, and the API list is
+			hidden in the same render tick.
+		-->
 		<div
-			v-show="usesRegisteredCallback"
-			ref="appContainer"
+			v-show="mode === 'native'"
+			ref="nativeContainer"
 			class="nc-dashboard-widget__native" />
 
-		<!-- API fallback area -->
-		<template v-if="!usesRegisteredCallback">
-			<!-- Loading state -->
-			<div
-				v-if="loading"
-				class="nc-dashboard-widget__loading">
-				{{ tt('Loading…') }}
+		<div
+			v-if="mode !== 'native'"
+			class="nc-dashboard-widget__body"
+			:class="bodyClass">
+			<div v-if="loading" class="nc-dashboard-widget__loading">
+				{{ t('mydash', 'Loading…') }}
 			</div>
 
-			<!-- Empty state -->
-			<div
-				v-else-if="!items || items.length === 0"
-				class="nc-dashboard-widget__empty">
-				{{ tt('No items available') }}
+			<div v-else-if="items.length === 0" class="nc-dashboard-widget__empty">
+				{{ t('mydash', 'No items available') }}
 			</div>
 
-			<!-- Vertical list -->
-			<div
-				v-else-if="resolvedDisplayMode === 'vertical'"
-				class="nc-dashboard-widget__list nc-dashboard-widget__list--vertical">
+			<template v-else>
 				<a
 					v-for="(item, idx) in items"
-					:key="idx"
+					:key="item.sinceId || idx"
+					class="nc-dashboard-widget__item"
+					:class="itemClass"
 					:href="item.link || '#'"
-					class="nc-dashboard-widget__item nc-dashboard-widget__item--vertical"
-					target="_blank"
-					rel="noopener noreferrer">
-					<img
-						v-if="item.iconUrl"
-						:src="item.iconUrl"
-						:alt="item.title || ''"
-						class="nc-dashboard-widget__item-icon nc-dashboard-widget__item-icon--vertical">
-					<div class="nc-dashboard-widget__item-text">
+					:title="item.title">
+					<span class="nc-dashboard-widget__item-icon-wrap">
+						<img
+							v-if="item.iconUrl"
+							class="nc-dashboard-widget__item-icon"
+							:src="item.iconUrl"
+							alt="">
+						<img
+							v-if="item.overlayIconUrl"
+							class="nc-dashboard-widget__item-overlay"
+							:src="item.overlayIconUrl"
+							alt="">
+					</span>
+					<span class="nc-dashboard-widget__item-text">
 						<span class="nc-dashboard-widget__item-title">{{ item.title }}</span>
-						<span
-							v-if="item.subtitle"
-							class="nc-dashboard-widget__item-subtitle">{{ item.subtitle }}</span>
-					</div>
+						<span v-if="item.subtitle" class="nc-dashboard-widget__item-subtitle">{{ item.subtitle }}</span>
+					</span>
 				</a>
-			</div>
-
-			<!-- Horizontal cards -->
-			<div
-				v-else
-				class="nc-dashboard-widget__list nc-dashboard-widget__list--horizontal">
-				<a
-					v-for="(item, idx) in items"
-					:key="idx"
-					:href="item.link || '#'"
-					class="nc-dashboard-widget__item nc-dashboard-widget__item--horizontal"
-					target="_blank"
-					rel="noopener noreferrer">
-					<img
-						v-if="item.iconUrl"
-						:src="item.iconUrl"
-						:alt="item.title || ''"
-						class="nc-dashboard-widget__item-icon nc-dashboard-widget__item-icon--horizontal">
-					<span class="nc-dashboard-widget__item-title nc-dashboard-widget__item-title--horizontal">{{ item.title }}</span>
-					<span
-						v-if="item.subtitle"
-						class="nc-dashboard-widget__item-subtitle nc-dashboard-widget__item-subtitle--horizontal">{{ item.subtitle }}</span>
-				</a>
-			</div>
-		</template>
+			</template>
+		</div>
 	</div>
 </template>
 
 <script>
-/**
- * NcDashboardWidget
- *
- * Renders any Nextcloud Dashboard widget inside a MyDash grid cell. Supports
- * two modes:
- *
- *   1. Native callback (preferred) — uses widgetBridge.mountWidget when the
- *      widget bundle has registered via OCA.Dashboard.register.
- *   2. API list fallback — issues GET /ocs/v2.php/apps/mydash/api/widgets/items
- *      and renders items in vertical-list or horizontal-card layout.
- *
- * On mount a race is started: the API request fires immediately while
- * pollForCallback checks every 200 ms (up to 15 retries, ~3 s). Whichever
- * wins first becomes the final render; the other is suppressed (no flicker).
- *
- * @spec openspec/changes/nc-dashboard-widget-proxy/specs/widgets/spec.md#req-wdg-018
- * @spec openspec/changes/nc-dashboard-widget-proxy/specs/widgets/spec.md#req-wdg-019
- * @spec openspec/changes/nc-dashboard-widget-proxy/specs/widgets/spec.md#req-wdg-020
- * @spec openspec/changes/nc-dashboard-widget-proxy/specs/widgets/spec.md#req-wdg-021
- */
-
-import axios from '@nextcloud/axios'
-import { generateOcsUrl } from '@nextcloud/router'
 import { widgetBridge } from '../../../services/widgetBridge.js'
+import { api } from '../../../services/api.js'
 
+/**
+ * PHP can serialise empty arrays as objects and sequential numeric arrays
+ * as objects with string keys; normalise to a JS array (tasks.md §2).
+ *
+ * @param {Array|object|null|undefined} input the catalog blob from initial state
+ * @return {Array} the normalised array
+ */
+export function normaliseWidgetCatalog(input) {
+	if (Array.isArray(input)) {
+		return input
+	}
+	if (input && typeof input === 'object') {
+		return Object.values(input)
+	}
+	return []
+}
+
+/**
+ * Pull the items array out of the per-widget envelope, tolerating both the
+ * flat `WidgetItem[]` shape and the wrapped `{items, ...}` shape.
+ *
+ * @param {*} widgetData the per-widget API payload
+ * @return {Array} the items array (possibly empty)
+ */
+export function extractItems(widgetData) {
+	if (!widgetData) {
+		return []
+	}
+	if (Array.isArray(widgetData)) {
+		return widgetData
+	}
+	if (Array.isArray(widgetData.items)) {
+		return widgetData.items
+	}
+	if (widgetData.items && typeof widgetData.items === 'object') {
+		return Object.values(widgetData.items)
+	}
+	return []
+}
+
+/**
+ * NcDashboardWidget renders any Nextcloud Dashboard widget inside a MyDash
+ * grid cell (REQ-WDG-018, REQ-WDG-019, REQ-WDG-020, REQ-WDG-021).
+ *
+ * Two-mode rendering:
+ *  - **native** — the widget bundle has registered a callback via
+ *    `OCA.Dashboard.register` (legacy-widget-bridge REQ-LWB-002). We hand
+ *    the render container to the bridge and let the widget paint itself.
+ *  - **api** — fall back to `GET /api/widgets/items?widgets[]={id}&limit=7`
+ *    and render a flat list of `{title, subtitle, link, iconUrl}` cards.
+ *
+ * On mount we call `widgetBridge.hasWidgetCallback(widgetId)` first. If the
+ * callback is already registered we mount natively immediately and skip the
+ * API call entirely. Otherwise we kick off the API fetch AND start a 200 ms
+ * × 15 retries poll for the callback. If the poll wins we switch to native
+ * mode (the v-show flips and the API list is hidden in the same tick — no
+ * flicker). If the poll exhausts, the API list remains as the final state.
+ *
+ * The widget's own `widgets` initial-state list (REQ-WDG-001 / REQ-INIT-002)
+ * is injected as `widgetsCatalog` and consulted to look up the title +
+ * iconUrl shown in the header.
+ */
 export default {
 	name: 'NcDashboardWidget',
 
+	inject: {
+		widgetsCatalog: {
+			from: 'widgets',
+			default: () => [],
+		},
+	},
+
 	props: {
-		/**
-		 * Full persisted widget object (includes `content` sub-object).
-		 */
-		widget: {
+		content: {
 			type: Object,
-			required: true,
-		},
-
-		/**
-		 * Widget ID override — falls back to widget.content.widgetId.
-		 */
-		widgetId: {
-			type: String,
-			default: '',
-		},
-
-		/**
-		 * Display mode for the API fallback list.
-		 */
-		displayMode: {
-			type: String,
-			default: 'vertical',
-			validator(value) {
-				return ['vertical', 'horizontal'].includes(value)
-			},
+			default: () => ({}),
 		},
 	},
 
 	data() {
 		return {
-			/** True once the native callback path took over */
-			usesRegisteredCallback: false,
-			/** True while the API request is in flight */
+			/** @type {'pending'|'native'|'api'} mounting mode */
+			mode: 'pending',
 			loading: false,
-			/** Items from the API fallback response */
 			items: [],
-			/** AbortController for cancelling the poll + request on destroy */
 			abortController: null,
-			/** Whether the race is already decided (prevents dual-write) */
-			raceDecided: false,
 		}
 	},
 
 	computed: {
-		actualWidgetId() {
-			return this.widgetId || (this.widget && this.widget.content && this.widget.content.widgetId) || ''
+		widgetId() {
+			return typeof this.content?.widgetId === 'string' ? this.content.widgetId : ''
 		},
 
-		resolvedDisplayMode() {
-			const fromContent = this.widget && this.widget.content && this.widget.content.displayMode
-			const mode = this.displayMode !== 'vertical' ? this.displayMode : (fromContent || this.displayMode)
-			return ['vertical', 'horizontal'].includes(mode) ? mode : 'vertical'
+		displayMode() {
+			return this.content?.displayMode === 'horizontal' ? 'horizontal' : 'vertical'
 		},
 
-		/**
-		 * All available widgets from initial state (injected or window global).
-		 * PHP may serialise a sequential array as a JSON object with numeric keys —
-		 * normalise both shapes here.
-		 */
-		availableWidgets() {
-			const injected = (window.__initialState && window.__initialState.widgets)
-				|| (window.OCA && window.OCA.MyDash && window.OCA.MyDash.initialState && window.OCA.MyDash.initialState.widgets)
-				|| []
-			return Array.isArray(injected) ? injected : Object.values(injected)
-		},
-
-		/**
-		 * Widget metadata (title, iconUrl) for the header, looked up by id.
-		 */
 		widgetMeta() {
-			if (!this.actualWidgetId) {
-				return null
-			}
-			return this.availableWidgets.find((w) => w.id === this.actualWidgetId) || null
+			// REQ-WDG-020: header title + iconUrl come from IManager::getWidgets()
+			// metadata (the `widgets` initial-state list, REQ-INIT-002).
+			const list = normaliseWidgetCatalog(this.widgetsCatalog)
+			return list.find((w) => w && w.id === this.widgetId) || null
+		},
+
+		widgetTitle() {
+			return this.widgetMeta?.title || this.widgetId || t('mydash', 'Widget')
+		},
+
+		widgetIconUrl() {
+			return this.widgetMeta?.iconUrl || ''
+		},
+
+		bodyClass() {
+			return `nc-dashboard-widget__body--${this.displayMode}`
+		},
+
+		itemClass() {
+			return `nc-dashboard-widget__item--${this.displayMode}`
 		},
 	},
 
 	mounted() {
-		const id = this.actualWidgetId
-		if (!id) {
-			return
-		}
-
-		// Native fast-path: callback already registered
-		if (widgetBridge.hasWidgetCallback(id)) {
-			this.usesRegisteredCallback = true
-			this.$nextTick(() => {
-				widgetBridge.mountWidget(id, this.$refs.appContainer, { widget: this.widget })
-			})
-			return
-		}
-
-		// Race: API fallback + poll for late-arriving native callback
-		this.abortController = new AbortController()
-		const signal = this.abortController.signal
-
-		// 1. Start API request
-		this.loading = true
-		this._fetchItems(id, signal)
-
-		// 2. Start poll; if it wins, switch to native mode
-		widgetBridge.pollForCallback(id, { signal }).then((found) => {
-			if (!found || signal.aborted) {
-				return
-			}
-			if (this.raceDecided) {
-				// Poll won — switch even if API completed already
-			}
-			this.raceDecided = true
-			this.usesRegisteredCallback = true
-			this.$nextTick(() => {
-				widgetBridge.mountWidget(id, this.$refs.appContainer, { widget: this.widget })
-			})
-		})
+		this.tryMount()
 	},
 
 	beforeDestroy() {
-		if (this.abortController) {
-			this.abortController.abort()
-		}
+		this.cancelPoll()
 	},
 
 	methods: {
-		tt(key) {
-			if (typeof t === 'function') {
-				return t('mydash', key)
+		/**
+		 * Attempt to mount the widget. First synchronous check is for an
+		 * already-registered callback (REQ-WDG-019 native fast-path). When
+		 * absent we kick off API loading AND a polling watcher so a late
+		 * bundle load can still upgrade us to native mode.
+		 *
+		 * @return {Promise<void>} resolves when the initial mount step is wired up
+		 */
+		async tryMount() {
+			if (!this.widgetId) {
+				this.mode = 'api'
+				this.items = []
+				return
 			}
-			return key
+
+			if (widgetBridge.hasWidgetCallback(this.widgetId)) {
+				this.mountNative()
+				return
+			}
+
+			this.mode = 'api'
+			this.loading = true
+			this.startPoll()
+			this.loadApiItems()
 		},
 
-		async _fetchItems(widgetId, signal) {
-			try {
-				const url = generateOcsUrl('/apps/mydash/api/widgets/items')
-				const response = await axios.get(url, {
-					params: { 'widgets[]': widgetId, limit: 7 },
-					signal,
+		/**
+		 * Mount the widget natively via the legacy bridge.
+		 */
+		mountNative() {
+			this.mode = 'native'
+			// Wait one tick so the v-show flip has updated the DOM and the
+			// native container exists in the layout.
+			this.$nextTick(() => {
+				const container = this.$refs.nativeContainer
+				if (container) {
+					widgetBridge.mountWidget(this.widgetId, container, this.widgetMeta || {})
+				}
+			})
+		},
+
+		/**
+		 * Start the 200 ms × 15 retries poll for callback registration
+		 * (REQ-LWB-005). When it resolves true we switch to native mode and
+		 * abandon any in-flight or completed API render (REQ-WDG-019).
+		 */
+		startPoll() {
+			this.cancelPoll()
+			this.abortController = new AbortController()
+			widgetBridge
+				.pollForCallback(this.widgetId, { signal: this.abortController.signal })
+				.then((registered) => {
+					if (registered && this.mode !== 'native') {
+						this.mountNative()
+					}
 				})
+		},
 
-				if (signal.aborted) {
+		cancelPoll() {
+			if (this.abortController) {
+				this.abortController.abort()
+				this.abortController = null
+			}
+		},
+
+		/**
+		 * Fetch the API fallback list. Defensive: malformed responses
+		 * collapse to an empty list and surface the empty-state message
+		 * (REQ-WDG-021) instead of throwing.
+		 *
+		 * @return {Promise<void>} resolves when items are loaded or the request fails
+		 */
+		async loadApiItems() {
+			try {
+				const response = await api.getWidgetItems([this.widgetId])
+				const payload = response?.data
+				let widgetData = null
+				if (payload && typeof payload === 'object') {
+					if (payload.items && typeof payload.items === 'object') {
+						widgetData = payload.items[this.widgetId] || null
+					} else if (payload[this.widgetId]) {
+						widgetData = payload[this.widgetId]
+					}
+				}
+
+				if (this.mode === 'native') {
+					// Poll already won and switched us — drop the result.
 					return
 				}
 
-				// If poll already won the race, discard API result
-				if (this.usesRegisteredCallback) {
-					return
+				this.items = extractItems(widgetData)
+			} catch (e) {
+				if (this.mode !== 'native') {
+					this.items = []
 				}
-
-				const data = response.data
-				const itemsMap = (data && data.items) || {}
-				const raw = itemsMap[widgetId]
-				this.items = Array.isArray(raw) ? raw : Object.values(raw || {})
-				this.raceDecided = true
-			} catch (err) {
-				if (signal && signal.aborted) {
-					return
-				}
-				console.error('[NcDashboardWidget] Failed to fetch items for', widgetId, err)
-				this.items = []
 			} finally {
-				if (!signal || !signal.aborted) {
-					this.loading = false
-				}
+				this.loading = false
 			}
 		},
 	},
@@ -294,162 +312,146 @@ export default {
 	flex-direction: column;
 	width: 100%;
 	height: 100%;
-	box-sizing: border-box;
 	overflow: hidden;
 }
 
-/* Header */
 .nc-dashboard-widget__header {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	padding: 8px 8px 4px;
-	flex-shrink: 0;
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--color-border);
+	font-weight: bold;
 }
 
 .nc-dashboard-widget__header-icon {
 	width: 20px;
 	height: 20px;
-	object-fit: contain;
-	flex-shrink: 0;
+	flex: 0 0 auto;
 }
 
 .nc-dashboard-widget__header-title {
-	font-weight: 600;
-	font-size: 14px;
+	flex: 1;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	color: var(--color-main-text);
 }
 
-/* Native container */
 .nc-dashboard-widget__native {
 	flex: 1;
-	overflow: hidden;
+	overflow: auto;
 }
 
-/* Loading & empty states */
+.nc-dashboard-widget__body {
+	flex: 1;
+	overflow: auto;
+	padding: 8px;
+}
+
+.nc-dashboard-widget__body--vertical {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.nc-dashboard-widget__body--horizontal {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
 .nc-dashboard-widget__loading,
 .nc-dashboard-widget__empty {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	flex: 1;
+	min-height: 64px;
 	color: var(--color-text-maxcontrast);
-	font-size: 14px;
-	text-align: center;
-	padding: 12px;
+	font-style: italic;
 }
 
-/* Shared list wrapper */
-.nc-dashboard-widget__list {
-	flex: 1;
-	overflow-y: auto;
-	overflow-x: hidden;
-}
-
-/* Vertical list */
-.nc-dashboard-widget__list--vertical {
+.nc-dashboard-widget__item {
 	display: flex;
-	flex-direction: column;
-	gap: 8px;
-	padding: 4px 8px;
+	text-decoration: none;
+	color: var(--color-main-text);
+	border-radius: var(--border-radius);
+	padding: 4px;
+}
+
+.nc-dashboard-widget__item:hover {
+	background-color: var(--color-background-hover);
 }
 
 .nc-dashboard-widget__item--vertical {
-	display: flex;
+	flex-direction: row;
 	align-items: center;
 	gap: 8px;
-	text-decoration: none;
-	color: var(--color-main-text);
-	overflow: hidden;
 }
 
-.nc-dashboard-widget__item--vertical:hover {
-	background-color: var(--color-background-hover);
-	border-radius: 4px;
-}
-
-.nc-dashboard-widget__item-icon--vertical {
+.nc-dashboard-widget__item--vertical .nc-dashboard-widget__item-icon-wrap {
 	width: 32px;
 	height: 32px;
-	flex-shrink: 0;
-	object-fit: contain;
+	flex: 0 0 32px;
+	position: relative;
+}
+
+.nc-dashboard-widget__item--vertical .nc-dashboard-widget__item-icon {
+	width: 32px;
+	height: 32px;
+	object-fit: cover;
+	border-radius: 50%;
+}
+
+.nc-dashboard-widget__item--horizontal {
+	flex-direction: column;
+	align-items: center;
+	width: 120px;
+	text-align: center;
+}
+
+.nc-dashboard-widget__item--horizontal .nc-dashboard-widget__item-icon-wrap {
+	width: 44px;
+	height: 44px;
+	flex: 0 0 44px;
+	position: relative;
+}
+
+.nc-dashboard-widget__item--horizontal .nc-dashboard-widget__item-icon {
+	width: 44px;
+	height: 44px;
+	object-fit: cover;
+	border-radius: 50%;
+}
+
+.nc-dashboard-widget__item-overlay {
+	position: absolute;
+	right: -2px;
+	bottom: -2px;
+	width: 14px;
+	height: 14px;
 }
 
 .nc-dashboard-widget__item-text {
 	display: flex;
 	flex-direction: column;
-	overflow: hidden;
+	min-width: 0;
+	flex: 1;
 }
 
 .nc-dashboard-widget__item-title {
+	font-weight: 600;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	font-size: 13px;
 }
 
 .nc-dashboard-widget__item-subtitle {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	font-size: 11px;
-	color: var(--color-text-maxcontrast);
-}
-
-/* Horizontal cards */
-.nc-dashboard-widget__list--horizontal {
-	display: flex;
-	flex-direction: row;
-	flex-wrap: wrap;
-	gap: 12px;
-	padding: 8px;
-	align-content: flex-start;
-}
-
-.nc-dashboard-widget__item--horizontal {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	width: 120px;
-	text-decoration: none;
-	color: var(--color-main-text);
-	padding: 8px 4px;
-	border-radius: 4px;
-	box-sizing: border-box;
-	overflow: hidden;
-}
-
-.nc-dashboard-widget__item--horizontal:hover {
-	background-color: var(--color-background-hover);
-}
-
-.nc-dashboard-widget__item-icon--horizontal {
-	width: 44px;
-	height: 44px;
-	flex-shrink: 0;
-	object-fit: contain;
-	margin-bottom: 4px;
-}
-
-.nc-dashboard-widget__item-title--horizontal {
-	font-size: 12px;
-	text-align: center;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	width: 100%;
-}
-
-.nc-dashboard-widget__item-subtitle--horizontal {
-	font-size: 11px;
-	text-align: center;
+	font-size: 0.85em;
 	color: var(--color-text-maxcontrast);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	width: 100%;
 }
 </style>

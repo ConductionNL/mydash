@@ -12,12 +12,14 @@
   <a href="https://github.com/ConductionNL/mydash/releases"><img src="https://img.shields.io/github/v/release/ConductionNL/mydash" alt="Latest release"></a>
   <a href="https://github.com/ConductionNL/mydash/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="License"></a>
   <a href="https://github.com/ConductionNL/mydash/actions"><img src="https://img.shields.io/github/actions/workflow/status/ConductionNL/mydash/code-quality.yml?label=quality" alt="Code quality"></a>
-  <a href="https://mydash.app"><img src="https://img.shields.io/badge/docs-mydash.app-green" alt="Documentation"></a>
+  <a href="https://mydash.conduction.nl"><img src="https://img.shields.io/badge/docs-mydash.conduction.nl-green" alt="Documentation"></a>
 </p>
 
 ---
 
 MyDash supercharges the Nextcloud dashboard. Create multiple personalized workspaces with drag-and-drop widgets, custom shortcut tiles, and smart visibility rules — then let admins roll out templates to entire teams. It works with every existing Nextcloud dashboard widget out of the box, supporting both the v1 and v2 Dashboard APIs.
+
+📚 **[Step-by-step tutorials](https://mydash.conduction.nl/docs/category/tutorials)** — user + admin walkthroughs with screenshots, kept in sync with the live UI via the [journeydoc](https://github.com/ConductionNL/hydra/blob/development/openspec/architecture/adr-030-journeydoc-pattern.md) capture spec.
 
 ## Screenshots
 

@@ -44,13 +44,13 @@ class Version001002Date20260204000000 extends SimpleMigrationStep
         $schema = $schemaClosure();
 
         // Increase icon column size to support longer SVG paths.
-        if ($schema->hasTable(tableName: 'mydash_tiles') === true) {
-            $table = $schema->getTable(tableName: 'mydash_tiles');
+        if ($schema->hasTable('mydash_tiles') === true) {
+            $table = $schema->getTable('mydash_tiles');
 
-            if ($table->hasColumn(name: 'icon') === true) {
-                $iconColumn = $table->getColumn(name: 'icon');
+            if ($table->hasColumn('icon') === true) {
+                $iconColumn = $table->getColumn('icon');
                 // Increase from 500 to 2000 characters for complex SVG paths.
-                $iconColumn->setLength(length: 2000);
+                $iconColumn->setLength(2000);
             }
         }
 

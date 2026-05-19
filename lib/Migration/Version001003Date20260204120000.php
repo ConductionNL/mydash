@@ -45,19 +45,19 @@ class Version001003Date20260204120000 extends SimpleMigrationStep
 
         // Add tile configuration fields to widget_placements table.
         if ($schema->hasTable(
-            tableName: 'mydash_widget_placements'
+            'mydash_widget_placements'
         ) === true
         ) {
             $table = $schema->getTable(
-                tableName: 'mydash_widget_placements'
+                'mydash_widget_placements'
             );
 
             // Add tile_type to distinguish between widgets and tiles.
-            if ($table->hasColumn(name: 'tile_type') === false) {
+            if ($table->hasColumn('tile_type') === false) {
                 $table->addColumn(
-                    name: 'tile_type',
-                    typeName: Types::STRING,
-                    options: [
+                    'tile_type',
+                    Types::STRING,
+                    [
                         'notnull' => false,
                         'length'  => 20,
                         'default' => null,
@@ -67,11 +67,11 @@ class Version001003Date20260204120000 extends SimpleMigrationStep
             }
 
             // Add tile_title for custom tiles.
-            if ($table->hasColumn(name: 'tile_title') === false) {
+            if ($table->hasColumn('tile_title') === false) {
                 $table->addColumn(
-                    name: 'tile_title',
-                    typeName: Types::STRING,
-                    options: [
+                    'tile_title',
+                    Types::STRING,
+                    [
                         'notnull' => false,
                         'length'  => 255,
                         'default' => null,
@@ -81,11 +81,11 @@ class Version001003Date20260204120000 extends SimpleMigrationStep
             }
 
             // Add tile_icon.
-            if ($table->hasColumn(name: 'tile_icon') === false) {
+            if ($table->hasColumn('tile_icon') === false) {
                 $table->addColumn(
-                    name: 'tile_icon',
-                    typeName: Types::STRING,
-                    options: [
+                    'tile_icon',
+                    Types::STRING,
+                    [
                         'notnull' => false,
                         'length'  => 2000,
                         'default' => null,
@@ -95,11 +95,11 @@ class Version001003Date20260204120000 extends SimpleMigrationStep
             }
 
             // Add tile_icon_type.
-            if ($table->hasColumn(name: 'tile_icon_type') === false) {
+            if ($table->hasColumn('tile_icon_type') === false) {
                 $table->addColumn(
-                    name: 'tile_icon_type',
-                    typeName: Types::STRING,
-                    options: [
+                    'tile_icon_type',
+                    Types::STRING,
+                    [
                         'notnull' => false,
                         'length'  => 20,
                         'default' => null,
@@ -110,13 +110,13 @@ class Version001003Date20260204120000 extends SimpleMigrationStep
 
             // Add tile_background_color.
             if ($table->hasColumn(
-                name: 'tile_background_color'
+                'tile_background_color'
             ) === false
             ) {
                 $table->addColumn(
-                    name: 'tile_background_color',
-                    typeName: Types::STRING,
-                    options: [
+                    'tile_background_color',
+                    Types::STRING,
+                    [
                         'notnull' => false,
                         'length'  => 7,
                         'default' => null,
@@ -126,11 +126,11 @@ class Version001003Date20260204120000 extends SimpleMigrationStep
             }
 
             // Add tile_text_color.
-            if ($table->hasColumn(name: 'tile_text_color') === false) {
+            if ($table->hasColumn('tile_text_color') === false) {
                 $table->addColumn(
-                    name: 'tile_text_color',
-                    typeName: Types::STRING,
-                    options: [
+                    'tile_text_color',
+                    Types::STRING,
+                    [
                         'notnull' => false,
                         'length'  => 7,
                         'default' => null,
@@ -140,11 +140,11 @@ class Version001003Date20260204120000 extends SimpleMigrationStep
             }
 
             // Add tile_link_type.
-            if ($table->hasColumn(name: 'tile_link_type') === false) {
+            if ($table->hasColumn('tile_link_type') === false) {
                 $table->addColumn(
-                    name: 'tile_link_type',
-                    typeName: Types::STRING,
-                    options: [
+                    'tile_link_type',
+                    Types::STRING,
+                    [
                         'notnull' => false,
                         'length'  => 20,
                         'default' => null,
@@ -154,11 +154,11 @@ class Version001003Date20260204120000 extends SimpleMigrationStep
             }
 
             // Add tile_link_value.
-            if ($table->hasColumn(name: 'tile_link_value') === false) {
+            if ($table->hasColumn('tile_link_value') === false) {
                 $table->addColumn(
-                    name: 'tile_link_value',
-                    typeName: Types::STRING,
-                    options: [
+                    'tile_link_value',
+                    Types::STRING,
+                    [
                         'notnull' => false,
                         'length'  => 1000,
                         'default' => null,

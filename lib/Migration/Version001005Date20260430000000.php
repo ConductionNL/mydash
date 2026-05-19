@@ -51,27 +51,27 @@ class Version001005Date20260430000000 extends SimpleMigrationStep
     ): ?ISchemaWrapper {
         $schema = $schemaClosure();
 
-        if ($schema->hasTable(tableName: 'mydash_dashboards') === false) {
+        if ($schema->hasTable('mydash_dashboards') === false) {
             return $schema;
         }
 
-        $table = $schema->getTable(tableName: 'mydash_dashboards');
+        $table = $schema->getTable('mydash_dashboards');
 
-        if ($table->hasColumn(name: 'group_id') === false) {
+        if ($table->hasColumn('group_id') === false) {
             $table->addColumn(
-                name: 'group_id',
-                typeName: Types::STRING,
-                options: [
+                'group_id',
+                Types::STRING,
+                [
                     'notnull' => false,
                     'length'  => 64,
                 ]
             );
         }
 
-        if ($table->hasIndex(indexName: 'mydash_dash_type_group') === false) {
+        if ($table->hasIndex('mydash_dash_type_group') === false) {
             $table->addIndex(
-                columnNames: ['type', 'group_id'],
-                indexName: 'mydash_dash_type_group'
+                ['type', 'group_id'],
+                'mydash_dash_type_group'
             );
         }
 

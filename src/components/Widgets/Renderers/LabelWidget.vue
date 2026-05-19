@@ -11,28 +11,21 @@
 
 <script>
 /**
- * LabelWidget
+ * LabelWidget renders a short, single-line, plain-text heading inside a
+ * dashboard cell. Content is rendered via Vue interpolation only — never via
+ * v-html — so embedded HTML in `text` MUST appear as literal characters and
+ * the XSS surface is eliminated entirely.
  *
- * Renders a short, single-line, plain-text heading inside a dashboard cell.
- * Unlike TextDisplayWidget, this renderer NEVER uses `v-html` — `text` is
- * always rendered as a literal string via Vue interpolation, eliminating the
- * XSS surface entirely (REQ-LBL-001).
+ * Persisted shape: `{type: 'label', content: {text, fontSize, color,
+ * backgroundColor, fontWeight, textAlign}}`.
  *
- * Defaults per REQ-LBL-002: 16px / bold / centred / theme-aware text colour /
- * transparent background. Long single words wrap via `overflow-wrap`
- * (REQ-LBL-003). Empty text shows the localised `Label` placeholder so the
- * widget remains visible during editing (REQ-LBL-004).
+ * Defaults (REQ-LBL-002): fontSize='16px', color='var(--color-main-text)',
+ * backgroundColor='transparent', fontWeight='bold', textAlign='center'.
  */
 export default {
 	name: 'LabelWidget',
 
 	props: {
-		/**
-		 * Persisted widget content. Shape:
-		 *   { text, fontSize, color, backgroundColor, fontWeight, textAlign }
-		 * Any field may be missing or empty — the renderer falls back to
-		 * theme-aware defaults per REQ-LBL-002.
-		 */
 		content: {
 			type: Object,
 			default: () => ({}),
@@ -49,42 +42,27 @@ export default {
 		},
 
 		displayText() {
-			if (this.hasText) {
-				return this.text
-			}
-			// Localised fallback (REQ-LBL-004). `t` is provided as a Nextcloud
-			// global at runtime; tests stub it.
-			if (typeof t === 'function') {
-				return t('mydash', 'Label')
-			}
-			return 'Label'
+			return this.hasText ? this.text : t('mydash', 'Label')
 		},
 
 		fontSize() {
-			const value = this.content?.fontSize
-			return value && String(value).trim() !== '' ? value : '16px'
+			return this.content?.fontSize || '16px'
 		},
 
 		color() {
-			const value = this.content?.color
-			return value && String(value).trim() !== '' ? value : 'var(--color-main-text)'
+			return this.content?.color || 'var(--color-main-text)'
 		},
 
 		backgroundColor() {
-			const value = this.content?.backgroundColor
-			return value && String(value).trim() !== '' ? value : 'transparent'
+			return this.content?.backgroundColor || 'transparent'
 		},
 
 		fontWeight() {
-			const value = this.content?.fontWeight
-			const allowed = ['normal', 'bold', '600', '700', '800']
-			return allowed.includes(String(value)) ? String(value) : 'bold'
+			return this.content?.fontWeight || 'bold'
 		},
 
 		textAlign() {
-			const value = this.content?.textAlign
-			const allowed = ['left', 'center', 'right']
-			return allowed.includes(value) ? value : 'center'
+			return this.content?.textAlign || 'center'
 		},
 
 		wrapperStyle() {
@@ -93,20 +71,19 @@ export default {
 				height: '100%',
 				padding: '12px',
 				display: 'flex',
-				alignItems: 'center',
-				justifyContent: 'center',
-				backgroundColor: this.backgroundColor,
-				boxSizing: 'border-box',
+				'align-items': 'center',
+				'justify-content': 'center',
+				'background-color': this.backgroundColor,
 			}
 		},
 
 		spanStyle() {
 			return {
-				fontSize: this.fontSize,
-				fontWeight: this.fontWeight,
-				textAlign: this.textAlign,
+				'font-size': this.fontSize,
+				'font-weight': this.fontWeight,
+				'text-align': this.textAlign,
 				color: this.color,
-				overflowWrap: 'break-word',
+				'overflow-wrap': 'break-word',
 			}
 		},
 	},
@@ -115,21 +92,15 @@ export default {
 
 <style scoped>
 .label-widget {
-	box-sizing: border-box;
 	width: 100%;
 	height: 100%;
-	padding: 12px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
 }
 
 .label-widget__text {
-	display: inline-block;
-	max-width: 100%;
-	/* Safety net: keep long single words wrapping inside the cell even if the
-	   inline style above gets overridden (REQ-LBL-003). */
+	/* Safety net (REQ-LBL-003) — keeps long single words wrapping even if
+	   the inline overflow-wrap style is overridden by host styles. */
 	overflow-wrap: break-word;
-	word-break: break-word;
+	word-wrap: break-word;
+	max-width: 100%;
 }
 </style>

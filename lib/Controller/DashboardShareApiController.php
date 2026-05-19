@@ -31,8 +31,10 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
-use OCP\AppFramework\Http\JSONResponse;
+use OCP\AppFramework\Http\DataResponse;
+use OCP\IGroupManager;
 use OCP\IRequest;
+use OCP\IUserManager;
 
 /**
  * Controller for dashboard sharing API endpoints.
@@ -47,11 +49,15 @@ class DashboardShareApiController extends Controller
      *
      * @param IRequest              $request      The request.
      * @param DashboardShareService $shareService The share service.
+     * @param IUserManager          $userManager  Nextcloud user manager (sharee lookup).
+     * @param IGroupManager         $groupManager Nextcloud group manager (sharee lookup).
      * @param string|null           $userId       The calling user ID.
      */
     public function __construct(
         IRequest $request,
         private readonly DashboardShareService $shareService,
+        private readonly IUserManager $userManager,
+        private readonly IGroupManager $groupManager,
         private readonly ?string $userId,
     ) {
         parent::__construct(
@@ -65,13 +71,13 @@ class DashboardShareApiController extends Controller
      *
      * @param int $id The dashboard ID.
      *
-     * @return JSONResponse The list of shares.
+     * @return DataResponse The list of shares.
      */
     #[NoAdminRequired]
-    public function index(int $id): JSONResponse
+    public function index(int $id): DataResponse
     {
         if ($this->userId === null) {
-            return new JSONResponse(
+            return new DataResponse(
                 data: ['error' => 'Not logged in'],
                 statusCode: Http::STATUS_UNAUTHORIZED
             );
@@ -83,19 +89,18 @@ class DashboardShareApiController extends Controller
                 userId: $this->userId
             );
             $serialized = array_map(
-                callback: static fn($s) => $s->jsonSerialize(),
+                callback: static fn($share) => $share->jsonSerialize(),
                 array: $shares
             );
-            return new JSONResponse(data: $serialized);
+            return new DataResponse(data: $serialized);
         } catch (DoesNotExistException) {
-            return new JSONResponse(
+            return new DataResponse(
                 data: ['error' => 'Dashboard not found'],
                 statusCode: Http::STATUS_NOT_FOUND
             );
-        } catch (Exception) {
-            // ADR-005: do not leak raw exception messages to clients.
-            return new JSONResponse(
-                data: ['error' => 'Forbidden'],
+        } catch (Exception $e) {
+            return new DataResponse(
+                data: ['error' => $e->getMessage()],
                 statusCode: Http::STATUS_FORBIDDEN
             );
         }//end try
@@ -109,7 +114,7 @@ class DashboardShareApiController extends Controller
      * @param string|null $shareWith       The recipient.
      * @param string|null $permissionLevel The permission level.
      *
-     * @return JSONResponse The created/updated share.
+     * @return DataResponse The created/updated share.
      */
     #[NoAdminRequired]
     public function create(
@@ -117,9 +122,9 @@ class DashboardShareApiController extends Controller
         ?string $shareType=null,
         ?string $shareWith=null,
         ?string $permissionLevel=null
-    ): JSONResponse {
+    ): DataResponse {
         if ($this->userId === null) {
-            return new JSONResponse(
+            return new DataResponse(
                 data: ['error' => 'Not logged in'],
                 statusCode: Http::STATUS_UNAUTHORIZED
             );
@@ -133,25 +138,23 @@ class DashboardShareApiController extends Controller
                 permissionLevel: (string) $permissionLevel,
                 callerId: $this->userId
             );
-            return new JSONResponse(
+            return new DataResponse(
                 data: $share->jsonSerialize(),
                 statusCode: Http::STATUS_CREATED
             );
-        } catch (InvalidArgumentException) {
-            // ADR-005: do not leak raw exception messages to clients.
-            return new JSONResponse(
-                data: ['error' => 'Invalid request'],
+        } catch (InvalidArgumentException $e) {
+            return new DataResponse(
+                data: ['error' => $e->getMessage()],
                 statusCode: Http::STATUS_BAD_REQUEST
             );
         } catch (DoesNotExistException) {
-            return new JSONResponse(
+            return new DataResponse(
                 data: ['error' => 'Dashboard not found'],
                 statusCode: Http::STATUS_NOT_FOUND
             );
-        } catch (Exception) {
-            // ADR-005: do not leak raw exception messages to clients.
-            return new JSONResponse(
-                data: ['error' => 'Forbidden'],
+        } catch (Exception $e) {
+            return new DataResponse(
+                data: ['error' => $e->getMessage()],
                 statusCode: Http::STATUS_FORBIDDEN
             );
         }//end try
@@ -162,13 +165,13 @@ class DashboardShareApiController extends Controller
      *
      * @param int $shareId The share ID.
      *
-     * @return JSONResponse Empty 204 on success.
+     * @return DataResponse Empty 204 on success.
      */
     #[NoAdminRequired]
-    public function destroy(int $shareId): JSONResponse
+    public function destroy(int $shareId): DataResponse
     {
         if ($this->userId === null) {
-            return new JSONResponse(
+            return new DataResponse(
                 data: ['error' => 'Not logged in'],
                 statusCode: Http::STATUS_UNAUTHORIZED
             );
@@ -179,16 +182,15 @@ class DashboardShareApiController extends Controller
                 shareId: $shareId,
                 callerId: $this->userId
             );
-            return new JSONResponse(data: [], statusCode: Http::STATUS_NO_CONTENT);
+            return new DataResponse(data: [], statusCode: Http::STATUS_NO_CONTENT);
         } catch (DoesNotExistException) {
-            return new JSONResponse(
+            return new DataResponse(
                 data: ['error' => 'Share not found'],
                 statusCode: Http::STATUS_NOT_FOUND
             );
-        } catch (Exception) {
-            // ADR-005: do not leak raw exception messages to clients.
-            return new JSONResponse(
-                data: ['error' => 'Forbidden'],
+        } catch (Exception $e) {
+            return new DataResponse(
+                data: ['error' => $e->getMessage()],
                 statusCode: Http::STATUS_FORBIDDEN
             );
         }//end try
@@ -200,13 +202,13 @@ class DashboardShareApiController extends Controller
      * @param int        $id     The dashboard ID.
      * @param array|null $shares The new share list.
      *
-     * @return JSONResponse The new full share list.
+     * @return DataResponse The new full share list.
      */
     #[NoAdminRequired]
-    public function replace(int $id, ?array $shares=null): JSONResponse
+    public function replace(int $id, ?array $shares=null): DataResponse
     {
         if ($this->userId === null) {
-            return new JSONResponse(
+            return new DataResponse(
                 data: ['error' => 'Not logged in'],
                 statusCode: Http::STATUS_UNAUTHORIZED
             );
@@ -223,25 +225,23 @@ class DashboardShareApiController extends Controller
                 userId: $this->userId
             );
             $serialized = array_map(
-                callback: static fn($s) => $s->jsonSerialize(),
+                callback: static fn($share) => $share->jsonSerialize(),
                 array: $newShares
             );
-            return new JSONResponse(data: $serialized);
-        } catch (InvalidArgumentException) {
-            // ADR-005: do not leak raw exception messages to clients.
-            return new JSONResponse(
-                data: ['error' => 'Invalid request'],
+            return new DataResponse(data: $serialized);
+        } catch (InvalidArgumentException $e) {
+            return new DataResponse(
+                data: ['error' => $e->getMessage()],
                 statusCode: Http::STATUS_BAD_REQUEST
             );
         } catch (DoesNotExistException) {
-            return new JSONResponse(
+            return new DataResponse(
                 data: ['error' => 'Dashboard not found'],
                 statusCode: Http::STATUS_NOT_FOUND
             );
-        } catch (Exception) {
-            // ADR-005: do not leak raw exception messages to clients.
-            return new JSONResponse(
-                data: ['error' => 'Forbidden'],
+        } catch (Exception $e) {
+            return new DataResponse(
+                data: ['error' => $e->getMessage()],
                 statusCode: Http::STATUS_FORBIDDEN
             );
         }//end try
@@ -254,15 +254,15 @@ class DashboardShareApiController extends Controller
      * @param string $shareType The share type.
      * @param string $shareWith The recipient user/group ID.
      *
-     * @return JSONResponse The count of deleted rows.
+     * @return DataResponse The count of deleted rows.
      */
     #[NoAdminRequired]
     public function revokeForRecipient(
         string $shareType,
         string $shareWith
-    ): JSONResponse {
+    ): DataResponse {
         if ($this->userId === null) {
-            return new JSONResponse(
+            return new DataResponse(
                 data: ['error' => 'Not logged in'],
                 statusCode: Http::STATUS_UNAUTHORIZED
             );
@@ -274,13 +274,60 @@ class DashboardShareApiController extends Controller
                 shareWith: $shareWith,
                 callerId: $this->userId
             );
-            return new JSONResponse(data: ['deleted' => $count]);
-        } catch (InvalidArgumentException) {
-            // ADR-005: do not leak raw exception messages to clients.
-            return new JSONResponse(
-                data: ['error' => 'Invalid request'],
+            return new DataResponse(data: ['deleted' => $count]);
+        } catch (InvalidArgumentException $e) {
+            return new DataResponse(
+                data: ['error' => $e->getMessage()],
                 statusCode: Http::STATUS_BAD_REQUEST
             );
         }
     }//end revokeForRecipient()
+
+    /**
+     * Search users and groups for the share autocomplete picker.
+     * REQ-SHARE-006.
+     *
+     * @param string $query The search query.
+     *
+     * @return DataResponse The matching users and groups.
+     */
+    #[NoAdminRequired]
+    public function searchSharees(string $query=''): DataResponse
+    {
+        if ($this->userId === null) {
+            return new DataResponse(
+                data: ['error' => 'Not logged in'],
+                statusCode: Http::STATUS_UNAUTHORIZED
+            );
+        }
+
+        $trimmed = trim(string: $query);
+        if (strlen(string: $trimmed) < 1) {
+            return new DataResponse(data: ['users' => [], 'groups' => []]);
+        }
+
+        $users = [];
+        foreach ($this->userManager->search(pattern: $trimmed, limit: 10) as $user) {
+            if ($user->getUID() === $this->userId) {
+                continue;
+            }
+
+            $users[] = [
+                'id'          => $user->getUID(),
+                'displayName' => $user->getDisplayName(),
+            ];
+        }
+
+        $groups = [];
+        foreach ($this->groupManager->search(search: $trimmed, limit: 10) as $group) {
+            $groups[] = [
+                'id'          => $group->getGID(),
+                'displayName' => $group->getDisplayName(),
+            ];
+        }
+
+        return new DataResponse(
+            data: ['users' => $users, 'groups' => $groups]
+        );
+    }//end searchSharees()
 }//end class

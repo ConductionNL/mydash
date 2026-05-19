@@ -28,6 +28,15 @@ use Exception;
 
 /**
  * Base exception for resource-uploads.
+ *
+ * @SuppressWarnings(PHPMD.NumberOfChildren) The exception hierarchy
+ *                                           legitimately covers every
+ *                                           dedicated error domain in
+ *                                           MyDash (resources, files,
+ *                                           role assignments, dashboard
+ *                                           gating). Subclassing here
+ *                                           keeps the stable error code
+ *                                           contract centralised.
  */
 abstract class ResourceException extends Exception
 {

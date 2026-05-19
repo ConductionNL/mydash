@@ -33,4 +33,4 @@ MyDash exposes application metrics in Prometheus text exposition format for moni
 
 ## Screenshot
 
-![Dashboard Overview](../screenshots/mydash-dashboard-overview.png)
+![Dashboard Overview](/screenshots/mydash-dashboard-overview.png)

@@ -287,6 +287,40 @@ class DashboardShareService
     }//end revokeAllForRecipient()
 
     /**
+     * Resolve every share that grants the given user access to a dashboard,
+     * keyed by dashboard id. When the user is reached via multiple shares
+     * (e.g. direct + group), the most permissive level wins.
+     *
+     * Used by PermissionService to compute effective access on dashboards
+     * the user does not own. REQ-SHARE-002, REQ-SHARE-004.
+     *
+     * @param string   $userId   The recipient user id.
+     * @param string[] $groupIds The recipient's group ids.
+     *
+     * @return array<int,string> Map of dashboardId => permission level.
+     */
+    public function resolveSharedDashboards(string $userId, array $groupIds): array
+    {
+        $shares = $this->shareMapper->findForRecipient(
+            userId: $userId,
+            groupIds: $groupIds
+        );
+
+        $result = [];
+        foreach ($shares as $share) {
+            $dashboardId  = (int) $share->getDashboardId();
+            $currentLevel = (string) $share->getPermissionLevel();
+            $currentRank  = (self::LEVEL_ORDER[$currentLevel] ?? 0);
+            $existingRank = (self::LEVEL_ORDER[$result[$dashboardId] ?? ''] ?? -1);
+            if ($currentRank > $existingRank) {
+                $result[$dashboardId] = $currentLevel;
+            }
+        }
+
+        return $result;
+    }//end resolveSharedDashboards()
+
+    /**
      * Transfer dashboard ownership to a new user.
      *
      * Updates the dashboard's user_id, removes the share row that
@@ -340,7 +374,7 @@ class DashboardShareService
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
             ->setUser($newOwnerId)
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
-            ->setDateTime(new \DateTime())
+            ->setDateTime(new DateTime())
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
             ->setObject('dashboard', (string) $dashboardId)
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
@@ -447,7 +481,7 @@ class DashboardShareService
                 // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
                 ->setUser($recipientId)
                 // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
-                ->setDateTime(new \DateTime())
+                ->setDateTime(new DateTime())
                 // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
                 ->setObject('dashboard', (string) $share->getDashboardId())
                 // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters

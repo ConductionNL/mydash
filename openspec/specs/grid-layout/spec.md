@@ -6,14 +6,14 @@ status: implemented
 
 ## Purpose
 
-The grid layout system powers the drag-and-drop dashboard experience in MyDash. Built on GridStack 10.3.1, it provides a 12-column responsive grid where users can position, resize, and rearrange widget placements and tiles. The grid operates in two modes: view mode (static, no interaction) and edit mode (drag-and-drop enabled). Position changes are emitted via Vue events and persisted via the API by the parent component.
+The grid layout system powers the drag-and-drop dashboard experience in MyDash. Built on GridStack 12.x, it provides a 12-column responsive grid that reflows at four explicit viewport breakpoints (1400/1100/768/480 px → 12/8/4/1 cols) where users can position, resize, and rearrange widget placements and tiles. The grid operates in two modes: view mode (static, no interaction) and edit mode (drag-and-drop enabled). Position changes are emitted via Vue events and persisted via the API by the parent component.
 
 ## Technical Foundation
 
-- **Library**: GridStack 10.3.1
-- **Grid columns**: 12 (configurable per dashboard via `gridColumns`)
-- **Cell height**: 80px (fixed)
-- **Margins**: 12px horizontal and vertical between cells
+- **Library**: GridStack 12.x (range `^12.2.1`, version floor `>= 10.0.0` per REQ-GRID-013)
+- **Grid columns**: 12 at viewports >= 1400 px (configurable per dashboard via `gridColumns`); reflows to 8/4/1 at narrower viewports per REQ-GRID-007
+- **Cell height**: 60 px (fixed; defined as `CELL_HEIGHT` in `src/composables/useGridManager.js`, mirrored to CSS variable `--mydash-cell-height`)
+- **Margins**: 8 px on all four sides between cells (`GRID_MARGIN`)
 - **Coordinate system**: 0-based (gridX: 0-11 for 12 columns, gridY: 0+)
 - **Float mode**: Enabled (`float: true`) -- items do NOT auto-stack downward; they stay at their exact grid position
 - **Animation**: Enabled (`animate: true`)
@@ -28,7 +28,7 @@ The grid MUST initialize with the correct configuration when a dashboard is load
 #### Scenario: Initialize grid with default 12-column layout
 - GIVEN user "alice" activates dashboard id 5 with `gridColumns: 12`
 - WHEN the dashboard view loads
-- THEN GridStack MUST be initialized with `column: 12`, `cellHeight: 80`, `margin: 12`, `float: true`, `animate: true`
+- THEN GridStack MUST be initialized with `column: 12`, `cellHeight: 60`, `margin: 8`, `float: true`, `animate: true`, and `columnOpts` populated from `useGridManager.getColumnOpts()`
 - AND the grid MUST render all widget placements at their stored (gridX, gridY, gridWidth, gridHeight) coordinates using `gs-x`, `gs-y`, `gs-w`, `gs-h` attributes
 
 #### Scenario: Initialize grid with custom column count
@@ -214,23 +214,57 @@ Grid position changes MUST be communicated to the parent component for API persi
 - THEN each grid item's `id` MUST be matched to a placement's `id` via string comparison
 - AND the placement's gridX, gridY, gridWidth, gridHeight MUST be updated from the grid item's x, y, w, h values
 
-### REQ-GRID-006: Widget Auto-Layout
+### REQ-GRID-006: Widget Auto-Layout (collision placement algorithm)
 
-New widgets added to the dashboard MUST be positioned by GridStack's auto-placement algorithm.
+When a new widget is added to an existing dashboard, the system MUST place it without overlapping any existing widget and without leaving it outside the visible grid region. The algorithm MUST be:
 
-#### Scenario: Add widget to partially filled grid
+1. **Try GridStack auto-position** — call `grid.addWidget({x: 0, y: 0, w: newW, h: newH, autoPosition: true, ...})`. GridStack scans for the first empty rectangle that fits and uses it.
+2. **Fallback: top-left with push-down** — if step 1 fails (GridStack returns no slot, or the picked slot is below `viewportRows`), place the new widget at `(x: 0, y: 0)` with size `(newW, newH)` AND for every existing widget whose rectangle overlaps `[0..newW] × [0..newH]`, set its `gridY` to `newH` (pushing it just below the new one). Existing widgets that do not overlap MUST NOT be moved.
+
+Default size when the caller omits `w`/`h` MUST be `w=4, h=4`. Position writes MUST trigger the persistence path of REQ-GRID-005.
+
+#### Scenario: Auto-position into empty space
+
+- **GIVEN** a dashboard with one widget at `(x:0, y:0, w:6, h:4)`
+- **WHEN** a new 4×4 widget is added
+- **THEN** GridStack MUST place it at `(x:6, y:0)` (the empty right-half)
+- **AND** no existing widget MUST be moved
+
+#### Scenario: Push-down fallback when grid is full at top
+
+- **GIVEN** a dashboard with widgets occupying the entire `[0..12] × [0..4]` region
+- **WHEN** a new 4×4 widget is added
+- **THEN** it MUST be placed at `(x:0, y:0, w:4, h:4)`
+- **AND** every previously-overlapping widget MUST have `gridY = 4` (just below the new one)
+- **AND** non-overlapping widgets (already at `y >= 4`) MUST NOT have their `gridY` changed
+
+#### Scenario: Default size on omitted dimensions
+
+- **GIVEN** a caller invokes `placeNewWidget({type: 'text'})` with no `w` or `h`
+- **WHEN** the placement runs
+- **THEN** the placement MUST use `w=4, h=4`
+
+#### Scenario: Persistence after placement
+
+- **GIVEN** a new widget has been placed (via either step 1 or step 2)
+- **WHEN** the placement completes
+- **THEN** the new widget AND any pushed-down widgets MUST be persisted via the standard placement-update API (REQ-WDG-008 batch update or per-placement PUT)
+- **AND** a single network round-trip SHOULD be used for the batch (debounce 300 ms per the design rule in `openspec/config.yaml`)
+
+#### Scenario: Pushed widgets remain within their column lane
+
+- **GIVEN** existing widget at `(x:8, y:0, w:4, h:2)` overlaps a new 6×3 widget being placed at top-left
+- **WHEN** the push-down fallback runs
+- **THEN** the existing widget's `gridX` and `gridW` MUST remain `8` and `4` respectively
+- **AND** only `gridY` MUST be increased to `3`
+
+#### Scenario: Add widget to partially filled grid (incremental render)
 - GIVEN the grid has widgets occupying rows 0-2 in columns 0-8
 - AND columns 8-11 in row 0 are empty
 - WHEN the user adds a new widget with gridWidth 4 and gridHeight 2
 - THEN `syncGridItems()` MUST detect the new placement and call `grid.makeWidget()` on the next tick
-- AND GridStack MUST place the widget at an available position
+- AND GridStack MUST render the widget at the position computed by `placeNewWidget` (auto-position or fallback)
 - NOTE: With `float: true`, auto-placement behavior may differ from non-float mode.
-
-#### Scenario: Add widget to a full row
-- GIVEN all 12 columns in rows 0-3 are occupied
-- WHEN the user adds a new widget with gridWidth 4 and gridHeight 2
-- THEN GridStack MUST place it in the next available row (gridY=4 or later)
-- AND the grid MUST expand vertically to accommodate the new widget
 
 #### Scenario: Remove widget syncs grid
 - GIVEN widget placement id 10 is removed from the placements array
@@ -238,23 +272,54 @@ New widgets added to the dashboard MUST be positioned by GridStack's auto-placem
 - THEN `syncGridItems()` MUST find the orphaned grid node and call `grid.removeWidget()` with `removeDOM: false`
 - AND the grid MUST update its layout accordingly
 
-### REQ-GRID-007: Grid Responsiveness
+### REQ-GRID-007: Grid Responsiveness (concrete breakpoints)
 
-The grid MUST adapt to the container width while maintaining the configured column count.
+The GridStack instance MUST be initialised with `columnOpts.breakpoints` containing exactly four entries, each `{w: <viewportWidthPx>, c: <columnCount>}`, applied in descending viewport order:
+
+| Viewport width >= | Column count |
+|---|---|
+| 1400 px | 12 |
+| 1100 px | 8 |
+| 768 px | 4 |
+| 480 px | 1 |
+
+`columnOpts.layout` MUST be set to `'moveScale'` so widgets scale proportionally when the column count changes (rather than wrapping or collapsing). Below the smallest entry the smallest column count (1) MUST apply.
+
+The grid MUST also adapt to the container width while maintaining the active column count: column widths recalculate proportionally on resize, widget positions remain in their grid coordinates, and no widget content overflows its cell boundaries.
+
+#### Scenario: 12 columns on wide desktop
+
+- GIVEN viewport width is 1500 px
+- WHEN the workspace renders
+- THEN the grid MUST use 12 columns
+- AND a widget originally placed at `{x: 6, w: 6}` MUST occupy the right half of the viewport
+
+#### Scenario: Reflow at 1100 px
+
+- GIVEN the workspace was rendered at 1500 px (12 columns) with widgets occupying the full grid width
+- WHEN the viewport is resized to 1100 px (8 columns)
+- THEN GridStack MUST proportionally rescale widget widths via `moveScale`
+- AND a widget originally `{x: 0, w: 6}` (half) MUST become approximately `{x: 0, w: 4}` (still half, in the 8-col grid)
+
+#### Scenario: Single-column on mobile
+
+- GIVEN viewport width is 480 px
+- WHEN the workspace renders
+- THEN the grid MUST use 1 column
+- AND every widget MUST occupy the full row width
+- AND widgets MUST stack vertically
+
+#### Scenario: Below smallest breakpoint
+
+- GIVEN viewport width is 320 px (below the 480 entry)
+- WHEN the workspace renders
+- THEN the grid MUST use the column count of the smallest matching breakpoint (1 column)
 
 #### Scenario: Grid fills container width
-- GIVEN the dashboard container is 1200px wide
-- AND the grid has 12 columns with 12px margins
+- GIVEN the dashboard container is 1200px wide at the 8-column breakpoint
 - WHEN the grid renders
 - THEN each column MUST be proportionally sized to fill the container width
 - AND the grid MUST fill the full container width
-
-#### Scenario: Grid adapts to container resize
-- GIVEN the user resizes their browser window
-- WHEN the container width changes
-- THEN the grid column width MUST recalculate proportionally
-- AND widget positions MUST remain in their grid coordinates (columns and rows)
-- AND no widget content MUST overflow its cell boundaries
 
 #### Scenario: Minimum grid height
 - GIVEN the dashboard has no widgets or very few widgets
@@ -355,10 +420,56 @@ The grid MUST stay synchronized with the placements prop when items are added or
 - WHEN `beforeDestroy` lifecycle hook fires
 - THEN `grid.destroy(false)` MUST be called (false = do not remove DOM elements)
 
+### REQ-GRID-012: Cell geometry constants
+
+The grid MUST be initialised with `cellHeight: 60` (px) and `margin: 8` (px). These constants MUST live in a single shared module exported from the grid composable, not duplicated in component templates.
+
+#### Scenario: Cell height read from constant
+
+- GIVEN the grid composable defines `CELL_HEIGHT = 60`
+- WHEN any other module needs the cell height (e.g. for collision math or CSS calc)
+- THEN it MUST import the constant
+- AND grep for hardcoded `60` in grid contexts MUST return only the composable definition
+
+#### Scenario: 12-col, 60px, 8px margin renders predictable height
+
+- GIVEN a widget with `gridHeight: 4` is placed
+- WHEN it renders at the 12-column breakpoint
+- THEN its DOM height MUST be `(4 * 60) + (3 * 8) = 264 px` (4 rows + 3 inter-row margins)
+
+### REQ-GRID-013: GridStack version pin
+
+The system MUST pin `gridstack` to a major version that supports `columnOpts.breakpoints` and the `moveScale` layout (currently v10 or later, target v12+). Bumping the major version MUST be a deliberate change with a regression-test pass on this capability.
+
+#### Scenario: Lockfile version
+
+- GIVEN a developer inspects `package-lock.json`
+- WHEN reading the resolved `gridstack` entry
+- THEN the resolved version MUST be `>= 10.0.0`
+- AND `package.json` MUST declare a constrained range like `"gridstack": "^12.2.1"` (or whichever major is current at apply time)
+
+### REQ-GRID-014: Placement helper is the single placement authority
+
+All "add widget" code paths (toolbar dropdown, keyboard shortcut, drag-from-picker) MUST go through a single `placeNewWidget(spec)` helper exported from the grid composable. Inline calls to `grid.addWidget` outside this helper are forbidden.
+
+#### Scenario: Single source of truth
+
+- **GIVEN** the codebase under `src/`
+- **WHEN** `grep -r 'grid.addWidget' src/` is run
+- **THEN** matches MUST occur only inside `useGridManager.js` (or its test file)
+- **AND** component templates MUST NOT call GridStack APIs directly
+
+#### Scenario: Add-widget submit handler routes through the helper
+
+- **GIVEN** a user clicks the "Add widget" button in `AddWidgetModal.vue`
+- **WHEN** the submit handler runs
+- **THEN** it MUST call `placeNewWidget(spec)` exported from `useGridManager.js`
+- **AND** MUST NOT call `grid.addWidget(...)` directly
+
 ## Non-Functional Requirements
 
 - **Performance**: Grid initialization MUST complete within 500ms for dashboards with up to 30 widget placements. Drag and resize interactions MUST maintain 60fps with no visible lag.
-- **Library version**: GridStack 10.3.1 MUST be used. Upgrades require spec review for breaking changes.
+- **Library version**: GridStack `^12.2.1` MUST be used. The version floor is `>= 10.0.0` (REQ-GRID-013); future major bumps require spec review for breaking changes.
 - **Browser support**: The grid MUST function in all browsers supported by Nextcloud (Chrome, Firefox, Safari, Edge -- latest 2 versions).
 - **Debouncing**: Debouncing is NOT currently implemented in DashboardGrid. The `handleGridChange` method emits immediately on every change event. Debouncing SHOULD be added.
 - **Accessibility**: Grid interactions MUST provide keyboard alternatives for all mouse-based operations. WCAG AA compliance is required.
@@ -371,7 +482,7 @@ The grid MUST stay synchronized with the placements prop when items are added or
 - REQ-GRID-003 (Resize by Edge Dragging): Resize controlled via `disableResize: !this.editMode`. Min sizes via `gs-min-w="2"`, `gs-min-h="2"`.
 - REQ-GRID-004 (View Mode vs Edit Mode): `editMode` prop controls grid state.
 - REQ-GRID-005 (Position Persistence): `handleGridChange()` emits `update:placements` on every change event.
-- REQ-GRID-006 (Widget Auto-Layout): `syncGridItems()` adds/removes items.
+- REQ-GRID-006 (Widget Auto-Layout — collision placement algorithm): `placeNewWidget()` in `src/composables/useGridManager.js` computes the position via the autoPosition primary path and the top-left + push-down fallback; `syncGridItems()` then renders the new placement via `grid.makeWidget()`. Push-down side effects flow through the existing `updatePlacements` batch path.
 - REQ-GRID-009 (Tile vs Widget Rendering): `isTilePlacement()`, `getTileData()` handle rendering distinction.
 - REQ-GRID-010 (Grid Styling): CSS applied via scoped styles with deep selectors.
 - REQ-GRID-011 (Grid Synchronization): `placements` watcher triggers `syncGridItems()`.
@@ -379,12 +490,17 @@ The grid MUST stay synchronized with the placements prop when items are added or
 **Not yet implemented:**
 - REQ-GRID-005 save failure/retry: No retry logic in frontend.
 - REQ-GRID-005 debouncing: No debounce on handleGridChange.
-- REQ-GRID-007 (Grid Responsiveness): No explicit responsive handling or breakpoints.
 - REQ-GRID-008 (Grid Accessibility): No keyboard navigation, keyboard movement, or ARIA attributes.
 - REQ-GRID-001 empty state: No empty state placeholder.
 
+**Recently implemented:**
+- REQ-GRID-007 (Grid Responsiveness): four explicit `columnOpts.breakpoints` entries (1400/1100/768/480 → 12/8/4/1) with `moveScale` reflow. Constants exported from `src/composables/useGridManager.js` and consumed by `DashboardGrid.vue`. Mirrored to CSS via the `--mydash-cell-height` custom property.
+- REQ-GRID-012 (Cell geometry constants): `CELL_HEIGHT = 60`, `GRID_MARGIN = 8` shared from the composable.
+- REQ-GRID-013 (GridStack version pin): `package.json` declares `"gridstack": "^12.2.1"` (resolves to 12.6.0); floor `>= 10.0.0`.
+- REQ-GRID-014 (Single placement authority): `placeNewWidget(spec, placements, options)` exported from `src/composables/useGridManager.js`. The dashboard store's `addWidgetToDashboard` and `addTileToDashboard` actions both delegate to it; push-down side effects flow through `applyPushedPlacements` → `updatePlacements`. Architectural enforcement: a Vitest grep guard in `__tests__/useGridManager.spec.js` asserts no other `.js`/`.vue` file under `src/` references `grid.addWidget(`.
+
 ### Standards & References
-- GridStack 10.3.1: https://gridstackjs.com/
+- GridStack 12.x: https://gridstackjs.com/
 - WAI-ARIA Grid pattern: https://www.w3.org/WAI/ARIA/apg/patterns/grid/
 - WCAG 2.1 AA: Focus indicators, keyboard operability, screen reader compatibility
 - Nextcloud Vue components: `NcButton` used in parent components for edit/done toggle

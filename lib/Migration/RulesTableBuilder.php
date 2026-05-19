@@ -36,14 +36,14 @@ class RulesTableBuilder
     public static function create(ISchemaWrapper $schema): void
     {
         if ($schema->hasTable(
-            tableName: 'mydash_conditional_rules'
+            'mydash_conditional_rules'
         ) === true
         ) {
             return;
         }
 
         $table = $schema->createTable(
-            tableName: 'mydash_conditional_rules'
+            'mydash_conditional_rules'
         );
 
         self::addColumns(table: $table);
@@ -60,50 +60,50 @@ class RulesTableBuilder
     private static function addColumns($table): void
     {
         $table->addColumn(
-            name: 'id',
-            typeName: Types::BIGINT,
-            options: [
+            'id',
+            Types::BIGINT,
+            [
                 'autoincrement' => true,
                 'notnull'       => true,
                 'unsigned'      => true,
             ]
         );
         $table->addColumn(
-            name: 'widget_placement_id',
-            typeName: Types::BIGINT,
-            options: [
+            'widget_placement_id',
+            Types::BIGINT,
+            [
                 'notnull'  => true,
                 'unsigned' => true,
             ]
         );
         $table->addColumn(
-            name: 'rule_type',
-            typeName: Types::STRING,
-            options: [
+            'rule_type',
+            Types::STRING,
+            [
                 'notnull' => true,
                 'length'  => 50,
             ]
         );
         $table->addColumn(
-            name: 'rule_config',
-            typeName: Types::TEXT,
-            options: [
+            'rule_config',
+            Types::TEXT,
+            [
                 'notnull' => false,
             ]
         );
         $table->addColumn(
-            name: 'is_include',
-            typeName: Types::SMALLINT,
-            options: [
+            'is_include',
+            Types::SMALLINT,
+            [
                 'notnull'  => true,
                 'default'  => 1,
                 'unsigned' => true,
             ]
         );
         $table->addColumn(
-            name: 'created_at',
-            typeName: Types::DATETIME,
-            options: [
+            'created_at',
+            Types::DATETIME,
+            [
                 'notnull' => true,
             ]
         );
@@ -118,10 +118,10 @@ class RulesTableBuilder
      */
     private static function addIndexes($table): void
     {
-        $table->setPrimaryKey(columnNames: ['id']);
+        $table->setPrimaryKey(['id']);
         $table->addIndex(
-            columnNames: ['widget_placement_id'],
-            indexName: 'mydash_rule_placement'
+            ['widget_placement_id'],
+            'mydash_rule_placement'
         );
     }//end addIndexes()
 }//end class

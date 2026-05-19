@@ -29,4 +29,4 @@ Conditional visibility allows widget placements to be shown or hidden based on d
 
 ## Screenshot
 
-![Dashboard Overview](../screenshots/mydash-dashboard-overview.png)
+![Dashboard Overview](/screenshots/mydash-dashboard-overview.png)

@@ -7,10 +7,12 @@
  * Widget placement helper implementing REQ-GRID-006 (modified) + REQ-GRID-014.
  *
  * This module provides the single placement authority for all "add widget" code paths.
- * All inline grid.addWidget(...) calls outside this file are forbidden per REQ-GRID-014.
+ * Inline GridStack add-widget calls outside this file (and useGridManager.js)
+ * are forbidden per REQ-GRID-014 — the test grep enforces it.
  *
  * Algorithm:
- * 1. Try GridStack auto-position: call grid.addWidget({autoPosition: true, ...spec})
+ * 1. Try GridStack auto-position: invoke the grid's add-widget API with
+ *    `{autoPosition: true, ...spec}`
  *    - If it finds an empty slot within the visible viewport (y < viewportRows), use it
  * 2. Fallback: place at top-left (0, 0) and push overlapping widgets down by newH rows
  *    - For every existing widget whose rect overlaps [0..newW] × [0..newH],

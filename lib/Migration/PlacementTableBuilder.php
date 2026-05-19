@@ -36,14 +36,14 @@ class PlacementTableBuilder
     public static function create(ISchemaWrapper $schema): void
     {
         if ($schema->hasTable(
-            tableName: 'mydash_widget_placements'
+            'mydash_widget_placements'
         ) === true
         ) {
             return;
         }
 
         $table = $schema->createTable(
-            tableName: 'mydash_widget_placements'
+            'mydash_widget_placements'
         );
 
         self::addColumns(table: $table);
@@ -60,123 +60,123 @@ class PlacementTableBuilder
     private static function addColumns($table): void
     {
         $table->addColumn(
-            name: 'id',
-            typeName: Types::BIGINT,
-            options: [
+            'id',
+            Types::BIGINT,
+            [
                 'autoincrement' => true,
                 'notnull'       => true,
                 'unsigned'      => true,
             ]
         );
         $table->addColumn(
-            name: 'dashboard_id',
-            typeName: Types::BIGINT,
-            options: [
+            'dashboard_id',
+            Types::BIGINT,
+            [
                 'notnull'  => true,
                 'unsigned' => true,
             ]
         );
         $table->addColumn(
-            name: 'widget_id',
-            typeName: Types::STRING,
-            options: [
+            'widget_id',
+            Types::STRING,
+            [
                 'notnull' => true,
                 'length'  => 255,
             ]
         );
         $table->addColumn(
-            name: 'grid_x',
-            typeName: Types::INTEGER,
-            options: [
+            'grid_x',
+            Types::INTEGER,
+            [
                 'notnull' => true,
                 'default' => 0,
             ]
         );
         $table->addColumn(
-            name: 'grid_y',
-            typeName: Types::INTEGER,
-            options: [
+            'grid_y',
+            Types::INTEGER,
+            [
                 'notnull' => true,
                 'default' => 0,
             ]
         );
         $table->addColumn(
-            name: 'grid_width',
-            typeName: Types::INTEGER,
-            options: [
+            'grid_width',
+            Types::INTEGER,
+            [
                 'notnull' => true,
                 'default' => 4,
             ]
         );
         $table->addColumn(
-            name: 'grid_height',
-            typeName: Types::INTEGER,
-            options: [
+            'grid_height',
+            Types::INTEGER,
+            [
                 'notnull' => true,
                 'default' => 4,
             ]
         );
         $table->addColumn(
-            name: 'is_compulsory',
-            typeName: Types::SMALLINT,
-            options: [
+            'is_compulsory',
+            Types::SMALLINT,
+            [
                 'notnull'  => true,
                 'default'  => 0,
                 'unsigned' => true,
             ]
         );
         $table->addColumn(
-            name: 'is_visible',
-            typeName: Types::SMALLINT,
-            options: [
+            'is_visible',
+            Types::SMALLINT,
+            [
                 'notnull'  => true,
                 'default'  => 1,
                 'unsigned' => true,
             ]
         );
         $table->addColumn(
-            name: 'style_config',
-            typeName: Types::TEXT,
-            options: [
+            'style_config',
+            Types::TEXT,
+            [
                 'notnull' => false,
             ]
         );
         $table->addColumn(
-            name: 'custom_title',
-            typeName: Types::STRING,
-            options: [
+            'custom_title',
+            Types::STRING,
+            [
                 'notnull' => false,
                 'length'  => 255,
             ]
         );
         $table->addColumn(
-            name: 'show_title',
-            typeName: Types::SMALLINT,
-            options: [
+            'show_title',
+            Types::SMALLINT,
+            [
                 'notnull'  => true,
                 'default'  => 1,
                 'unsigned' => true,
             ]
         );
         $table->addColumn(
-            name: 'sort_order',
-            typeName: Types::INTEGER,
-            options: [
+            'sort_order',
+            Types::INTEGER,
+            [
                 'notnull' => true,
                 'default' => 0,
             ]
         );
         $table->addColumn(
-            name: 'created_at',
-            typeName: Types::DATETIME,
-            options: [
+            'created_at',
+            Types::DATETIME,
+            [
                 'notnull' => true,
             ]
         );
         $table->addColumn(
-            name: 'updated_at',
-            typeName: Types::DATETIME,
-            options: [
+            'updated_at',
+            Types::DATETIME,
+            [
                 'notnull' => true,
             ]
         );
@@ -191,14 +191,14 @@ class PlacementTableBuilder
      */
     private static function addIndexes($table): void
     {
-        $table->setPrimaryKey(columnNames: ['id']);
+        $table->setPrimaryKey(['id']);
         $table->addIndex(
-            columnNames: ['dashboard_id'],
-            indexName: 'mydash_placement_dashboard'
+            ['dashboard_id'],
+            'mydash_placement_dashboard'
         );
         $table->addIndex(
-            columnNames: ['widget_id'],
-            indexName: 'mydash_placement_widget'
+            ['widget_id'],
+            'mydash_placement_widget'
         );
     }//end addIndexes()
 }//end class

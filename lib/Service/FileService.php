@@ -3,10 +3,15 @@
 /**
  * FileService
  *
- * Service for creating files in a user's Nextcloud Files space. Exposes a
- * single `createFile()` method that applies strict filename validation, a
- * configurable extension allow-list, directory traversal rejection, and
- * overwrite-on-exists semantics (REQ-LBN-004).
+ * Implements the link-button-widget capability's createFile flow
+ * (REQ-LBN-004). Owns strict filename + directory validation, the
+ * admin-configurable extension allow-list (default
+ * `txt, md, docx, xlsx, csv, odt`), and overwrite-on-exists semantics.
+ *
+ * The service NEVER returns the underlying Nextcloud exception messages
+ * to the caller — every internal failure is mapped to a typed
+ * {@see \OCA\MyDash\Exception\ResourceException} subclass with a curated
+ * display message (REQ-LBN-004).
  *
  * @category  Service
  * @package   OCA\MyDash\Service
@@ -24,41 +29,66 @@ declare(strict_types=1);
 
 namespace OCA\MyDash\Service;
 
+use OCA\MyDash\Db\AdminSetting;
 use OCA\MyDash\Db\AdminSettingMapper;
-use OCA\MyDash\Exception\ForbiddenExtensionException;
+use OCA\MyDash\Exception\FileTypeNotAllowedException;
 use OCA\MyDash\Exception\InvalidDirectoryException;
 use OCA\MyDash\Exception\InvalidFilenameException;
+use OCA\MyDash\Exception\StorageFailureException;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
+use OCP\Files\NotFoundException;
 use OCP\IURLGenerator;
+use Throwable;
 
 /**
- * Creates files in user Nextcloud space with strict validation.
+ * Strictly-validated file-creation pipeline for the link-button-widget
+ * `createFile` action.
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects) Filesystem + URL
+ *                                                 generation + admin
+ *                                                 settings are all
+ *                                                 unavoidable for this
+ *                                                 capability.
  */
 class FileService
 {
-
     /**
-     * Default allowed file extensions.
-     *
-     * @var string[]
-     */
-    private const DEFAULT_ALLOWED_EXTENSIONS = ['txt', 'md', 'docx', 'xlsx', 'csv', 'odt'];
-
-    /**
-     * Admin setting key for the allow-list.
+     * Strict filename pattern (REQ-LBN-004 task 1.2).
      *
      * @var string
      */
-    private const SETTING_KEY = 'file_create_extensions';
+    private const FILENAME_PATTERN = '/^[a-zA-Z0-9_\-. ]+$/';
+
+    /**
+     * Maximum filename length (REQ-LBN-004 task 1.2).
+     *
+     * @var integer
+     */
+    private const FILENAME_MAX_LENGTH = 255;
+
+    /**
+     * Default allow-list when the admin has not configured one
+     * (REQ-LBN-004).
+     *
+     * @var array<int, string>
+     */
+    public const DEFAULT_ALLOWED_EXTENSIONS = [
+        'txt',
+        'md',
+        'docx',
+        'xlsx',
+        'csv',
+        'odt',
+    ];
 
     /**
      * Constructor.
      *
-     * @param IRootFolder        $rootFolder    Nextcloud root folder.
-     * @param IURLGenerator      $urlGenerator  URL generator.
-     * @param AdminSettingMapper $settingMapper Admin setting mapper.
+     * @param IRootFolder        $rootFolder    Filesystem root accessor.
+     * @param IURLGenerator      $urlGenerator  Files-app URL builder.
+     * @param AdminSettingMapper $settingMapper Admin-setting store.
      */
     public function __construct(
         private readonly IRootFolder $rootFolder,
@@ -68,215 +98,334 @@ class FileService
     }//end __construct()
 
     /**
-     * Create (or overwrite) a file in the user's Files space.
+     * Create (or overwrite) a file in the user's Files area.
      *
-     * Validates filename and directory defensively, checks the extension
-     * against the admin allow-list, resolves the user folder, creates any
-     * missing subdirectory, and either creates or overwrites the file.
+     * Performs every validation step in REQ-LBN-004 BEFORE touching
+     * the filesystem so that an invalid request never hits storage.
+     * The caller-facing payload is `{status, fileId, url}` — `url`
+     * deep-links into the Files app at `?openfile=<fileId>`.
      *
-     * @param string $userId   Nextcloud user ID.
-     * @param string $filename Desired filename (basename only, no path).
-     * @param string $dir      Target directory inside the user folder.
-     * @param string $content  File content (may be empty for placeholder).
+     * @param string $userId   Owner of the target Files area.
+     * @param string $filename Leaf filename — strictly validated.
+     * @param string $dir      Target subdirectory inside the user's
+     *                         folder (default `/`).
+     * @param string $content  Bytes to write (default empty).
      *
-     * @return array{fileId:int,url:string} Success payload with `fileId`
-     *                                      and a Files-app open URL.
+     * @return array{status: string, fileId: int, url: string}
      *
-     * @throws InvalidFilenameException    When `$filename` is empty, too long,
-     *                                     or contains disallowed characters.
-     * @throws InvalidDirectoryException   When `$dir` contains traversal
-     *                                     sequences or null bytes.
-     * @throws ForbiddenExtensionException When the file extension is not in
-     *                                     the allow-list.
+     * @throws InvalidFilenameException     When the filename fails
+     *                                      strict validation.
+     * @throws InvalidDirectoryException    When the directory contains
+     *                                      `..` or a null byte.
+     * @throws FileTypeNotAllowedException  When the extension is not
+     *                                      in the allow-list.
+     * @throws StorageFailureException      When the underlying
+     *                                      filesystem rejects the write.
      */
     public function createFile(
         string $userId,
         string $filename,
-        string $dir,
-        string $content
+        string $dir='/',
+        string $content=''
     ): array {
-        // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
-        $this->validateFilename($filename);
-        // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
-        $this->validateDirectory($dir);
-        // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
-        $this->validateExtension($filename);
+        $this->assertValidFilename(filename: $filename);
+        $this->assertValidDirectory(dir: $dir);
+        $this->assertAllowedExtension(filename: $filename);
 
-        $userFolder   = $this->rootFolder->getUserFolder(userId: $userId);
-        $targetFolder = $userFolder;
-
-        // Create subdirectory if it is not root.
-        $normalizedDir = trim(string: $dir, characters: '/');
-        if ($normalizedDir !== '') {
-            if ($userFolder->nodeExists(path: $normalizedDir) === false) {
-                $userFolder->newFolder(path: $normalizedDir);
-            }
-
-            $resolved = $userFolder->get(path: $normalizedDir);
-            if (($resolved instanceof Folder) === false) {
-                throw new \RuntimeException(
-                    'Expected '.$normalizedDir.' to be a folder, got file'
-                );
-            }
-
-            $targetFolder = $resolved;
+        try {
+            $userFolder = $this->rootFolder->getUserFolder(userId: $userId);
+        } catch (Throwable $e) {
+            throw new StorageFailureException(
+                message: 'Failed to resolve user folder'
+            );
         }
 
-        // Overwrite if the file already exists; create otherwise.
-        if ($targetFolder->nodeExists(path: $filename) === true) {
-            $existing = $targetFolder->get(path: $filename);
-            if (($existing instanceof File) === false) {
-                throw new \RuntimeException(
-                    'Expected '.$filename.' to be a file, got folder'
-                );
-            }
+        $targetFolder = $this->resolveTargetFolder(
+            userFolder: $userFolder,
+            dir: $dir
+        );
 
-            $file = $existing;
-        } else {
-            $file = $targetFolder->newFile(path: $filename);
-        }
-
-        $file->putContent(data: $content);
-
-        $fileId = $file->getId();
+        $file = $this->writeFile(
+            folder: $targetFolder,
+            filename: $filename,
+            content: $content
+        );
 
         $url = $this->urlGenerator->linkToRouteAbsolute(
             routeName: 'files.view.index',
-            arguments: ['openfile' => $fileId]
+            arguments: ['openfile' => $file->getId()]
         );
 
         return [
-            'fileId' => $fileId,
+            'status' => 'success',
+            'fileId' => (int) $file->getId(),
             'url'    => $url,
         ];
     }//end createFile()
 
     /**
-     * Validate the filename against strict rules (REQ-LBN-004).
+     * Returns the currently configured extension allow-list.
      *
-     * Rejects:
-     * - empty string
-     * - length > 255 characters
-     * - path traversal (`..`)
-     * - forward slash `/`
-     * - backslash `\`
-     * - null byte
-     * - any character outside `^[a-zA-Z0-9_\-. ]+$`
+     * Falls back to {@see self::DEFAULT_ALLOWED_EXTENSIONS} when the
+     * admin has not customised the list. Stored values are normalised
+     * to lowercase, dot-stripped, and de-duplicated; non-matching
+     * tokens are silently dropped to keep the allow-list well-formed.
      *
-     * @param string $filename The filename to validate.
-     *
-     * @return void
-     *
-     * @throws InvalidFilenameException When any rule is violated.
+     * @return array<int, string> Normalised allow-list.
      */
-    private function validateFilename(string $filename): void
+    public function getAllowedExtensions(): array
     {
-        if ($filename === '') {
-            throw new InvalidFilenameException(message: 'Invalid filename');
-        }
-
-        if (strlen(string: $filename) > 255) {
-            throw new InvalidFilenameException(message: 'Invalid filename');
-        }
-
-        if (str_contains(haystack: $filename, needle: "\0") === true) {
-            throw new InvalidFilenameException(message: 'Invalid filename');
-        }
-
-        if (str_contains(haystack: $filename, needle: '..') === true) {
-            throw new InvalidFilenameException(message: 'Invalid filename');
-        }
-
-        if (str_contains(haystack: $filename, needle: '/') === true) {
-            throw new InvalidFilenameException(message: 'Invalid filename');
-        }
-
-        if (str_contains(haystack: $filename, needle: '\\') === true) {
-            throw new InvalidFilenameException(message: 'Invalid filename');
-        }
-
-        if (preg_match(pattern: '/^[a-zA-Z0-9_\-. ]+$/', subject: $filename) !== 1) {
-            throw new InvalidFilenameException(message: 'Invalid filename');
-        }
-    }//end validateFilename()
-
-    /**
-     * Validate the target directory for path traversal (REQ-LBN-004).
-     *
-     * Rejects any dir containing `..` or a null byte.
-     *
-     * @param string $dir The directory path to validate.
-     *
-     * @return void
-     *
-     * @throws InvalidDirectoryException When the dir is unsafe.
-     */
-    private function validateDirectory(string $dir): void
-    {
-        if (str_contains(haystack: $dir, needle: "\0") === true) {
-            throw new InvalidDirectoryException(message: 'Invalid directory');
-        }
-
-        if (str_contains(haystack: $dir, needle: '..') === true) {
-            throw new InvalidDirectoryException(message: 'Invalid directory');
-        }
-    }//end validateDirectory()
-
-    /**
-     * Validate the file extension against the admin-configured allow-list.
-     *
-     * Reads the `file_create_extensions` admin setting (JSON array of
-     * lowercase extension strings). Falls back to DEFAULT_ALLOWED_EXTENSIONS
-     * when the setting is absent or unparseable.
-     *
-     * @param string $filename The filename whose extension to check.
-     *
-     * @return void
-     *
-     * @throws ForbiddenExtensionException When the extension is not allowed.
-     */
-    private function validateExtension(string $filename): void
-    {
-        // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
-        $ext = strtolower(string: pathinfo($filename, PATHINFO_EXTENSION));
-
-        $allowed = $this->getAllowedExtensions();
-
-        if (in_array(needle: $ext, haystack: $allowed, strict: true) === false) {
-            throw new ForbiddenExtensionException(message: 'File type not allowed');
-        }
-    }//end validateExtension()
-
-    /**
-     * Return the admin-configured extension allow-list.
-     *
-     * Falls back to DEFAULT_ALLOWED_EXTENSIONS when the setting row is
-     * absent, null, not a JSON array, or contains non-string elements.
-     *
-     * @return string[] Lowercase extension strings (without leading dot).
-     */
-    private function getAllowedExtensions(): array
-    {
-        $raw = $this->settingMapper->getValue(
-            key: self::SETTING_KEY,
+        $stored = $this->settingMapper->getValue(
+            key: AdminSetting::KEY_LINK_CREATE_FILE_EXTENSIONS,
             default: null
         );
 
-        if (is_array($raw) === false) {
+        if (is_array($stored) === false || count($stored) === 0) {
             return self::DEFAULT_ALLOWED_EXTENSIONS;
         }
 
-        $clean = [];
-        foreach ($raw as $item) {
-            if (is_string($item) === true && $item !== '') {
-                $clean[] = strtolower(string: $item);
+        $normalised = [];
+        foreach ($stored as $value) {
+            if (is_string($value) === false) {
+                continue;
             }
+
+            $token = strtolower(string: ltrim(string: trim(string: $value), characters: '.'));
+            if ($token === '') {
+                continue;
+            }
+
+            if (preg_match(pattern: '/^[a-z0-9]+$/', subject: $token) !== 1) {
+                continue;
+            }
+
+            $normalised[$token] = $token;
         }
 
-        if (empty($clean) === true) {
+        if (count($normalised) === 0) {
             return self::DEFAULT_ALLOWED_EXTENSIONS;
         }
 
-        return $clean;
+        return array_values(array: $normalised);
     }//end getAllowedExtensions()
+
+    /**
+     * Persist a new admin-configured allow-list.
+     *
+     * Accepts any array; identical normalisation rules as
+     * {@see self::getAllowedExtensions()} are applied before storage.
+     * Non-string entries are silently dropped. Empty input falls
+     * back to the default allow-list (the admin cannot lock everyone
+     * out by saving an empty array).
+     *
+     * @param array $extensions Extensions to allow (string entries
+     *                          are kept; everything else is dropped).
+     *
+     * @return array<int, string> The stored, normalised allow-list.
+     */
+    public function setAllowedExtensions(array $extensions): array
+    {
+        $normalised = [];
+        foreach ($extensions as $value) {
+            if (is_string($value) === false) {
+                continue;
+            }
+
+            $token = strtolower(string: ltrim(string: trim(string: $value), characters: '.'));
+            if ($token === '') {
+                continue;
+            }
+
+            if (preg_match(pattern: '/^[a-z0-9]+$/', subject: $token) !== 1) {
+                continue;
+            }
+
+            $normalised[$token] = $token;
+        }
+
+        if (count($normalised) === 0) {
+            $stored = self::DEFAULT_ALLOWED_EXTENSIONS;
+        } else {
+            $stored = array_values(array: $normalised);
+        }
+
+        $this->settingMapper->setSetting(
+            key: AdminSetting::KEY_LINK_CREATE_FILE_EXTENSIONS,
+            value: $stored
+        );
+
+        return $stored;
+    }//end setAllowedExtensions()
+
+    /**
+     * Reject filenames that fail any of the REQ-LBN-004 task 1.2 checks.
+     *
+     * @param string $filename The candidate filename.
+     *
+     * @return void
+     *
+     * @throws InvalidFilenameException When the filename is invalid.
+     */
+    private function assertValidFilename(string $filename): void
+    {
+        if ($filename === '' || strlen(string: $filename) > self::FILENAME_MAX_LENGTH) {
+            throw new InvalidFilenameException();
+        }
+
+        if (str_contains(haystack: $filename, needle: "\0") === true) {
+            throw new InvalidFilenameException();
+        }
+
+        if (str_contains(haystack: $filename, needle: '..') === true) {
+            throw new InvalidFilenameException();
+        }
+
+        if (str_contains(haystack: $filename, needle: '/') === true) {
+            throw new InvalidFilenameException();
+        }
+
+        if (str_contains(haystack: $filename, needle: '\\') === true) {
+            throw new InvalidFilenameException();
+        }
+
+        if (preg_match(pattern: self::FILENAME_PATTERN, subject: $filename) !== 1) {
+            throw new InvalidFilenameException();
+        }
+    }//end assertValidFilename()
+
+    /**
+     * Reject directories that fail any of the REQ-LBN-004 task 1.3 checks.
+     *
+     * @param string $dir The candidate directory.
+     *
+     * @return void
+     *
+     * @throws InvalidDirectoryException When the directory is invalid.
+     */
+    private function assertValidDirectory(string $dir): void
+    {
+        if (str_contains(haystack: $dir, needle: "\0") === true) {
+            throw new InvalidDirectoryException();
+        }
+
+        if (str_contains(haystack: $dir, needle: '..') === true) {
+            throw new InvalidDirectoryException();
+        }
+    }//end assertValidDirectory()
+
+    /**
+     * Reject filenames whose extension is not in the allow-list
+     * (REQ-LBN-004 task 1.4).
+     *
+     * @param string $filename The candidate filename (already
+     *                         validated by {@see self::assertValidFilename}).
+     *
+     * @return void
+     *
+     * @throws FileTypeNotAllowedException When the extension is not allowed.
+     */
+    private function assertAllowedExtension(string $filename): void
+    {
+        $extension = strtolower(
+            string: pathinfo(path: $filename, flags: PATHINFO_EXTENSION)
+        );
+
+        if ($extension === '') {
+            throw new FileTypeNotAllowedException();
+        }
+
+        $allowed = $this->getAllowedExtensions();
+        if (in_array(needle: $extension, haystack: $allowed, strict: true) === false) {
+            throw new FileTypeNotAllowedException();
+        }
+    }//end assertAllowedExtension()
+
+    /**
+     * Resolve (or auto-create) the target subdirectory inside the
+     * user's Files area (REQ-LBN-004 task 1.5).
+     *
+     * @param Folder $userFolder Owner's Files-area root.
+     * @param string $dir        Target subdirectory.
+     *
+     * @return Folder The resolved (or freshly created) folder.
+     *
+     * @throws StorageFailureException When the folder cannot be
+     *                                 resolved or created.
+     */
+    private function resolveTargetFolder(Folder $userFolder, string $dir): Folder
+    {
+        $normalised = ('/'.trim(string: $dir, characters: '/'));
+        if ($normalised === '/') {
+            return $userFolder;
+        }
+
+        try {
+            $node = $userFolder->get(path: $normalised);
+            if ($node instanceof Folder) {
+                return $node;
+            }
+
+            // A file (not a folder) already occupies the path.
+            throw new StorageFailureException(
+                message: 'Failed to resolve target folder'
+            );
+        } catch (NotFoundException $e) {
+            // Auto-create missing subdirectory chain.
+            try {
+                return $userFolder->newFolder(path: $normalised);
+            } catch (Throwable $createError) {
+                throw new StorageFailureException(
+                    message: 'Failed to create target folder'
+                );
+            }
+        } catch (StorageFailureException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            throw new StorageFailureException(
+                message: 'Failed to resolve target folder'
+            );
+        }//end try
+    }//end resolveTargetFolder()
+
+    /**
+     * Write the file with overwrite-on-exists semantics
+     * (REQ-LBN-004 task 1.6).
+     *
+     * @param Folder $folder   Target folder.
+     * @param string $filename Leaf filename.
+     * @param string $content  Bytes to write.
+     *
+     * @return File The persisted file node.
+     *
+     * @throws StorageFailureException When the write fails.
+     */
+    private function writeFile(Folder $folder, string $filename, string $content): File
+    {
+        try {
+            if ($folder->nodeExists(path: $filename) === true) {
+                $existing = $folder->get(path: $filename);
+                if ($existing instanceof File) {
+                    $existing->putContent(data: $content);
+                    return $existing;
+                }
+
+                // A folder with the same name already exists.
+                throw new StorageFailureException(
+                    message: 'Failed to write file'
+                );
+            }
+
+            // Folder::newFile() returns a File node — the contract is
+            // statically guaranteed by Nextcloud's Files API, so no
+            // instanceof check is required (PHPStan would mark it as
+            // an always-true comparison).
+            return $folder->newFile(path: $filename, content: $content);
+        } catch (StorageFailureException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            throw new StorageFailureException(
+                message: 'Failed to write file'
+            );
+        }//end try
+    }//end writeFile()
 }//end class

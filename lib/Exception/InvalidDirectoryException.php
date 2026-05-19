@@ -3,9 +3,9 @@
 /**
  * InvalidDirectoryException
  *
- * Raised when the supplied directory path fails validation (e.g. contains
- * path-traversal segments or null bytes). Maps to HTTP 400 + error code
- * `invalid_directory`.
+ * Raised when the supplied target directory for `POST /api/files/create`
+ * contains a path-traversal sequence (`..`) or a null byte. Maps to
+ * HTTP 400 + error code `invalid_directory`.
  *
  * @category  Exception
  * @package   OCA\MyDash\Exception
@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace OCA\MyDash\Exception;
 
 /**
- * Supplied directory path contains disallowed traversal sequences.
+ * Directory failed strict validation (path-traversal or null byte).
  */
 class InvalidDirectoryException extends ResourceException
 {

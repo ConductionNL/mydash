@@ -4,7 +4,11 @@
 -->
 
 <template>
-	<div class="mydash-widget" :style="widgetStyles">
+	<div
+		class="mydash-widget"
+		:data-testid="placement?.id ? `widget-placement-${placement.id}` : 'widget-placement'"
+		:data-widget-id="placement?.widgetId"
+		:style="widgetStyles">
 		<!-- Widget header -->
 		<div v-if="showHeader" class="mydash-widget__header" :style="headerStyles">
 			<div class="mydash-widget__header-left">
@@ -22,6 +26,7 @@
 				<NcButton
 					type="tertiary"
 					:aria-label="t('mydash', 'Edit widget')"
+					data-testid="widget-edit-cog"
 					@click="$emit('edit', placement)">
 					<template #icon>
 						<Cog :size="20" />
