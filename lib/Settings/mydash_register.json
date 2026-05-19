@@ -1,0 +1,155 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "MyDash Register",
+    "description": "Drag-and-drop dashboard configuration storage for MyDash",
+    "version": "1.0.0"
+  },
+  "x-openregister": {
+    "type": "application",
+    "app": "mydash",
+    "openregister": "^v0.2.10",
+    "description": "Stores dashboard configurations (slug, widgets, sharing) per ADR-036 Decision 8"
+  },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Dashboard": {
+        "slug": "dashboard",
+        "icon": "ViewDashboard",
+        "version": "1.0.0",
+        "title": "Dashboard",
+        "description": "A user dashboard containing widget placements and layout configuration",
+        "type": "object",
+        "x-openregister": {
+          "schemaType": "schema:WebPage",
+          "active": true,
+          "hardDelete": false,
+          "searchable": false,
+          "mailEnabled": false
+        },
+        "required": [
+          "slug",
+          "title"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "URL-safe identifier unique within the owner's space",
+            "example": "sales-overview"
+          },
+          "title": {
+            "type": "string",
+            "description": "Human-readable dashboard title",
+            "example": "Sales Overview"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional dashboard description",
+            "example": "Key sales metrics and pipeline status"
+          },
+          "version": {
+            "type": "string",
+            "description": "Dashboard schema version",
+            "default": "1.0.0",
+            "example": "1.0.0"
+          },
+          "widgets": {
+            "type": "array",
+            "description": "Ordered list of v2 widget entries for this dashboard",
+            "default": [],
+            "items": {
+              "type": "object",
+              "description": "A widget placement entry (widgetKey, slot, grid position, optional props/dataSource/tabGroup)"
+            }
+          },
+          "sharedWith": {
+            "type": "array",
+            "description": "Nextcloud user IDs the dashboard is shared with",
+            "default": [],
+            "items": {
+              "type": "string"
+            }
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "Whether this is the user's landing dashboard",
+            "default": false
+          }
+        },
+        "x-openregister-seeds": [
+          {
+            "@self": {
+              "register": "mydash",
+              "schema": "Dashboard",
+              "slug": "gemeente-overzicht"
+            },
+            "slug": "gemeente-overzicht",
+            "title": "Gemeente Overzicht",
+            "description": "Dagelijks overzicht voor gemeentemedewerkers met taken, berichten en kalender",
+            "version": "1.0.0",
+            "widgets": [
+              {
+                "widgetKey": "recommendations",
+                "slot": "main",
+                "gridX": 0,
+                "gridY": 0,
+                "gridWidth": 4,
+                "gridHeight": 4
+              },
+              {
+                "widgetKey": "calendar",
+                "slot": "main",
+                "gridX": 4,
+                "gridY": 0,
+                "gridWidth": 4,
+                "gridHeight": 4
+              },
+              {
+                "widgetKey": "activity",
+                "slot": "main",
+                "gridX": 8,
+                "gridY": 0,
+                "gridWidth": 4,
+                "gridHeight": 4
+              }
+            ],
+            "sharedWith": [],
+            "isDefault": true
+          },
+          {
+            "@self": {
+              "register": "mydash",
+              "schema": "Dashboard",
+              "slug": "consultancy-werkplek"
+            },
+            "slug": "consultancy-werkplek",
+            "title": "Consultancy Werkplek",
+            "description": "Werkplek voor consultants met projectoverzicht, taken en tijdregistratie",
+            "version": "1.0.0",
+            "widgets": [
+              {
+                "widgetKey": "recommendations",
+                "slot": "main",
+                "gridX": 0,
+                "gridY": 0,
+                "gridWidth": 6,
+                "gridHeight": 4
+              },
+              {
+                "widgetKey": "activity",
+                "slot": "main",
+                "gridX": 6,
+                "gridY": 0,
+                "gridWidth": 6,
+                "gridHeight": 4
+              }
+            ],
+            "sharedWith": [],
+            "isDefault": false
+          }
+        ]
+      }
+    }
+  }
+}

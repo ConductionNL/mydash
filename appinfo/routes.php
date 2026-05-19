@@ -9,6 +9,10 @@ declare(strict_types=1);
 
 return [
 	'routes' => [
+		// v2 runtime manifest (ADR-036 Decision 8). Registered FIRST so the
+		// literal '/api/manifest' segment is matched before any wildcard.
+		['name' => 'manifest#index', 'url' => '/api/manifest', 'verb' => 'GET'],
+
 		// Metrics and health
 		['name' => 'metrics#index', 'url' => '/api/metrics', 'verb' => 'GET'],
 		['name' => 'health#index', 'url' => '/api/health', 'verb' => 'GET'],

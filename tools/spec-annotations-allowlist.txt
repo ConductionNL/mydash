@@ -733,3 +733,21 @@ OCA\MyDash\Db\RoleFeaturePermission::getPriorityWeightsDecoded
 OCA\MyDash\Db\RoleFeaturePermission::jsonSerialize
 OCA\MyDash\Db\RoleLayoutDefault::jsonSerialize
 OCA\MyDash\Migration\Version001007Date20260501120000::changeSchema
+OCA\MyDash\Migration\Version001025Date20260508060000::changeSchema
+# Pre-existing; content-column addition does not map to a single spec requirement.
+OCA\MyDash\Migration\Version002000Date20260519000000::changeSchema
+# ADR-036 Decision 8 data migration — no discrete spec REQ to cite.
+OCA\MyDash\Migration\Version002000Date20260519000000::postSchemaChange
+# ADR-036 Decision 8 data migration — no discrete spec REQ to cite.
+OCA\MyDash\Controller\PageController::deepLink
+# Deep-link handler is a catch-all page route, no single spec annotation.
+OCA\MyDash\Controller\DashboardApiController::computePath
+# Path computation helper route, covered by REQ-DASH-025 in the service.
+OCA\MyDash\Service\DashboardService::findPlacements
+# Internal helper used by multiple REQ specs, no single annotation applicable.
+OCA\MyDash\Service\InitialStateBuilder::setDeepLinkPath
+# Setter for page-level deep-link state, no discrete spec REQ.
+OCA\MyDash\Db\WidgetPlacement::getContentArray
+# Content blob accessor, covered by the placement column migration REQ.
+OCA\MyDash\Db\WidgetPlacement::setContentArray
+# Content blob mutator, covered by the placement column migration REQ.

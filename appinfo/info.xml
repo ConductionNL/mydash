@@ -68,7 +68,8 @@ Vrij en open source onder de EUPL-1.2-licentie.
 
 	<dependencies>
 		<php min-version="8.1"/>
-		<nextcloud min-version="28" max-version="34"/>
+		<nextcloud min-version="29" max-version="34"/>
+		<app>openregister</app>
 	</dependencies>
 
 	<!-- Surface dashboards, widget content, and metadata in NC unified search. REQ-SRCH-001. -->
