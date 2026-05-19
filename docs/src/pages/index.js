@@ -251,7 +251,7 @@ const WIDGETS = [
 export default function Home() {
   return (
     <Layout
-      title="MyDash"
+      title="MyDash, customizable dashboards for Nextcloud workspaces"
       description="Personal and team dashboards built directly on your Nextcloud registers. No separate BI tool, no extra login, no ETL."
     >
       <main className="marketing-page">
