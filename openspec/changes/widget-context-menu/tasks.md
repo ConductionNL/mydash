@@ -1,41 +1,32 @@
 # Tasks — widget-context-menu
 
-## 1. Frontend component
+## Tasks
 
-- [ ] 1.1 Create `src/components/Widgets/WidgetContextMenu.vue` with three buttons (`Edit`, `Remove`, `Cancel`) and `top` / `left` props
-- [ ] 1.2 Style: `position: absolute`, `min-width: 150px`, `z-index: 10000`, NC-themed background, rounded corners, subtle shadow
-- [ ] 1.3 Emit `edit`, `remove`, `close` events; each click closes the popover via `closeContextMenu()`
-- [ ] 1.4 Use `t('mydash', 'Edit' | 'Remove' | 'Cancel')` for button labels (i18n-ready)
+- [ ] Task 1: Create `src/components/Widgets/WidgetContextMenu.vue` with three buttons (`Edit`, `Remove`, `Cancel`) and `top`/`left` props; styled `position:absolute; min-width:150px; z-index:10000`, NC-themed background, rounded corners, subtle shadow
+- [ ] Task 2: Emit `edit`, `remove`, `close` events; each click closes the popover via `closeContextMenu()`; button labels use `t('mydash', 'Edit' | 'Remove' | 'Cancel')`
+- [ ] Task 3: Extend `useGridManager.js` with reactive state `contextMenuOpen`, `contextMenuPosition` (`{x, y}`), `selectedWidget`
+- [ ] Task 4: Add `onWidgetRightClick(event, widget)` — early-return when `!canEdit.value`; call `event.preventDefault()`; capture `clientX`/`clientY`; set `selectedWidget` + `contextMenuPosition`; set `contextMenuOpen = true`
+- [ ] Task 5: Add `closeContextMenu()` (sets `contextMenuOpen=false`, clears `selectedWidget`); extend the existing `handleClickOutside` to also close when the click target is outside `.widget-context-menu`; register the single shared document `click` listener in `onMounted`/`onUnmounted`
+- [ ] Task 6: Viewport overflow correction — when computing rendered `left`/`top`, subtract overflow from `viewportWidth`/`viewportHeight` so the popover stays on-screen
+- [ ] Task 7: Shell wiring — bind `@contextmenu.prevent="onWidgetRightClick($event, widget)"` on each grid item; render `<WidgetContextMenu>` once at the shell root, conditional on `contextMenuOpen`, with `:top`/`:left` from `contextMenuPosition`; wire `@edit` → `editWidget(widget)` (opens `AddWidgetModal` with `editingWidget`), `@remove` → REQ-WDG-005 placement-delete path then splice from `layout` + `grid.removeWidget(el)`, `@close` → `closeContextMenu()` only
+- [ ] Task 8: Vitest — view mode (`canEdit=false`) right-click does NOT open the popover and does NOT call `preventDefault`; edit mode right-click opens the popover at the captured `clientX`/`clientY`; right-clicking a second widget switches the popover (only one visible at a time)
+- [ ] Task 9: Vitest — `Edit` click closes the popover and emits `edit(widget)` once; `Remove` click closes the popover + calls the placement-delete path + removes from `layout`; `Cancel` click closes the popover with no API call
+- [ ] Task 10: Vitest — outside click closes the popover; the document listener is removed on unmount (no leak)
+- [ ] Task 11: Playwright — popover stays fully on-screen when right-clicking near the right and bottom edges; removing a widget through the popover persists across reload
+- [ ] Task 12: Quality — ESLint clean (no new warnings); `Edit`/`Remove`/`Cancel` translation entries in `l10n/en.js` + `l10n/nl.js`; file a follow-up issue for keyboard navigation (Up/Down/Enter/Esc) on the context menu (deferred from v1)
 
-## 2. Composable wiring
+## Verification
 
-- [ ] 2.1 In `useGridManager.js` add reactive state: `contextMenuOpen`, `contextMenuPosition` (`{x, y}`), `selectedWidget`
-- [ ] 2.2 Add `onWidgetRightClick(event, widget)` — early-return when `!canEdit.value`; call `event.preventDefault()`; capture `clientX/clientY`; set `selectedWidget` and `contextMenuPosition`; set `contextMenuOpen = true`
-- [ ] 2.3 Add `closeContextMenu()` — sets `contextMenuOpen = false`, clears `selectedWidget`
-- [ ] 2.4 Extend existing `handleClickOutside` to also close the context menu when the click target is not inside `.widget-context-menu`
-- [ ] 2.5 Add `onMounted` / `onUnmounted` hooks for the document-level `click` listener (single shared listener for grid + popover)
-- [ ] 2.6 Viewport overflow correction: when computing the rendered `left` / `top`, subtract overflow from `viewportWidth` / `viewportHeight` so popover stays on-screen
+`openspec validate` exits clean. Right-click in view mode is a no-op; in edit mode the popover handles three actions, closes via outside click + Cancel, and stays on-screen at viewport edges.
 
-## 3. Shell wiring
+## Tests (company-wide ADR-009)
 
-- [ ] 3.1 In the workspace shell template, bind `@contextmenu.prevent="onWidgetRightClick($event, widget)"` on each grid item
-- [ ] 3.2 Render `<WidgetContextMenu>` once at the shell root, conditional on `contextMenuOpen`, with `:top` / `:left` from `contextMenuPosition`
-- [ ] 3.3 Wire `@edit` → `editWidget(widget)` (opens `AddWidgetModal` with `editingWidget`); `@remove` → call placement-delete path of REQ-WDG-005, on success splice from `layout` and call `grid.removeWidget(el)`; `@close` → `closeContextMenu()` only
+Vitest per Tasks 8–10; Playwright per Task 11. No backend surface.
 
-## 4. Tests
+## Documentation (company-wide ADR-010)
 
-- [ ] 4.1 Vitest: in view mode (`canEdit = false`), right-click does NOT open the popover and does NOT call `preventDefault`
-- [ ] 4.2 Vitest: in edit mode, right-click opens the popover at the captured `clientX/clientY`
-- [ ] 4.3 Vitest: clicking `Edit` closes the popover and emits `edit(widget)` once
-- [ ] 4.4 Vitest: clicking `Remove` closes the popover, calls the placement-delete path, then removes from `layout`
-- [ ] 4.5 Vitest: clicking `Cancel` closes the popover and fires no API call
-- [ ] 4.6 Vitest: outside click closes the popover; the document listener is removed on unmount
-- [ ] 4.7 Vitest: right-clicking a second widget switches the popover (only one visible at a time)
-- [ ] 4.8 Playwright: popover stays fully on-screen when right-clicking near the right edge and near the bottom edge
-- [ ] 4.9 Playwright: removing a widget through the popover persists across reload
+Changelog entry covering the new context-menu UX.
 
-## 5. Quality
+## i18n (company-wide ADR-005)
 
-- [ ] 5.1 ESLint clean (no new warnings)
-- [ ] 5.2 Translation entries `Edit`, `Remove`, `Cancel` present in `l10n/en.js` and `l10n/nl.js`
-- [ ] 5.3 File a follow-up issue: keyboard navigation (Up/Down/Enter/Esc) for the context menu (deferred from v1)
+`nl_NL` + `en_US` for `Edit`, `Remove`, `Cancel` per Task 12.
