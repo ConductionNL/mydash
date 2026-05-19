@@ -1,59 +1,32 @@
 # Tasks — text-display-widget
 
-## 1. Dependencies
+## Tasks
 
-- [ ] 1.1 Add `dompurify ^3.x` to `package.json` `dependencies`
-- [ ] 1.2 Run `npm install` and commit `package-lock.json`
-- [ ] 1.3 Verify `dompurify` license is permitted by repo policy (Apache-2.0/MPL-2.0 dual — approved)
+- [ ] Task 1: Add `dompurify ^3.x` to `package.json` dependencies, commit `package-lock.json`, and confirm the Apache-2.0/MPL-2.0 dual license clears the repo policy
+- [ ] Task 2: Build `src/components/Widgets/Renderers/TextDisplayWidget.vue` with a `sanitizedHtml` Vue computed (`DOMPurify.sanitize(content.text)`), `<div v-html="sanitizedHtml">` only when `text.trim() !== ''`, and the localised placeholder span otherwise
+- [ ] Task 3: Apply the renderer's inline style with theme-variable fallbacks (`fontSize=14px`, `color=var(--color-main-text)`, `backgroundColor=transparent`, `textAlign=left`) inside a flex container that fills 100%/100% with `padding:16px` + `overflow:auto` per REQ-TXT-002/005
+- [ ] Task 4: Empty-state placeholder uses `t('mydash', 'No text content')`, italic, `var(--color-text-maxcontrast)`
+- [ ] Task 5: Build `src/components/Widgets/Forms/TextDisplayForm.vue` matching the existing AddWidgetModal sub-form contract (`editingWidget` prop, `update:content` emit on every input) with textarea (4 rows), font-size text input, two color inputs, alignment `<select>`, and pre-fill from `editingWidget.content` on mount
+- [ ] Task 6: Form `validate()` returns `[t('mydash', 'Text is required')]` when `text.trim() === ''`, otherwise `[]`; all labels are translated (`Text`, `Font Size`, `Text Color`, `Background Color`, `Alignment`)
+- [ ] Task 7: Register `text` in `src/constants/widgetRegistry.js` with `component: TextDisplayWidget`, `form: TextDisplayForm`, `label: t('mydash','Text')`, and defaults `{text:'', fontSize:'14px', color:'', backgroundColor:'', textAlign:'left'}`; confirm AddWidgetModal's type picker surfaces it
+- [ ] Task 8: i18n — add `Text`, `No text content`, `Text is required`, `Font Size`, `Text Color`, `Background Color`, `Alignment` to `l10n/en.json`; Dutch equivalents (`Tekst`, `Geen tekstinhoud`, `Tekst is verplicht`, `Tekengrootte`, `Tekstkleur`, `Achtergrondkleur`, `Uitlijning`) to `l10n/nl.json`; run the i18n extraction script if one exists
+- [ ] Task 9: Vitest renderer coverage — DOMPurify strips `<script>`, `on*` attributes, and `javascript:` URLs while preserving `<b>`/`<i>`/`<a href>`/`<br>`/`<p>`/`<ul>`/`<li>`; empty/whitespace text renders the localised placeholder; inline style applies provided values verbatim and falls back to theme vars when fields are empty
+- [ ] Task 10: Vitest form coverage — `validate()` reports required-text correctly; pre-fills all five fields from `editingWidget.content`; emits `update:content` reactively on each input
+- [ ] Task 11: Playwright — add a text widget via AddWidgetModal, save, reload, content matches; edit existing widget (modal in edit mode), change text + font size, content updates; empty-text widget shows the localised placeholder
+- [ ] Task 12: Quality gates — ESLint clean on new/touched `.vue`/`.js`; Stylelint clean on inline `<style>`; `npm run build` succeeds with no new warnings; no new deps beyond `dompurify`
 
-## 2. Renderer component
+## Verification
 
-- [ ] 2.1 Create `src/components/Widgets/Renderers/TextDisplayWidget.vue`
-- [ ] 2.2 Compute `sanitizedHtml` via `DOMPurify.sanitize(content.text)` in a Vue computed
-- [ ] 2.3 Emit `<div v-html="sanitizedHtml">` only when `text.trim() !== ''`; otherwise render the placeholder span
-- [ ] 2.4 Apply inline style with theme-variable fallbacks per REQ-TXT-002 (`fontSize=14px`, `color=var(--color-main-text)`, `backgroundColor=transparent`, `textAlign=left`)
-- [ ] 2.5 Wrap in a flex container that fills 100% width / 100% height with `padding: 16px` and `overflow: auto` per REQ-TXT-005
-- [ ] 2.6 Empty-content placeholder uses `t('mydash', 'No text content')`, italic, in `var(--color-text-maxcontrast)`
+`openspec validate` exits clean. Widget appears in the type picker, sanitises hostile HTML, and round-trips through edit mode without state leakage.
 
-## 3. Sub-form component
+## Tests (company-wide ADR-009)
 
-- [ ] 3.1 Create `src/components/Widgets/Forms/TextDisplayForm.vue`
-- [ ] 3.2 Implement props/emit contract matching the existing AddWidgetModal sub-form pattern (props: `editingWidget`; emit: `update:content` on every input)
-- [ ] 3.3 Render textarea (4 rows), text input for fontSize, two `<input type="color">`, and `<select>` for textAlign
-- [ ] 3.4 Pre-fill all five fields from `editingWidget.content` on `mounted()`
-- [ ] 3.5 Expose `validate()` that returns `[t('mydash', 'Text is required')]` when `text.trim() === ''`, otherwise `[]`
-- [ ] 3.6 All labels use translation: `t('mydash', 'Text')`, `t('mydash', 'Font Size')`, `t('mydash', 'Text Color')`, `t('mydash', 'Background Color')`, `t('mydash', 'Alignment')`
+Vitest + Playwright per Tasks 9–11. No backend surface.
 
-## 4. Widget registry
+## Documentation (company-wide ADR-010)
 
-- [ ] 4.1 Add `text` entry to `src/constants/widgetRegistry.js` with `component: TextDisplayWidget`, `form: TextDisplayForm`, `label: t('mydash', 'Text')`
-- [ ] 4.2 Provide defaults `{text: '', fontSize: '14px', color: '', backgroundColor: '', textAlign: 'left'}`
-- [ ] 4.3 Confirm registry entry is consumed by AddWidgetModal's type-picker so `text` appears as a selectable widget type
+Changelog entry for the new widget type; user-guide screenshot showing a rendered text widget.
 
-## 5. i18n
+## i18n (company-wide ADR-005)
 
-- [ ] 5.1 Add to `l10n/en.json`: `Text`, `No text content`, `Text is required`, `Font Size`, `Text Color`, `Background Color`, `Alignment`
-- [ ] 5.2 Add Dutch equivalents to `l10n/nl.json`: `Tekst`, `Geen tekstinhoud`, `Tekst is verplicht`, `Tekengrootte`, `Tekstkleur`, `Achtergrondkleur`, `Uitlijning`
-- [ ] 5.3 Run the project's i18n extraction script if one exists; verify keys land in both locales
-
-## 6. Vitest unit tests
-
-- [ ] 6.1 `TextDisplayWidget.spec.js` — DOMPurify strips `<script>`, `on*` attributes, and `javascript:` URLs while preserving `<b>`, `<i>`, `<a href>`, `<br>`, `<p>`, `<ul>`, `<li>`
-- [ ] 6.2 `TextDisplayWidget.spec.js` — empty and whitespace-only `text` shows the localised placeholder
-- [ ] 6.3 `TextDisplayWidget.spec.js` — inline style applies provided values verbatim and falls back to theme variables when fields empty
-- [ ] 6.4 `TextDisplayForm.spec.js` — `validate()` returns `[t('mydash', 'Text is required')]` on empty text, `[]` when populated
-- [ ] 6.5 `TextDisplayForm.spec.js` — pre-fills all five fields from `editingWidget.content` on mount
-- [ ] 6.6 `TextDisplayForm.spec.js` — emits `update:content` reactively on each input
-
-## 7. Playwright end-to-end test
-
-- [ ] 7.1 Add a text widget via AddWidgetModal, save, reload page, confirm rendered text matches input
-- [ ] 7.2 Edit the widget (open modal in edit mode), change text and font size, save, confirm new values render
-- [ ] 7.3 Confirm an empty-text widget shows the localised placeholder
-
-## 8. Quality gates
-
-- [ ] 8.1 ESLint clean on all new/touched `.vue` and `.js` files
-- [ ] 8.2 Stylelint clean on inline `<style>` blocks
-- [ ] 8.3 `npm run build` succeeds with no new warnings
-- [ ] 8.4 No new dependencies beyond `dompurify` introduced
+`nl_NL` + `en_US` per Task 8.

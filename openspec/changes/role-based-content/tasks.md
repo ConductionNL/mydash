@@ -1,224 +1,64 @@
-> **Stage 1-3 complete on build/role-based-content (PR #95).** Native mydash
-> persistence used in place of OpenRegister-based design (see PR description).
-> Tasks 0.x, 4.2-4.3, 8.2, 9.3, 11.2-11.3, 12.x-14.x, 15.2, 16.x deferred to
-> Stage 4 / follow-up commits.
-
 # Tasks — role-based-content
 
-## 0. Deduplication check
+> **Stage 1-3 complete on build/role-based-content (PR #95).** Native mydash
+> persistence used in place of OpenRegister-based design (see PR description).
+> Remaining unchecked tasks below cover deferred Stage 4 + follow-up work.
 
-- [ ] 0.1 Search `openspec/specs/` for any existing capability covering widget-level role
-      filtering (distinct from `permissions` which covers per-dashboard edit rights and
-      `admin-templates` which covers dashboard distribution). Document findings here.
-- [ ] 0.2 Grep `openregister/lib/Service/` and `lib/Service/` for any existing
-      `getAllowedWidgetIds`, `widgetPermission`, or `roleFilter` methods — confirm none exist.
-- [ ] 0.3 Verify `@conduction/nextcloud-vue` does not already expose a role-filtered widget
-      picker component that would make `RolePermissionsSection.vue` redundant.
-- [ ] 0.4 Record findings (even "no overlap found") in a comment block at the top of
-      `RoleFeaturePermissionService.php`.
+## Completed in Stage 1-3 (PR #95)
 
-## 1. OpenRegister schemas and seed data
+- [x] 1.1 Add `RoleFeaturePermission` schema to `lib/Settings/mydash_register.json` (REQ-RFP per design)
+- [x] 1.2 Add `RoleLayoutDefault` schema to `lib/Settings/mydash_register.json`
+- [x] 2.1 Create `lib/Service/RoleFeaturePermissionService.php` with `getAllowedWidgetIds`, `isWidgetAllowed`, `seedLayoutFromRoleDefaults`, `authorizeAdminObject` (stateless, DI-only per ADR-003)
+- [x] 2.2 Multi-group resolution algorithm (REQ-RFP-005/006) — first-match base + union additional matches + deny-wins
+- [x] 2.3 Fallback chain to `'default'` group then null (REQ-RFP-009)
+- [x] 2.4 `seedLayoutFromRoleDefaults` only fires on dashboards with zero placements (REQ-RFP-002 s.3)
+- [x] 3.1 Create `lib/Controller/RoleFeaturePermissionController.php` with the 4 admin endpoints (`#[AuthorizedAdminSetting]`)
+- [x] 3.2 Register all 4 routes in `appinfo/routes.php` BEFORE wildcard `{slug}` routes
+- [x] 4.1 `WidgetController::list()` filters by `getAllowedWidgetIds` when non-null (REQ-RFP-001/003)
+- [x] 5.1 `DashboardResolver::tryCreateFromTemplate()` calls `seedLayoutFromRoleDefaults` when admin-template matching fails
+- [x] 5.2 Zero-placements guard asserted in unit tests
+- [x] 6.1 Settings/initial-state includes `allowedWidgets` (REQ-RFP-010), null when unconfigured
+- [x] 6.2 Initial-state type/PHPDoc declares the new field
+- [x] 7.1 `src/store/modules/roleFeaturePermission.js` via `createObjectStore` + `auditTrailsPlugin`, registered in `store.js`
+- [x] 7.2 `src/store/modules/roleLayoutDefault.js`, registered in `store.js`
+- [x] 7.3 Settings store exposes `allowedWidgets` from initial state
+- [x] 8.1 Card library / picker filters by `allowedWidgets` (filtered out of DOM, NOT hidden via CSS)
+- [x] 9.1 `RolePermissionsSection.vue` with `CnDataTable` + `CnFormDialog` + `CnDeleteDialog`, EUPL header, all strings via `t(appName, ...)`
+- [x] 9.2 `RolePermissionsSection` wired into `src/views/AdminApp.vue`
+- [x] 10.1 English translation keys in `l10n/en.json`
+- [x] 10.2 Dutch (`nl`) parity in `l10n/nl.json` (zero key gaps vs English)
+- [x] 11.1 `RoleFeaturePermissionServiceTest` table-driven coverage of every REQ-RFP scenario (single-group allow/deny, multi-group first-match, deny-wins, null fallback, `default` fallback, no-default null, seed creates placements, seed no-op on existing placements)
+- [x] 15.1 `docs/role-based-content.md` admin guide (RoleFeaturePermission creation, group priority interaction, RoleLayoutDefault seeding)
 
-- [x] 1.1 Add `RoleFeaturePermission` schema definition to `lib/Settings/mydash_register.json`
-      (schema key `role-feature-permission`, register key `mydash`) with all properties from
-      design.md: `name`, `description`, `groupId`, `allowedWidgets`, `deniedWidgets`,
-      `priorityWeights`. Mark `name`, `groupId`, `allowedWidgets` as required. Use schema.org
-      vocabulary per ADR-011.
-- [x] 1.2 Add `RoleLayoutDefault` schema definition to `lib/Settings/mydash_register.json`
-      (schema key `role-layout-default`) with properties: `name`, `groupId`, `widgetId`,
-      `gridX`, `gridY`, `gridWidth`, `gridHeight`, `sortOrder`, `isCompulsory`, `description`.
-      Mark `name`, `groupId`, `widgetId`, `gridX`, `gridY`, `gridWidth`, `gridHeight`,
-      `sortOrder` as required.
-- [ ] 1.3 Add the 5 RoleFeaturePermission seed objects from design.md to
-      `lib/Settings/mydash_register.json` under `components.objects[]` using the `@self`
-      envelope (register, schema, slug per design.md).
-- [ ] 1.4 Add the 5 RoleLayoutDefault seed objects from design.md to
-      `lib/Settings/mydash_register.json` using the `@self` envelope.
-- [ ] 1.5 Verify idempotency: re-running `ConfigurationService::importFromApp()` with
-      `force: false` MUST NOT create duplicate objects (matching by slug).
+## Tasks (Stage 4 / follow-up)
 
-## 2. Backend service
+- [ ] Task 1: Dedup audit — search `openspec/specs/` for prior widget-level role filtering capability (vs `permissions` and `admin-templates`); grep `openregister/lib/Service/` + `lib/Service/` for `getAllowedWidgetIds`/`widgetPermission`/`roleFilter`; verify `@conduction/nextcloud-vue` does not already expose a role-filtered picker; record findings (even "no overlap") in a comment block at the top of `RoleFeaturePermissionService.php`
+- [ ] Task 2: Seed data — add the 5 RoleFeaturePermission seed objects + 5 RoleLayoutDefault seed objects from design.md to `lib/Settings/mydash_register.json` under `components.objects[]` using the `@self` envelope; verify idempotency (re-running `ConfigurationService::importFromApp()` with `force:false` MUST NOT duplicate)
+- [ ] Task 3: `WidgetController` getItems / per-widget content endpoints call `isWidgetAllowed($userId, $widgetId)` before delegating; return HTTP 403 `{"message":"Not authorized"}` AND write an audit-trail entry on denial (REQ-RFP-001 s.3 + REQ-RFP-006 s.2)
+- [ ] Task 4: Audit-trail entry format — `AuditTrailService` (OpenRegister), `$user->getUID()` (NOT display name per ADR-005), `widgetId`, ISO timestamp, reason string `"role_permission_denied"` or `"interest_without_role"`
+- [ ] Task 5: Frontend hardening — every `await store.action()` wrapped in `try/catch` with user-facing error feedback per ADR-004 (covers card-library + admin UI store calls)
+- [ ] Task 6: Admin UI — add a RoleLayoutDefault section (`CnDataTable` + `CnFormDialog` + `CnDeleteDialog`) either as a second tab in `RolePermissionsSection` or as a separate `RoleLayoutDefaultsSection.vue` component
+- [ ] Task 7: PHPUnit controller — `RoleFeaturePermissionControllerTest`: non-admin → 403; list returns all objects; save with valid body → 201; save with invalid body → 400 (static message, no stack trace)
+- [ ] Task 8: PHPUnit widget controller — extend `WidgetControllerTest`: `allowedWidgets = null` → unchanged full list; `allowedWidgets = ["activity"]` → only activity returned; direct access to a restricted widget → 403 + audit entry written
+- [ ] Task 9: Newman/Postman — add `tests/integration/` entries for all 5 new endpoints with happy-path (200/201) and error-path (403/400) scenarios per ADR-008; include a test asserting `GET /api/widgets` is filtered for a user whose group has a configured RoleFeaturePermission
+- [ ] Task 10: Playwright — employee-role user does NOT see admin-only widget in card library (widget absent from DOM, not hidden); new manager-role user's seeded dashboard contains the correct widgets at the correct grid positions (REQ-RFP-001 s.1, REQ-RFP-002 s.1)
+- [ ] Task 11: Smoke ADR-008 — `GET /api/role-feature-permissions` admin creds → 200 + array; `POST /api/role-feature-permissions` non-admin → 403; `GET /api/widgets` for configured-group user returns only allowed widgets; direct restricted-widget endpoint as unpermitted user → 403 `{"message":"Not authorized"}` (no stack trace, no internal path)
+- [ ] Task 12: Documentation — add at least one screenshot of the admin role-permissions section to `docs/role-based-content.md`
+- [ ] Task 13: Quality gates — `composer check:strict` clean on all new PHP; ESLint+Stylelint clean on new/modified Vue+JS; SPDX `@license`+`@copyright` in every new `lib/**/*.php`; no forbidden debug helpers (`var_dump`/`die`/`error_log`/`print_r`/`dd`); no stub code (no empty `run()` bodies, no "In a complete implementation" placeholders); `#[NoAdminRequired]` always paired with a per-object auth check; all 10 `hydra-gates` green
+- [ ] Task 14: ADR-003 traceability — `@spec openspec/changes/role-based-content/tasks.md#task-N` PHPDoc tag present on every new class and public method
 
-- [x] 2.1 Create `lib/Service/RoleFeaturePermissionService.php` with:
-      - `@spec openspec/changes/role-based-content/tasks.md#task-2`
-      - Constructor injection: `ObjectService $objectService`,
-        `AdminSettingsService $adminSettingsService`, `IGroupManager $groupManager`,
-        `LoggerInterface $logger`
-      - `getAllowedWidgetIds(string $userId): ?array` — returns null (unconfigured) or the
-        effective allowed-widget ID array (REQ-RFP-009 backwards-compat, REQ-RFP-005
-        multi-group algorithm from design.md)
-      - `isWidgetAllowed(string $userId, string $widgetId): bool` — convenience wrapper
-      - `seedLayoutFromRoleDefaults(string $userId, object $dashboard): void` — reads
-        RoleLayoutDefault objects for primary group, creates WidgetPlacement records
-        (REQ-RFP-002)
-      - `authorizeAdminObject(IUser $user): void` — throws `OCSForbiddenException` if not
-        admin (ADR-005 pattern)
-      - All methods MUST be stateless (no instance state between requests, ADR-003)
-- [x] 2.2 Implement multi-group resolution algorithm per design.md §"Multi-group Resolution
-      Algorithm": walk `group_order`, base set from first matching group, union additional
-      matches, deny-wins rule (REQ-RFP-005, REQ-RFP-006).
-- [x] 2.3 Implement fallback to `'default'` RoleFeaturePermission when no `group_order` match
-      found, and null fallback (return all widgets) when no `'default'` object exists
-      (REQ-RFP-009).
-- [x] 2.4 In `seedLayoutFromRoleDefaults()`: only call when the dashboard has zero existing
-      placements (guard against overwriting personal customisations, REQ-RFP-002 scenario 3).
+## Verification
 
-## 3. Backend controller
+`openspec validate` exits clean. Hydra gates 1-10 pass on the follow-up branch; Playwright + Newman gates per Tasks 9–11 green.
 
-- [x] 3.1 Create `lib/Controller/RoleFeaturePermissionController.php` with:
-      - `@spec openspec/changes/role-based-content/tasks.md#task-3`
-      - All methods annotated `#[AuthorizedAdminSetting(Application::APP_ID)]`
-      - `listPermissions(): JSONResponse` — `GET /api/role-feature-permissions`
-      - `savePermission(Request $request): JSONResponse` — `POST /api/role-feature-permissions`
-      - `listLayoutDefaults(): JSONResponse` — `GET /api/role-layout-defaults`
-      - `saveLayoutDefault(Request $request): JSONResponse` — `POST /api/role-layout-defaults`
-      - Each method: thin (<10 lines), calls service, returns JSONResponse (ADR-003)
-      - Error responses: static generic messages only — NEVER `$e->getMessage()` (ADR-015)
-- [x] 3.2 Register all four routes in `appinfo/routes.php` before any wildcard `{slug}` route:
-      - `GET  /api/role-feature-permissions`
-      - `POST /api/role-feature-permissions`
-      - `GET  /api/role-layout-defaults`
-      - `POST /api/role-layout-defaults`
+## Tests (company-wide ADR-009)
 
-## 4. Extend existing widget controller
+PHPUnit per Tasks 7–8; Newman per Task 9; Playwright per Task 10. Smoke calls per Task 11.
 
-- [x] 4.1 In `lib/Controller/WidgetController.php` `list()` method: inject
-      `RoleFeaturePermissionService` and call `getAllowedWidgetIds($userId)`; if the result is
-      not null, filter the widget array to only those with IDs in the allowed set (REQ-RFP-001,
-      REQ-RFP-003).
-- [ ] 4.2 In `WidgetController` method(s) that serve widget feature content (e.g. `getItems()`):
-      call `isWidgetAllowed($userId, $widgetId)` before delegating to the widget loader; return
-      HTTP 403 with `{"message": "Not authorized"}` and write an audit entry if denied
-      (REQ-RFP-001 scenario 3, REQ-RFP-006 scenario 2).
-- [ ] 4.3 Audit entry format: use `AuditTrailService` (OpenRegister), record
-      `$user->getUID()` (NOT display name, ADR-005), `widgetId`, ISO timestamp, reason string
-      `"role_permission_denied"` or `"interest_without_role"` as applicable.
+## Documentation (company-wide ADR-010)
 
-## 5. Extend dashboard resolver
+`docs/role-based-content.md` already exists; screenshot supplement per Task 12.
 
-- [x] 5.1 In `lib/Service/DashboardResolver.php` (or equivalent) `tryCreateFromTemplate()`:
-      after all admin-template matching fails, call
-      `RoleFeaturePermissionService::seedLayoutFromRoleDefaults()` if RoleLayoutDefault
-      objects exist for the user's primary group (REQ-RFP-002).
-- [x] 5.2 Verify the guard: `seedLayoutFromRoleDefaults()` MUST only run when the new
-      dashboard has zero placements — assert this in the unit test (REQ-RFP-002 scenario 3).
+## i18n (company-wide ADR-005)
 
-## 6. Initial-state payload
-
-- [x] 6.1 In the settings/initial-state controller (e.g. `SettingsController`): call
-      `RoleFeaturePermissionService::getAllowedWidgetIds()` and include the result as
-      `allowedWidgets` in the JSON response (REQ-RFP-010). Return `null` when unconfigured.
-- [x] 6.2 Ensure the initial-state type definition / PHP doc reflects the new field so Psalm
-      does not flag it as undeclared.
-
-## 7. Frontend — store
-
-- [x] 7.1 Create `src/store/modules/roleFeaturePermission.js`:
-      `createObjectStore('role-feature-permission')` with `auditTrailsPlugin` (Pinia pattern,
-      ADR-004). Register in `src/store/store.js` via `registerObjectType`.
-- [x] 7.2 Create `src/store/modules/roleLayoutDefault.js`:
-      `createObjectStore('role-layout-default')`. Register in `src/store/store.js`.
-- [x] 7.3 Extend settings store: add `allowedWidgets: null` field, populated from the
-      initial-state payload (REQ-RFP-010).
-
-## 8. Frontend — card library filtering
-
-- [x] 8.1 In the widget card library / picker component: read `allowedWidgets` from the
-      settings store; if non-null, filter the widget list before rendering so that
-      disallowed widgets are absent from the DOM entirely (not hidden via CSS) (REQ-RFP-003,
-      non-functional accessibility requirement).
-- [ ] 8.2 Wrap the store action call in `try/catch` with user-facing error feedback (ADR-004
-      rule: EVERY `await store.action()` MUST be in try/catch).
-
-## 9. Frontend — admin UI
-
-- [x] 9.1 Create `src/components/RolePermissionsSection.vue` (scoped style, EUPL header):
-      - Lists existing RoleFeaturePermission objects in a `CnDataTable`
-      - Add button opens `CnFormDialog` (schema-driven form for RoleFeaturePermission)
-      - Edit opens `CnFormDialog` pre-populated
-      - Delete opens `CnDeleteDialog`
-      - All user-visible strings via `t(appName, 'key')` — no hardcoded strings (ADR-007)
-- [x] 9.2 Add `RolePermissionsSection` to `src/views/AdminApp.vue` beneath existing admin
-      sections. Register the component in `components: {}` (ADR-004: every component used
-      in template MUST be imported AND registered).
-- [ ] 9.3 Add a RoleLayoutDefault section (`CnDataTable` + `CnFormDialog` + `CnDeleteDialog`)
-      to the admin UI — either as a second tab within `RolePermissionsSection` or as a
-      separate `RoleLayoutDefaultsSection.vue` component.
-
-## 10. i18n
-
-- [x] 10.1 Add English translation keys to `l10n/en.json` for all new user-facing strings:
-      admin section titles, column headers, form labels, error messages (ADR-007 sentence case).
-- [x] 10.2 Add Dutch (`nl`) translations to `l10n/nl.json` for every key added in 10.1.
-      Both files MUST contain exactly the same keys with zero gaps.
-
-## 11. Unit tests (PHPUnit)
-
-- [x] 11.1 `tests/Unit/Service/RoleFeaturePermissionServiceTest.php` — table-driven tests
-      covering every REQ-RFP scenario:
-      - single group, allowed widget in list → allowed
-      - single group, widget not in allowed list → denied
-      - multi-group, first-match wins (REQ-RFP-005 scenario 1)
-      - multi-group, deny-wins rule (REQ-RFP-005 scenario 2)
-      - no RoleFeaturePermission exists → returns null (REQ-RFP-009)
-      - group not in group_order → falls back to `'default'` group
-      - no `'default'` group → returns null
-      - `seedLayoutFromRoleDefaults()` with zero existing placements → creates placements
-      - `seedLayoutFromRoleDefaults()` with existing placements → no-op (REQ-RFP-002 s.3)
-- [ ] 11.2 `tests/Unit/Controller/RoleFeaturePermissionControllerTest.php` — at minimum:
-      - non-admin request → 403
-      - list returns all objects
-      - save with valid body → 201
-      - save with invalid body → 400 (static error message, no stack trace)
-- [ ] 11.3 `tests/Unit/Controller/WidgetControllerTest.php` (extend existing or create):
-      - `allowedWidgets = null` → full list returned unchanged
-      - `allowedWidgets = ["activity"]` → only activity in response
-      - direct access to restricted widget → 403 + audit entry written
-
-## 12. Integration tests
-
-- [ ] 12.1 Add Postman/Newman collection entries in `tests/integration/` covering all five new
-      endpoints with happy-path (200/201) and error-path (403, 400) scenarios (ADR-008).
-- [ ] 12.2 Include a test asserting `GET /api/widgets` returns the filtered list when a
-      RoleFeaturePermission exists for the test user's group.
-
-## 13. Browser / spec scenarios
-
-- [ ] 13.1 Add Playwright test verifying REQ-RFP-001 scenario 1: employee-role user does not
-      see admin-only widget in card library (widget absent from DOM, not merely hidden).
-- [ ] 13.2 Add Playwright test verifying REQ-RFP-002 scenario 1: new manager-role user's
-      seeded dashboard contains the correct widgets at the correct grid positions.
-
-## 14. Smoke testing (ADR-008)
-
-- [ ] 14.1 Call `GET /api/role-feature-permissions` with admin credentials — verify 200 + array.
-- [ ] 14.2 Call `POST /api/role-feature-permissions` with non-admin user — verify 403.
-- [ ] 14.3 Call `GET /api/widgets` as a user whose group has a configured RoleFeaturePermission
-      — verify only allowed widgets are returned.
-- [ ] 14.4 Attempt direct access to a restricted widget endpoint as an unpermitted user —
-      verify 403 response with `{"message": "Not authorized"}` (no stack trace, no internal
-      path in response body).
-
-## 15. Documentation
-
-- [x] 15.1 Add `docs/role-based-content.md` describing the feature for IT admins: how to
-      create RoleFeaturePermission objects, how group priority interacts with widget filtering,
-      how RoleLayoutDefault seeds new users (ADR-009).
-- [ ] 15.2 Include at least one screenshot of the admin UI role-permissions section.
-
-## 16. Quality gates
-
-- [ ] 16.1 `composer check:strict` passes (PHPCS, PHPMD, Psalm, PHPStan) on all new PHP files.
-- [ ] 16.2 ESLint + Stylelint clean on all new / modified Vue and JS files.
-- [ ] 16.3 SPDX `@license` + `@copyright` PHPDoc tags present in every new `lib/**/*.php` file
-      (`gate-spdx` / `hydra-gate-spdx` must pass).
-- [ ] 16.4 No forbidden debug helpers (`var_dump`, `die`, `error_log`, `print_r`, `dd`)
-      (`hydra-gate-forbidden-patterns` must pass).
-- [ ] 16.5 No stub code — no empty `run()` bodies, no "In a complete implementation" comments
-      (`hydra-gate-stub-scan` must pass).
-- [ ] 16.6 No `#[NoAdminRequired]` without a per-object auth check (all new endpoints use
-      `#[AuthorizedAdminSetting]` — confirm `hydra-gate-no-admin-idor` and
-      `hydra-gate-route-auth` pass).
-- [ ] 16.7 Run all 10 `hydra-gates` locally (`/hydra-gates`) before opening PR.
-- [ ] 16.8 `@spec openspec/changes/role-based-content/tasks.md#task-N` PHPDoc tag present on
-      every new class and public method (ADR-003 spec traceability).
+`l10n/en.json` + `l10n/nl.json` parity already achieved; any new admin-UI strings shipped in Task 6 follow the same convention.

@@ -40,11 +40,24 @@ jobs:
               fi
               ;;
             development)
-              if [[ "$SOURCE" == feature/* ]]; then
+              # Allow Conventional-Commits style prefixes plus Dependabot.
+              if [[ "$SOURCE" == feature/* \
+                || "$SOURCE" == feat/* \
+                || "$SOURCE" == fix/* \
+                || "$SOURCE" == chore/* \
+                || "$SOURCE" == refactor/* \
+                || "$SOURCE" == docs/* \
+                || "$SOURCE" == test/* \
+                || "$SOURCE" == perf/* \
+                || "$SOURCE" == build/* \
+                || "$SOURCE" == ci/* \
+                || "$SOURCE" == style/* \
+                || "$SOURCE" == spec/* \
+                || "$SOURCE" == dependabot/* ]]; then
                 echo "✅ Branch '$SOURCE' is allowed to merge into development."
               else
                 echo "❌ Branch '$SOURCE' is not allowed to merge into development."
-                echo "Only 'feature/*' and 'hotfix/*' branches can be merged into development."
+                echo "Allowed prefixes: feature/*, feat/*, fix/*, chore/*, refactor/*, docs/*, test/*, perf/*, build/*, ci/*, style/*, spec/*, hotfix/*, dependabot/*."
                 exit 1
               fi
               ;;

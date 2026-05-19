@@ -1,70 +1,32 @@
 # Tasks: MyDash Legacy Quality Cleanup
 
-## Phase 1 — Inventory + planning
+## Tasks
 
-- [ ] Run `composer phpcs` and capture current baseline error count
-      (target: starting from 3 exclude-patterns in phpcs.xml)
-- [ ] Run `composer phpmd` for the first time as a unified gate
-      and capture violation count + categories
-- [ ] Run `composer phpstan` and capture current error count
-      (target: starting from 81-line phpstan-baseline.neon)
-- [ ] Decide PHPMD strategy: fix-outright or capture baseline
-- [ ] Confirm CI runs `composer check:strict` on every PR before
-      starting burn-down work
+- [ ] Task 1: Run `composer phpcs` + `composer phpmd` + `composer phpstan` and capture the baseline (starting from the 3 exclude-patterns in `phpcs.xml` and the 81-line `phpstan-baseline.neon`) plus PHPMD violation count + categories
+- [ ] Task 2: Decide the PHPMD strategy (fix-outright vs capture baseline) based on Task 1 volume and confirm CI runs `composer check:strict` on every PR before starting burn-down work
+- [ ] Task 3: PHPCS — fix sniffs in excluded file 1 and remove its `<exclude-pattern>` entry from `phpcs.xml`; gate stays green
+- [ ] Task 4: PHPCS — fix sniffs in excluded file 2 and remove its `<exclude-pattern>` entry; gate stays green
+- [ ] Task 5: PHPCS — fix sniffs in excluded file 3, remove its `<exclude-pattern>` entry, and drop the legacy-debt block from `phpcs.xml` entirely
+- [ ] Task 6: PHPMD — burn down the captured baseline (or fix-outright per Task 2): reshape `if/else` → early-return (`ElseExpression`), extract methods (`CyclomaticComplexity`/`NPathComplexity`), add `use` statements (`MissingImport`), replace `StaticAccess` with DI, address variable-naming sniffs (`Long/Short/Undefined/UnusedFormalParameter`)
+- [ ] Task 7: Once PHPMD baseline reaches 0 lines: delete `phpmd.baseline.xml` and drop `--baseline-file` from the composer.json `phpmd` script
+- [ ] Task 8: PHPStan — inventory errors by file/type and fix common patterns (missing return/param types, mixed→generic/union, possibly-null dereferences, `==`→`===` strict-comparison nudges); regenerate baseline and confirm 0 lines, then delete `phpstan-baseline.neon`
+- [ ] Task 9: CI — verify `composer check:strict` runs in CI on every PR; add a weekly smoke-test cron that runs it on `development`
+- [ ] Task 10: Cleanup — after every baseline is empty, drop the residual legacy-debt section from `phpcs.xml` (if not already gone) and confirm `phpmd.baseline.xml` + `phpstan-baseline.neon` are deleted
+- [ ] Task 11: Documentation — update the README quality-gates section, note in `app-config.json` that legacy quality cleanup is done, and close the burn-down tracking issue once the last baseline line is removed
+- [ ] Task 12: Verification — final `composer check:strict` exits clean with no baselines, no excludes, no skipped sniffs
 
-## Phase 2 — PHPCS burn-down (per excluded file)
+## Verification
 
-For each file: fix errors, remove the phpcs.xml `<exclude-pattern>`
-entry, verify gate stays green.
+`composer check:strict` exits clean on `development` with no baselines or excluded files remaining; the weekly cron stays green.
 
-- [ ] Excluded file 1 — fix sniffs + drop exclude
-- [ ] Excluded file 2 — fix sniffs + drop exclude
-- [ ] Excluded file 3 — fix sniffs + drop exclude
-- [ ] Once all excludes are gone, drop the legacy-debt block from
-      phpcs.xml entirely
+## Tests (company-wide ADR-009)
 
-## Phase 3 — PHPMD burn-down
+No new business-logic tests; the change tightens static-analysis gates. The weekly cron (Task 9) is the long-term regression guard.
 
-Contingent on Phase 1's first-run output. If volume is small, this
-phase collapses to a single fix-outright PR.
+## Documentation (company-wide ADR-010)
 
-- [ ] If baseline captured: ElseExpression — re-shape `if/else` to
-      early-return
-- [ ] If baseline captured: CyclomaticComplexity / NPathComplexity —
-      extract methods
-- [ ] If baseline captured: MissingImport — add `use` statements
-- [ ] If baseline captured: StaticAccess — replace with DI
-- [ ] If baseline captured: variable-naming sniffs (Long/Short/
-      Undefined/UnusedFormalParameter)
-- [ ] Once baseline reaches 0 lines: delete phpmd.baseline.xml and
-      drop `--baseline-file` from composer.json's phpmd script
+README + `app-config.json` updates per Task 11.
 
-## Phase 4 — PHPStan burn-down (81 lines)
+## i18n (company-wide ADR-005)
 
-Single-PR cluster — small baseline, no need to phase further.
-
-- [ ] Inventory phpstan errors by file/type
-- [ ] Common patterns to fix:
-  - [ ] Missing return-type / param-type declarations
-  - [ ] Mixed types (specify generic / union)
-  - [ ] Possibly-null dereferences
-  - [ ] Strict-comparison nudges (`==` to `===`)
-- [ ] Regenerate baseline; confirm 0 lines
-- [ ] Delete phpstan-baseline.neon
-
-## Phase 5 — CI integration
-
-- [ ] Verify `composer check:strict` runs in CI on every PR
-- [ ] Once all baselines are empty:
-  - [ ] Delete `phpmd.baseline.xml` (if it was created)
-  - [ ] Delete `phpstan-baseline.neon`
-  - [ ] Drop the legacy-debt section from `phpcs.xml`
-- [ ] Add a smoke-test cron that runs `composer check:strict`
-      weekly on `development`
-
-## Phase 6 — Documentation
-
-- [ ] Update README quality-gates section
-- [ ] Note in `app-config.json` that legacy quality cleanup is done
-- [ ] Close the burn-down tracking issue once the last baseline
-      line is removed
+No user-facing strings introduced — quality-only cleanup.
