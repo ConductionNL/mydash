@@ -213,6 +213,16 @@ class WidgetApiController extends Controller
             }
         }
 
+        // Forward the per-type content payload (registry-driven custom
+        // widgets carry their config here — `label`, `text`, `image`, etc.).
+        // Tolerant of legacy callers that send only `widgetId` and grid
+        // coords with no content blob: $contentParam stays null and
+        // PlacementService leaves the column NULL.
+        $contentToPersist = null;
+        if (is_array($contentParam) === true) {
+            $contentToPersist = $contentParam;
+        }
+
         try {
             $placement = $this->widgetService->addWidget(
                 dashboardId: $dashboardId,
@@ -220,7 +230,8 @@ class WidgetApiController extends Controller
                 gridX: $gridX,
                 gridY: $gridY,
                 gridWidth: $gridWidth,
-                gridHeight: $gridHeight
+                gridHeight: $gridHeight,
+                content: $contentToPersist
             );
 
             return ResponseHelper::success(

@@ -143,12 +143,14 @@ class WidgetService
     /**
      * Add a widget to a dashboard.
      *
-     * @param int    $dashboardId Dashboard ID.
-     * @param string $widgetId    Widget ID.
-     * @param int    $gridX       Grid X position.
-     * @param int    $gridY       Grid Y position.
-     * @param int    $gridWidth   Grid width.
-     * @param int    $gridHeight  Grid height.
+     * @param int        $dashboardId Dashboard ID.
+     * @param string     $widgetId    Widget ID.
+     * @param int        $gridX       Grid X position.
+     * @param int        $gridY       Grid Y position.
+     * @param int        $gridWidth   Grid width.
+     * @param int        $gridHeight  Grid height.
+     * @param array|null $content     Optional per-type content payload for
+     *                                registry-driven custom widgets.
      *
      * @return WidgetPlacement The created widget placement.
      */
@@ -158,7 +160,8 @@ class WidgetService
         int $gridX=0,
         int $gridY=0,
         int $gridWidth=4,
-        int $gridHeight=4
+        int $gridHeight=4,
+        ?array $content=null
     ): WidgetPlacement {
         return $this->placementService->addWidget(
             dashboardId: $dashboardId,
@@ -166,7 +169,8 @@ class WidgetService
             gridX: $gridX,
             gridY: $gridY,
             gridWidth: $gridWidth,
-            gridHeight: $gridHeight
+            gridHeight: $gridHeight,
+            content: $content
         );
     }//end addWidget()
 

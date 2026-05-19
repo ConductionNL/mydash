@@ -5,9 +5,20 @@
 
 <template>
 	<div class="widget-renderer">
-		<!-- Custom Tile Widget -->
+		<!-- Registry-driven custom widget (label, text, image, link, header,
+		     divider, files, people, quicklinks, news, video, calendar, links,
+		     menu, container, tile, nc-widget). The placement's content blob
+		     is forwarded so each renderer reads its own type-specific shape
+		     without further branching here. -->
+		<component
+			:is="registryEntry.renderer"
+			v-if="registryEntry"
+			:content="placement.content || {}"
+			:placement="placement" />
+
+		<!-- Custom Tile Widget (legacy path: widgetId === 'tile-{id}') -->
 		<TileWidget
-			v-if="isTileWidget && tileData"
+			v-else-if="isTileWidget && tileData"
 			:tile="tileData" />
 
 		<!-- API Widget V1 or V2 - Use NcDashboardWidget -->
@@ -57,6 +68,7 @@ import { useWidgetStore } from '../stores/widgets.js'
 import { useTileStore } from '../stores/tiles.js'
 import { widgetBridge } from '../services/widgetBridge.js'
 import TileWidget from './TileWidget.vue'
+import { getWidgetTypeEntry } from '../constants/widgetRegistry.js'
 
 export default {
 	name: 'WidgetRenderer',
@@ -91,6 +103,27 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Resolve the registry entry for this placement's widget type.
+		 * Returns null when the widgetId is not a registry-driven custom
+		 * type — falling back to the existing tile / API-widget / legacy
+		 * branches. The registry filters out entries with a null `form`,
+		 * but this dispatcher only needs `renderer`, so we go through
+		 * `getWidgetTypeEntry` to keep types like `nc-widget` (renderer-only
+		 * proxy) flowing through this branch as well.
+		 */
+		registryEntry() {
+			const widgetId = this.placement?.widgetId
+			if (typeof widgetId !== 'string' || widgetId === '') {
+				return null
+			}
+			const entry = getWidgetTypeEntry(widgetId)
+			if (!entry || !entry.renderer) {
+				return null
+			}
+			return entry
+		},
+
 		isTileWidget() {
 			return this.placement.widgetId && this.placement.widgetId.startsWith('tile-')
 		},
@@ -179,6 +212,13 @@ export default {
 		console.log('[WidgetRenderer] mounted hook called')
 		// Set up store subscription.
 		this.setupStoreSubscription()
+		// Registry-driven custom widgets render their own template directly
+		// from `placement.content` and never need the API/legacy bootstrap
+		// paths — skip initWidget() so we don't fire a `loadWidgetItems`
+		// fetch keyed on a Nextcloud-Dashboard widget id that doesn't exist.
+		if (this.registryEntry) {
+			return
+		}
 		if (this.widget || this.isTileWidget) {
 			this.initWidget()
 		}

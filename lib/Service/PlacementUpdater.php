@@ -93,5 +93,11 @@ class PlacementUpdater
                 $data['styleConfig']
             );
         }
+
+        if (isset($data['content']) === true && is_array($data['content']) === true) {
+            $placement->setContentArray(
+                $data['content']
+            );
+        }
     }//end applyDisplayUpdates()
 }//end class

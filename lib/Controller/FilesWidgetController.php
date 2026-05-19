@@ -333,15 +333,22 @@ class FilesWidgetController extends Controller
             return null;
         }
 
-        $config = $placement->getStyleConfigArray();
-        // The registry stores the type-specific blob inside `content`
-        // (matching the discriminated `{type, content}` shape used by
-        // every other widget — see widgetRegistry.js).
-        if (isset($config['content']) === true && is_array($config['content']) === true) {
-            return $config['content'];
+        // Registry-driven custom widgets persist their per-type config
+        // in the `content` column (added in Version001025). Older rows
+        // that pre-date the column may still carry the blob inside the
+        // legacy `style_config.content` slot, so we fall back to that
+        // shape when the dedicated column is empty.
+        $content = $placement->getContentArray();
+        if ($content !== []) {
+            return $content;
         }
 
-        return $config;
+        $legacy = $placement->getStyleConfigArray();
+        if (isset($legacy['content']) === true && is_array($legacy['content']) === true) {
+            return $legacy['content'];
+        }
+
+        return $legacy;
     }//end loadConfig()
 
     /**
