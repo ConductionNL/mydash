@@ -1,0 +1,8 @@
+{
+  "spec_slug": "2026-04-30-dashboard-sharing-followups",
+  "title": "Dashboard sharing follow-ups: notifications, bulk management, cascade",
+  "app": "mydash",
+  "repo": "https://github.com/ConductionNL/mydash",
+  "depends_on": [],
+  "issue": null
+}
