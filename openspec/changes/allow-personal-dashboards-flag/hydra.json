@@ -1,0 +1,8 @@
+{
+  "spec_slug": "allow-personal-dashboards-flag",
+  "title": "Allow-personal-dashboards flag \u2014 runtime gating",
+  "app": "mydash",
+  "repo": "https://github.com/ConductionNL/mydash",
+  "depends_on": [],
+  "issue": null
+}
