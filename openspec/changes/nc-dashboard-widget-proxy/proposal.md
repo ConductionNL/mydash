@@ -1,29 +1,29 @@
-# Nextcloud Dashboard widget proxy
+# NC Dashboard Widget Proxy — Picker UX
 
-A new widget type `nc-widget` that renders any Nextcloud Dashboard widget (Mail, Calendar, Talk, etc.) inside a MyDash grid cell. Two-mode rendering: (1) preferred — use the widget's native callback registered via `OCA.Dashboard.register` (covered by `legacy-widget-bridge`), giving full feature parity with the official `/dashboard` page; (2) fallback — fetch widget items via `IAPIWidget` / `IAPIWidgetV2` and render a flat list. A short polling window catches widgets whose script bundle loads after the workspace.
+## Problem
 
-## Affected code units
+The unified Add Custom Widget modal needs a discoverable, accessible way for users to select from Nextcloud-discovered widgets when configuring an `nc-widget` placement. The current interface lacks proper visual hierarchy, keyboard navigation, and WCAG AA accessibility.
 
-- `src/components/Widgets/Renderers/NcDashboardWidget.vue` — the renderer
-- `src/components/Widgets/Forms/NcDashboardForm.vue` — picker + display-mode select
-- `src/services/widgetBridge.js` — adds a polling helper for "callback registered yet?"
-- `lib/Controller/WidgetItemController.php` — already exists per REQ-WDG-002; this change formalises the response shape used here
-- `src/constants/widgetRegistry.js` — register `type: 'nc-widget'`
-- Modifies `widgets` AND `legacy-widget-bridge` capabilities
+## Proposed Solution
 
-## Why a delta to `widgets` + `legacy-widget-bridge`
+Replace the widget picker with a responsive CSS-grid card layout in `NcDashboardForm`. Each card displays:
+- The widget's icon (40px square, with fallback to generic icon)
+- The widget's display name (single-line with ellipsis overflow)
+- Visual selected state (border highlight + check-mark overlay)
+- Full keyboard navigation (arrow keys, Enter/Space, Tab)
+- Empty state message when no Nextcloud widgets are installed
 
-The widget type lives logically inside `widgets` (it's another placement renderer in the same grid system), and the callback-bridging behaviour extends `legacy-widget-bridge` (which already covers `OCA.Dashboard.register` capture). One change touching both keeps the contract atomic.
+The grid uses `grid-template-columns: repeat(auto-fill, minmax(140px, 1fr))` for responsive wrapping and 12px gaps between cards. All WCAG AA accessibility requirements are met via proper ARIA roles (`radiogroup` on container, `radio` on cards) and semantic keyboard interactions.
 
-## Approach
+## Scope
 
-- Persisted shape: `{type: 'nc-widget', content: {widgetId, displayMode}}` where `widgetId` is the Nextcloud widget identifier (e.g. `weather_status`) and `displayMode` is `'vertical' | 'horizontal'`.
-- On mount: try `widgetBridge.hasWidgetCallback(widgetId)` first; if true, mount via REQ-LWB-002.
-- If false: start API loading (`GET /api/widgets/items?widgets[]={widgetId}&limit=7`) AND a short poll (200 ms × 15 retries = 3 s) for the callback to appear; if it does, switch to native mode and abandon API results.
-- API list rendering: 7-item flat list of `{title, subtitle, link, iconUrl, overlayIconUrl, sinceId}` cards. `vertical` = list with 32 px icons; `horizontal` = wrap of 120 px cards with 44 px icons.
+This change defines the picker UX inside `NcDashboardForm` — specifically how users discover and select Nextcloud widgets when adding or editing an `nc-widget` placement. The selected widget is then rendered by the `nc-widget` placement renderer (owned by `widgets` capability) and the polling/bridging behavior is owned by `legacy-widget-bridge` capability.
 
-## Notes
+## Success Criteria
 
-- We deliberately do NOT support pagination (no "load more" using `sinceIds`) in v1 — opportunity for a follow-up.
-- Header shows the widget's title + iconUrl from the discovered metadata (REQ-WDG-001 `IManager::getWidgets()` output).
-- When a widget's bundle is missing or fails to register, the API fallback is the safety net — users still see content.
+- Widget picker renders as a responsive CSS grid (not a `<select>` dropdown)
+- Each widget card displays icon, title, and selection state correctly
+- Keyboard navigation works with arrow keys, Enter/Space for selection, Tab to exit
+- Empty state displays with proper i18n when no Nextcloud widgets are installed
+- All WCAG AA accessibility requirements are met (labels, roles, keyboard nav)
+- Responsive grid adapts to viewport size without wrapping cards awkwardly
