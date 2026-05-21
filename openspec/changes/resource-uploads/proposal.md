@@ -1,19 +1,30 @@
-# Resource uploads
+# Resource Uploads — Mini File API for Binary Assets
 
-A new `resource-uploads` capability owns a small mini file API for binary assets (icons, widget images) that MyDash needs to host directly — separate from the user's Files. Admin-only upload via base64 data URL, raster MIME cross-check, 5 MB cap, app-data folder storage. Serving and SVG sanitisation are split into sibling changes (`resource-serving`, `svg-sanitisation`).
+A new `resource-uploads` capability owns a small mini file API for binary assets (icons, widget images) that MyDash needs to host directly — separate from the user's Files. Admin-only upload via base64 data URL, raster MIME cross-check, 5 MB cap, app-data folder storage, and a listing endpoint. Serving endpoints and SVG sanitisation are split into sibling changes (`resource-serving`, `svg-sanitisation`).
 
 ## Why
 
-MyDash widgets (image, link-button, custom icons, dashboard icons) need to reference branding assets that the admin controls and that survive deletion of any user. The user's Files folder is the wrong home: per-user, mutable by the owner, deletable, and not addressable by a stable public URL. We need a tiny app-owned file API with a hardened upload path (admin-only, size-capped, MIME-verified) so widgets can render branded icons without inventing per-widget upload code.
+MyDash widgets (image-widget, link-button-widget, custom icons, dashboard icons) need to reference branding assets that the admin controls and that survive deletion of any user. The user's Files folder is the wrong home: per-user, mutable by the owner, deletable, and not addressable by a stable public URL. We need a tiny app-owned file API with a hardened upload path (admin-only, size-capped, MIME-verified) so widgets can render branded icons without inventing per-widget upload code.
 
 ## What Changes
 
-- **NEW** `POST /api/resources` endpoint accepting `{base64: 'data:image/<type>;base64,...'}` (admin-only).
-- **NEW** declared/detected MIME cross-check with allowed types `jpeg, jpg, png, gif, svg, webp`.
-- **NEW** 5 MB hard cap on decoded bytes, enforced before invoking image library.
-- **NEW** Storage via `IAppData::getFolder('resources')` with `resource_<uniqid>.<ext>` filenames.
-- **NEW** Standardised success / error envelope (`{status, error, message}`) with a stable error enum.
-- Foundation for sibling changes `resource-serving` (read side) and `svg-sanitisation` (SVG hardening).
+### New Capabilities
+
+- **resource-uploads** — Admin-only mini file API for uploading and listing branding/icon assets in MyDash's app data, consumed by image-widget, link-button-widget, custom-icon-upload pattern, and dashboard icon picker.
+
+### New Requirements (REQ-RES-001 to REQ-RES-007)
+
+- **REQ-RES-001**: Admin-only base64 upload endpoint `POST /api/resources` accepting `{base64: 'data:image/<type>;base64,...'}` (admin-only)
+- **REQ-RES-002**: Declared type validation — whitelist `jpeg, jpg, png, gif, svg, webp` (case-insensitive)
+- **REQ-RES-003**: Size and integrity validation — 5 MB hard cap on decoded bytes, `getimagesizefromstring()` MIME cross-check for raster types
+- **REQ-RES-004**: Storage via `IAppData::getFolder('resources')` with `resource_<uniqid>.<ext>` filenames
+- **REQ-RES-005**: Standardised success/error envelope (`{status, url, name, size}` / `{status, error, message}`) with stable error enum
+- **REQ-RES-007**: List endpoint `GET /api/resources` returning metadata for all uploaded resources (ordered by modifiedAt descending)
+
+### Sibling Deltas (separate changes)
+
+- **resource-serving** (REQ-RES-006, REQ-RES-008): Streaming endpoint `GET /apps/mydash/resource/{filename}` with cache headers and memory-bounded buffering
+- **svg-sanitisation** (REQ-RES-009 to REQ-RES-013): SVG DOM whitelist, attribute filtering, XXE protection, sanitiser integration
 
 ## Capabilities
 

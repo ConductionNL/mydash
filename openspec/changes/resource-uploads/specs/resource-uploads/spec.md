@@ -125,6 +125,24 @@ Every successful response MUST conform to `{status: 'success', url: <string>, na
 
 #### Scenario: Stable error enum
 
-- **GIVEN** the documented error codes are `forbidden`, `unsupported_media_type`, `invalid_data_url`, `invalid_image_format`, `file_too_large`, `mime_mismatch`, `corrupt_image`, `storage_failure`
+- **GIVEN** the documented error codes are `forbidden`, `unsupported_media_type`, `invalid_data_url`, `invalid_image_format`, `file_too_large`, `mime_mismatch`, `corrupt_image`, `invalid_svg`, `storage_failure`
 - **WHEN** any rejection scenario above triggers
 - **THEN** the `error` field MUST equal exactly one of those strings (no synonyms, no extras)
+
+### Requirement: List uploaded resources (REQ-RES-007)
+
+The system MUST expose `GET /api/resources` returning `{status: 'success', resources: [{name, url, size, modifiedAt}, …]}` ordered by `modifiedAt` descending. The endpoint MUST be authenticated (any user); admin gating is NOT required because the listed names are already referenced from rendered dashboards.
+
+When the resources folder does not yet exist, the response MUST be `{status: 'success', resources: []}` (not 404).
+
+#### Scenario: List with one resource
+
+- **GIVEN** one resource exists at `<appdata>/resources/resource_abc123.png` with size 12345 bytes
+- **WHEN** GET `/api/resources`
+- **THEN** the response MUST contain `resources[0] = {name: 'resource_abc123.png', url: '/apps/mydash/resource/resource_abc123.png', size: 12345, modifiedAt: <ISO timestamp>}`
+
+#### Scenario: Empty folder returns empty array
+
+- **GIVEN** no `resources/` folder has been created yet
+- **WHEN** GET `/api/resources`
+- **THEN** HTTP 200 with `{status: 'success', resources: []}`
