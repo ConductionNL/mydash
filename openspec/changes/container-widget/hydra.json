@@ -1,0 +1,8 @@
+{
+  "spec_slug": "container-widget",
+  "title": "Container Widget Specification",
+  "app": "mydash",
+  "repo": "https://github.com/ConductionNL/mydash",
+  "depends_on": [],
+  "issue": null
+}
