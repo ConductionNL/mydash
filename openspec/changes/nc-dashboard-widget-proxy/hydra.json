@@ -1,0 +1,8 @@
+{
+  "spec_slug": "nc-dashboard-widget-proxy",
+  "title": "nc-dashboard-widget-proxy Specification",
+  "app": "mydash",
+  "repo": "https://github.com/ConductionNL/mydash",
+  "depends_on": [],
+  "issue": null
+}
