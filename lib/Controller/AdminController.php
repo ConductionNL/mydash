@@ -413,10 +413,9 @@ class AdminController extends Controller
                 haystack: $e->getMessage(),
                 needle: '8 KB limit'
             );
+            $status     = Http::STATUS_BAD_REQUEST;
             if ($isOversize === true) {
                 $status = Http::STATUS_REQUEST_ENTITY_TOO_LARGE;
-            } else {
-                $status = Http::STATUS_BAD_REQUEST;
             }
 
             return new JSONResponse(

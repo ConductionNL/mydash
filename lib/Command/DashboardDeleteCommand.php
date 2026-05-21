@@ -161,7 +161,9 @@ class DashboardDeleteCommand extends CommandBase
 
         if ($cascade === true) {
             $this->treeService->deleteSubtree(dashboard: $dashboard);
-        } else {
+        }
+
+        if ($cascade === false) {
             $this->placementMapper->deleteByDashboardId(dashboardId: (int) $dashboard->getId());
             $this->dashboardMapper->delete(entity: $dashboard);
         }

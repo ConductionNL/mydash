@@ -19,6 +19,7 @@ declare(strict_types=1);
 namespace OCA\MyDash\Controller;
 
 use DateTimeImmutable;
+use InvalidArgumentException;
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Service\CalendarWidgetService;
 use OCA\MyDash\Service\NewsWidgetService;
@@ -179,7 +180,7 @@ class WidgetApiController extends Controller
         // without the field and used to crash the dispatcher.
         if ($widgetId === null || $widgetId === '') {
             return ResponseHelper::error(
-                exception: new \InvalidArgumentException(
+                exception: new InvalidArgumentException(
                     'Missing required field: widgetId'
                 ),
                 statusCode: Http::STATUS_BAD_REQUEST

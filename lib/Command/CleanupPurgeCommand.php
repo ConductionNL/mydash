@@ -165,27 +165,24 @@ class CleanupPurgeCommand extends Command
             $prefix = 'DRY-RUN: Would purge';
         }
 
+        $summaryMessage = sprintf(
+            '<info>%s %d items across %d categories in %dms.</info>',
+            $prefix,
+            $result->getTotalRows(),
+            count(value: $result->getByCategory()),
+            $result->getDurationMs()
+        );
         if (count(value: $categoryNames) === 1) {
-            $output->writeln(
-                messages: sprintf(
-                    '<info>%s %d items from category \'%s\' in %dms.</info>',
-                    $prefix,
-                    $result->getTotalRows(),
-                    $categoryNames[0],
-                    $result->getDurationMs()
-                )
+            $summaryMessage = sprintf(
+                '<info>%s %d items from category \'%s\' in %dms.</info>',
+                $prefix,
+                $result->getTotalRows(),
+                $categoryNames[0],
+                $result->getDurationMs()
             );
-        } else {
-            $output->writeln(
-                messages: sprintf(
-                    '<info>%s %d items across %d categories in %dms.</info>',
-                    $prefix,
-                    $result->getTotalRows(),
-                    count(value: $result->getByCategory()),
-                    $result->getDurationMs()
-                )
-            );
-        }//end if
+        }
+
+        $output->writeln(messages: $summaryMessage);
 
         $skipped = $result->getSkipped();
         if (count(value: $skipped) > 0) {

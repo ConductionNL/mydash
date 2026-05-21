@@ -420,22 +420,22 @@ class DashboardApiController extends Controller
         // allowed for all permission levels. Widget/tile/layout changes
         // require add_only or full permission.
         $isMetadataOnly = $placements === null;
-        if ($isMetadataOnly === true) {
-            if ($this->permissionService->canEditDashboardMetadata(
+        if ($isMetadataOnly === true
+            && $this->permissionService->canEditDashboardMetadata(
                 userId: $this->userId,
                 dashboardId: $id
             ) === false
-            ) {
-                return ResponseHelper::forbidden();
-            }
-        } else {
-            if ($this->permissionService->canEditDashboard(
+        ) {
+            return ResponseHelper::forbidden();
+        }
+
+        if ($isMetadataOnly === false
+            && $this->permissionService->canEditDashboard(
                 userId: $this->userId,
                 dashboardId: $id
             ) === false
-            ) {
-                return ResponseHelper::forbidden();
-            }
+        ) {
+            return ResponseHelper::forbidden();
         }
 
         try {
@@ -1534,10 +1534,9 @@ class DashboardApiController extends Controller
         // else (non-null string) is forwarded verbatim — including the
         // empty string, which the service treats as a NULL parent.
         if ($parentUuid !== null) {
+            $data['parentUuid'] = $parentUuid;
             if ($parentUuid === '__null__' || $parentUuid === '') {
                 $data['parentUuid'] = null;
-            } else {
-                $data['parentUuid'] = $parentUuid;
             }
         }
 

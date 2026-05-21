@@ -18,6 +18,7 @@ declare(strict_types=1);
 
 namespace OCA\MyDash\Controller;
 
+use InvalidArgumentException;
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Service\ConditionalService;
 use OCA\MyDash\Service\PermissionService;
@@ -113,7 +114,7 @@ class RuleApiController extends Controller
         // hardening on WidgetApiController::addWidget.
         if ($ruleType === null || $ruleType === '') {
             return ResponseHelper::error(
-                exception: new \InvalidArgumentException(
+                exception: new InvalidArgumentException(
                     'Missing required field: ruleType'
                 ),
                 statusCode: Http::STATUS_BAD_REQUEST
@@ -122,7 +123,7 @@ class RuleApiController extends Controller
 
         if ($ruleConfig === null) {
             return ResponseHelper::error(
-                exception: new \InvalidArgumentException(
+                exception: new InvalidArgumentException(
                     'Missing required field: ruleConfig'
                 ),
                 statusCode: Http::STATUS_BAD_REQUEST

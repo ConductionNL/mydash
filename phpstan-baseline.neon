@@ -1,81 +1,162 @@
+# Per-app phpstan lint debt baseline.
+#
+# Regenerate with: ./vendor/bin/phpstan analyse --generate-baseline
+# Apps without lint debt ship this file empty.
+#
+# Tracked-debt entries here MUST have an open GitHub issue. The directive for the
+# Conduction fleet is "no per-app validation rules; if we need exceptions then
+# they are for all apps." A baseline entry is acceptable only as a temporary
+# tracked-debt marker with a removal timeline.
+#
+# Tracking issue: https://github.com/ConductionNL/mydash/issues/269
+# Generated: 2026-05-21 by canonical-root-configs sync (Phase 2 fleet rollout).
+# Captures the 50 errors that surfaced when the prior 14 path-scoped JSONResponse
+# / DataResponse suppressions in phpstan.neon were removed, plus pre-existing
+# latent debt. Remove entries incrementally per the strategy in #269.
+
 parameters:
 	ignoreErrors:
 		-
-			message: "#^Parameter \\#1 \\$createdAt of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setCreatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
-			count: 1
-			path: lib/Service/AdminTemplateService.php
-
-		-
-			message: "#^Parameter \\#1 \\$isDefault of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setIsDefault\\(\\) expects int, bool given\\.$#"
-			count: 1
-			path: lib/Service/AdminTemplateService.php
-
-		-
-			message: "#^Parameter \\#1 \\$updatedAt of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setUpdatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
+			message: "#^Parameter \\$data of class OCP\\\\AppFramework\\\\Http\\\\DataResponse constructor expects T of OCP\\\\AppFramework\\\\Http\\\\DataResponseType, array given\\.$#"
 			count: 2
-			path: lib/Service/AdminTemplateService.php
+			path: lib/Controller/DashboardShareApiController.php
 
 		-
-			message: "#^Strict comparison using \\=\\=\\= between int and false will always evaluate to false\\.$#"
-			count: 1
-			path: lib/Service/ConditionalService.php
+			message: "#^Parameter \\$data of class OCP\\\\AppFramework\\\\Http\\\\DataResponse constructor expects T of OCP\\\\AppFramework\\\\Http\\\\DataResponseType, array\\<array\\> given\\.$#"
+			count: 2
+			path: lib/Controller/DashboardShareApiController.php
 
 		-
-			message: "#^Parameter \\#1 \\$isActive of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setIsActive\\(\\) expects int, true given\\.$#"
+			message: "#^Parameter \\$data of class OCP\\\\AppFramework\\\\Http\\\\DataResponse constructor expects T of OCP\\\\AppFramework\\\\Http\\\\DataResponseType, array\\<string, array\\<int\\<0, max\\>, array\\<string, string\\>\\>\\> given\\.$#"
 			count: 1
-			path: lib/Service/DashboardResolver.php
+			path: lib/Controller/DashboardShareApiController.php
 
 		-
-			message: "#^Property OCA\\\\MyDash\\\\Service\\\\DashboardResolver\\:\\:\\$settingMapper is never read, only written\\.$#"
+			message: "#^Parameter \\$data of class OCP\\\\AppFramework\\\\Http\\\\DataResponse constructor expects T of OCP\\\\AppFramework\\\\Http\\\\DataResponseType, array\\<string, array\\> given\\.$#"
 			count: 1
-			path: lib/Service/DashboardResolver.php
+			path: lib/Controller/DashboardShareApiController.php
 
 		-
-			message: "#^Unreachable statement \\- code above always terminates\\.$#"
+			message: "#^Parameter \\$data of class OCP\\\\AppFramework\\\\Http\\\\DataResponse constructor expects T of OCP\\\\AppFramework\\\\Http\\\\DataResponseType, array\\<string, int\\> given\\.$#"
 			count: 1
-			path: lib/Service/DashboardResolver.php
+			path: lib/Controller/DashboardShareApiController.php
 
 		-
-			message: "#^Method OCA\\\\MyDash\\\\Service\\\\DashboardService\\:\\:createDefaultPlacements\\(\\) has invalid return type OCA\\\\MyDash\\\\Service\\\\WidgetPlacement\\.$#"
-			count: 1
-			path: lib/Service/DashboardService.php
+			message: "#^Parameter \\$data of class OCP\\\\AppFramework\\\\Http\\\\DataResponse constructor expects T of OCP\\\\AppFramework\\\\Http\\\\DataResponseType, array\\<string, string\\> given\\.$#"
+			count: 17
+			path: lib/Controller/DashboardShareApiController.php
 
 		-
-			message: "#^Method OCA\\\\MyDash\\\\Service\\\\DashboardService\\:\\:createDefaultPlacements\\(\\) should return array\\<OCA\\\\MyDash\\\\Service\\\\WidgetPlacement\\> but returns array\\<int, OCA\\\\MyDash\\\\Db\\\\WidgetPlacement\\>\\.$#"
+			message: "#^Parameter \\$data of class OCP\\\\AppFramework\\\\Http\\\\DataResponse constructor expects T of OCP\\\\AppFramework\\\\Http\\\\DataResponseType, array given\\.$#"
 			count: 1
-			path: lib/Service/DashboardService.php
+			path: lib/Controller/FeedController.php
 
 		-
-			message: "#^Parameter \\#1 \\$isActive of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setIsActive\\(\\) expects int, true given\\.$#"
-			count: 1
-			path: lib/Service/DashboardService.php
+			message: "#^Parameter \\$data of class OCP\\\\AppFramework\\\\Http\\\\DataResponse constructor expects T of OCP\\\\AppFramework\\\\Http\\\\DataResponseType, array\\<string, string\\> given\\.$#"
+			count: 4
+			path: lib/Controller/FeedController.php
 
 		-
-			message: "#^Strict comparison using \\=\\=\\= between int and false will always evaluate to false\\.$#"
+			message: "#^Parameter \\$statusCode of class OCP\\\\AppFramework\\\\Http\\\\DataResponse constructor expects S of 100\\|101\\|102\\|200\\|201\\|202\\|203\\|204\\|205\\|206\\|207\\|208\\|226\\|300\\|301\\|302\\|303\\|304\\|305\\|306\\|307\\|400\\|401\\|402\\|403\\|404\\|405\\|406\\|407\\|408\\|409\\|410\\|411\\|412\\|413\\|414\\|415\\|416\\|417\\|418\\|422\\|423\\|424\\|426\\|428\\|429\\|431\\|500\\|501\\|502\\|503\\|504\\|505\\|506\\|507\\|508\\|509\\|510\\|511, int given\\.$#"
 			count: 1
-			path: lib/Service/PermissionService.php
+			path: lib/Controller/FeedController.php
 
 		-
-			message: "#^Parameter \\#1 \\$createdAt of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setCreatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
+			message: "#^Comparison operation \"\\<\" between 0\\|1 and 5 is always true\\.$#"
 			count: 1
-			path: lib/Service/TemplateService.php
+			path: lib/Db/DashboardMapper.php
 
 		-
-			message: "#^Parameter \\#1 \\$createdAt of method OCA\\\\MyDash\\\\Db\\\\WidgetPlacement\\:\\:setCreatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\DashboardTableBuilder\\:\\:addColumns\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
 			count: 1
-			path: lib/Service/TemplateService.php
+			path: lib/Migration/DashboardTableBuilder.php
 
 		-
-			message: "#^Parameter \\#1 \\$isActive of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setIsActive\\(\\) expects int, true given\\.$#"
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\DashboardTableBuilder\\:\\:addFooterColumns\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
 			count: 1
-			path: lib/Service/TemplateService.php
+			path: lib/Migration/DashboardTableBuilder.php
 
 		-
-			message: "#^Parameter \\#1 \\$updatedAt of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setUpdatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\DashboardTableBuilder\\:\\:addIndexes\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
 			count: 1
-			path: lib/Service/TemplateService.php
+			path: lib/Migration/DashboardTableBuilder.php
 
 		-
-			message: "#^Parameter \\#1 \\$updatedAt of method OCA\\\\MyDash\\\\Db\\\\WidgetPlacement\\:\\:setUpdatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\DashboardTableBuilder\\:\\:addPublicationColumns\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
 			count: 1
-			path: lib/Service/TemplateService.php
+			path: lib/Migration/DashboardTableBuilder.php
+
+		-
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\DashboardTableBuilder\\:\\:addTemplateDiscoveryColumns\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
+			count: 1
+			path: lib/Migration/DashboardTableBuilder.php
+
+		-
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\DashboardTableBuilder\\:\\:addTreeColumns\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
+			count: 1
+			path: lib/Migration/DashboardTableBuilder.php
+
+		-
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\DashboardViewsTableBuilder\\:\\:addColumns\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
+			count: 1
+			path: lib/Migration/DashboardViewsTableBuilder.php
+
+		-
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\DashboardViewsTableBuilder\\:\\:addIndexes\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
+			count: 1
+			path: lib/Migration/DashboardViewsTableBuilder.php
+
+		-
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\PlacementTableBuilder\\:\\:addColumns\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
+			count: 1
+			path: lib/Migration/PlacementTableBuilder.php
+
+		-
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\PlacementTableBuilder\\:\\:addIndexes\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
+			count: 1
+			path: lib/Migration/PlacementTableBuilder.php
+
+		-
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\RoleFeaturePermissionTableBuilder\\:\\:addColumns\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
+			count: 1
+			path: lib/Migration/RoleFeaturePermissionTableBuilder.php
+
+		-
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\RoleFeaturePermissionTableBuilder\\:\\:addIndexes\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
+			count: 1
+			path: lib/Migration/RoleFeaturePermissionTableBuilder.php
+
+		-
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\RoleLayoutDefaultTableBuilder\\:\\:addColumns\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
+			count: 1
+			path: lib/Migration/RoleLayoutDefaultTableBuilder.php
+
+		-
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\RoleLayoutDefaultTableBuilder\\:\\:addIndexes\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
+			count: 1
+			path: lib/Migration/RoleLayoutDefaultTableBuilder.php
+
+		-
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\RulesTableBuilder\\:\\:addColumns\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
+			count: 1
+			path: lib/Migration/RulesTableBuilder.php
+
+		-
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\RulesTableBuilder\\:\\:addIndexes\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
+			count: 1
+			path: lib/Migration/RulesTableBuilder.php
+
+		-
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\SettingsTableBuilder\\:\\:addColumns\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
+			count: 1
+			path: lib/Migration/SettingsTableBuilder.php
+
+		-
+			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\SettingsTableBuilder\\:\\:addIndexes\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
+			count: 1
+			path: lib/Migration/SettingsTableBuilder.php
+
+		-
+			message: "#^Offset 'mime' on array\\{0\\: int\\<0, max\\>, 1\\: int\\<0, max\\>, 2\\: int, 3\\: string, mime\\: string, channels\\?\\: int, bits\\?\\: int\\} on left side of \\?\\? always exists and is not nullable\\.$#"
+			count: 1
+			path: lib/Service/ImageMimeValidator.php

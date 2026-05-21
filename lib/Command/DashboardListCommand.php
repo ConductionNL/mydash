@@ -191,27 +191,27 @@ class DashboardListCommand extends CommandBase
             return CommandService::EXIT_SUCCESS;
         }
 
-        if ($this->isQuiet(input: $input) === false) {
-            if (count(value: $rows) === 0) {
-                $output->writeln(messages: 'No dashboards match the supplied filters.');
-            } else {
+        if ($this->isQuiet(input: $input) === false && count(value: $rows) === 0) {
+            $output->writeln(messages: 'No dashboards match the supplied filters.');
+        }
+
+        if ($this->isQuiet(input: $input) === false && count(value: $rows) > 0) {
+            $output->writeln(
+                messages: sprintf('%-36s  %-20s  %-14s  %-12s  %s', 'UUID', 'NAME', 'TYPE', 'STATUS', 'OWNER')
+            );
+            foreach ($rows as $row) {
                 $output->writeln(
-                    messages: sprintf('%-36s  %-20s  %-14s  %-12s  %s', 'UUID', 'NAME', 'TYPE', 'STATUS', 'OWNER')
+                    messages: sprintf(
+                        '%-36s  %-20s  %-14s  %-12s  %s',
+                        $row['uuid'],
+                        mb_strimwidth(string: $row['name'], start: 0, width: 20, trim_marker: '..'),
+                        $row['type'],
+                        $row['publicationStatus'],
+                        $row['owner']
+                    )
                 );
-                foreach ($rows as $row) {
-                    $output->writeln(
-                        messages: sprintf(
-                            '%-36s  %-20s  %-14s  %-12s  %s',
-                            $row['uuid'],
-                            mb_strimwidth(string: $row['name'], start: 0, width: 20, trim_marker: '..'),
-                            $row['type'],
-                            $row['publicationStatus'],
-                            $row['owner']
-                        )
-                    );
-                }
             }
-        }//end if
+        }
 
         return CommandService::EXIT_SUCCESS;
     }//end handle()
@@ -239,11 +239,15 @@ class DashboardListCommand extends CommandBase
             foreach ($this->dashboardMapper->findByUserId(userId: $user) as $dashboard) {
                 $dashboards[] = $dashboard;
             }
-        } else if ($group !== null) {
+        }
+
+        if ($user === null && $group !== null) {
             foreach ($this->dashboardMapper->findByGroup(groupId: $group) as $dashboard) {
                 $dashboards[] = $dashboard;
             }
-        } else {
+        }
+
+        if ($user === null && $group === null) {
             foreach ($this->dashboardMapper->findAdminTemplates() as $dashboard) {
                 $dashboards[] = $dashboard;
             }
@@ -259,7 +263,7 @@ class DashboardListCommand extends CommandBase
                     $dashboards[] = $child;
                 }
             }
-        }//end if
+        }
 
         if ($status === null) {
             return $dashboards;
