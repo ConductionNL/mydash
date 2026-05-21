@@ -1,0 +1,8 @@
+{
+  "spec_slug": "initial-state-contract",
+  "title": "Initial State Contract Specification",
+  "app": "mydash",
+  "repo": "https://github.com/ConductionNL/mydash",
+  "depends_on": [],
+  "issue": null
+}
