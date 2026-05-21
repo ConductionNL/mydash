@@ -1,0 +1,8 @@
+{
+  "spec_slug": "setup-wizard",
+  "title": "Setup Wizard Specification",
+  "app": "mydash",
+  "repo": "https://github.com/ConductionNL/mydash",
+  "depends_on": [],
+  "issue": null
+}
