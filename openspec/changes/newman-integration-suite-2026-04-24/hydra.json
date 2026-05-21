@@ -1,0 +1,8 @@
+{
+  "spec_slug": "newman-integration-suite-2026-04-24",
+  "title": "Newman / Postman integration collection",
+  "app": "mydash",
+  "repo": "https://github.com/ConductionNL/mydash",
+  "depends_on": [],
+  "issue": null
+}
