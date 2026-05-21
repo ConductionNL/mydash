@@ -6,23 +6,30 @@ MyDash widget placements today are bound to widgets discovered via Nextcloud's `
 
 Customers have asked for this repeatedly. Workarounds (using a tile with a long title, or a custom HTML widget shipped from another app) are awkward and don't survive theming. The right primitive is a built-in MyDash widget type whose entire content lives in the placement record's `styleConfig` JSON, with no external widget callback.
 
-This change introduces that primitive as a new widget type `text` and a new capability `text-display-widget`. The capability is intentionally narrow — one widget type, one renderer, one sub-form, one registry entry — so it can be evolved or deprecated independently of the broader widget-rendering machinery.
+This change introduces that primitive as a new widget type `text` and a new capability `text-display-widget`. The capability intentionally supports dual content modes:
+
+- **HTML mode** — for users who author HTML directly and for backward compatibility with widgets created before Markdown support was added.
+- **Markdown mode** — the shipped default for new widgets, more accessible for most users who are familiar with `**bold**`, `*italic*`, `[links](url)`, and `# headings`.
+
+Both modes apply the same XSS sanitisation (DOMPurify) before rendering. The capability is intentionally narrow — one widget type, one renderer, one sub-form, one registry entry — so it can be evolved or deprecated independently of the broader widget-rendering machinery.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- Ship a `text` widget type that renders multi-line user-authored text with limited HTML formatting.
-- Sanitise rendered HTML via DOMPurify so authors can use `<b>`, `<i>`, `<a>`, `<br>`, `<p>`, `<ul>`, `<li>` without opening an XSS hole.
+- Ship a `text` widget type that renders multi-line user-authored text with either HTML or CommonMark Markdown formatting.
+- Support two content modes — `'html'` (for backward compatibility with existing widgets and users who prefer raw HTML) and `'markdown'` (shipped as the default for new widgets, more accessible for most users).
+- Sanitise rendered HTML via DOMPurify in both modes so authors can safely use formatting without opening an XSS hole.
 - Provide inline style controls (font size, text colour, background colour, alignment) so the widget integrates visually with surrounding theming.
 - Default to theme-aware values (`var(--color-main-text)`, transparent background) so the widget looks correct out-of-the-box in light, dark, and admin-themed Nextcloud instances.
 - Keep the widget type self-contained — no new database tables, no new backend services, no new API endpoints. The persisted content lives in the existing `oc_mydash_widget_placements.styleConfig` JSON column.
+- Preserve backward compatibility — existing widgets with no explicit `contentMode` render as HTML; only new widgets receive the Markdown default.
 
 **Non-Goals:**
 
-- A WYSIWYG / rich-text editor — the textarea accepts raw HTML; a rich editor is a possible later enhancement but out of scope here.
-- Markdown support — would conflict with HTML pass-through and require a second sanitisation path. Future change if demanded.
+- A WYSIWYG / rich-text editor — the textarea accepts raw HTML or raw Markdown; a rich editor is a possible later enhancement but out of scope here.
 - Server-side sanitisation — sanitisation is client-side at render time. Backend stores whatever the user submitted (after the existing styleConfig validation). Rationale: the same content might be rendered in other contexts later (export, print) where the sanitisation rules differ; storing raw lets the renderer decide.
+- In-place table editing UI — tables are parsed in Markdown mode but see the limitation in REQ-TXMD-002. Full table-editing support is deferred to the separate `text-widget-tables` capability.
 - A typed font-size picker (rem/em/px dropdown) — the free-form text input intentionally allows any CSS length, including `1.2em`, `clamp(0.8rem, 2vw, 2rem)`, etc.
 - Cross-widget templating, variable interpolation, or live data binding — text is static.
 - Per-locale text variants — the user authors one body of text; localisation is the user's responsibility.
@@ -109,7 +116,50 @@ This change introduces that primitive as a new widget type `text` and a new capa
 
 No data migration. The `styleConfig` column already exists; existing placements continue to work unchanged. New `text`-type placements simply use a new shape inside that JSON column.
 
+### D7: Dual content modes (HTML and Markdown) with Markdown as the shipped default
+
+**Decision**: Support two distinct `contentMode` values — `'html'` and `'markdown'`. New widgets default to `'markdown'`; existing widgets (or explicitly created HTML-mode widgets) use `'html'`. The renderer branches on `contentMode` and applies the appropriate parsing pipeline.
+
+**Alternatives considered:**
+
+- Single markdown-only mode. Rejected because existing HTML-mode content would break on upgrade; backward compatibility is a hard requirement per REQ-TXMD-006.
+- Always render as HTML (current state). Rejected because markdown is more accessible for ad-hoc content authoring — most users are familiar with `**bold**` and `[link](url)` syntax.
+
+**Rationale**: Two modes maximize user choice and preserve content. The shipped default (Markdown) is the safer bet for new users; existing content remains untouched. The form's mode toggle lets users switch between modes (content is preserved, only parsing changes) or explicitly choose at creation time.
+
+### D8: CommonMark compliance with strict sanitisation
+
+**Decision**: The markdown parser MUST be CommonMark-compliant (headings, emphasis, code, links, lists, blockquotes, tables). Parser output MUST be passed through the same DOMPurify sanitiser used by HTML mode. Relative links are allowed; `javascript:` and `data:` URLs are stripped.
+
+**Alternatives considered:**
+
+- Markdown + custom allowlist (not using the existing DOMPurify config). Rejected because code duplication is error-prone; one sanitiser = one place to fix if a bypass is found.
+- Markdown without sanitisation. Rejected — critical security issue (user can embed `<script>` in fenced code blocks or tables).
+
+**Rationale**: CommonMark is the standard; compliance ensures portability and user expectations. Reusing the DOMPurify sanitiser keeps the security posture simple and testable.
+
+### D9: Mode toggle does NOT lose content when switching
+
+**Decision**: Switching `contentMode` from HTML to Markdown (or vice versa) preserves the `text` field unchanged. Only the rendering/parsing behavior changes — the user's raw text content stays intact.
+
+**Alternatives considered:**
+
+- Attempt "smart" conversion (HTML ↔ Markdown). Rejected because many HTML snippets (e.g. `<p>`, nested lists) have no direct markdown equivalent, and conversion can lose information or produce unexpected results.
+
+**Rationale**: Preserving content lets users experiment with mode toggles without fear of data loss. If the text happens to be valid Markdown when rendered as HTML, the user sees literal markdown syntax (`# Heading` instead of a heading) — which is a signal to switch modes, not a silent corruption.
+
+### D10: Backward compatibility — undefined `contentMode` defaults to HTML mode
+
+**Decision**: When rendering a widget with `contentMode === undefined` or `contentMode === null`, treat it as `'html'`. Only render as Markdown when `contentMode === 'markdown'` explicitly.
+
+**Alternatives considered:**
+
+- Default undefined `contentMode` to Markdown. Rejected because existing widgets created before markdown support was added were authored as HTML and would break on upgrade.
+
+**Rationale**: Preserves visual fidelity of existing deployments. New widgets in the registry default to `'markdown'`, so all freshly-created content uses the modern mode; old content stays backward-compatible.
+
 ## Open Questions
 
 - Should the renderer support a target=_blank affordance for links? DOMPurify's default config preserves `<a target>` but the surrounding modal does not yet have a "open links in new tab" toggle. Out of scope here; can land in a follow-up.
 - Should the sub-form offer a small set of preset themes (e.g. "Warning", "Info", "Success") that prefill colour + background combos? Out of scope; user demand will tell us.
+- A future admin setting (`mydash.text_widget_default_mode`) may allow changing the registry default from Markdown to HTML globally. Deferred to the `admin-text-widget-settings` capability.
