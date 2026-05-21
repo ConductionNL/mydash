@@ -1,0 +1,8 @@
+{
+  "spec_slug": "mydash-mobile-remote-access",
+  "title": "Mobile and remote dashboard access",
+  "app": "mydash",
+  "repo": "https://github.com/ConductionNL/mydash",
+  "depends_on": [],
+  "issue": null
+}
