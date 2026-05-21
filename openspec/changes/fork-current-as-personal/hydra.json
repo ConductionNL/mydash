@@ -1,0 +1,8 @@
+{
+  "spec_slug": "fork-current-as-personal",
+  "title": "Fork-current-layout to personal dashboard",
+  "app": "mydash",
+  "repo": "https://github.com/ConductionNL/mydash",
+  "depends_on": [],
+  "issue": null
+}
