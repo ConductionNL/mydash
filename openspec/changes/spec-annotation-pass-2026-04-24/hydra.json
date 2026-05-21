@@ -1,0 +1,8 @@
+{
+  "spec_slug": "spec-annotation-pass-2026-04-24",
+  "title": "`@spec` annotation pass across `lib/`",
+  "app": "mydash",
+  "repo": "https://github.com/ConductionNL/mydash",
+  "depends_on": [],
+  "issue": null
+}
