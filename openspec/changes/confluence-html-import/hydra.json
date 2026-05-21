@@ -1,0 +1,8 @@
+{
+  "spec_slug": "confluence-html-import",
+  "title": "Confluence HTML Export Importer Specification",
+  "app": "mydash",
+  "repo": "https://github.com/ConductionNL/mydash",
+  "depends_on": [],
+  "issue": null
+}
