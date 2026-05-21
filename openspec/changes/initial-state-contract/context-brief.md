@@ -1,16 +1,20 @@
 ---
-capability: initial-state-contract
-delta: true
-status: draft
+status: implemented
 ---
 
-# Initial State Contract — Delta from change `initial-state-contract`
+# Initial State Contract Specification
 
-## ADDED Requirements
+## Purpose
+
+The `initial-state-contract` capability formalises the precise set of keys that PHP pushes via Nextcloud's `IInitialState::provideInitialState` for each Vue mount in MyDash, and the matching `provide()` calls each entry point emits to expose those keys to the rest of the component tree. Without this contract the keys drift silently — frontend reads a key the backend stopped sending, or vice versa, and the breakage only surfaces at runtime.
+
+A typed PHP `InitialStateBuilder` service centralises the writes; a typed JS `loadInitialState(page)` reader centralises the reads; a versioned `_schemaVersion` key travels with every payload so deploy skew (PHP and JS bundle out of sync) shows up as a console warning instead of a mysterious bug; CI lint guards prevent controllers and components from bypassing the central code paths.
+
+## Requirements
 
 ### Requirement: Centralised PHP builder for initial state (REQ-INIT-001)
 
-The system MUST expose `lib/Service/InitialStateBuilder.php` with a constructor accepting an `IInitialState` and a `Page` enum (`Page::WORKSPACE` or `Page::ADMIN`). The builder MUST expose typed setter methods (e.g. `setWidgets(array $widgets): self`, `setLayout(array $layout): self`, `setIsAdmin(bool $isAdmin): self`) and a final `apply(): void` that writes every key to the initial-state service. `apply()` MUST throw `MissingInitialStateException` if any required key was not set for the chosen page. Controllers (`WorkspaceController`, `AdminSettings`) MUST use the builder; direct calls to `IInitialState::provideInitialState` from controllers are forbidden by code review (a grep lint MUST find such calls only inside `InitialStateBuilder`).
+The system MUST expose `lib/Service/InitialStateBuilder.php` with a constructor accepting an `IInitialState` and a `Page` enum (`Page::WORKSPACE` or `Page::ADMIN`). The builder MUST expose typed setter methods (e.g. `setWidgets(array $widgets): self`, `setLayout(array $layout): self`, `setIsAdmin(bool $isAdmin): self`) and a final `apply(): void` that writes every key to the initial-state service. `apply()` MUST throw `MissingInitialStateException` if any required key was not set for the chosen page. Controllers (`PageController`, `MyDashAdmin`) MUST use the builder; direct calls to `IInitialState::provideInitialState` from controllers are forbidden by code review (a grep lint MUST find such calls only inside `InitialStateBuilder`).
 
 #### Scenario: Builder writes all keys
 
@@ -26,8 +30,8 @@ The system MUST expose `lib/Service/InitialStateBuilder.php` with a constructor 
 
 #### Scenario: Direct provideInitialState call rejected
 
-- **WHEN** a developer adds `$initialState->provideInitialState('foo', 'bar')` directly inside `lib/Controller/WorkspaceController.php`
-- **THEN** the lint test (grep against `lib/Controller/`) MUST fail with a message pointing to `InitialStateBuilder`
+- **WHEN** a developer adds `$initialState->provideInitialState('foo', 'bar')` directly inside `lib/Controller/PageController.php`
+- **THEN** the lint test (grep against `lib/`) MUST fail with a message pointing to `InitialStateBuilder`
 - **AND** the change MUST NOT be merged
 
 ### Requirement: Versioned key set per page (REQ-INIT-002)
@@ -89,12 +93,12 @@ The system MUST expose `src/utils/loadInitialState.js` exporting `loadInitialSta
 
 ### Requirement: Provide-down-tree convention (REQ-INIT-004)
 
-After the entry point loads the initial state, it MUST expose every key via `app.provide(key, value)` so descendant components can `inject(key, default)` without re-reading from `loadState`. The provide call MUST use the same key string as the initial-state key — no renaming at the boundary (renaming is itself a spec change and bumps the schema version).
+After the entry point loads the initial state, it MUST expose every key via the Vue root `provide` option (Vue 2.7) — semantically equivalent to `app.provide(key, value)` in Vue 3 — so descendant components can `inject(key, default)` without re-reading from `loadState`. The provide call MUST use the same key string as the initial-state key — no renaming at the boundary (renaming is itself a spec change and bumps the schema version).
 
 #### Scenario: Provide names match initial-state keys
 
-- **WHEN** the workspace entry loads 10 initial-state keys via the reader and calls `app.provide`
-- **THEN** the entry MUST emit exactly 10 `provide` calls, one per key, with identical key strings
+- **WHEN** the workspace entry loads 10 initial-state keys via the reader and exposes them through `provide`
+- **THEN** the entry MUST emit exactly 10 provided keys, one per initial-state key, with identical key strings
 - **AND** no key renaming MUST occur at this boundary
 
 #### Scenario: Components inject by key name
@@ -116,5 +120,5 @@ After the entry point loads the initial state, it MUST expose every key via `app
 #### Scenario: Entry point does not wrap provide in ref
 
 - **WHEN** a code reviewer inspects `src/main.js` or `src/admin.js`
-- **THEN** every `app.provide(key, value)` call MUST pass a plain (non-reactive) value
-- **AND** no `app.provide(key, ref(value))` or `app.provide(key, reactive(value))` MUST appear at the entry-point boundary
+- **THEN** every provided value MUST be a plain (non-reactive) value
+- **AND** no `provide(key, ref(value))` or `provide(key, reactive(value))` MUST appear at the entry-point boundary
