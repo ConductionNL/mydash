@@ -1,32 +1,62 @@
 ---
 capability: dashboard-icons
-delta: true
-status: draft
+status: implemented
 ---
 
-# Specification — Dashboard Icons
+# Dashboard Icons Specification
+
+## Purpose
+
+MyDash dashboards (and the dashboard-list items in the switcher sidebar
+and admin UI) display an icon next to their name. This capability owns
+the icon vocabulary: a small curated registry of named built-in icons
+that live in the frontend bundle, plus the lookup/render functions
+consumers use, plus the convention for storing per-dashboard icons in a
+single column that may also hold an uploaded resource URL.
+
+The backend stores `dashboards.icon` as an opaque string and never
+inspects it — discrimination between registry name and uploaded URL
+lives in the frontend.
 
 ## Context
 
-MyDash dashboards (and dashboard list items in the switcher sidebar and admin UI) display an icon next to their name. This capability owns the icon vocabulary: a small curated registry of named built-in icons that live in the frontend bundle, plus the lookup/render functions that consumers use. A separate change (`custom-icon-upload-pattern`) extends this capability so the same `icon` field can also hold an uploaded resource URL.
+The icon system has no backend persistence of its own — it operates on
+the existing `oc_mydash_dashboards.icon` column (and any other column
+that follows the same convention, e.g. `oc_mydash_widget_placements.tileIcon`).
 
-The icon system has no backend persistence of its own — it operates on the existing `oc_mydash_dashboards.icon` column (and any other column that follows the same convention, e.g. `oc_mydash_widget_placements.tileIcon`).
+## Field Convention
 
-The `icon` field convention:
-- **NULL or empty string** → render `DEFAULT_ICON`
-- **A registered icon name** (e.g. `'ViewDashboard'`, `'Home'`) → look up in `DASHBOARD_ICONS`
-- **A URL** (starts with `/` or `http`) → see `custom-icon-upload-pattern` (out of scope for this base capability)
+The `icon` field convention (REQ-ICON-009) is single-column:
 
-Frontend exports:
+- **NULL** or empty string → render `DEFAULT_ICON`
+- A **registered icon name** (e.g. `'ViewDashboard'`, `'Home'`) → look up in `DASHBOARD_ICONS`
+- A **URL** (starts with `/` or `http`) → render via `<img>`; the URL is
+  produced by the `resource-uploads` capability when an admin uploads a
+  custom image through `IconPicker`
+
+Discrimination is purely runtime via `isCustomIconUrl()`. There is no
+typed-discriminator object and no schema migration required when a
+value flips between built-in and custom forms.
+
+## Frontend Exports
 
 | Export | Type | Purpose |
 |---|---|---|
 | `DASHBOARD_ICONS` | `Record<string, VueComponent>` | Map from icon name → component import |
 | `DEFAULT_ICON` | `string` | The fallback name (currently `'ViewDashboard'`) |
-| `getIconComponent(name: string \| null)` | `VueComponent` | Look up; falls back to `DEFAULT_ICON` for null/empty/unknown |
-| `isCustomIconUrl(name: string \| null)` | `boolean` | True when name starts with `/` or `http` (consumed by `custom-icon-upload-pattern`) |
+| `getIconComponent(name: string \| null)` | `VueComponent \| null` | Look up; returns `null` for URL inputs (per REQ-ICON-006) and `DEFAULT_ICON` for null/empty/unknown registry names |
+| `isCustomIconUrl(name: string \| null)` | `boolean` | True when name starts with `/` or `http` |
 
-## ADDED Requirements
+Two shared Vue components consume these exports:
+
+- `IconRenderer` — dual-mode `<img>` / `<component :is>` renderer
+  (REQ-ICON-007). Consumers MUST use this rather than branching on the
+  icon shape themselves.
+- `IconPicker` — combined registry-`<select>` + file-upload picker
+  (REQ-ICON-008) with a 24×24 live preview through `IconRenderer` and
+  previous-value preservation on upload error.
+
+## Requirements
 
 ### Requirement: REQ-ICON-001 Curated registry of built-in icons
 
@@ -118,7 +148,7 @@ Each icon component import in the registry module MUST be a separate `import` st
 - THEN none MUST use `import *` syntax against `vue-material-design-icons`
 - AND each registered icon MUST have its own dedicated `import …Icon from 'vue-material-design-icons/<Name>.vue'` line
 
-### Requirement: REQ-ICON-005 URL/name discriminator
+### Requirement: URL/name discriminator (REQ-ICON-005)
 
 The system MUST expose a pure function `isCustomIconUrl(name: string|null): boolean` that returns `true` when `name` is a non-null string AND begins with either `'/'` or `'http'`. All other inputs (built-in registry names, null, undefined, empty string) MUST return `false`. The function MUST NOT call any side-effecting code (no fetch, no DOM access, no globals).
 
@@ -142,7 +172,7 @@ The system MUST expose a pure function `isCustomIconUrl(name: string|null): bool
 - AND `isCustomIconUrl('')` MUST return `false`
 - AND `isCustomIconUrl(undefined)` MUST return `false`
 
-### Requirement: REQ-ICON-006 getIconComponent returns null for URLs
+### Requirement: getIconComponent returns null for URLs (REQ-ICON-006)
 
 `getIconComponent(name)` MUST return `null` when `isCustomIconUrl(name)` is true. Callers MUST then render the URL via `<img>` (not via `<component :is>`). This is the contract that lets the picker, switcher, and admin list use a single render component.
 
@@ -160,7 +190,7 @@ The system MUST expose a pure function `isCustomIconUrl(name: string|null): bool
 - THEN it MUST return the `DEFAULT_ICON` component (per REQ-ICON-001)
 - AND MUST NOT return `null`
 
-### Requirement: REQ-ICON-007 IconRenderer dual-mode rendering
+### Requirement: IconRenderer dual-mode rendering (REQ-ICON-007)
 
 The shared `IconRenderer` component MUST accept a single `name` prop (string or null) and render either an `<img>` or a `<component :is>` based on `isCustomIconUrl(name)`. Consumers MUST use `IconRenderer` rather than branching on the icon shape themselves.
 
@@ -189,7 +219,7 @@ The shared `IconRenderer` component MUST accept a single `name` prop (string or 
 - THEN the rendered `<img>` MUST have `alt="Marketing"`
 - AND when no `alt` prop is supplied the rendered `<img>` MUST fall back to a non-empty default (e.g. the dashboard or widget name)
 
-### Requirement: REQ-ICON-008 IconPicker dual-input UX
+### Requirement: IconPicker dual-input UX (REQ-ICON-008)
 
 The `IconPicker` component MUST present BOTH affordances visible simultaneously: a `<select>` of registry option names (per REQ-ICON-003) AND an "Upload icon" `<input type="file" accept="image/*">` button. Selecting either MUST update the same `v-model` value: a registry option assigns the option string, an upload POSTs to the resource-uploads endpoint and assigns the returned URL string. A 24×24 preview thumbnail of the current value MUST be rendered via `IconRenderer`.
 
@@ -216,7 +246,7 @@ The `IconPicker` component MUST present BOTH affordances visible simultaneously:
 - AND the picker MUST surface a visible error state to the user
 - AND the preview MUST continue to show the Star icon
 
-### Requirement: REQ-ICON-009 Field convention is single-column
+### Requirement: Field convention is single-column (REQ-ICON-009)
 
 Database columns that store an icon (currently `oc_mydash_dashboards.icon` and `oc_mydash_widget_placements.tileIcon`) MUST hold either a registry name OR a URL string OR NULL — never a typed-discriminator object like `{kind: 'name'|'url', value: ...}`. Discrimination is purely runtime via `isCustomIconUrl`. No schema migration is required when a value flips between built-in and custom forms.
 
