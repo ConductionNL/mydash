@@ -2,54 +2,27 @@
 
 ## Why
 
-Today MyDash only supports two dashboard scopes: `user` (personal, user-owned) and `admin_template` (admin-authored snapshot copied per-user on first access). Neither supports the common organisational need to share a single live dashboard with a group of users where edits propagate immediately. Admins currently have to choose between (a) authoring a template that diverges per-user the moment one user edits their copy or (b) asking every user to recreate the same dashboard manually. This change introduces a third scope, `group_shared`, to fill that gap, plus a `'default'` synthetic group sentinel and a single `/api/dashboards/visible` endpoint that unions the three sources so the frontend has one place to ask "what dashboards should this user see?".
+MyDash currently offers only per-user private dashboards or a single organisation-wide dashboard. This limits how organisations can serve different roles effectively. A chair needs different visibility from a board member; a new member should be able to start with a pre-configured "Board Member Overview" template rather than building from scratch. This change introduces two capabilities: **shared start pages** (pre-configured templates that members can adopt as their starting dashboard) and **multi-persona layouts** (role-specific dashboards optimised for each persona in the organisation).
 
 ## What Changes
 
-- Add `Dashboard::TYPE_GROUP_SHARED = 'group_shared'` constant alongside the existing `TYPE_USER` and `TYPE_ADMIN_TEMPLATE`.
-- Add a nullable `groupId VARCHAR(64)` column on `oc_mydash_dashboards`, populated only for `group_shared` records.
-- Reserve the literal `groupId = 'default'` as a synthetic "visible to every user" sentinel — it is not a real Nextcloud group.
-- Add CRUD endpoints scoped to a group: `GET|POST /api/dashboards/group/{groupId}`, `GET|PUT|DELETE /api/dashboards/group/{groupId}/{uuid}` — admin-only for mutations.
-- Add `GET /api/dashboards/visible` that returns the deduplicated union of personal + group-matching + default-group dashboards, each annotated with a `source` field (`'user' | 'group' | 'default'`) so the frontend knows which endpoint to PUT updates to.
-- Group-shared dashboards are read-only for non-admin members — editing them requires forking to a personal dashboard via the existing `fork-current-as-personal` action.
-- Last-in-group delete guard: an admin cannot delete the last remaining group-shared dashboard in a group via the new endpoint (returns HTTP 400). Personal-dashboard delete behaviour from REQ-DASH-005 is unchanged.
+- Dashboard entity gains `scope` property: enum {personal, shared, organisation} and `targetPersonas` array (role slugs)
+- New service `DashboardScopeResolver` — queries visible dashboards for a user based on scope + persona rules
+- New service `PersonaLayoutSelector` — selects active dashboard when a user has multiple persona-specific options
+- `src/pages/Dashboard.vue` — calls scope resolver instead of loading single per-user dashboard
+- `src/components/DashboardHeader.vue` — renders dashboard switcher dropdown when multiple scoped dashboards available
+- Admin settings panel — scope + persona configuration UI for dashboards
+- Seed data — 3-5 example shared dashboards (Board Member Overview, Chair Dashboard, Organisation Summary)
 
 ## Capabilities
 
-### New Capabilities
+**New Capabilities:**
 
-(none — the feature folds into the existing `dashboards` capability)
+- `shared-start-pages` — organisations can publish pre-configured dashboards; members adopt them with one click
+- `multi-persona-layouts` — assign role-specific dashboard layouts; system picks the right variant per user
 
-### Modified Capabilities
+## Notes
 
-- `dashboards`: adds REQ-DASH-011 (group_shared type), REQ-DASH-012 (default-group sentinel), REQ-DASH-013 (visible-to-user resolution endpoint), REQ-DASH-014 (group-scoped CRUD endpoints). Existing REQ-DASH-001..010 are untouched.
-
-The `admin-templates` capability is intentionally not modified — its narrow meaning ("snapshot copied per-user on first access") is preserved. The new `group_shared` type is a separate, parallel scope.
-
-## Impact
-
-**Affected code:**
-
-- `lib/Db/Dashboard.php` — extend `type` enum, add nullable `groupId` field with getter/setter
-- `lib/Db/DashboardMapper.php` — add `findByGroup(string $groupId)` and `findVisibleToUser(string $userId)`
-- `lib/Service/DashboardService.php` — group-scoped CRUD with admin guard + `IGroupManager` integration; visible-to-user resolution rules
-- `lib/Controller/DashboardController.php` — five new endpoints + the `/visible` resolution endpoint
-- `appinfo/routes.php` — register the six new routes (one is `/visible`, five are `/group/{groupId}[...]`)
-- `lib/Migration/VersionXXXXDate2026...php` — schema migration adding `groupId` column + composite index on `(type, groupId)`
-- `src/stores/dashboards.js` — add `groupSharedDashboards` and `defaultGroupDashboards` getters; track `source` per dashboard so PUT routes correctly
-- `src/views/AdminApp.vue` — admin-only UI to manage group-shared dashboards (deferred to a follow-up `admin-group-management` change; this change only ships the backend + store wiring)
-
-**Affected APIs:**
-
-- 6 new routes (no existing routes changed)
-- Existing `GET /api/dashboards` continues to return only personal dashboards — group-shared dashboards do NOT bleed into it (ensures backward compatibility for clients that don't yet know about group scopes)
-
-**Dependencies:**
-
-- `OCP\IGroupManager` — already injected elsewhere, used to resolve user → groups and to check admin status
-- No new composer or npm dependencies
-
-**Migration:**
-
-- Zero-impact: the migration only adds a nullable column and an index. Existing rows get `groupId = NULL` and continue to be classified as `user` or `admin_template` as before.
-- No data backfill required.
+- Scope resolution is independent of Nextcloud's permission model — it is dashboard-specific and managed entirely in MyDash
+- When a user has multiple matching dashboards (e.g., both a "member" layout and an "admin" layout), the system picks the highest-priority role match
+- Shared start pages are copied (not linked) so each adopter can customise their copy without affecting the template

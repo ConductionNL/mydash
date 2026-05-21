@@ -2,32 +2,32 @@
 
 ## Tasks
 
-- [ ] Task 1: Ship the migration adding `groupId VARCHAR(64) NULL` to `oc_mydash_dashboards` plus composite index `idx_mydash_dash_type_group(type, groupId)`; reversible drop in `postSchemaChange` rollback; applied cleanly on sqlite/mysql/postgres
-- [ ] Task 2: Extend `Dashboard` entity with `TYPE_GROUP_SHARED` + `SOURCE_USER|SOURCE_GROUP|SOURCE_DEFAULT` constants, `groupId` getter/setter (no named args), and `jsonSerialize()` exposing `groupId` (nullable)
-- [ ] Task 3: Add `DashboardMapper::findByGroup(groupId)` and `DashboardMapper::findVisibleToUser(userId, userGroupIds)` (3 indexed queries — personal/group/default — unioned + deduped by UUID, each row tagged with its `source`)
-- [ ] Task 4: Enforce the `(type='group_shared' XOR groupId IS NULL)` invariant in `DashboardFactory::create()` with `\InvalidArgumentException` on mismatch
-- [ ] Task 5: Add `DashboardService::createGroupShared / updateGroupShared / deleteGroupShared / getVisibleToUser` with admin guards via `IGroupManager::isAdmin`, ownership checks, and last-in-non-default-group delete guard (HTTP 400; `default` group exempt)
-- [ ] Task 6: Update `PermissionService::getEffectivePermissionLevel()` so non-admins on `group_shared` get `view_only` and admins get `full`; personal + admin_template scopes keep their current matrix
-- [ ] Task 7: Add 6 controller endpoints (`GET /api/dashboards/visible`, `GET /api/dashboards/group/{groupId}`, `POST /api/dashboards/group/{groupId}`, `GET|PUT|DELETE /api/dashboards/group/{groupId}/{uuid}`) registered in `appinfo/routes.php` with `#[NoAdminRequired]` + in-body admin checks on mutations; `groupId` regex accepts `default` + any valid NC group id
-- [ ] Task 8: Seed three group-shared dashboards (Welcome→`default`, Campaigns→marketing, Sprint→engineering) with their placements in `_registers.json`; verify the local seed command applies them cleanly
-- [ ] Task 9: Update `src/stores/dashboards.js` to consume `/api/dashboards/visible`, expose `groupSharedDashboards` + `defaultGroupDashboards` getters, and route subsequent edits via the `source` field (personal vs group)
-- [ ] Task 10: PHPUnit — mapper coverage (findByGroup empty/nonexistent, findVisibleToUser mixed fixtures + 0-group user + UUID-overlap dedup), controller admin enforcement (403 on mutation by non-admin), last-in-group guard (400, default exempt), invariant guard, permission matrix (incl. regression on personal + admin_template)
-- [ ] Task 11: Playwright — admin creates group-shared via API and member sees it on `/visible`; 0-group user still sees default-group rows; non-admin PUT to group-shared dashboard returns 403; admin rename propagates to members on next reload
-- [ ] Task 12: Quality gates — `composer check:strict`, ESLint+Stylelint, OpenAPI/Postman regen, `nl`+`en` i18n for new error strings, SPDX-in-docblock on new PHP, all 10 hydra-gates green
-- [ ] Task 13: File the follow-up `admin-group-management` change for the admin-facing group-shared CRUD UI and note the deferral in the changelog
+- [ ] Task 1: Add `scope` property (enum: personal, shared, organisation) and `targetPersonas` array property to Dashboard entity; update `jsonSerialize()` to expose both fields
+- [ ] Task 2: Create `DashboardScopeResolver` service with `findDashboardsForUser(IUser): Dashboard[]` method; queries all dashboards filtering by scope + targetPersonas rules (account for empty targetPersonas = all roles)
+- [ ] Task 3: Create `PersonaLayoutSelector` service with `selectActiveLayout(IUser, Dashboard[]): Dashboard` method; uses user's role priority list to pick highest-priority matching dashboard, falls back to first available
+- [ ] Task 4: Extend `DashboardService` to call scope resolver; add method `getAvailableDashboards(IUser): Dashboard[]` (returns all visible) and `getActiveDashboard(IUser): Dashboard` (uses layout selector)
+- [ ] Task 5: Update `src/pages/Dashboard.vue` to call `getAvailableDashboards` instead of loading single per-user dashboard; show switcher dropdown when multiple dashboards available
+- [ ] Task 6: Implement dashboard switcher in `src/components/DashboardHeader.vue` — dropdown showing available dashboards with active one highlighted; remember selection via localStorage per session
+- [ ] Task 7: Add "Adopt" button to shared dashboard view; implement adoption flow: copy the dashboard, set scope to personal, activate for user
+- [ ] Task 8: Update admin settings panel — add scope + targetPersonas configuration fields to dashboard form; use select dropdown for personas (not free-text)
+- [ ] Task 9: Create seed data — 3-5 example shared dashboards (Board Member Overview, Chair Dashboard, Organisation Summary) with appropriate scope + targetPersonas values
+- [ ] Task 10: PHPUnit — scope resolver returns correct visible dashboards per user/role combination; layout selector picks highest-priority match; adoption creates independent copy
+- [ ] Task 11: Playwright — member sees shared start pages in a "Templates" section; clicking Adopt copies template and activates it; role-specific dashboards appear in switcher based on user's roles; multiple dashboards trigger switcher UI, single dashboard hides it
+- [ ] Task 12: Quality gates — `composer check:strict`, ESLint+Stylelint, `nl`+`en` i18n for UI strings, SPDX-in-docblock on new PHP, all hydra-gates green
+- [ ] Task 13: Deduplication check — verify `ObjectService` is used for all dashboard queries (no custom CRUD); no parallel link tables or duplicate RBAC logic
 
 ## Verification
 
-`openspec validate` exits clean. `/api/dashboards/visible` returns the correct merged + deduped set with `source` tags; admin-only mutation routes return 403 for non-admins.
+`openspec validate` exits clean. Scope resolver returns correct dashboards per user; switcher shows when multiple available; adoption creates independent copy; role-based layout selection works per design decisions D3-D4.
 
 ## Tests (company-wide ADR-009)
 
-PHPUnit per Task 10; Playwright per Task 11. Newman/Postman updated with the 6 new endpoints (Task 12).
+PHPUnit per Task 10; Playwright per Task 11. No new API endpoints (uses existing CRUD).
 
 ## Documentation (company-wide ADR-010)
 
-Changelog entry covering the new scope (group-shared dashboards), the `default` group convention, and the deferred admin UI follow-up.
+User guide covering template adoption and dashboard switcher; admin guide covering scope configuration and persona targeting.
 
-## i18n (company-wide ADR-005)
+## i18n (company-wide ADR-007)
 
-`nl_NL` + `en_US` for the new error messages (e.g. `Cannot delete the only dashboard in the group`).
+`nl` + `en` for UI strings: "Available dashboards", "Adopt this template", "Your dashboard changed because your roles changed".

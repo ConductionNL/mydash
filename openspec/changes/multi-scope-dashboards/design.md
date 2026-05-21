@@ -2,164 +2,150 @@
 
 ## Context
 
-MyDash currently has two dashboard scopes:
+MyDash currently supports two dashboard modes: per-user private dashboards and organisation-wide dashboards. In both cases, a user sees a single active dashboard at a time. Organisations using MyDash need two features:
 
-1. **`user`** — personal, user-owned, freely editable. CRUD via `/api/dashboard[s]`.
-2. **`admin_template`** — admin-authored snapshot. On a user's first access, `TemplateService::createDashboardFromTemplate()` clones the template into a new `user`-type dashboard (with `basedOnTemplate` set). Subsequent admin edits do NOT propagate.
+1. **Shared start pages** — A library admin can design dashboard templates (e.g., "Board Member Overview", "Staff Planning Board") and publish them. New organisation members see these templates and can adopt one as their starting dashboard, customising it from there.
 
-Customer-facing requests have surfaced a third pattern: a **live, shared** dashboard that an admin can author once and have render in real-time for every member of a group, with admin edits visible immediately. The template scope cannot satisfy this because (a) it's copy-on-first-access and (b) once copied, the user owns the divergent record.
+2. **Multi-persona layouts** — Different roles (chair, secretary, board member, staff) should see different dashboard layouts optimised for their responsibilities. Today, a single dashboard serves all roles, forcing compromises.
 
-This change adds the `group_shared` scope to fill the gap, plus a `'default'` synthetic group sentinel and a single `/api/dashboards/visible` endpoint that the frontend can call to get the deduplicated, source-tagged union of everything the user should see.
-
-The existing `admin_template` capability is intentionally untouched — it keeps its narrow "snapshot" meaning, and the two scopes coexist.
+Both features require the dashboard system to support **scoped visibility** (which dashboards does a particular user see?) and **role-based selection** (which dashboard should be active for this user's current roles?).
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- Add `group_shared` as a first-class third dashboard type without breaking any existing `user` or `admin_template` behaviour.
-- Render group-shared dashboards live (no per-user copy) so admin edits propagate on next page load.
-- Provide a single resolution endpoint (`/api/dashboards/visible`) that unions personal + group + default-group dashboards so the frontend has one source of truth.
-- Reserve `'default'` as a synthetic group meaning "visible to all" so admins don't have to maintain an "all-users" Nextcloud group.
-- Tag every returned dashboard with a `source` field so the frontend knows which mutation endpoint to call.
-- Keep delete semantics safe: prevent the admin from accidentally removing the last group-shared dashboard in a non-default group.
+- Make organisation-wide dashboard templates discoverable and adoptable by organisation members
+- Enable role-specific dashboard layouts so chairs, secretaries, and members see optimised views
+- Introduce scope metadata (`personal`, `shared`, `organisation`) as a first-class concept
+- Implement a declarative scoping model that admins can configure without code changes
+- Preserve backward compatibility — existing dashboards continue to work as personal/organisation mode
 
 **Non-Goals:**
 
-- A UI for managing group-shared dashboards in the admin panel — that ships in a follow-up `admin-group-management` change. This change provides only the backend + store wiring.
-- Per-user overrides on top of a group-shared dashboard — out of scope. Users wanting to customise must use the existing `fork-current-as-personal` action to clone into a personal dashboard.
-- Migrating existing `admin_template` records to `group_shared` — they continue to coexist; admins choose per-feature.
-- Multi-group sharing of one dashboard (one dashboard → one `groupId`). A dashboard intended for two groups must be created twice. Rationale: keeps the schema simple and `findVisibleToUser` cheap; the dedup-by-uuid path in REQ-DASH-013 handles the rare edge where a user is in both groups.
-- Real-time push notifications when an admin edits — propagation is on next page load, not via WebSocket.
+- Cross-organisation dashboard sharing (out of scope; each organisation has its own template library)
+- Dynamic re-scoping of existing dashboards via UI (admin panel only, not user-facing)
+- Hierarchical personas or persona composition (flat list of role strings; composition via priority ordering)
+- Persona-specific widget visibility within a single dashboard (dashboard-level scoping only, not widget-level)
+- Dashboard versioning or rollback (templates are snapshots; updates create new versions, old versions stay available)
 
 ## Decisions
 
-### D1: Single column `groupId` instead of reusing `targetGroups` JSON
+### D1: Scope as an enum property on dashboard entity, not a separate role table
 
-**Decision**: Add a dedicated nullable `groupId VARCHAR(64)` column on `oc_mydash_dashboards`.
-
-**Alternatives considered:**
-
-- Reuse the existing `targetGroups` JSON column from `admin_template`. Rejected because (a) `targetGroups` is a list (admin templates can target many groups for distribution) while `group_shared` is strictly one group per dashboard, and (b) overloading the column makes `findByGroup` queries impossible to index efficiently — we'd need a JSON contains query rather than an `=` lookup.
-
-**Rationale**: A scalar `groupId` column lets us add a `(type, groupId)` composite index and keeps the WHERE clause to `WHERE type = 'group_shared' AND groupId = ?`. The cost is one extra nullable column on a table that already has 14 columns — negligible.
-
-### D2: `'default'` is a string sentinel, not a separate column
-
-**Decision**: Use the literal string `'default'` as a reserved `groupId` value meaning "visible to all".
+**Decision**: Dashboard entity gains a `scope` field (enum: personal | shared | organisation). Persona targeting is stored as `targetPersonas: string[]` (array of role slugs) on the same entity.
 
 **Alternatives considered:**
 
-- Add a separate `isDefaultGroup BOOLEAN` column. Rejected because it doubles the matrix (`groupId × isDefaultGroup`) and creates ambiguous states (a row with both set).
-- Use `groupId = NULL` to mean "default". Rejected because `NULL` already has a clear meaning in this column ("not a group-shared dashboard, so this field is irrelevant"). Conflating the two would force every query to check both `type = 'group_shared'` AND `groupId IS NULL` rather than a clean equality.
+- Create a separate `DashboardScope` linking table. Rejected — adds DB churn for what is fundamentally a dashboard property, and scope changes are rare (set-once at creation time).
+- Store scope rules in `IAppConfig` (app settings). Rejected — dashboards are objects, not app settings; mixing them violates ADR-001 (all domain data in OpenRegister).
 
-**Rationale**: `'default'` is short, self-documenting in the database, indexable like any other group ID, and impossible to collide with a real Nextcloud group ID because Nextcloud rejects creating a group with id `default` (reserved by IGroupManager). We document the reservation in the spec so frontend clients know not to allow it as a real group selection.
+**Rationale**: Scope is a dashboard property, not a configuration concern. Storing it on the dashboard entity makes it queryable (find all shared dashboards) and auditable (scope changes are audit-trailed).
 
-### D3: `findVisibleToUser` does the union in PHP, not in SQL
+### D2: Persona targeting via explicit role-string array, not inheritance/hierarchy
 
-**Decision**: `DashboardMapper::findVisibleToUser(string $userId)` issues three separate queries (personal, group-matching, default-group) and unions/dedupes in PHP using a UUID-keyed associative array.
-
-**Alternatives considered:**
-
-- A single SQL UNION query with `WHERE (userId = ? AND type='user') OR (type='group_shared' AND groupId IN (?,?,...,'default'))`. Rejected because (a) the IN-list size is unbounded (a user can be in many groups), causing query plan instability, and (b) the SQL UNION makes it harder to tag each row with the correct `source` value.
-
-**Rationale**: Three indexed queries are fast (each hits `(userId, type)` or `(type, groupId)`), the PHP-side union is O(n) over a small result set (rarely >50 dashboards total per user), and we can attach the `source` field cleanly per result set before merging. Dedup-by-UUID is trivial in associative-array form.
-
-### D4: Source-tagging happens server-side, not client-side
-
-**Decision**: The `/api/dashboards/visible` endpoint adds `source: 'user' | 'group' | 'default'` to each returned dashboard.
+**Decision**: `targetPersonas: ['chair', 'secretary', 'member']` is an explicit array on the dashboard. No inheritance or persona parent-child relationships.
 
 **Alternatives considered:**
 
-- Let the frontend infer `source` from `type` + `groupId`. Rejected because it pushes business logic into multiple frontend stores (Pinia, the page-level mounter, and the dashboard-card component) and risks divergence.
+- Persona hierarchy (chair inherits from member). Rejected — adds complexity without clear benefit; role hierarchies vary per organisation and are already handled by OpenRegister's RBAC.
+- Implicit personas (dashboard name matching role name auto-maps). Rejected — fragile and non-discoverable; explicit is clearer.
+- Target-audience annotations (public, internal, admin). Rejected — too coarse; doesn't support multi-role scenarios.
 
-**Rationale**: Server-side tagging keeps the frontend dumb — it simply checks `dashboard.source` to decide which endpoint to PUT updates to. Same logic, one place.
+**Rationale**: Explicit role arrays are discoverable, auditable, and flexible. Admins define "this dashboard is for chairs + secretaries" in one place and the system respects it.
 
-### D5: Last-in-group delete guard only applies to `group_shared`, not personal
+### D3: Scope resolver returns **all** visible dashboards, layout selector picks the active one
 
-**Decision**: `DELETE /api/dashboards/group/{groupId}/{uuid}` returns HTTP 400 if removing the row would leave the group with zero `group_shared` dashboards. Personal-dashboard deletion (REQ-DASH-005) is unchanged.
+**Decision**: Two distinct services:
+- `DashboardScopeResolver::findDashboardsForUser(user)` → returns `Dashboard[]` (all dashboards the user can see)
+- `PersonaLayoutSelector::selectActiveLayout(user, dashboards)` → returns `Dashboard` (the one to activate)
 
-**Alternatives considered:**
-
-- No guard at all. Rejected because an admin who accidentally deletes the last group dashboard would silently strip every member of that group of their default landing page (since the visible-to-user union would suddenly return only personal + default-group dashboards, none of which may be the previously-active one).
-- A guard on every delete (including personal). Rejected because users explicitly expect to be able to delete all their own personal dashboards — REQ-DASH-005 #5 ("Delete the last remaining dashboard") is an existing scenario.
-
-**Rationale**: The asymmetry mirrors the asymmetry of impact: personal dashboards affect one user, group-shared dashboards affect N users. The default group is exempt from the guard because by definition it is opt-in (admins know what they're doing when curating it).
-
-### D6: Group-shared dashboards do NOT appear in `GET /api/dashboards`
-
-**Decision**: The existing `GET /api/dashboards` endpoint continues to return only personal (`type = 'user'`) dashboards owned by the caller. Group-shared dashboards only appear in `GET /api/dashboards/visible` and `GET /api/dashboards/group/{groupId}`.
+They are not combined into a single "get active dashboard" service.
 
 **Alternatives considered:**
 
-- Make `GET /api/dashboards` return the union. Rejected because it would silently change the semantics of an endpoint that older clients rely on (currently "my personal dashboards"), risking display of admin-owned dashboards in places that assume edit rights.
+- One service returns just the active dashboard. Rejected — the UI needs to show a switcher dropdown listing all visible options.
+- Resolver returns dashboards ranked by priority. Rejected — selection logic should be testable and replaceable independently.
 
-**Rationale**: Backward compatibility — existing API consumers (including older mobile clients and integrations) keep getting exactly what they got before. The `/visible` endpoint is the new opt-in path for clients that understand the group scope.
+**Rationale**: Separation of concerns. The resolver answers "which dashboards are in scope?"; the selector answers "which one should be active now?" Allows independent testing and future swappable selection strategies.
 
-### D7: Permission level for group-shared dashboards
+### D4: Layout selector uses highest-priority **role match**, not highest-priority dashboard
 
-**Decision**: Group-shared dashboards have an effective permission level of `view_only` for non-admin members and `full` for admins, regardless of what the underlying record's `permissionLevel` field says. The field still exists on the row (for forward-compat with future per-tile editing) but is overridden at resolution time by `PermissionService`.
+**Decision**: When a user has multiple matching dashboards (e.g., one for 'chair', one for 'member'), priority is determined by the user's **most-privileged matching role**, not by dashboard creation order.
 
-**Rationale**: Hard-coding the rule in `PermissionService::getEffectivePermissionLevel()` keeps the auth check in one place. Non-admins literally cannot mutate (the route guard returns 403), and the UI grays out edit affordances based on the resolved level.
+Example:
+- User has roles: ['member', 'chair']
+- Available dashboards: DashA (targetPersonas: ['member']), DashB (targetPersonas: ['chair'])
+- Selection: DashB (chair is higher-priority than member)
 
-## Data Model Changes
+**Alternatives considered:**
 
-```
-oc_mydash_dashboards (existing table)
-+ groupId VARCHAR(64) NULL                    -- new column
-+ INDEX idx_mydash_dash_type_group (type, groupId)   -- new composite index
-```
+- First-created-wins. Rejected — unintuitive when roles change or new dashboards are added.
+- Last-created-wins. Rejected — same issue.
+- Alphabetical order. Rejected — stable but arbitrary and user-hostile.
 
-App-level invariant (enforced in `DashboardFactory::create()` and validated in mapper insert):
+**Rationale**: Role priority is an external concern (defined in org settings), not a dashboard property. The selector defers to the role priority list, making the decision consistent and auditable.
 
-```
-(type = 'group_shared' AND groupId IS NOT NULL)
-   OR (type IN ('user', 'admin_template') AND groupId IS NULL)
-```
+### D5: Shared start pages are copied, not linked
 
-We do not add a CHECK constraint at the DB level because Nextcloud's migration framework discourages portable CHECK constraints (sqlite/mysql/postgres differ). The app-level guard plus PHPUnit fixtures cover it.
+**Decision**: When a user adopts a shared start page, MyDash creates a **copy** of the dashboard (new object with same widgets but independent state) rather than creating a reference to the template.
 
-## API Surface
+**Alternatives considered:**
 
-| Method | Path | Auth | Purpose |
-|---|---|---|---|
-| GET | `/api/dashboards/visible` | logged-in user | Return deduplicated union of personal + group + default-group dashboards, each tagged with `source` |
-| GET | `/api/dashboards/group/{groupId}` | logged-in user | List group-shared dashboards in the given group (members + admins can list) |
-| POST | `/api/dashboards/group/{groupId}` | admin only | Create a new group-shared dashboard in the given group |
-| GET | `/api/dashboards/group/{groupId}/{uuid}` | logged-in user | Get one group-shared dashboard with placements |
-| PUT | `/api/dashboards/group/{groupId}/{uuid}` | admin only | Update name / layout / icon |
-| DELETE | `/api/dashboards/group/{groupId}/{uuid}` | admin only | Delete the dashboard (last-in-group guard applies to non-`default` groups) |
+- Create a link/reference to the template. Rejected — template updates would affect all adopters' dashboards, breaking the "template is a starting point, not a live binding" expectation.
+- Create a versioned link. Rejected — adds complexity (template versioning, migration on version bump) without clear benefit.
 
-The `groupId` path parameter accepts either a real Nextcloud group ID or the literal `default`.
+**Rationale**: Start pages are **templates**, not live instances. Users adopt them as a starting point and customise from there. Independence is expected.
+
+### D6: Adopting a shared page is a one-time action, not reversible via UI
+
+**Decision**: When a user clicks "Adopt" on a shared dashboard, MyDash copies it and sets it as the user's active dashboard. There is no "revert to template" button.
+
+**Alternatives considered:**
+
+- Add a "revert to template" option. Rejected — if the user has customised their dashboard, reverting silently discards their changes. A confirmation dialog feels punitive for an action that should feel low-risk.
+- Allow reverting to template and merging customisations. Rejected — merge logic is complex and error-prone.
+
+**Rationale**: Copy-once-and-own is simple and safe. If a user wants a fresh start, they can delete their dashboard and adopt the template again (creating a new copy).
 
 ## Risks / Trade-offs
 
-- **Risk:** Admin creates many group-shared dashboards in `'default'`, cluttering every user's `/visible` response. → **Mitigation:** Frontend renders dashboards as scrollable tabs; we recommend in admin docs that `default` be reserved for one or two flagship dashboards. No hard limit enforced (would be arbitrary).
-- **Risk:** Performance degradation on `/visible` for users with many groups. → **Mitigation:** Three indexed queries; tested at 100 groups in PHPUnit fixture; expected p99 under 50 ms. Add a cache layer in a follow-up only if metrics show a hot path.
-- **Risk:** A user is removed from a group while their active dashboard is the group-shared one. → **Mitigation:** `DashboardResolver::tryGetActiveDashboard()` falls through to `tryActivateExistingDashboard()` which picks any other visible dashboard; the user sees no error, just a different active dashboard on next load.
-- **Risk:** Admin accidentally creates a real Nextcloud group called `default` despite the reservation. → **Mitigation:** Document the reservation in admin-facing docs; Nextcloud's IGroupManager already disallows the literal `default` as a group ID, but if a future Nextcloud version ever permits it the lookup still works deterministically (the `groupId='default'` query returns rows tagged for the synthetic group, and `IGroupManager::getUserGroupIds()` would also include the real group — both contribute, dedup handles overlap).
-- **Trade-off:** One dashboard cannot target multiple groups. Admins who need that must duplicate. We chose schema simplicity over flexibility here; revisit if the duplication burden becomes painful.
-- **Trade-off:** Edits don't push in real time. Admins must communicate "refresh your page" out-of-band. WebSocket push is a future enhancement, not part of this change.
+- **Risk:** Role priority order is a global setting that can change, breaking users' expectations about which dashboard they see. → **Mitigation:** Document the priority order prominently in settings; announce changes to users; provide a way to manually pin a preferred dashboard per user (future work).
+- **Risk:** Persona matching is string-based (role slug equality), so a typo in targetPersonas breaks visibility. → **Mitigation:** Admin UI (task) validates persona strings against known roles; form uses a select dropdown, not free-text input.
+- **Trade-off:** Separate scope resolver + layout selector adds two service calls per page load instead of one combined query. → **Mitigation:** Both are in-app, no network round-trip; caching can be added later if profiling shows contention.
+- **Trade-off:** Shared start page adoption creates a copy, duplicating widget configurations. → **Mitigation:** This is intentional (independence), and the UI makes it clear "you're creating your own copy".
+
+## Reuse Analysis
+
+**Existing OpenRegister services leveraged:**
+
+- `ObjectService` — dashboard objects are stored in OpenRegister; scope resolver queries them via `findObjects(register, schema, {scope: 'shared', ...})`
+- `AuthorizationService` — per-object permissions (a shared dashboard still respects schema-level read permissions even if scope says it should be visible)
+
+**No custom CRUD or query logic** — scope resolution is a thin filter layer on top of `ObjectService::findObjects`.
+
+## Data Model
+
+**Dashboard schema changes** (OpenRegister object):
+
+```
+scope: enum {personal, shared, organisation}
+targetPersonas: string[] (empty = all roles)
+```
+
+No new database tables; both fields are properties on the existing dashboard entity.
 
 ## Migration Plan
 
-1. **Schema migration** ships with the release: adds nullable `groupId` column + composite index. Zero-downtime, no data backfill.
-2. **Backend rolls out** with the new endpoints registered. Old clients keep working (they don't call `/visible` or `/group/...`).
-3. **Frontend rolls out** with `useDashboardsStore` extended to call `/visible` instead of `/api/dashboards` for the listing page. The old endpoint remains for compatibility but is no longer the primary list source.
-4. **Rollback strategy**: Reverting the frontend takes the user back to seeing only personal dashboards. Reverting the backend leaves the new column in place (harmless; nullable). The migration can be reversed but isn't required for rollback.
-5. **No flag** required — the new endpoints are additive and the new dashboard type only appears in records explicitly created via the new endpoints.
-
-## Seed Data
-
-Group-shared dashboards in OpenRegister-backed installations require seed records so admin developers can preview the feature locally:
-
-- **Default-group "Welcome" dashboard**: `groupId='default'`, name "Welcome to MyDash", permissionLevel=`view_only`, two placements (announcements widget + activity widget). Targets every user, including those with no group memberships.
-- **Marketing-group "Campaigns" dashboard**: `groupId='marketing'`, name "Active Campaigns", permissionLevel=`view_only`, three placements (kpi-tile + chart-widget + recent-activity). Demonstrates a real-group binding.
-- **Engineering-group "Sprint" dashboard**: `groupId='engineering'`, name "Sprint Overview", permissionLevel=`view_only`, four placements (burndown + open-prs + ci-status + recommendations). Demonstrates a denser layout.
-
-All three records have `userId = NULL`, `type = 'group_shared'`, `isActive = 0`, `basedOnTemplate = NULL`.
+1. Schema migration: add `scope` + `targetPersonas` columns/properties to dashboard entity (all existing dashboards default to `scope: personal` + `targetPersonas: []`)
+2. New services: `DashboardScopeResolver` + `PersonaLayoutSelector` (no callers yet)
+3. Refactor dashboard loading in `src/pages/Dashboard.vue` to call the new resolver
+4. Add dashboard switcher UI to `DashboardHeader.vue`
+5. Admin panel: add scope + persona configuration to the dashboard form
+6. Seed data: create 3-5 example shared dashboards (Board Member Overview, Staff Planning Board, Finance Summary)
+7. Tests: unit tests for scope resolver + layout selector; Playwright tests for switcher UI and adoption flow
 
 ## Open Questions
 
-- Should the `groupId='default'` dashboards be ordered before or after group-matching ones in `/visible`? Current decision: priority order is `user → group → default`, so default appears last. Frontend can re-order based on UX research after launch.
-- Should an admin be able to convert an existing `admin_template` into a `group_shared` dashboard in-place, or only create fresh? Current decision: only create fresh. Conversion deferred until customer demand surfaces.
+- Should users be able to manually pin a preferred dashboard (override automatic selection)? Current decision: no (keep it simple), revisit if priority conflicts become a support burden.
+- Should template updates propagate to adopted copies? Current decision: no (they are independent). Documented in the admin guide.
+- What happens when a user's roles change and their active dashboard is no longer in scope? Current decision: fall back to the first-available dashboard in scope, with a toast notification ("Your dashboard changed because your roles changed").
