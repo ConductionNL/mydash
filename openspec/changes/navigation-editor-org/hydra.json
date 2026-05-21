@@ -1,0 +1,8 @@
+{
+  "spec_slug": "navigation-editor-org",
+  "title": "Organization-wide Navigation Editor Specification",
+  "app": "mydash",
+  "repo": "https://github.com/ConductionNL/mydash",
+  "depends_on": [],
+  "issue": null
+}
