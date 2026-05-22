@@ -4,6 +4,17 @@ status: implemented
 
 # Demo Data Showcases Specification
 
+## Placement & Information Architecture
+
+**Placement type:** `SUB_PAGE` — Sub-page beneath a top-level menu entry. Renders as a page inside the parent surface (usually reachable via a router child route or a tab on the parent index page).
+
+**Lives at:** Templates / (root)
+
+**Rationale:** Bundled starter content  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 The `demo-data-showcases` capability provides administrators with one-click installation of pre-built, fully populated example dashboards that illustrate different organizational use cases. Showcases are bundled as ZIP archives containing a machine-readable `export.json` manifest plus per-locale page JSON files and media assets, loaded from disk on demand, and installed as `group_shared` dashboards visible to all users (via REQ-DASH-012 default-group sentinel). The capability includes widget type validation, graceful skip-on-missing for unknown widgets, NL-only localization in v1, and idempotent installation via API and CLI commands.
