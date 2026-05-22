@@ -4,6 +4,17 @@ status: implemented
 
 # Resource Uploads Specification
 
+## Placement & Information Architecture
+
+**Placement type:** `SUB_PAGE` — Sub-page beneath a top-level menu entry. Renders as a page inside the parent surface (usually reachable via a router child route or a tab on the parent index page).
+
+**Lives at:** Instellingen / Personal
+
+**Rationale:** User asset library  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 The `resource-uploads` capability owns a small mini file API for binary assets that MyDash widgets reference directly: dashboard icons, image-widget images, link-button icons, etc. Resources are stored in MyDash's app-data folder (NOT the user's Files), addressed by a stable URL, uploaded admin-only via a base64-data-URL JSON request, and served back to any logged-in user via a non-OCS streaming endpoint plus an OCS listing endpoint. SVG sanitisation is specified in the sibling `svg-sanitisation` capability.
