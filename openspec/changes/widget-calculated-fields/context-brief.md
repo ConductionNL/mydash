@@ -3,6 +3,17 @@ status: draft
 ---
 # Widget Calculated Fields
 
+## Placement & Information Architecture
+
+**Placement type:** `WIDGET` — Widget shown on a dashboard or another page. Has no dedicated page of its own; renders inside an existing surface as a tile/panel/card.
+
+**Lives at:** Dashboards + Catalog / Widget context-menu + Catalog reference
+
+**Rationale:** Per-widget editor + reference docs  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 Today every value shown in a mydash widget comes from a single data source: a register query, an OpenConnector call, or a simple aggregate computed by the widget engine. The moment a user wants something composite — "revenue minus refunds as a percentage of revenue", "average ticket resolution time across two queues", "this widget's count divided by another widget's count" — they have to either build a custom widget, change the underlying register, or copy numbers into a spreadsheet. Calculated fields make those compositions a first-class feature of the widget itself.
