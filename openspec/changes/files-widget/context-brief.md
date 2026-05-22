@@ -4,6 +4,17 @@ status: implemented
 
 # Files Widget Specification
 
+## Placement & Information Architecture
+
+**Placement type:** `WIDGET` — Widget shown on a dashboard or another page. Has no dedicated page of its own; renders inside an existing surface as a tile/panel/card.
+
+**Lives at:** Catalog / Widget type (Files)
+
+**Rationale:** Widget type  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 The files widget is a built-in MyDash widget type that lets dashboard authors embed an inline Nextcloud Files browser directly on a dashboard. The widget reads the configured folder live at render time, applies view-time ACL so each viewer sees only files they may read, supports folder navigation via a breadcrumb, deep-links file clicks into the standard Files application, and exposes optional upload and delete actions gated by both placement-level toggles and per-viewer permission. The capability is one widget type, one renderer, one sub-form, one registry entry, and three HTTP endpoints (contents listing, multi-file upload, single-file delete) — small enough to ship and evolve independently while anchoring the future "shared workspace folder" experience that other widgets will build on top of.
