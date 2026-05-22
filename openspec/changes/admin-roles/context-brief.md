@@ -5,6 +5,17 @@ status: implemented
 
 # Admin Roles Specification
 
+## Placement & Information Architecture
+
+**Placement type:** `DETAIL_TAB` — Tab on the detail view of an existing object. NOT a standalone page — appears inside the parent record's detail surface (e.g. an extra tab on the existing detail header).
+
+**Lives at:** Beheer / Tab: Roles & Permissions
+
+**Rationale:** Admin governance  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 Admin Roles provides a built-in role system scoped entirely within MyDash. Organization administrators can delegate dashboard management, widget installation, metadata field configuration, and other MyDash operations to trusted users without granting full Nextcloud system administration rights. Three roles (Dashboard Admin, Dashboard Editor, Dashboard Viewer) map to real organizational needs, and role assignments persist in a new table with support for both individual user and group-based delegation. Effective role resolution ensures the highest privilege wins when a user has multiple group memberships.
