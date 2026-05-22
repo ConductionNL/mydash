@@ -4,6 +4,17 @@
 **Spec:** ai-dashboard-assistant
 **Platform:** Nextcloud + OpenRegister
 
+## Placement & Information Architecture
+
+**Placement type:** `INFRA` — Cross-cutting infrastructure with no end-user surface (or only an internal/admin one). No menu item; backend wiring only.
+
+**Lives at:** global launcher + Reports / Global pill; Reports for saved
+
+**Rationale:** Cross-cutting AI surface  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Features (2 total, sorted by market demand)
 
 ### View a summary of my open cases on the dashboard
