@@ -4,6 +4,17 @@ status: implemented
 
 # Dashboard Locking Specification
 
+## Placement & Information Architecture
+
+**Placement type:** `DETAIL_TAB` — Tab on the detail view of an existing object. NOT a standalone page — appears inside the parent record's detail surface (e.g. an extra tab on the existing detail header).
+
+**Lives at:** Beheer / Tab: Sharing & Publication
+
+**Rationale:** Lock policy  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 Dashboard locking provides a concurrent-edit guard for dashboards. When two users open the same dashboard's edit view, the system MUST prevent the second user from editing until the first releases the lock. The mechanism uses a time-based lease (default 15 minutes) with client-driven heartbeat renewal to tolerate transient network outages and browser crashes without manual intervention.
