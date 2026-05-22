@@ -1,0 +1,8 @@
+{
+  "spec_slug": "scheduled-exports",
+  "title": "Scheduled Exports",
+  "app": "mydash",
+  "repo": "https://github.com/ConductionNL/mydash",
+  "depends_on": [],
+  "issue": null
+}
