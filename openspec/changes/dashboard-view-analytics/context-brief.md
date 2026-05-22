@@ -4,6 +4,17 @@ status: implemented
 
 # Dashboard View Analytics
 
+## Placement & Information Architecture
+
+**Placement type:** `SUB_PAGE` — Sub-page beneath a top-level menu entry. Renders as a page inside the parent surface (usually reachable via a router child route or a tab on the parent index page).
+
+**Lives at:** Reports / (root)
+
+**Rationale:** Analytics product  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 Aggregate, privacy-preserving view counts per dashboard so MyDash administrators can understand which dashboards are actually being used. Counts are bucketed by UTC day and stored in a single aggregate table (`oc_mydash_dashboard_views`). Unique-viewer deduplication uses a daily-rotating salted SHA-256 hash kept exclusively in the Nextcloud cache layer; no per-user-per-event rows are persisted, and cross-day re-identification from the analytics database alone is computationally infeasible. Admins query top dashboards, per-dashboard daily breakdowns, instance-wide totals, and CSV exports through admin-only endpoints. A daily background job purges rows older than the configured retention window (default 365 days, clamped to `[30, 3650]`).
