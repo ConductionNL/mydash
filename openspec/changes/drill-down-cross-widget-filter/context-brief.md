@@ -3,6 +3,17 @@ status: draft
 ---
 # Drill-down Cross-widget Filter
 
+## Placement & Information Architecture
+
+**Placement type:** `WIDGET` — Widget shown on a dashboard or another page. Has no dedicated page of its own; renders inside an existing surface as a tile/panel/card.
+
+**Lives at:** Dashboards / Canvas interaction
+
+**Rationale:** Inline canvas feature  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 mydash dashboards today render each widget as a standalone island: a chart pulls its own data from OpenRegister with its own filter context, and a click on a bar in that chart either does nothing or, at best, drops the user into a list view detached from the dashboard. That breaks the most basic analytical workflow — "show me the bezwaren in Zeist, broken down by wijk; now show me only Vollenhove; now show me only the open ones older than six weeks". Every step of that workflow today requires the user to reopen filter modals on three different widgets, re-enter the same gemeente/wijk/age values, and reconcile the inevitable inconsistencies when one widget interprets "older than six weeks" differently from the next. Drill-down Cross-widget Filter closes that gap by giving the dashboard a shared filter bus that any widget can publish to and any widget can subscribe to.
