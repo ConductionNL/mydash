@@ -4,6 +4,17 @@ status: implemented
 
 # Menu Widget Specification
 
+## Placement & Information Architecture
+
+**Placement type:** `WIDGET` — Widget shown on a dashboard or another page. Has no dedicated page of its own; renders inside an existing surface as a tile/panel/card.
+
+**Lives at:** Catalog / Widget type (Layout)
+
+**Rationale:** Layout widget  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 The menu widget is a built-in MyDash widget type that renders a hierarchical, in-page navigation tree distinct from the application sidebar. It supports up to three levels of nesting and three visual styles — `dropdown`, `megamenu`, and `tree` — so dashboard authors can publish curated link sets that fit the surrounding layout without writing custom Vue code.
