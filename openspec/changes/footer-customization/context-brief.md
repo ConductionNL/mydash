@@ -4,6 +4,17 @@ status: implemented
 
 # Footer Customization Specification
 
+## Placement & Information Architecture
+
+**Placement type:** `DETAIL_TAB` — Tab on the detail view of an existing object. NOT a standalone page — appears inside the parent record's detail surface (e.g. an extra tab on the existing detail header).
+
+**Lives at:** Beheer / Tab: Compliance & Security
+
+**Rationale:** Org chrome policy  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 Footer Customization provides per-instance branding, legal disclaimers, and contact information rendered below the dashboard surface. Administrators configure global footer content (HTML or structured form), with optional per-dashboard overrides. The footer respects theme colors, supports multi-language variants, and prints correctly in PDF exports.
@@ -409,4 +420,3 @@ The system MUST provide two new admin-only API endpoints to manage footer settin
   - `dashboardFooterHtml` (nullable string)
 - AND if the dashboard has an active global footer or custom override, an optional `effectiveFooter` field MAY be included with the resolved footer content
 - NOTE: The `effectiveFooter` field is optional for API backward compatibility; recommended but not strictly required
-
