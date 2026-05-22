@@ -5,6 +5,17 @@ status: implemented
 
 # Dashboard Comments Specification
 
+## Placement & Information Architecture
+
+**Placement type:** `SUB_PAGE` — Sub-page beneath a top-level menu entry. Renders as a page inside the parent surface (usually reachable via a router child route or a tab on the parent index page).
+
+**Lives at:** Dashboards / Top-bar side-panel
+
+**Rationale:** Per-dashboard threading; aggregate in Comments menu  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 Dashboards are shared workspaces within teams and organizations. Dashboard Comments adds a threaded discussion surface so users can ask "why is this widget red?" or "we should change this metric next sprint" directly on the dashboard they are looking at. Comments are persisted via Nextcloud's native `ICommentsManager` infrastructure (the same backend used by the file comments and Talk integrations) so administrators get unified comment storage, notifications, and audit trails — and so MyDash does not introduce a redundant comment table.
