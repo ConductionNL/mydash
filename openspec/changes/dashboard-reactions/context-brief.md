@@ -4,6 +4,17 @@ status: implemented
 
 # Dashboard Reactions Specification
 
+## Placement & Information Architecture
+
+**Placement type:** `DETAIL_TAB` — Tab on the detail view of an existing object. NOT a standalone page — appears inside the parent record's detail surface (e.g. an extra tab on the existing detail header).
+
+**Lives at:** Dashboards + Comments / Top-bar strip + Reactions tab
+
+**Rationale:** Per-dashboard + aggregate  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 Dashboard reactions enable lightweight social feedback via emoji on MyDash dashboards. Users can react with a configurable whitelist of emojis to mark dashboards as useful, appreciated, or funny, without requiring full-featured comments. Reactions are aggregated by emoji and visible to all viewers. An administrator can enable/disable reactions globally and per-dashboard, and can curate the allowed emoji list.
