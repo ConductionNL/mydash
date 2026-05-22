@@ -3,6 +3,17 @@ status: draft
 ---
 # Scheduled Exports
 
+## Placement & Information Architecture
+
+**Placement type:** `SUB_PAGE` — Sub-page beneath a top-level menu entry. Renders as a page inside the parent surface (usually reachable via a router child route or a tab on the parent index page).
+
+**Lives at:** Reports / (root)
+
+**Rationale:** Export product  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 mydash dashboards and widgets are designed for live, in-browser consumption: a user opens the app, the widgets render from OpenRegister and OpenConnector sources, and they read the numbers. That model breaks down for three very common organisational rhythms. First, the recurring management report — the wethouder who wants the weekly bezwaarschriften-stand on her desk every Monday at 9:00 in PDF, the same way her predecessor got it on paper. Second, the regulated data exchange — the monthly CBS or VNG return where a fixed CSV/XLSX shape has to land on a specific SFTP drop at a specific date or a penalty kicks in. Third, the cross-system snapshot — the nightly PNG of a service-desk KPI dashboard that gets posted into a Teams channel so the standup starts from a shared picture instead of "let me open mydash for a second". Scheduled Exports gives mydash a first-class answer to all three.
