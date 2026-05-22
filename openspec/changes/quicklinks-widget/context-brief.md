@@ -4,6 +4,17 @@ status: implemented
 
 # Quicklinks Widget Specification
 
+## Placement & Information Architecture
+
+**Placement type:** `WIDGET` — Widget shown on a dashboard or another page. Has no dedicated page of its own; renders inside an existing surface as a tile/panel/card.
+
+**Lives at:** Catalog / Widget type (Content)
+
+**Rationale:** Widget type  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 The quicklinks widget is a built-in MyDash widget type that renders a flat, dense grid of icon-and-label shortcuts inside a single placement. Where the link-button widget owns one shortcut per placement and the links widget spreads grouped sections across multiple columns, the quicklinks widget targets the "app launcher" use case: 8–40 frequently used URLs in one widget, with admin-configurable icon size, shape, label position, columns, tile background, and hover effect. Bulk-add via CSV paste is first-class so admins can move dozens of shortcuts off a spreadsheet without typing each row.
