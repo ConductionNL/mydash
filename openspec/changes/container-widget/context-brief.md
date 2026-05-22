@@ -4,6 +4,17 @@ status: implemented
 
 # Container Widget Specification
 
+## Placement & Information Architecture
+
+**Placement type:** `WIDGET` — Widget shown on a dashboard or another page. Has no dedicated page of its own; renders inside an existing surface as a tile/panel/card.
+
+**Lives at:** Catalog / Widget type (Layout)
+
+**Rationale:** Layout primitive widget  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 The container widget hosts a sub-grid of child widget placements inside a single outer-grid cell. Authors compose dashboards out of logical sections (a heading + four KPI tiles, a "tabs" surface, a card with grouped content) without losing the move-as-one-unit drag behaviour of a top-level placement. Children are stored as nested `placements: WidgetPlacement[]` in the container's `content` blob and dispatched through the same widget registry that drives the top-level grid, so any registered widget type — including another container — can live inside one. Server-side validation caps recursion at three nested container levels (REQ-CONT-006) to prevent runaway depth.
