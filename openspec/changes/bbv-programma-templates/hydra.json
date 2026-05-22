@@ -1,0 +1,8 @@
+{
+  "spec_slug": "bbv-programma-templates",
+  "title": "BBV Programma Templates",
+  "app": "mydash",
+  "repo": "https://github.com/ConductionNL/mydash",
+  "depends_on": [],
+  "issue": null
+}
