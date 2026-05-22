@@ -4,6 +4,17 @@ status: implemented
 
 # Orphaned Data Cleanup Specification
 
+## Placement & Information Architecture
+
+**Placement type:** `DETAIL_TAB` — Tab on the detail view of an existing object. NOT a standalone page — appears inside the parent record's detail surface (e.g. an extra tab on the existing detail header).
+
+**Lives at:** Beheer / Tab: Bulk
+
+**Rationale:** Admin cleanup  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 Provide administrators with a comprehensive, safe, and auditable mechanism to scan for and remove orphaned MyDash data: expired locks and tokens, widget assets from deleted dashboards, metadata-value rows with missing field definitions, placements with no dashboard, tokens for deleted users, role assignments for deleted users/groups, and translations for deleted dashboards. The capability MUST support dry-run (safe preview), per-category selectivity (scan vs. auto-purge), background automation (daily safe-categories job), and audit trails (activity events). A registry pattern enables adding new cleanup categories without editing central code.
