@@ -4,6 +4,17 @@ status: implemented
 
 # Nextcloud Unified Search Integration Specification
 
+## Placement & Information Architecture
+
+**Placement type:** `SUB_PAGE` — Sub-page beneath a top-level menu entry. Renders as a page inside the parent surface (usually reachable via a router child route or a tab on the parent index page).
+
+**Lives at:** global launcher / Top bar search
+
+**Rationale:** NC search integration  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 Nextcloud's unified search (Ctrl+K / Cmd+K) provides a global discovery mechanism for content across all installed apps. MyDash dashboards, widgets, and metadata are exposed to this search via a registered `OCP\Search\IProvider` so users can discover and navigate to dashboards by name, description, widget content, or metadata field values from the global search bar without entering the app first.
