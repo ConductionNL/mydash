@@ -2,6 +2,17 @@ status: draft
 
 # BBV Programma Templates
 
+## Placement & Information Architecture
+
+**Placement type:** `SUB_PAGE` — Sub-page beneath a top-level menu entry. Renders as a page inside the parent surface (usually reachable via a router child route or a tab on the parent index page).
+
+**Lives at:** Templates / (root)
+
+**Rationale:** Sector starter content  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 Provide a first-class data model and seed-template library for the Nederlandse gemeentelijke Programmabegroting-structuur (BBV: Besluit Begroting en Verantwoording provincies en gemeenten) inside mydash so that gemeenten can stand up a programma / doel / indicator hierarchy in minutes instead of weeks. Every gemeente in Nederland is wettelijk verplicht een programmabegroting op te stellen die de gemeentelijke taken indeelt in programma's (sociaal domein, ruimte, bestuur, openbare orde, ...), met per programma één of meer doelen en per doel meetbare indicatoren (vaak gekoppeld aan de wettelijke "Beleidsindicatoren" uit waarstaatjegemeente.nl).
