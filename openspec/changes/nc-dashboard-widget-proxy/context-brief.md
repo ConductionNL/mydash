@@ -1,5 +1,16 @@
 # nc-dashboard-widget-proxy Specification
 
+## Placement & Information Architecture
+
+**Placement type:** `CROSS_APP` — Cross-app coordination — primary surface lives in another app. This spec contributes shared schema, services, or an integration entry rather than a UI surface in this app.
+
+**Lives at:** Catalog / Bridge category
+
+**Rationale:** Bridge to NC widgets  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 Defines the user-facing surface of the Nextcloud Dashboard widget proxy
@@ -62,4 +73,3 @@ Keyboard navigation MUST work as follows:
 - **THEN** focus MUST move to the second card
 - **AND** the second card MUST have `tabindex="0"` while the others have `tabindex="-1"`
 - **AND** pressing Enter MUST select the second card
-
