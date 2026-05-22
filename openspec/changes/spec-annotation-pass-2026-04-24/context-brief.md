@@ -4,6 +4,17 @@ Closes the ADR-003 `@spec` tag gap flagged in
 [`docs/adr-audit.md`](../../../docs/adr-audit.md). MyDash has **zero**
 `@spec` PHPDoc tags across 64 PHP files and ~215 public methods today.
 
+## Placement & Information Architecture
+
+**Placement type:** `DETAIL_TAB` — Tab on the detail view of an existing object. NOT a standalone page — appears inside the parent record's detail surface (e.g. an extra tab on the existing detail header).
+
+**Lives at:** Beheer / Tab: Operations
+
+**Rationale:** Internal tooling  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Why now
 
 The coverage scan at `openspec/coverage-report.md` (2026-04-24) has
