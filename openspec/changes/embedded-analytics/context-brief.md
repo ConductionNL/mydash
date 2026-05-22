@@ -3,6 +3,17 @@ status: draft
 ---
 # Embedded Analytics
 
+## Placement & Information Architecture
+
+**Placement type:** `SUB_PAGE` — Sub-page beneath a top-level menu entry. Renders as a page inside the parent surface (usually reachable via a router child route or a tab on the parent index page).
+
+**Lives at:** Reports / (root)
+
+**Rationale:** Output artefact  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 mydash today is a Nextcloud app: to see a widget you have to log into Nextcloud, navigate to mydash, and have permission on the dashboard. That is correct for internal organisational consumption but it forecloses three classes of legitimate use that customers keep asking for. First, public-facing transparency — a gemeente that wants to put a live "openstaande WOO-verzoeken" widget on the page that explains their WOO process to citizens. Second, partner-facing operational dashboards — a shared-service organisation that runs mydash for a consortium of municipalities and wants each member gemeente to embed their own slice into the gemeente's internal intranet without giving everyone a Nextcloud account. Third, in-product analytics — a SaaS vendor whose product is built on Conduction's stack who wants to surface "your usage this month" widgets inside their own customer portal without iframing a full Nextcloud login flow. Embedded Analytics gives mydash a first-class answer to all three.
