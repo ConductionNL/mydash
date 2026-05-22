@@ -2,6 +2,17 @@ status: draft
 
 # Public Dashboard Publication
 
+## Placement & Information Architecture
+
+**Placement type:** `DETAIL_TAB` — Tab on the detail view of an existing object. NOT a standalone page — appears inside the parent record's detail surface (e.g. an extra tab on the existing detail header).
+
+**Lives at:** Beheer / Tab: Sharing & Publication
+
+**Rationale:** Publication policy  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 Provide an anonymous-read publication channel for mydash dashboards so that gemeenten, provincies, waterschappen, and other public bodies can publish open-data dashboards to citizens, journalists, and other partners without forcing each viewer through an authentication step. Today mydash dashboards are identity-bound: every viewer is a known user, every view is logged against that user, and access is governed by per-dashboard ACLs. That is correct for internal BI and for the existing `dashboard-sharing` capability which lets one user share a dashboard with another identified user. It is wrong for open-overheid usage where the entire point is that any citizen can land on a URL like `dashboards.gemeentezeist.nl/wonen` and see the live numbers without a login.
