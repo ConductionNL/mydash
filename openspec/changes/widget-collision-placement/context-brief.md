@@ -2,6 +2,17 @@
 
 When a user adds a new widget to a non-empty dashboard, MyDash MUST decide where to place it without overlapping existing widgets and without dropping it off-grid. This change formalises the algorithm: try GridStack's auto-place first; if it fails, push existing widgets out of the way at the top-left.
 
+## Placement & Information Architecture
+
+**Placement type:** `WIDGET` — Widget shown on a dashboard or another page. Has no dedicated page of its own; renders inside an existing surface as a tile/panel/card.
+
+**Lives at:** Dashboards / Canvas
+
+**Rationale:** Canvas behaviour  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Affected code units
 
 - `src/composables/useGridManager.js` — `placeNewWidget(widget)` helper called by the add-widget submit handler
