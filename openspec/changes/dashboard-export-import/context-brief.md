@@ -4,6 +4,17 @@ status: implemented
 
 # Dashboard Export & Import Specification
 
+## Placement & Information Architecture
+
+**Placement type:** `SUB_PAGE` — Sub-page beneath a top-level menu entry. Renders as a page inside the parent surface (usually reachable via a router child route or a tab on the parent index page).
+
+**Lives at:** Templates / (root)
+
+**Rationale:** Round-trip artefacts  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 Dashboard export and import allow MyDash administrators to create versioned snapshots of dashboard configurations, widgets, metadata fields, and associated assets. Snapshots are portable across Nextcloud instances, enabling backup, disaster recovery, template authoring, and cross-instance sharing. This capability defines a standardised ZIP container format (`mydash-export-v1.zip`), collision handling semantics, and API/CLI endpoints for end-to-end export-import workflows. Downstream capabilities such as `confluence-html-import` consume the same ZIP shape, so the manifest schema (`schemaVersion: 1`) is treated as a stable contract.
@@ -404,4 +415,3 @@ Each dashboard import MUST be wrapped in a database transaction to ensure consis
 - WHEN the response body is transmitted to the client
 - THEN the resulting ZIP file on disk MUST be valid and extractable
 - AND the manifest and all dashboard files MUST be intact
-
