@@ -1,0 +1,8 @@
+{
+  "spec_slug": "drill-down-cross-widget-filter",
+  "title": "Drill-down Cross-widget Filter",
+  "app": "mydash",
+  "repo": "https://github.com/ConductionNL/mydash",
+  "depends_on": [],
+  "issue": null
+}
