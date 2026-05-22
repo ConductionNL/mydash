@@ -4,6 +4,17 @@
 **Spec:** widget-add-edit-modal
 **Platform:** Nextcloud + OpenRegister
 
+## Placement & Information Architecture
+
+**Placement type:** `WIDGET` — Widget shown on a dashboard or another page. Has no dedicated page of its own; renders inside an existing surface as a tile/panel/card.
+
+**Lives at:** Dashboards / Canvas modal
+
+**Rationale:** Canvas interaction  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Features (2 total, sorted by market demand)
 
 ### Widget management
