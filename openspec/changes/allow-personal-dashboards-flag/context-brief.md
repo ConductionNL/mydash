@@ -2,6 +2,17 @@
 
 The existing REQ-ASET-003 declares the `allow_user_dashboards` setting but does not specify how it gates the personal-dashboard endpoints at runtime. This change adds the gating semantics: when the flag is OFF, every personal-dashboard creation/fork endpoint MUST return 403 with a specific error code so the UI can render a coherent state, and existing personal dashboards MUST remain readable.
 
+## Placement & Information Architecture
+
+**Placement type:** `DETAIL_TAB` — Tab on the detail view of an existing object. NOT a standalone page — appears inside the parent record's detail surface (e.g. an extra tab on the existing detail header).
+
+**Lives at:** Beheer / Tab: Sharing & Publication
+
+**Rationale:** Org-level policy toggle  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Affected code units
 
 - `lib/Controller/DashboardController.php` — every `POST /api/dashboards`, `POST /api/dashboards/{uuid}/fork`, and `POST /api/dashboards/active` (when target is personal) must check the flag
