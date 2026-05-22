@@ -4,6 +4,17 @@ status: implemented
 
 # Activity Feed Integration Specification
 
+## Placement & Information Architecture
+
+**Placement type:** `DETAIL_TAB` — Tab on the detail view of an existing object. NOT a standalone page — appears inside the parent record's detail surface (e.g. an extra tab on the existing detail header).
+
+**Lives at:** Comments / Activity-feed tab
+
+**Rationale:** Cross-dashboard activity stream  
+_Source: /tmp/ia-mydash-openregister.md_
+
+> **Implementation note for builders:** Respect the placement above. Do not promote this spec to a top-level menu item, sub-page, or new route unless the placement type explicitly says so. If the placement is `DETAIL_TAB`, `WIDGET`, `ACTION`, `SETTING`, or `INFRA`, the feature must NOT introduce a new entry in the app sidebar. When in doubt, ask before creating a new top-level surface.
+
 ## Purpose
 
 Surface MyDash events in Nextcloud's standard Activity feed so every action on a dashboard — creation, editing, publication, sharing, commenting, locking, and role changes — is visible to the relevant users in their NC notifications and activity stream. This capability defines the NC Activity extension class, all event-type constants, audience-targeting rules, debounce logic, subject/message templates, icon conventions, the cross-capability emission contract, and the unit-test contract. Actual `publishActivity()` call-sites are delegated to the sibling capability that owns each action.
