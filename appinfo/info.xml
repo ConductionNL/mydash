@@ -47,7 +47,7 @@ Ideaal voor organisaties die consistente, samengestelde dashboards willen voor h
 Vrij en open source onder de EUPL-1.2-licentie.
     ]]></description>
 	<version>1.0.5-unstable.0</version>
-	<licence>EUPL-1.2</licence>
+	<licence>agpl</licence>
 	<author mail="info@conduction.nl" homepage="https://www.conduction.nl/">Conduction</author>
 	<namespace>MyDash</namespace>
 	<documentation>
@@ -67,7 +67,7 @@ Vrij en open source onder de EUPL-1.2-licentie.
 	<screenshot>https://raw.githubusercontent.com/ConductionNL/mydash/main/img/screenshot.png</screenshot>
 
 	<dependencies>
-		<php min-version="8.1"/>
+		<php min-version="8.3"/>
 		<nextcloud min-version="29" max-version="34"/>
 		<app>openregister</app>
 	</dependencies>
