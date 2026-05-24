@@ -12,6 +12,9 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
+ *
+ * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-1
+ * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-2
  */
 
 declare(strict_types=1);
@@ -56,6 +59,8 @@ class DashboardRequestValidator
      * @return JSONResponse|null Error response or null if allowed.
      *
      * @SuppressWarnings(PHPMD.StaticAccess) — ResponseHelper uses static methods by design
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-1
      */
     public function checkUpdatePermissions(string $userId, int $dashboardId, ?array $placements): ?JSONResponse
     {
@@ -84,6 +89,8 @@ class DashboardRequestValidator
      * @param string|null $description The description parameter.
      *
      * @return array The resolved name and description.
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-2
      */
     public function resolveCreateParams(
         $name,
@@ -110,6 +117,8 @@ class DashboardRequestValidator
      * @return JSONResponse|null Error response or null if allowed.
      *
      * @SuppressWarnings(PHPMD.StaticAccess) — ResponseHelper uses static methods by design
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-1
      */
     public function checkCreatePermissions(string $userId): ?JSONResponse
     {
@@ -146,6 +155,8 @@ class DashboardRequestValidator
      * @param array|null  $placements  The placements.
      *
      * @return array The non-null update data.
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-2
      */
     public function buildUpdateData(
         ?string $name,
