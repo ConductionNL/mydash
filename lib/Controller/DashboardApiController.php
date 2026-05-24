@@ -117,7 +117,7 @@ class DashboardApiController extends Controller
      *
      * @return JSONResponse The list of dashboards.
      *
-     * @spec dashboards:REQ-DASH-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-17
      */
     #[NoAdminRequired]
     public function list(): JSONResponse
@@ -170,7 +170,7 @@ class DashboardApiController extends Controller
      *
      * @return JSONResponse The active dashboard data.
      *
-     * @spec dashboards:REQ-DASH-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-18
      */
     #[NoAdminRequired]
     public function getActive(): JSONResponse
@@ -220,7 +220,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The dashboard envelope (200) or
      *                      `{'error': 'Not found'}` (404).
      *
-     * @spec dashboards:REQ-SWITCH-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-21
      */
     #[NoAdminRequired]
     public function show(int $id): JSONResponse
@@ -277,7 +277,7 @@ class DashboardApiController extends Controller
      *
      * @return JSONResponse The created dashboard.
      *
-     * @spec dashboards:REQ-DASH-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-16
      */
     #[NoAdminRequired]
     public function create(
@@ -399,7 +399,7 @@ class DashboardApiController extends Controller
      *
      * @return JSONResponse The updated dashboard.
      *
-     * @spec dashboards:REQ-DASH-004
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-19
      */
     #[NoAdminRequired]
     public function update(
@@ -493,7 +493,7 @@ class DashboardApiController extends Controller
      *
      * @return JSONResponse The deletion confirmation.
      *
-     * @spec dashboards:REQ-DASH-005
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-20
      */
     #[NoAdminRequired]
     public function delete(int $id): JSONResponse

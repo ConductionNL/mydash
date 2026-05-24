@@ -45,7 +45,7 @@ class MetricsQueryService
      *
      * @throws \Exception When the database query fails.
      *
-     * @spec prometheus-metrics:REQ-PROM-004
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-26
      */
     public function queryDashboardCounts(): array
     {

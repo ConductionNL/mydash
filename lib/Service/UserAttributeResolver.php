@@ -50,7 +50,7 @@ class UserAttributeResolver
      *
      * @return string|null The attribute value or null.
      *
-     * @spec conditional-visibility:REQ-VIS-008
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-12
      */
     public function getUserAttributeValue(
         string $userId,

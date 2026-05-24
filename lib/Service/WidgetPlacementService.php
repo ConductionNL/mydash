@@ -59,7 +59,7 @@ class WidgetPlacementService
      *
      * @throws InvalidArgumentException When the depth limit is exceeded.
      *
-     * @spec container-widget:REQ-CONT-006
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-15
      */
     public function validateContainerDepth(array $content, int $depth=0): void
     {

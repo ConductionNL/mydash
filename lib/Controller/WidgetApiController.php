@@ -80,7 +80,7 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse The list of available widgets.
      *
-     * @spec widgets:REQ-WDG-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-32
      */
     #[NoAdminRequired]
     public function listAvailable(): JSONResponse
@@ -125,7 +125,7 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse The widget items.
      *
-     * @spec widgets:REQ-WDG-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-33
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -158,7 +158,7 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse The created widget placement.
      *
-     * @spec widgets:REQ-WDG-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-34
      */
     #[NoAdminRequired]
     public function addWidget(
@@ -251,7 +251,7 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse
      *
-     * @spec container-widget:REQ-CONT-006
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-15
      */
     private function containerDepthExceededResponse(): JSONResponse
     {
@@ -311,7 +311,7 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse The updated widget placement.
      *
-     * @spec widgets:REQ-WDG-004
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-35
      */
     #[NoAdminRequired]
     public function updatePlacement(int $placementId): JSONResponse
@@ -369,7 +369,7 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse The removal confirmation.
      *
-     * @spec widgets:REQ-WDG-005
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-36
      */
     #[NoAdminRequired]
     public function removePlacement(int $placementId): JSONResponse

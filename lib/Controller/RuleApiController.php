@@ -60,7 +60,7 @@ class RuleApiController extends Controller
      *
      * @return JSONResponse The conditional rules.
      *
-     * @spec conditional-visibility:REQ-VIS-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-9
      */
     #[NoAdminRequired]
     public function getRules(int $placementId): JSONResponse
@@ -96,7 +96,7 @@ class RuleApiController extends Controller
      *
      * @return JSONResponse The created rule.
      *
-     * @spec conditional-visibility:REQ-VIS-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-8
      */
     #[NoAdminRequired]
     public function addRule(
@@ -161,7 +161,7 @@ class RuleApiController extends Controller
      *
      * @return JSONResponse The updated rule.
      *
-     * @spec conditional-visibility:REQ-VIS-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-10
      */
     #[NoAdminRequired]
     public function updateRule(
@@ -201,7 +201,7 @@ class RuleApiController extends Controller
      *
      * @return JSONResponse The deletion confirmation.
      *
-     * @spec conditional-visibility:REQ-VIS-004
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-11
      */
     #[NoAdminRequired]
     public function deleteRule(int $ruleId): JSONResponse

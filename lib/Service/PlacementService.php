@@ -57,7 +57,7 @@ class PlacementService
      *
      * @return WidgetPlacement The created widget placement.
      *
-     * @spec widgets:REQ-WDG-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-34
      */
     public function addWidget(
         int $dashboardId,
@@ -135,7 +135,7 @@ class PlacementService
      *
      * @return WidgetPlacement The updated widget placement.
      *
-     * @spec widgets:REQ-WDG-004
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-35
      */
     public function updatePlacement(
         int $placementId,
@@ -170,7 +170,7 @@ class PlacementService
      *
      * @return void
      *
-     * @spec widgets:REQ-WDG-005
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-36
      */
     public function removePlacement(int $placementId): void
     {

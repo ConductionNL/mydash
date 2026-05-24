@@ -55,7 +55,7 @@ class HealthController extends Controller
      *
      * @NoCSRFRequired
      *
-     * @spec prometheus-metrics:REQ-PROM-007
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-27
      */
     public function index(): JSONResponse
     {

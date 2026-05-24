@@ -37,7 +37,7 @@ class WidgetItemLoader
      *
      * @return array The widget items keyed by widget ID.
      *
-     * @spec widgets:REQ-WDG-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-33
      */
     public function loadItems(
         array $widgets,

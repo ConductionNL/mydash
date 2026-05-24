@@ -39,7 +39,7 @@ class WidgetFormatter
      *
      * @return array The formatted widget data.
      *
-     * @spec widgets:REQ-WDG-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-32
      */
     public function format(IWidget $widget, string $userId): array
     {

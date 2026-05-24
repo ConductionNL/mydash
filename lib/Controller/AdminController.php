@@ -138,7 +138,7 @@ class AdminController extends Controller
      *
      * @return JSONResponse The list of templates.
      *
-     * @spec admin-templates:REQ-TMPL-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-4
      */
     public function listTemplates(): JSONResponse
     {
@@ -191,7 +191,7 @@ class AdminController extends Controller
      *
      * @return JSONResponse The created template.
      *
-     * @spec admin-templates:REQ-TMPL-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-3
      */
     public function createTemplate(
         string $name,
@@ -231,7 +231,7 @@ class AdminController extends Controller
      *
      * @return JSONResponse The updated template.
      *
-     * @spec admin-templates:REQ-TMPL-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-5
      */
     public function updateTemplate(
         int $id,
@@ -272,7 +272,7 @@ class AdminController extends Controller
      *
      * @return JSONResponse The deletion confirmation.
      *
-     * @spec admin-templates:REQ-TMPL-004
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-6
      */
     public function deleteTemplate(int $id): JSONResponse
     {
@@ -290,7 +290,7 @@ class AdminController extends Controller
      *
      * @return JSONResponse The admin settings.
      *
-     * @spec admin-settings:REQ-ASET-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-1
      */
     public function getSettings(): JSONResponse
     {
@@ -312,7 +312,7 @@ class AdminController extends Controller
      *
      * @return JSONResponse The update confirmation.
      *
-     * @spec admin-settings:REQ-ASET-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-2
      */
     public function updateSettings(
         ?string $defaultPermLevel=null,

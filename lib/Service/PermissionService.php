@@ -107,7 +107,7 @@ class PermissionService
      *
      * @return bool Whether the user can edit the dashboard.
      *
-     * @spec permissions:REQ-PERM-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-22
      */
     public function canEditDashboard(string $userId, int $dashboardId): bool
     {
@@ -185,7 +185,7 @@ class PermissionService
      *
      * @return bool Whether the user can add widgets.
      *
-     * @spec permissions:REQ-PERM-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-23
      */
     public function canAddWidget(string $userId, int $dashboardId): bool
     {
@@ -218,7 +218,7 @@ class PermissionService
      *
      * @return bool Whether the user can remove the widget.
      *
-     * @spec permissions:REQ-PERM-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-22
      */
     public function canRemoveWidget(string $userId, int $placementId): bool
     {
@@ -359,7 +359,7 @@ class PermissionService
      *
      * @return string The effective permission level.
      *
-     * @spec permissions:REQ-PERM-008
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-24
      */
     public function getEffectivePermissionLevel(
         Dashboard $dashboard,

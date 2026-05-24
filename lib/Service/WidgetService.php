@@ -84,7 +84,7 @@ class WidgetService
      *
      * @return array The list of available widgets.
      *
-     * @spec widgets:REQ-WDG-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-32
      */
     public function getAvailableWidgets(): array
     {
@@ -123,7 +123,7 @@ class WidgetService
      *
      * @return array The widget items.
      *
-     * @spec widgets:REQ-WDG-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-33
      */
     public function getWidgetItems(
         string $userId,
