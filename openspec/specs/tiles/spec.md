@@ -68,7 +68,7 @@ The following behaviour MUST hold during the deprecation window:
 - **THEN** the tile MUST display with title + icon + colours + click-through correctly
 - **AND** no console errors MUST occur
 
-### REQ-TILE-002: List User Tiles
+### Requirement: List User Tiles (REQ-TILE-002)
 
 Users MUST be able to retrieve all their custom tile definitions, scoped to their user ID.
 
@@ -89,7 +89,7 @@ Users MUST be able to retrieve all their custom tile definitions, scoped to thei
 - WHEN she sends GET /api/tiles
 - THEN the system MUST return HTTP 200 with an empty array
 
-### REQ-TILE-003: Update Custom Tile
+### Requirement: Update Custom Tile (REQ-TILE-003)
 
 Users MUST be able to update the properties of their custom tiles with ownership verification.
 
@@ -126,7 +126,7 @@ Users MUST be able to update the properties of their custom tiles with ownership
 - THEN only `title` MUST be updated
 - AND all other fields (icon, iconType, backgroundColor, textColor, linkType, linkValue) MUST remain unchanged
 
-### REQ-TILE-004: Delete Custom Tile
+### Requirement: Delete Custom Tile (REQ-TILE-004)
 
 Users MUST be able to delete their custom tile definitions with ownership verification.
 
@@ -149,7 +149,7 @@ Users MUST be able to delete their custom tile definitions with ownership verifi
 - THEN the system MUST return HTTP 403 (via `findByIdAndUser()`)
 - AND the tile MUST NOT be deleted
 
-### REQ-TILE-005: Place Tile on Dashboard
+### Requirement: Place Tile on Dashboard (REQ-TILE-005)
 
 Users MUST be able to place tile data onto a dashboard, creating a widget placement with inline tile data.
 
@@ -189,7 +189,7 @@ Users MUST be able to place tile data onto a dashboard, creating a widget placem
 - THEN the system MUST return HTTP 403
 - AND `canAddWidget()` MUST block tile additions on view-only dashboards
 
-### REQ-TILE-006: Tile Icon Rendering
+### Requirement: Tile Icon Rendering (REQ-TILE-006)
 
 The frontend MUST support four icon formats: emoji, CSS class, URL, and SVG path.
 
@@ -217,7 +217,7 @@ The frontend MUST support four icon formats: emoji, CSS class, URL, and SVG path
 - THEN the system MUST render the path inside an `<svg viewBox="0 0 24 24">` element
 - AND the SVG fill MUST use the tile's textColor
 
-### REQ-TILE-007: Tile Color Validation
+### Requirement: Tile Color Validation (REQ-TILE-007)
 
 Tile colors MUST be validated to ensure proper display and accessibility.
 
@@ -237,7 +237,7 @@ Tile colors MUST be validated to ensure proper display and accessibility.
 - WHEN the tile is created
 - THEN `backgroundColor` MUST default to `'#0082c9'` (Nextcloud primary) and `textColor` MUST default to `'#ffffff'` (white)
 
-### REQ-TILE-008: Tile Link Navigation
+### Requirement: Tile Link Navigation (REQ-TILE-008)
 
 Tiles MUST navigate correctly based on their linkType.
 
@@ -257,7 +257,7 @@ Tiles MUST navigate correctly based on their linkType.
 - WHEN the user hovers over it
 - THEN the tile MUST scale slightly (transform: scale(1.02)) with reduced opacity (0.95)
 
-### REQ-TILE-009: Tile Styling
+### Requirement: Tile Styling (REQ-TILE-009)
 
 Tiles MUST apply their configured colors as CSS custom properties for consistent rendering.
 
@@ -280,7 +280,7 @@ Tiles MUST apply their configured colors as CSS custom properties for consistent
 - THEN the tile MUST fill the entire grid cell (`position: absolute; top: 0; left: 0; width: 100%; height: 100%`)
 - AND the tile MUST have no border radius and no border (overriding grid item defaults)
 
-### REQ-TILE-010: Tile Edit Mode
+### Requirement: Tile Edit Mode (REQ-TILE-010)
 
 Tiles MUST support an edit mode that allows configuration changes.
 
@@ -301,7 +301,7 @@ Tiles MUST support an edit mode that allows configuration changes.
 - THEN the `TileWidget` component MUST emit an `edit` event
 - AND `click.prevent` MUST prevent link navigation when clicking the edit button
 
-### REQ-TILE-011: Tile Management UI
+### Requirement: Tile Management UI (REQ-TILE-011)
 
 Users MUST be able to manage their tile definitions through a dedicated UI.
 

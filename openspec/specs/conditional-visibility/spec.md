@@ -46,7 +46,7 @@ NOTE: Date rules use camelCase keys (`startDate`, `endDate`). Both fields are op
 
 ## Requirements
 
-### REQ-VIS-001: Create Conditional Rule
+### Requirement: Create Conditional Rule (REQ-VIS-001)
 
 Users MUST be able to add conditional visibility rules to widget placements on dashboards they own.
 
@@ -114,7 +114,7 @@ Users MUST be able to add conditional visibility rules to widget placements on d
 - WHEN user "bob" sends POST /api/widgets/10/rules
 - THEN the system MUST return HTTP 403 (via `PermissionService::verifyPlacementOwnership()`)
 
-### REQ-VIS-002: List Conditional Rules
+### Requirement: List Conditional Rules (REQ-VIS-002)
 
 Users MUST be able to retrieve all conditional rules for a widget placement they own.
 
@@ -137,7 +137,7 @@ Users MUST be able to retrieve all conditional rules for a widget placement they
 - WHEN user "bob" sends GET /api/widgets/10/rules
 - THEN the system MUST return HTTP 403 (via `verifyPlacementOwnership()`)
 
-### REQ-VIS-003: Update Conditional Rule
+### Requirement: Update Conditional Rule (REQ-VIS-003)
 
 Users MUST be able to modify existing conditional rules on placements they own.
 
@@ -177,7 +177,7 @@ Users MUST be able to modify existing conditional rules on placements they own.
 - THEN only `isInclude` MUST be updated to `false`
 - AND `ruleType` and `ruleConfig` MUST remain unchanged
 
-### REQ-VIS-004: Delete Conditional Rule
+### Requirement: Delete Conditional Rule (REQ-VIS-004)
 
 Users MUST be able to remove conditional rules from their widget placements.
 
@@ -203,7 +203,7 @@ Users MUST be able to remove conditional rules from their widget placements.
 - THEN the system MUST return HTTP 403
 - NOTE: Ownership verification for delete is NOT currently implemented in `RuleApiController`.
 
-### REQ-VIS-005: Group-Based Rule Evaluation
+### Requirement: Group-Based Rule Evaluation (REQ-VIS-005)
 
 Group-based rules MUST show or hide widgets based on the current user's Nextcloud group memberships, resolved via `IGroupManager::getUserGroupIds()`.
 
@@ -237,7 +237,7 @@ Group-based rules MUST show or hide widgets based on the current user's Nextclou
 - THEN the rule MUST evaluate as not matching (empty target groups returns false)
 - AND the widget MUST be hidden (no include rule matches)
 
-### REQ-VIS-006: Time-Based Rule Evaluation
+### Requirement: Time-Based Rule Evaluation (REQ-VIS-006)
 
 Time-based rules MUST show or hide widgets based on the current time of day using the server's local time via `new DateTime()`.
 
@@ -287,7 +287,7 @@ Time-based rules MUST show or hide widgets based on the current time of day usin
 - THEN `startTime` MUST default to `"00:00"` and `endTime` MUST default to `"23:59"`
 - AND the rule MUST match at any time of day
 
-### REQ-VIS-007: Date-Based Rule Evaluation
+### Requirement: Date-Based Rule Evaluation (REQ-VIS-007)
 
 Date-based rules MUST show or hide widgets based on the current date, with optional open-ended ranges.
 
@@ -321,7 +321,7 @@ Date-based rules MUST show or hide widgets based on the current date, with optio
 - WHEN the dashboard is rendered
 - THEN the widget MUST be visible (both start and end dates are inclusive -- uses `<` and `>` comparisons for exclusion)
 
-### REQ-VIS-008: Attribute-Based Rule Evaluation
+### Requirement: Attribute-Based Rule Evaluation (REQ-VIS-008)
 
 Attribute-based rules MUST show or hide widgets based on user profile attributes, resolved by `UserAttributeResolver`.
 
@@ -357,7 +357,7 @@ Attribute-based rules MUST show or hide widgets based on user profile attributes
 - AND for inclusion rules, the widget MUST be hidden
 - AND for exclusion rules, the widget MUST be visible
 
-### REQ-VIS-009: Multiple Rule Combination
+### Requirement: Multiple Rule Combination (REQ-VIS-009)
 
 When a widget placement has multiple conditional rules, they MUST be combined using the VisibilityChecker logic: include rules use OR (at least one must match), exclude rules use AND (any match hides).
 
@@ -394,7 +394,7 @@ When a widget placement has multiple conditional rules, they MUST be combined us
 - WHEN the dashboard is rendered
 - THEN the widget MUST be visible (passesIncludeRules returns true when no include rules exist, passesExcludeRules returns true when no exclude rule matches)
 
-### REQ-VIS-010: Visibility Evaluation Pipeline
+### Requirement: Visibility Evaluation Pipeline (REQ-VIS-010)
 
 The ConditionalService MUST evaluate visibility through a defined pipeline: isVisible flag check, then rule loading, then VisibilityChecker evaluation.
 
@@ -416,7 +416,7 @@ The ConditionalService MUST evaluate visibility through a defined pipeline: isVi
 - THEN the system MUST return true without calling VisibilityChecker
 - AND the widget MUST always be displayed
 
-### REQ-VIS-011: Rule Cascade Deletion
+### Requirement: Rule Cascade Deletion (REQ-VIS-011)
 
 When a widget placement is deleted, all its associated conditional rules MUST also be deleted.
 

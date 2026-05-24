@@ -18,7 +18,7 @@ Permission levels control what users can do with their dashboards. When an admin
 
 ## Requirements
 
-### REQ-PERM-001: View-Only Permission Level
+### Requirement: View-Only Permission Level (REQ-PERM-001)
 
 Dashboards with `permissionLevel: "view_only"` MUST restrict users to viewing only, with no widget or layout editing capabilities.
 
@@ -67,7 +67,7 @@ Dashboards with `permissionLevel: "view_only"` MUST restrict users to viewing on
   - Grid drag handles and resize handles
 - NOTE: Frontend permission-based UI hiding is NOT currently implemented.
 
-### REQ-PERM-002: Add-Only Permission Level
+### Requirement: Add-Only Permission Level (REQ-PERM-002)
 
 Dashboards with `permissionLevel: "add_only"` MUST allow users to add and modify widgets but prevent removal of compulsory widgets.
 
@@ -115,7 +115,7 @@ Dashboards with `permissionLevel: "add_only"` MUST allow users to add and modify
 - THEN the system MUST create the rule
 - AND the response MUST return HTTP 201
 
-### REQ-PERM-003: Full Permission Level
+### Requirement: Full Permission Level (REQ-PERM-003)
 
 Dashboards with `permissionLevel: "full"` MUST allow users complete control over all aspects of the dashboard.
 
@@ -138,7 +138,7 @@ Dashboards with `permissionLevel: "full"` MUST allow users complete control over
 - AND all widget context menus MUST include all options (edit, delete, configure visibility)
 - AND all widgets (including compulsory) MUST show delete options in edit mode
 
-### REQ-PERM-004: Compulsory Widget Marking
+### Requirement: Compulsory Widget Marking (REQ-PERM-004)
 
 Admin templates MUST be able to mark specific widget placements as compulsory, and this flag MUST be inherited by user copies.
 
@@ -176,7 +176,7 @@ Admin templates MUST be able to mark specific widget placements as compulsory, a
 - THEN the new placement MUST have `isCompulsory: 0` (default via `PlacementService::addWidget()`)
 - AND alice MUST be able to remove this widget even on an add-only dashboard
 
-### REQ-PERM-005: Permission Level Immutability for Users
+### Requirement: Permission Level Immutability for Users (REQ-PERM-005)
 
 Users MUST NOT be able to change the permission level on their own dashboards.
 
@@ -193,7 +193,7 @@ Users MUST NOT be able to change the permission level on their own dashboards.
 - THEN the system MUST ignore the `permissionLevel` field
 - AND the permissionLevel MUST remain "full"
 
-### REQ-PERM-006: Permission Enforcement on API Level
+### Requirement: Permission Enforcement on API Level (REQ-PERM-006)
 
 Permission checks MUST be enforced at the API/service level, not just in the frontend UI.
 
@@ -219,7 +219,7 @@ Permission checks MUST be enforced at the API/service level, not just in the fro
 - THEN permission checks (`canAddWidget`, `canStyleWidget`, `canRemoveWidget`) MUST be called before any service method that modifies data
 - AND rejected requests MUST NOT cause any state changes
 
-### REQ-PERM-007: Dashboard Metadata Editing
+### Requirement: Dashboard Metadata Editing (REQ-PERM-007)
 
 Permission levels MUST NOT restrict editing of dashboard metadata (name, description) for users who own the dashboard.
 
@@ -241,7 +241,7 @@ Permission levels MUST NOT restrict editing of dashboard metadata (name, descrip
 - THEN `canEditDashboardMetadata()` (ownership only) MUST be used for name/description changes
 - AND `canEditDashboard()` (ownership + permission level) MUST be used for widget/layout changes
 
-### REQ-PERM-008: Effective Permission Level Resolution
+### Requirement: Effective Permission Level Resolution (REQ-PERM-008)
 
 The system MUST resolve effective permission levels through a defined chain: source template, dashboard's own level, admin default.
 
@@ -271,7 +271,7 @@ The system MUST resolve effective permission levels through a defined chain: sou
 - THEN all 10 users' effective permission level MUST immediately resolve to "full"
 - AND no migration or re-copying is needed (resolution is dynamic at runtime)
 
-### REQ-PERM-009: Permission-Based Widget Styling
+### Requirement: Permission-Based Widget Styling (REQ-PERM-009)
 
 Widget styling (custom title, style config, visibility) MUST respect permission levels via `canStyleWidget()`.
 
@@ -292,7 +292,7 @@ Widget styling (custom title, style config, visibility) MUST respect permission 
 - WHEN she sends PUT /api/widgets/10 with style changes
 - THEN the system MUST allow the update
 
-### REQ-PERM-010: Ownership Verification
+### Requirement: Ownership Verification (REQ-PERM-010)
 
 All permission checks MUST verify that the requesting user owns the dashboard or placement before checking permission levels.
 
@@ -314,7 +314,7 @@ All permission checks MUST verify that the requesting user owns the dashboard or
 - THEN the method MUST look up the placement, find its dashboardId, verify dashboard ownership
 - AND throw "Access denied" since "bob" does not own dashboard 5
 
-### REQ-PERM-011: Admin Template Permission Restrictions
+### Requirement: Admin Template Permission Restrictions (REQ-PERM-011)
 
 Admin templates MUST only be editable by Nextcloud admin users, not by regular users.
 

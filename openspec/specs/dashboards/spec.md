@@ -28,7 +28,7 @@ Each dashboard record is stored in the `oc_mydash_dashboards` table with the fol
 
 ## Requirements
 
-### REQ-DASH-001: Create Personal Dashboard
+### Requirement: Create Personal Dashboard (REQ-DASH-001)
 
 Users MUST be able to create new personal dashboards with a name, optional description, and default grid configuration.
 
@@ -71,7 +71,7 @@ Users MUST be able to create new personal dashboards with a name, optional descr
   - "activity" widget at (6, 0) with size 6x5
 - AND both placements MUST have `showTitle: 1`, `isVisible: 1`, and appropriate sortOrder values
 
-### REQ-DASH-002: List User Dashboards
+### Requirement: List User Dashboards (REQ-DASH-002)
 
 Users MUST be able to retrieve a list of all their dashboards, scoped to their user ID.
 
@@ -94,7 +94,7 @@ Users MUST be able to retrieve a list of all their dashboards, scoped to their u
 - AND bob's dashboard MUST NOT be included
 - AND admin templates (type: "admin_template") MUST NOT be included
 
-### REQ-DASH-003: Get Active Dashboard
+### Requirement: Get Active Dashboard (REQ-DASH-003)
 
 Users MUST be able to retrieve their currently active dashboard along with its placements and effective permission level in a single request.
 
@@ -136,7 +136,7 @@ Users MUST be able to retrieve their currently active dashboard along with its p
 - THEN the system MUST return null (no dashboard available)
 - AND the response MUST return HTTP 404 or an empty result
 
-### REQ-DASH-004: Update Dashboard
+### Requirement: Update Dashboard (REQ-DASH-004)
 
 Users MUST be able to update the name, description, and grid configuration of their dashboards.
 
@@ -173,7 +173,7 @@ Users MUST be able to update the name, description, and grid configuration of th
 - THEN the system MUST update all placement positions via `placementMapper->updatePositions()`
 - AND this enables efficient grid saves after drag-and-drop rearrangement
 
-### REQ-DASH-005: Delete Dashboard
+### Requirement: Delete Dashboard (REQ-DASH-005)
 
 Users MUST be able to delete their own dashboards with proper cascade deletion of associated data.
 
@@ -209,7 +209,7 @@ Users MUST be able to delete their own dashboards with proper cascade deletion o
 - THEN the system MUST allow the deletion
 - AND users MUST always have the right to remove dashboards from their account regardless of permission level
 
-### REQ-DASH-006: Activate Dashboard
+### Requirement: Activate Dashboard (REQ-DASH-006)
 
 Users MUST be able to set one of their dashboards as the active dashboard, ensuring only one is active at a time.
 
@@ -237,7 +237,7 @@ Users MUST be able to set one of their dashboards as the active dashboard, ensur
 - THEN exactly one dashboard (id 8) MUST have `isActive: 1`
 - AND all other 4 dashboards MUST have `isActive: 0`
 
-### REQ-DASH-007: Dashboard Name Validation
+### Requirement: Dashboard Name Validation (REQ-DASH-007)
 
 Dashboard names MUST be validated for length and content.
 
@@ -260,7 +260,7 @@ Dashboard names MUST be validated for length and content.
 - THEN the system MUST use the default name "My Dashboard"
 - AND the dashboard MUST be created successfully
 
-### REQ-DASH-008: Dashboard Type Enforcement
+### Requirement: Dashboard Type Enforcement (REQ-DASH-008)
 
 The `type` field MUST distinguish between user-created dashboards and admin templates, with appropriate access controls.
 
@@ -282,7 +282,7 @@ The `type` field MUST distinguish between user-created dashboards and admin temp
 - THEN the copy MUST have `type: "user"` (NOT "admin_template")
 - AND `basedOnTemplate` MUST reference the source template's ID
 
-### REQ-DASH-009: Dashboard Resolution Chain
+### Requirement: Dashboard Resolution Chain (REQ-DASH-009)
 
 The system MUST resolve the effective dashboard through a defined chain when GET /api/dashboard is called.
 
@@ -305,7 +305,7 @@ The system MUST resolve the effective dashboard through a defined chain when GET
 - THEN `DashboardService::tryCreateFromTemplate()` MUST be called
 - AND a template copy MUST be created and set as active
 
-### REQ-DASH-010: Dashboard Serialization
+### Requirement: Dashboard Serialization (REQ-DASH-010)
 
 Dashboard objects MUST be consistently serialized across all API responses.
 

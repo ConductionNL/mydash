@@ -21,7 +21,7 @@ The grid layout system powers the drag-and-drop dashboard experience in MyDash. 
 
 ## Requirements
 
-### REQ-GRID-001: Grid Initialization
+### Requirement: Grid Initialization (REQ-GRID-001)
 
 The grid MUST initialize with the correct configuration when a dashboard is loaded.
 
@@ -64,7 +64,7 @@ The grid MUST initialize with the correct configuration when a dashboard is load
 - THEN GridStack.init MUST be called with `disableDrag: !this.editMode` and `disableResize: !this.editMode`
 - AND `removable: false` MUST prevent accidental widget removal via drag-out
 
-### REQ-GRID-002: Drag to Reposition
+### Requirement: Drag to Reposition (REQ-GRID-002)
 
 Users MUST be able to drag widgets to new positions on the grid in edit mode.
 
@@ -103,7 +103,7 @@ Users MUST be able to drag widgets to new positions on the grid in edit mode.
 - THEN the GridStack `change` event MUST fire
 - AND `handleGridChange()` MUST emit `update:placements` with all current placement positions
 
-### REQ-GRID-003: Resize by Edge Dragging
+### Requirement: Resize by Edge Dragging (REQ-GRID-003)
 
 Users MUST be able to resize widgets by dragging their edges or corners in edit mode.
 
@@ -140,7 +140,7 @@ Users MUST be able to resize widgets by dragging their edges or corners in edit 
 - AND the cursor MUST NOT change to a resize cursor
 - NOTE: `disableResize: !this.editMode` on initialization.
 
-### REQ-GRID-004: View Mode vs Edit Mode
+### Requirement: View Mode vs Edit Mode (REQ-GRID-004)
 
 The grid MUST support two distinct interaction modes controlled by the `editMode` prop.
 
@@ -177,7 +177,7 @@ The grid MUST support two distinct interaction modes controlled by the `editMode
 - THEN the watcher MUST call `grid.enable()`
 - AND when it changes from true to false, the watcher MUST call `grid.disable()`
 
-### REQ-GRID-005: Position Persistence
+### Requirement: Position Persistence (REQ-GRID-005)
 
 Grid position changes MUST be communicated to the parent component for API persistence.
 
@@ -214,7 +214,7 @@ Grid position changes MUST be communicated to the parent component for API persi
 - THEN each grid item's `id` MUST be matched to a placement's `id` via string comparison
 - AND the placement's gridX, gridY, gridWidth, gridHeight MUST be updated from the grid item's x, y, w, h values
 
-### REQ-GRID-006: Widget Auto-Layout (collision placement algorithm)
+### Requirement: Widget Auto-Layout — collision placement algorithm (REQ-GRID-006)
 
 When a new widget is added to an existing dashboard, the system MUST place it without overlapping any existing widget and without leaving it outside the visible grid region. The algorithm MUST be:
 
@@ -272,7 +272,7 @@ Default size when the caller omits `w`/`h` MUST be `w=4, h=4`. Position writes M
 - THEN `syncGridItems()` MUST find the orphaned grid node and call `grid.removeWidget()` with `removeDOM: false`
 - AND the grid MUST update its layout accordingly
 
-### REQ-GRID-007: Grid Responsiveness (concrete breakpoints)
+### Requirement: Grid Responsiveness — concrete breakpoints (REQ-GRID-007)
 
 The GridStack instance MUST be initialised with `columnOpts.breakpoints` containing exactly four entries, each `{w: <viewportWidthPx>, c: <columnCount>}`, applied in descending viewport order:
 
@@ -326,7 +326,7 @@ The grid MUST also adapt to the container width while maintaining the active col
 - WHEN the grid renders
 - THEN the grid container MUST maintain a minimum height of 400px (`.mydash-grid { min-height: 400px }`)
 
-### REQ-GRID-008: Grid Accessibility
+### Requirement: Grid Accessibility (REQ-GRID-008)
 
 The grid MUST support keyboard navigation and screen reader compatibility.
 
@@ -350,7 +350,7 @@ The grid MUST support keyboard navigation and screen reader compatibility.
 - THEN the screen reader MUST announce: the widget title, its grid position, and its size
 - NOTE: ARIA attributes for grid positions are NOT currently implemented.
 
-### REQ-GRID-009: Tile vs Widget Rendering
+### Requirement: Tile vs Widget Rendering (REQ-GRID-009)
 
 The grid MUST distinguish between tile placements and widget placements for rendering.
 
@@ -381,7 +381,7 @@ The grid MUST distinguish between tile placements and widget placements for rend
 - THEN `WidgetWrapper` MUST receive both the `placement` object and the resolved `widget` object
 - AND if no matching widget is found, `widget` MUST be null (graceful degradation)
 
-### REQ-GRID-010: Grid Styling
+### Requirement: Grid Styling (REQ-GRID-010)
 
 The grid MUST apply consistent visual styling to all grid items.
 
@@ -400,7 +400,7 @@ The grid MUST apply consistent visual styling to all grid items.
 - WHEN the grid re-renders
 - THEN the placement key MUST include the `updatedAt` timestamp and `styleConfig` hash to force re-rendering via `getPlacementKey()`
 
-### REQ-GRID-011: Grid Synchronization
+### Requirement: Grid Synchronization (REQ-GRID-011)
 
 The grid MUST stay synchronized with the placements prop when items are added or removed externally.
 
@@ -420,7 +420,7 @@ The grid MUST stay synchronized with the placements prop when items are added or
 - WHEN `beforeDestroy` lifecycle hook fires
 - THEN `grid.destroy(false)` MUST be called (false = do not remove DOM elements)
 
-### REQ-GRID-012: Cell geometry constants
+### Requirement: Cell geometry constants (REQ-GRID-012)
 
 The grid MUST be initialised with `cellHeight: 60` (px) and `margin: 8` (px). These constants MUST live in a single shared module exported from the grid composable, not duplicated in component templates.
 
@@ -437,7 +437,7 @@ The grid MUST be initialised with `cellHeight: 60` (px) and `margin: 8` (px). Th
 - WHEN it renders at the 12-column breakpoint
 - THEN its DOM height MUST be `(4 * 60) + (3 * 8) = 264 px` (4 rows + 3 inter-row margins)
 
-### REQ-GRID-013: GridStack version pin
+### Requirement: GridStack version pin (REQ-GRID-013)
 
 The system MUST pin `gridstack` to a major version that supports `columnOpts.breakpoints` and the `moveScale` layout (currently v10 or later, target v12+). Bumping the major version MUST be a deliberate change with a regression-test pass on this capability.
 
@@ -448,7 +448,7 @@ The system MUST pin `gridstack` to a major version that supports `columnOpts.bre
 - THEN the resolved version MUST be `>= 10.0.0`
 - AND `package.json` MUST declare a constrained range like `"gridstack": "^12.2.1"` (or whichever major is current at apply time)
 
-### REQ-GRID-014: Placement helper is the single placement authority
+### Requirement: Placement helper is the single placement authority (REQ-GRID-014)
 
 All "add widget" code paths (toolbar dropdown, keyboard shortcut, drag-from-picker) MUST go through a single `placeNewWidget(spec)` helper exported from the grid composable. Inline calls to `grid.addWidget` outside this helper are forbidden.
 
