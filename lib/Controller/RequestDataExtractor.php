@@ -12,6 +12,8 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
+ *
+ * @spec openspec/changes/archive/2026-05-24-retrofit-infrastructure-helpers/tasks.md#task-3
  */
 
 declare(strict_types=1);
@@ -31,6 +33,8 @@ class RequestDataExtractor
      * @param IRequest $request The request.
      *
      * @return array The tile configuration data.
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-infrastructure-helpers/tasks.md#task-3
      */
     public static function extractTileData(IRequest $request): array
     {
@@ -80,6 +84,8 @@ class RequestDataExtractor
      * @param IRequest $request The request.
      *
      * @return array The non-null placement field values.
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-infrastructure-helpers/tasks.md#task-3
      */
     public static function extractPlacementData(IRequest $request): array
     {

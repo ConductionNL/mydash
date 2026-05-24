@@ -12,6 +12,8 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
+ *
+ * @spec openspec/changes/archive/2026-05-24-retrofit-infrastructure-helpers/tasks.md#task-2
  */
 
 declare(strict_types=1);
@@ -51,6 +53,7 @@ class UserAttributeResolver
      * @return string|null The attribute value or null.
      *
      * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-12
+     * @spec openspec/changes/archive/2026-05-24-retrofit-infrastructure-helpers/tasks.md#task-2
      */
     public function getUserAttributeValue(
         string $userId,
@@ -83,6 +86,8 @@ class UserAttributeResolver
      * @param string|null $value     The target comparison value.
      *
      * @return bool Whether the comparison matches.
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-infrastructure-helpers/tasks.md#task-2
      */
     public function evaluateOperator(
         string $userValue,
