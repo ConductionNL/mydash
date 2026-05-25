@@ -49,6 +49,7 @@ class MetadataValidationService
      *
      * @throws InvalidMetadataFieldException When the value is invalid.
      */
+    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function validateValue(mixed $value, MetadataField $field): string
     {
         if (self::isEmpty(value: $value) === true) {

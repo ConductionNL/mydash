@@ -69,6 +69,7 @@ class SaltRotationJob extends TimedJob
      *
      * @return void
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     protected function run($argument): void
     {
         $today = UniqueViewerDedup::utcDateFor();

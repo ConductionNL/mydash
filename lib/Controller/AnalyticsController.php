@@ -85,6 +85,7 @@ class AnalyticsController extends Controller
      * @return JSONResponse The response.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function topDashboards(
         string $period='30d',
         int $limit=10
@@ -123,6 +124,7 @@ class AnalyticsController extends Controller
      * @return JSONResponse The response.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function dashboardDetail(
         string $uuid,
         string $period='30d'
@@ -167,6 +169,7 @@ class AnalyticsController extends Controller
      * @return JSONResponse The response.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function instanceSummary(string $period='30d'): JSONResponse
     {
         $forbidden = $this->assertAdmin();
@@ -204,6 +207,7 @@ class AnalyticsController extends Controller
      *                  envelope.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function exportCsv(string $period='30d'): Response
     {
         $forbidden = $this->assertAdmin();

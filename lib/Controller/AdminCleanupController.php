@@ -83,6 +83,7 @@ class AdminCleanupController extends Controller
      *
      * @NoAdminRequired
      */
+    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function scan(): JSONResponse
     {
         $guard = $this->requireAdmin();
@@ -138,6 +139,7 @@ class AdminCleanupController extends Controller
      *
      * @NoAdminRequired
      */
+    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function purge(?array $categories=null, ?bool $dryRun=null): JSONResponse
     {
         $guard = $this->requireAdmin();

@@ -117,6 +117,7 @@ class FeedService
      *
      * @return string The serialised feed XML.
      */
+    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     public function renderFeed(
         FeedToken $token,
         string $format=self::FORMAT_RSS
@@ -156,6 +157,7 @@ class FeedService
      *
      * @return Dashboard[] Accessible dashboards, newest first.
      */
+    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     public function loadAccessibleDashboards(string $userId): array
     {
         $entries = $this->dashboardService->getVisibleToUser(userId: $userId);
@@ -186,6 +188,7 @@ class FeedService
      *
      * @return string The serialised RSS XML.
      */
+    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     public function buildRssFeed(array $dashboards, string $userId): string
     {
         $l10n         = $this->l10nFactory->get(app: Application::APP_ID);
@@ -237,6 +240,7 @@ XML;
      *
      * @return string The serialised Atom XML.
      */
+    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     public function buildAtomFeed(array $dashboards, string $userId): string
     {
         $l10n      = $this->l10nFactory->get(app: Application::APP_ID);
@@ -286,6 +290,7 @@ XML;
      *
      * @return string The display name (or the user ID when unknown).
      */
+    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     public function getOwnerDisplayName(string $userId): string
     {
         $user = $this->userManager->get(uid: $userId);
@@ -310,6 +315,7 @@ XML;
      *
      * @return string The escaped value, or empty string when null.
      */
+    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     public static function xmlEscape(?string $value): string
     {
         if ($value === null) {

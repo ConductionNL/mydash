@@ -120,6 +120,7 @@ class AnalyticsService
      *
      * @return bool `true` when analytics is globally enabled.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function isGloballyEnabled(): bool
     {
         $value = $this->config->getAppValue(
@@ -139,6 +140,7 @@ class AnalyticsService
      *
      * @return bool `true` when the user has opted out.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function isUserOptedOut(string $userId): bool
     {
         $value = $this->config->getUserValue(
@@ -158,6 +160,7 @@ class AnalyticsService
      *
      * @return int The effective retention window.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function getRetentionDays(): int
     {
         $value = $this->config->getAppValue(
@@ -187,6 +190,7 @@ class AnalyticsService
      *
      * @return int The clamped value that was stored.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function setRetentionDays(int $days): int
     {
         $clamped = $days;
@@ -215,6 +219,7 @@ class AnalyticsService
      *
      * @return void
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function setGlobalEnabled(bool $enabled): void
     {
         $value = 'false';
@@ -247,6 +252,7 @@ class AnalyticsService
      * @return bool `true` when an event was recorded, `false` when
      *              the call was short-circuited.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function recordViewEvent(
         string $dashboardUuid,
         string $userId
@@ -299,6 +305,7 @@ class AnalyticsService
      *   viewCount: int, uniqueViewerCount: int}>
      *   Top-N dashboards sorted by `viewCount` descending.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function getTopDashboards(string $period, int $limit): array
     {
         [$startDate, $endDate] = self::periodToDateRange(period: $period);
@@ -349,6 +356,7 @@ class AnalyticsService
      *                                   not one of `7d`, `30d`,
      *                                   `90d`.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function getDashboardDetail(
         string $dashboardUuid,
         string $period
@@ -389,6 +397,7 @@ class AnalyticsService
      *     viewCount: int, uniqueViewerCount: int}>}
      *   The summary payload.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function getInstanceSummary(string $period): array
     {
         [$startDate, $endDate] = self::periodToDateRange(period: $period);
@@ -418,6 +427,7 @@ class AnalyticsService
      *
      * @return string The CSV body (CRLF line endings).
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function generateCsvExport(string $period): string
     {
         [$startDate, $endDate] = self::periodToDateRange(period: $period);
@@ -476,6 +486,7 @@ class AnalyticsService
      * @return string The filename in the form
      *                `dashboard-analytics-YYYY-MM-DD.csv`.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function csvExportFilename(): string
     {
         $today = (new DateTimeImmutable('now'))
@@ -499,6 +510,7 @@ class AnalyticsService
      *
      * @throws InvalidArgumentException When the period is unknown.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public static function periodToDateRange(string $period): array
     {
         $days = match ($period) {
@@ -531,6 +543,7 @@ class AnalyticsService
      *
      * @return string The cutoff date in `YYYY-MM-DD` format.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function getPurgeCutoffDate(): string
     {
         $today  = (new DateTimeImmutable('now'))
@@ -576,6 +589,7 @@ class AnalyticsService
      *                the entity carries no UUID — never expected on
      *                a persisted row).
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public static function dashboardUuidOf(Dashboard $dashboard): string
     {
         $uuid = $dashboard->getUuid();
@@ -594,6 +608,7 @@ class AnalyticsService
      *
      * @return array The serialised payload.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public static function viewToArray(DashboardView $view): array
     {
         return $view->jsonSerialize();

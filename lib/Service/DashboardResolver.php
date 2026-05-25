@@ -114,6 +114,7 @@ class DashboardResolver
      *
      * @return array The dashboard result.
      */
+    /** @spec openspec/specs/dashboards/spec.md */
     public function handleTemplateResult(
         Dashboard $template,
         bool $allowUserDashboards,
@@ -152,6 +153,7 @@ class DashboardResolver
      *
      * @return array The result array.
      */
+    /** @spec openspec/specs/dashboards/spec.md */
     public function buildResult(
         Dashboard $dashboard,
         array $placements

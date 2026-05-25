@@ -115,6 +115,7 @@ class ResourceServeController extends Controller
      * @NoAdminRequired
      * @NoCSRFRequired
      */
+    /** @spec openspec/specs/resource-uploads/spec.md */
     public function getResource(string $filename): StreamResponse|JSONResponse
     {
         if ($this->isUnsafeFilename(filename: $filename) === true) {
@@ -170,6 +171,7 @@ class ResourceServeController extends Controller
      * @NoAdminRequired
      * @NoCSRFRequired
      */
+    /** @spec openspec/specs/resource-uploads/spec.md */
     public function listResources(): JSONResponse
     {
         $files = $this->serve->listFiles();

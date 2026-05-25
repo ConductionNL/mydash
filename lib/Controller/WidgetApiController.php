@@ -273,6 +273,7 @@ class WidgetApiController extends Controller
      * @return JSONResponse The created tile placement.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/widgets/spec.md */
     public function addTile(int $dashboardId): JSONResponse
     {
         if ($this->userId === null) {
@@ -415,6 +416,7 @@ class WidgetApiController extends Controller
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
+    /** @spec openspec/specs/widgets/spec.md */
     public function newsItems(int $placementId, ?int $limit=10): JSONResponse
     {
         if ($this->userId === null) {
@@ -467,6 +469,7 @@ class WidgetApiController extends Controller
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
+    /** @spec openspec/specs/widgets/spec.md */
     public function calendarEvents(
         int $placementId,
         string $from='',

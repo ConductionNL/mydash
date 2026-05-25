@@ -100,6 +100,7 @@ class UniqueViewerDedup
      *
      * @return string The UTC date in `YYYY-MM-DD` format.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public static function utcDateFor(?DateTimeImmutable $when=null): string
     {
         $reference = ($when ?? new DateTimeImmutable('now'))
@@ -118,6 +119,7 @@ class UniqueViewerDedup
      *
      * @return int The TTL in seconds.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public static function secondsUntilNextUtcMidnight(
         ?DateTimeImmutable $when=null
     ): int {
@@ -148,6 +150,7 @@ class UniqueViewerDedup
      *
      * @return string The salt as a hex string.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function getSaltForDate(string $viewBucketDate): string
     {
         $existingSalt = $this->config->getAppValue(
@@ -180,6 +183,7 @@ class UniqueViewerDedup
      *
      * @return string The new salt as a hex string.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function rotateSalt(string $viewBucketDate): string
     {
         $newSalt = bin2hex(string: random_bytes(length: 32));
@@ -207,6 +211,7 @@ class UniqueViewerDedup
      *
      * @return string The 64-char hex SHA-256 digest.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function hashUserForDate(
         string $userId,
         string $viewBucketDate
@@ -232,6 +237,7 @@ class UniqueViewerDedup
      *              this dashboard today, `false` when they have
      *              already been counted.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function isNewUniqueViewer(
         string $userId,
         string $viewBucketDate,
@@ -270,6 +276,7 @@ class UniqueViewerDedup
      *
      * @return string The cache key.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function buildCacheKey(
         string $dashboardUuid,
         string $viewerHash

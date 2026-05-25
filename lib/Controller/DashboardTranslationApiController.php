@@ -79,6 +79,7 @@ class DashboardTranslationApiController extends Controller
      * @return JSONResponse The list payload.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-language-content/spec.md */
     public function list(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
@@ -118,6 +119,7 @@ class DashboardTranslationApiController extends Controller
      * @return JSONResponse The created variant.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-language-content/spec.md */
     public function create(
         string $uuid,
         ?string $languageCode=null,
@@ -200,6 +202,7 @@ class DashboardTranslationApiController extends Controller
      * @return JSONResponse The updated variant.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-language-content/spec.md */
     public function update(
         string $uuid,
         string $lang,
@@ -256,6 +259,7 @@ class DashboardTranslationApiController extends Controller
      * @return JSONResponse The status payload.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-language-content/spec.md */
     public function destroy(string $uuid, string $lang): JSONResponse
     {
         if ($this->userId === null) {
@@ -311,6 +315,7 @@ class DashboardTranslationApiController extends Controller
      * @return JSONResponse The promoted variant.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-language-content/spec.md */
     public function setPrimary(string $uuid, string $lang): JSONResponse
     {
         if ($this->userId === null) {
@@ -363,6 +368,7 @@ class DashboardTranslationApiController extends Controller
      * @return JSONResponse The resolved payload.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-language-content/spec.md */
     public function resolved(string $uuid): JSONResponse
     {
         if ($this->userId === null) {

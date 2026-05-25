@@ -145,6 +145,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The visible dashboards.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function visible(): JSONResponse
     {
         if ($this->userId === null) {
@@ -530,6 +531,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The nested tree.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function tree(): JSONResponse
     {
         if ($this->userId === null) {
@@ -555,6 +557,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The dashboard payload, or a 404 envelope.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function byPath(string $path=''): JSONResponse
     {
         if ($this->userId === null) {
@@ -609,6 +612,7 @@ class DashboardApiController extends Controller
      *                      client-side).
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function computePath(string $uuid=''): JSONResponse
     {
         if ($this->userId === null) {
@@ -639,6 +643,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The activated dashboard.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function activate(int $id): JSONResponse
     {
         if ($this->userId === null) {
@@ -669,6 +674,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The list of group-shared dashboards.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function listGroup(string $groupId): JSONResponse
     {
         if ($this->userId === null) {
@@ -699,6 +705,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The created dashboard.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function createGroup(
         string $groupId,
         $name=null,
@@ -748,6 +755,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The dashboard payload.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function getGroup(
         string $groupId,
         string $uuid
@@ -787,6 +795,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The updated dashboard.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function updateGroup(
         string $groupId,
         string $uuid,
@@ -849,6 +858,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The status payload.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function deleteGroup(
         string $groupId,
         string $uuid
@@ -900,6 +910,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The status payload.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function setGroupDefault(
         string $groupId,
         ?string $uuid=null
@@ -965,6 +976,7 @@ class DashboardApiController extends Controller
      *                      when the session has no user.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function setActiveDashboard(?string $uuid=null): JSONResponse
     {
         if ($this->userId === null) {
@@ -997,6 +1009,7 @@ class DashboardApiController extends Controller
      *                      when the session has no user.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function setDefaultDashboard(?string $uuid=null): JSONResponse
     {
         if ($this->userId === null) {
@@ -1018,6 +1031,7 @@ class DashboardApiController extends Controller
      *                      pin set; 401 when the session has no user.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function getDefaultDashboard(): JSONResponse
     {
         if ($this->userId === null) {
@@ -1062,6 +1076,7 @@ class DashboardApiController extends Controller
      *                      appropriate error envelope.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function fork(
         string $uuid,
         ?string $name=null
@@ -1137,6 +1152,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The updated dashboard payload.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function publish(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
@@ -1173,6 +1189,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The updated dashboard payload.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function unpublish(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
@@ -1216,6 +1233,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The updated dashboard payload.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function schedule(
         string $uuid,
         ?string $publishAt=null
@@ -1283,6 +1301,7 @@ class DashboardApiController extends Controller
      *                      dashboard does not exist.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboards/spec.md */
     public function viewEvent(string $uuid): JSONResponse
     {
         if ($this->userId === null) {

@@ -147,6 +147,7 @@ class InitialStateBuilder
      *
      * @return self Fluent.
      */
+    /** @spec openspec/specs/initial-state-contract/spec.md */
     public function setWidgets(array $widgets): self
     {
         $this->values['widgets'] = $widgets;
@@ -160,6 +161,7 @@ class InitialStateBuilder
      *
      * @return self Fluent.
      */
+    /** @spec openspec/specs/initial-state-contract/spec.md */
     public function setLayout(array $layout): self
     {
         $this->values['layout'] = $layout;
@@ -173,6 +175,7 @@ class InitialStateBuilder
      *
      * @return self Fluent.
      */
+    /** @spec openspec/specs/initial-state-contract/spec.md */
     public function setPrimaryGroup(string $primaryGroup): self
     {
         $this->values['primaryGroup'] = $primaryGroup;
@@ -186,6 +189,7 @@ class InitialStateBuilder
      *
      * @return self Fluent.
      */
+    /** @spec openspec/specs/initial-state-contract/spec.md */
     public function setPrimaryGroupName(string $primaryGroupName): self
     {
         $this->values['primaryGroupName'] = $primaryGroupName;
@@ -199,6 +203,7 @@ class InitialStateBuilder
      *
      * @return self Fluent.
      */
+    /** @spec openspec/specs/initial-state-contract/spec.md */
     public function setIsAdmin(bool $isAdmin): self
     {
         $this->values['isAdmin'] = $isAdmin;
@@ -212,6 +217,7 @@ class InitialStateBuilder
      *
      * @return self Fluent.
      */
+    /** @spec openspec/specs/initial-state-contract/spec.md */
     public function setActiveDashboardId(string $activeDashboardId): self
     {
         $this->values['activeDashboardId'] = $activeDashboardId;
@@ -228,6 +234,7 @@ class InitialStateBuilder
      *
      * @return self Fluent.
      */
+    /** @spec openspec/specs/initial-state-contract/spec.md */
     public function setDashboardSource(string $dashboardSource): self
     {
         $this->values['dashboardSource'] = $dashboardSource;
@@ -241,6 +248,7 @@ class InitialStateBuilder
      *
      * @return self Fluent.
      */
+    /** @spec openspec/specs/initial-state-contract/spec.md */
     public function setGroupDashboards(array $groupDashboards): self
     {
         $this->values['groupDashboards'] = $groupDashboards;
@@ -254,6 +262,7 @@ class InitialStateBuilder
      *
      * @return self Fluent.
      */
+    /** @spec openspec/specs/initial-state-contract/spec.md */
     public function setUserDashboards(array $userDashboards): self
     {
         $this->values['userDashboards'] = $userDashboards;
@@ -267,6 +276,7 @@ class InitialStateBuilder
      *
      * @return self Fluent.
      */
+    /** @spec openspec/specs/initial-state-contract/spec.md */
     public function setAllowUserDashboards(bool $allowUserDashboards): self
     {
         $this->values['allowUserDashboards'] = $allowUserDashboards;
@@ -282,6 +292,7 @@ class InitialStateBuilder
      *
      * @return self
      */
+    /** @spec openspec/specs/initial-state-contract/spec.md */
     public function setAllowedWidgets(?array $allowedWidgets): self
     {
         $this->values['allowedWidgets'] = $allowedWidgets;
@@ -302,6 +313,7 @@ class InitialStateBuilder
      *
      * @return self
      */
+    /** @spec openspec/specs/initial-state-contract/spec.md */
     public function setDeepLinkPath(string $deepLinkPath): self
     {
         $this->values['deepLinkPath'] = $deepLinkPath;
@@ -315,6 +327,7 @@ class InitialStateBuilder
      *
      * @return self Fluent.
      */
+    /** @spec openspec/specs/initial-state-contract/spec.md */
     public function setAllGroups(array $allGroups): self
     {
         $this->values['allGroups'] = $allGroups;
@@ -328,6 +341,7 @@ class InitialStateBuilder
      *
      * @return self Fluent.
      */
+    /** @spec openspec/specs/initial-state-contract/spec.md */
     public function setConfiguredGroups(array $configuredGroups): self
     {
         $this->values['configuredGroups'] = $configuredGroups;
@@ -347,6 +361,7 @@ class InitialStateBuilder
      *
      * @return self Fluent.
      */
+    /** @spec openspec/specs/initial-state-contract/spec.md */
     public function setLinkCreateFileExtensions(array $extensions): self
     {
         $this->values['linkCreateFileExtensions'] = $extensions;
@@ -362,6 +377,7 @@ class InitialStateBuilder
      * @throws MissingInitialStateException When any required key for the
      *                                      page was not set.
      */
+    /** @spec openspec/specs/initial-state-contract/spec.md */
     public function apply(): void
     {
         $required = self::REQUIRED_KEYS[$this->page->value];

@@ -68,6 +68,7 @@ abstract class CommandBase extends Command
      *
      * @return void
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     final protected function configure(): void
     {
         $this->addOption(
@@ -99,6 +100,7 @@ abstract class CommandBase extends Command
      *
      * @return void
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     abstract protected function configureCommand(): void;
 
     /**
@@ -114,6 +116,7 @@ abstract class CommandBase extends Command
      *
      * @return int
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     abstract protected function handle(
         InputInterface $input,
         OutputInterface $output
@@ -129,6 +132,7 @@ abstract class CommandBase extends Command
      *
      * @return int
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     final protected function execute(
         InputInterface $input,
         OutputInterface $output
@@ -213,6 +217,7 @@ abstract class CommandBase extends Command
      *
      * @return void
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     final protected function emitSuccess(
         InputInterface $input,
         OutputInterface $output,
@@ -247,6 +252,7 @@ abstract class CommandBase extends Command
      *
      * @return int Echoes back the exit code for caller convenience.
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     final protected function emitError(
         InputInterface $input,
         OutputInterface $output,

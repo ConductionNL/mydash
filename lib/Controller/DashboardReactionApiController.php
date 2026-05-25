@@ -78,6 +78,7 @@ class DashboardReactionApiController extends Controller
      * @return JSONResponse The summary.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-reactions/spec.md */
     public function getReactions(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
@@ -121,6 +122,7 @@ class DashboardReactionApiController extends Controller
      * @return JSONResponse The updated summary.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-reactions/spec.md */
     public function addReaction(string $uuid, string $emoji=''): JSONResponse
     {
         if ($this->userId === null) {
@@ -171,6 +173,7 @@ class DashboardReactionApiController extends Controller
      * @return JSONResponse Empty 204 response.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-reactions/spec.md */
     public function removeReaction(string $uuid, string $emoji): JSONResponse
     {
         if ($this->userId === null) {
@@ -221,6 +224,7 @@ class DashboardReactionApiController extends Controller
      * @return JSONResponse The reactors page.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-reactions/spec.md */
     public function getReactorsByEmoji(
         string $uuid,
         string $emoji,

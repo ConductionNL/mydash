@@ -86,6 +86,7 @@ class TemplateController extends Controller
      * @return JSONResponse The gallery list envelope.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function gallery(
         ?string $category=null,
         string $sort='name'
@@ -128,6 +129,7 @@ class TemplateController extends Controller
      * @return JSONResponse The new template envelope.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function saveAsTemplate(
         string $uuid,
         ?string $name=null,

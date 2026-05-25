@@ -88,6 +88,7 @@ class MetadataService
      *
      * @return MetadataField[] The sorted field list.
      */
+    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function listFields(): array
     {
         return $this->fieldMapper->findAll();
@@ -122,6 +123,7 @@ class MetadataService
      *
      * @throws InvalidMetadataFieldException When validation fails.
      */
+    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function createFieldDefinition(
         string $key,
         string $label,
@@ -187,6 +189,7 @@ class MetadataService
      * @throws DoesNotExistException        When the field is missing.
      * @throws InvalidMetadataFieldException When validation fails.
      */
+    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function updateFieldDefinition(int $id, array $patch): MetadataField
     {
         if (array_key_exists(key: 'key', array: $patch) === true) {
@@ -251,6 +254,7 @@ class MetadataService
      * @throws MetadataFieldHasValuesException   When values exist and
      *                                            cascade is false.
      */
+    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function deleteFieldDefinition(int $id, bool $cascade=false): bool
     {
         $field      = $this->fieldMapper->findById(id: $id);
@@ -278,6 +282,7 @@ class MetadataService
      *
      * @return array<string, string> The flat key→encoded-value map.
      */
+    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function getMetadataForDashboard(string $dashboardUuid): array
     {
         $rows = $this->valueMapper->findByDashboard(dashboardUuid: $dashboardUuid);
@@ -327,6 +332,7 @@ class MetadataService
      * @throws InvalidMetadataFieldException When any key is unknown
      *                                       or value invalid.
      */
+    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function setMetadataForDashboard(
         string $dashboardUuid,
         array $keyValues
@@ -400,6 +406,7 @@ class MetadataService
      *
      * @return array<int, mixed> The filtered subset.
      */
+    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function filterDashboards(
         array $dashboards,
         array $metadataFilters

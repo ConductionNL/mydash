@@ -82,6 +82,7 @@ class MetricsQueryService
      *
      * @return int The row count.
      */
+    /** @spec openspec/specs/prometheus-metrics/spec.md */
     public function countTable(string $tableName): int
     {
         try {

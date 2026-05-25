@@ -102,6 +102,7 @@ class ExpiredLocksCategory implements CleanupCategoryInterface
      *
      * @return int The orphan count.
      */
+    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function scan(): int
     {
         return $this->lockMapper->countAllExpired();
@@ -119,6 +120,7 @@ class ExpiredLocksCategory implements CleanupCategoryInterface
      *
      * @return int The number of rows deleted (or that would be).
      */
+    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function purge(bool $dryRun=false): int
     {
         return $this->lockMapper->deleteAllExpired();

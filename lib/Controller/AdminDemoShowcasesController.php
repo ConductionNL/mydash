@@ -82,6 +82,7 @@ class AdminDemoShowcasesController extends Controller
      * @NoAdminRequired
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function index(): JSONResponse
     {
         $guard = $this->requireAdmin();
@@ -113,6 +114,7 @@ class AdminDemoShowcasesController extends Controller
      * @NoAdminRequired
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function install(
         string $id,
         string $lang='nl',
@@ -176,6 +178,7 @@ class AdminDemoShowcasesController extends Controller
      * @NoAdminRequired
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function destroy(string $id): JSONResponse
     {
         $guard = $this->requireAdmin();

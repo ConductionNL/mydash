@@ -80,6 +80,7 @@ class RoleFeaturePermissionService
      *
      * @return RoleFeaturePermission[] All rows.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function listPermissions(): array
     {
         return $this->permissionMapper->findAll();
@@ -90,6 +91,7 @@ class RoleFeaturePermissionService
      *
      * @return RoleLayoutDefault[] All rows.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function listLayoutDefaults(): array
     {
         return $this->defaultMapper->findAll();
@@ -102,6 +104,7 @@ class RoleFeaturePermissionService
      *
      * @return RoleFeaturePermission The persisted row.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function savePermission(array $data): RoleFeaturePermission
     {
         $groupId = (string) ($data['groupId'] ?? '');
@@ -188,6 +191,7 @@ class RoleFeaturePermissionService
      *
      * @throws DoesNotExistException When the row does not exist.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function deletePermission(int $id): void
     {
         $entity = $this->permissionMapper->find(id: $id);
@@ -201,6 +205,7 @@ class RoleFeaturePermissionService
      *
      * @return RoleLayoutDefault The persisted row.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function saveLayoutDefault(array $data): RoleLayoutDefault
     {
         $groupId  = (string) ($data['groupId'] ?? '');
@@ -298,6 +303,7 @@ class RoleFeaturePermissionService
      *
      * @throws DoesNotExistException When the row does not exist.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function deleteLayoutDefault(int $id): void
     {
         $entity = $this->defaultMapper->find(id: $id);
@@ -325,6 +331,7 @@ class RoleFeaturePermissionService
      *
      * @return array|null Sorted list of allowed widget IDs, or null.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function getAllowedWidgetIds(string $userId): ?array
     {
         $userGroups = $this->groupIdsForUser(userId: $userId);
@@ -390,6 +397,7 @@ class RoleFeaturePermissionService
      *
      * @return bool True when the widget is allowed (or no restriction is configured).
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function isWidgetAllowed(string $userId, string $widgetId): bool
     {
         $allowed = $this->getAllowedWidgetIds(userId: $userId);
@@ -416,6 +424,7 @@ class RoleFeaturePermissionService
      *
      * @return int The number of placements created (0 when no-op).
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function seedLayoutFromRoleDefaults(string $userId, Dashboard $dashboard): int
     {
         $existing = $this->placementMapper->findByDashboardId(

@@ -64,6 +64,7 @@ class WidgetService
      * @return void
      * @throws \InvalidArgumentException When the content blob is invalid.
      */
+    /** @spec openspec/specs/widgets/spec.md */
     public function validateWidgetContent(string $widgetType, array $content): void
     {
         if ($widgetType !== 'menu') {
@@ -154,6 +155,7 @@ class WidgetService
      *
      * @return WidgetPlacement The created widget placement.
      */
+    /** @spec openspec/specs/widgets/spec.md */
     public function addWidget(
         int $dashboardId,
         string $widgetId,
@@ -182,6 +184,7 @@ class WidgetService
      *
      * @return WidgetPlacement The created tile placement.
      */
+    /** @spec openspec/specs/widgets/spec.md */
     public function addTileFromArray(
         int $dashboardId,
         array $tileData
@@ -200,6 +203,7 @@ class WidgetService
      *
      * @return WidgetPlacement The updated widget placement.
      */
+    /** @spec openspec/specs/widgets/spec.md */
     public function updatePlacement(
         int $placementId,
         array $data
@@ -217,6 +221,7 @@ class WidgetService
      *
      * @return void
      */
+    /** @spec openspec/specs/widgets/spec.md */
     public function removePlacement(int $placementId): void
     {
         $this->placementService->removePlacement(
@@ -231,6 +236,7 @@ class WidgetService
      *
      * @return WidgetPlacement The widget placement.
      */
+    /** @spec openspec/specs/widgets/spec.md */
     public function getPlacement(int $placementId): WidgetPlacement
     {
         return $this->placementService->getPlacement(
@@ -245,6 +251,7 @@ class WidgetService
      *
      * @return WidgetPlacement[] The list of placements.
      */
+    /** @spec openspec/specs/widgets/spec.md */
     public function getDashboardPlacements(int $dashboardId): array
     {
         return $this->placementService->getDashboardPlacements(

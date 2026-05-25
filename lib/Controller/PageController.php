@@ -114,6 +114,7 @@ class PageController extends Controller
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
+    /** @spec openspec/specs/runtime-shell/spec.md */
     public function deepLink(string $deepLink=''): TemplateResponse
     {
         return $this->index(deepLink: $deepLink);
@@ -143,6 +144,7 @@ class PageController extends Controller
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
+    /** @spec openspec/specs/runtime-shell/spec.md */
     public function index(string $deepLink=''): TemplateResponse
     {
         Util::addScript(application: Application::APP_ID, file: 'mydash-main');

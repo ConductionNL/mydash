@@ -87,6 +87,7 @@ class PeopleWidgetController extends Controller
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
+    /** @spec openspec/specs/people-widget/spec.md */
     public function getUsers(
         ?string $filters=null,
         ?int $excludeDisabled=1,

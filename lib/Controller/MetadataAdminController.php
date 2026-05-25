@@ -75,6 +75,7 @@ class MetadataAdminController extends Controller
      * @return JSONResponse The fields array + count, or 403.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function listFields(): JSONResponse
     {
         $forbidden = $this->assertAdmin();
@@ -107,6 +108,7 @@ class MetadataAdminController extends Controller
      *                      403 for non-admins.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function createField(
         string $key='',
         string $label='',
@@ -148,6 +150,7 @@ class MetadataAdminController extends Controller
      * @return JSONResponse 200 + field, 404 when missing, 403 for non-admins.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function getField(int $id): JSONResponse
     {
         $forbidden = $this->assertAdmin();
@@ -182,6 +185,7 @@ class MetadataAdminController extends Controller
      *                      404 when missing, 403 for non-admins.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function updateField(
         int $id,
         ?string $label=null,
@@ -248,6 +252,7 @@ class MetadataAdminController extends Controller
      *                      404 when missing, 403 for non-admins.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function deleteField(int $id, bool $cascade=false): JSONResponse
     {
         $forbidden = $this->assertAdmin();

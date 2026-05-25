@@ -99,6 +99,7 @@ class OrphanedConditionalRulesCategory implements CleanupCategoryInterface
      *
      * @return int The orphan count.
      */
+    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function scan(): int
     {
         return $this->ruleMapper->countOrphaned();
@@ -111,6 +112,7 @@ class OrphanedConditionalRulesCategory implements CleanupCategoryInterface
      *
      * @return int The number of rows deleted.
      */
+    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function purge(bool $dryRun=false): int
     {
         return $this->ruleMapper->deleteOrphaned();

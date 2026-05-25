@@ -122,6 +122,7 @@ class FileService
      * @throws StorageFailureException      When the underlying
      *                                      filesystem rejects the write.
      */
+    /** @spec openspec/specs/resource-uploads/spec.md */
     public function createFile(
         string $userId,
         string $filename,
@@ -173,6 +174,7 @@ class FileService
      *
      * @return array<int, string> Normalised allow-list.
      */
+    /** @spec openspec/specs/resource-uploads/spec.md */
     public function getAllowedExtensions(): array
     {
         $stored = $this->settingMapper->getValue(
@@ -223,6 +225,7 @@ class FileService
      *
      * @return array<int, string> The stored, normalised allow-list.
      */
+    /** @spec openspec/specs/resource-uploads/spec.md */
     public function setAllowedExtensions(array $extensions): array
     {
         $normalised = [];

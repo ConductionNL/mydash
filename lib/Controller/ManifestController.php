@@ -105,6 +105,7 @@ class ManifestController extends Controller
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
+    /** @spec openspec/specs/runtime-shell/spec.md */
     public function index(): JSONResponse
     {
         if ($this->userId === null) {

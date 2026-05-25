@@ -155,6 +155,7 @@ class BulkOperationService
      * @throws InvalidArgumentException When the request exceeds the cap.
      * @throws PermissionDeniedException When any UUID is unauthorised.
      */
+    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkDelete(
         array $dashboardUuids,
         string $userId,
@@ -272,6 +273,7 @@ class BulkOperationService
      *                                   or the parent does not exist.
      * @throws PermissionDeniedException When any UUID is unauthorised.
      */
+    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkMove(
         array $dashboardUuids,
         ?string $parentUuid,
@@ -400,6 +402,7 @@ class BulkOperationService
      *                                   in the past.
      * @throws PermissionDeniedException When any UUID is unauthorised.
      */
+    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkStatus(
         array $dashboardUuids,
         string $publicationStatus,
@@ -527,6 +530,7 @@ class BulkOperationService
      * @throws InvalidArgumentException  When the request exceeds the cap.
      * @throws PermissionDeniedException When any UUID is unauthorised.
      */
+    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkReindex(
         array $dashboardUuids,
         string $userId,
@@ -602,6 +606,7 @@ class BulkOperationService
      *
      * @return int The effective cap.
      */
+    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function getEffectiveCap(): int
     {
         $raw = $this->config->getAppValue(

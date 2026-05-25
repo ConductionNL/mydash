@@ -94,6 +94,7 @@ class PermissionService
      *
      * @return bool True when the dashboard is visible to the user.
      */
+    /** @spec openspec/specs/permissions/spec.md */
     public function canViewDashboard(string $userId, int $dashboardId): bool
     {
         return $this->resolveAccessLevel(userId: $userId, dashboardId: $dashboardId) !== null;
@@ -158,6 +159,7 @@ class PermissionService
      *
      * @return bool Whether the user can edit the dashboard metadata.
      */
+    /** @spec openspec/specs/permissions/spec.md */
     public function canEditDashboardMetadata(
         string $userId,
         int $dashboardId
@@ -264,6 +266,7 @@ class PermissionService
      *
      * @return bool Whether the user can style the widget.
      */
+    /** @spec openspec/specs/permissions/spec.md */
     public function canStyleWidget(string $userId, int $placementId): bool
     {
         // REQ-ROLE-008: Viewer role blocks any mutation.
@@ -301,6 +304,7 @@ class PermissionService
      *
      * @return bool Whether the user can create dashboards.
      */
+    /** @spec openspec/specs/permissions/spec.md */
     public function canCreateDashboard(string $userId): bool
     {
         // REQ-ROLE-008: Viewer role explicitly blocks dashboard creation
@@ -333,6 +337,7 @@ class PermissionService
      *
      * @return bool Whether the user can have multiple dashboards.
      */
+    /** @spec openspec/specs/permissions/spec.md */
     public function canHaveMultipleDashboards(string $userId): bool
     {
         return $this->settingMapper->getValue(
@@ -425,6 +430,7 @@ class PermissionService
      *
      * @return string|null The permission level or null when no access.
      */
+    /** @spec openspec/specs/permissions/spec.md */
     public function resolveAccessLevel(
         string $userId,
         ?int $dashboardId=null,
@@ -493,6 +499,7 @@ class PermissionService
      *
      * @throws \Exception If access is denied.
      */
+    /** @spec openspec/specs/permissions/spec.md */
     public function verifyDashboardOwnership(
         string $userId,
         int $dashboardId
@@ -516,6 +523,7 @@ class PermissionService
      *
      * @throws \Exception If access is denied.
      */
+    /** @spec openspec/specs/permissions/spec.md */
     public function verifyPlacementOwnership(
         string $userId,
         int $placementId

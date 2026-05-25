@@ -83,6 +83,7 @@ class AdminBulkController extends Controller
      *
      * @NoAdminRequired
      */
+    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkDelete(
         mixed $dashboardUuids=null,
         ?bool $dryRun=null,
@@ -142,6 +143,7 @@ class AdminBulkController extends Controller
      *
      * @NoAdminRequired
      */
+    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkMove(
         mixed $dashboardUuids=null,
         ?string $parentUuid=null,
@@ -200,6 +202,7 @@ class AdminBulkController extends Controller
      *
      * @NoAdminRequired
      */
+    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkStatus(
         mixed $dashboardUuids=null,
         ?string $publicationStatus=null,
@@ -265,6 +268,7 @@ class AdminBulkController extends Controller
      *
      * @NoAdminRequired
      */
+    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkReindex(
         mixed $dashboardUuids=null,
         ?bool $dryRun=null

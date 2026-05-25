@@ -127,6 +127,7 @@ class ResourceController extends Controller
      *
      * @NoCSRFRequired
      */
+    /** @spec openspec/specs/resource-uploads/spec.md */
     public function upload(): JSONResponse
     {
         try {
@@ -206,6 +207,7 @@ class ResourceController extends Controller
      * @NoCSRFRequired
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/resource-uploads/spec.md */
     public function getResource(string $filename)
     {
         // Leaf-only guard — the Symfony route param matches `[^/]+`
@@ -288,6 +290,7 @@ class ResourceController extends Controller
      * @NoCSRFRequired
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/resource-uploads/spec.md */
     public function listResources(): JSONResponse
     {
         try {
@@ -455,6 +458,7 @@ class ResourceController extends Controller
      *
      * @return string The raw request body.
      */
+    /** @spec openspec/specs/resource-uploads/spec.md */
     protected function readRequestBody(): string
     {
         return (string) file_get_contents(filename: 'php://input');

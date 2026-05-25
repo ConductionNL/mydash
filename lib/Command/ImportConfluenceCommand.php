@@ -55,6 +55,7 @@ class ImportConfluenceCommand extends Command
      *
      * @return void
      */
+    /** @spec openspec/specs/confluence-html-import/spec.md */
     protected function configure(): void
     {
         $this->setName(name: 'mydash:import:confluence')
@@ -94,6 +95,7 @@ class ImportConfluenceCommand extends Command
      *
      * @return int Exit code (0 success, 1 failure).
      */
+    /** @spec openspec/specs/confluence-html-import/spec.md */
     protected function execute(
         InputInterface $input,
         OutputInterface $output

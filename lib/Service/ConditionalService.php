@@ -50,6 +50,7 @@ class ConditionalService
      *
      * @return bool Whether the widget is visible.
      */
+    /** @spec openspec/specs/conditional-visibility/spec.md */
     public function isWidgetVisible(
         WidgetPlacement $placement,
         string $userId
@@ -80,6 +81,7 @@ class ConditionalService
      *
      * @return bool Whether the rule matches.
      */
+    /** @spec openspec/specs/conditional-visibility/spec.md */
     public function evaluateRule(
         ConditionalRule $rule,
         string $userId

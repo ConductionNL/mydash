@@ -149,6 +149,7 @@ class PeopleWidgetService
      *                                  non-positive, or `offset` is negative;
      *                                  or when `sortBy` is `recent-activity`.
      */
+    /** @spec openspec/specs/people-widget/spec.md */
     public function listUsers(
         array $filters=[],
         bool $excludeDisabled=true,
@@ -222,6 +223,7 @@ class PeopleWidgetService
      * @return int|null Days until next birthday, or null when input is
      *                  invalid.
      */
+    /** @spec openspec/specs/people-widget/spec.md */
     public static function computeDaysToBirthday(?string $birthdate): ?int
     {
         $iso = self::normaliseToIsoDate(raw: $birthdate);

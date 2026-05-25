@@ -162,6 +162,7 @@ class SvgSanitiser
      * @return string|null The sanitised SVG, or null when unparseable
      *                     or sanitised to an empty result.
      */
+    /** @spec openspec/specs/resource-uploads/spec.md */
     public function sanitize(string $bytes): ?string
     {
         if ($bytes === '') {

@@ -65,6 +65,7 @@ class RoleFeaturePermissionApiController extends Controller
      *
      * @return JSONResponse The list of permission rows.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function listPermissions(): JSONResponse
     {
         $guard = $this->requireAdmin();
@@ -86,6 +87,7 @@ class RoleFeaturePermissionApiController extends Controller
      *
      * @return JSONResponse The persisted row.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function savePermission(): JSONResponse
     {
         $guard = $this->requireAdmin();
@@ -117,6 +119,7 @@ class RoleFeaturePermissionApiController extends Controller
      *
      * @return JSONResponse Empty 204 on success.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function deletePermission(int $id): JSONResponse
     {
         $guard = $this->requireAdmin();
@@ -140,6 +143,7 @@ class RoleFeaturePermissionApiController extends Controller
      *
      * @return JSONResponse The list of layout default rows.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function listLayoutDefaults(): JSONResponse
     {
         $guard = $this->requireAdmin();
@@ -158,6 +162,7 @@ class RoleFeaturePermissionApiController extends Controller
      *
      * @return JSONResponse The persisted row.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function saveLayoutDefault(): JSONResponse
     {
         $guard = $this->requireAdmin();
@@ -189,6 +194,7 @@ class RoleFeaturePermissionApiController extends Controller
      *
      * @return JSONResponse Empty 204 on success.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function deleteLayoutDefault(int $id): JSONResponse
     {
         $guard = $this->requireAdmin();

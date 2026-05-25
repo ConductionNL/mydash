@@ -70,6 +70,7 @@ class ConfluenceImportController extends Controller
      * @NoAdminRequired
      * @NoCSRFRequired
      */
+    /** @spec openspec/specs/confluence-html-import/spec.md */
     public function dryRun(): JSONResponse
     {
         $guard = $this->requireAdmin();
@@ -110,6 +111,7 @@ class ConfluenceImportController extends Controller
      * @NoAdminRequired
      * @NoCSRFRequired
      */
+    /** @spec openspec/specs/confluence-html-import/spec.md */
     public function import(?string $parentUuid=null): JSONResponse
     {
         $guard = $this->requireAdmin();

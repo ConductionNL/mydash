@@ -114,6 +114,7 @@ class AdminOrgNavigationController extends Controller
      *
      * @NoAdminRequired
      */
+    /** @spec openspec/specs/navigation-editor-org/spec.md */
     public function getOrgNavigation(string $lang=OrgNavigationService::DEFAULT_LANGUAGE): JSONResponse
     {
         $user = $this->userSession->getUser();
@@ -155,6 +156,7 @@ class AdminOrgNavigationController extends Controller
      *
      * @NoAdminRequired
      */
+    /** @spec openspec/specs/navigation-editor-org/spec.md */
     public function updateOrgNavigation(
         ?array $tree=null,
         string $lang=OrgNavigationService::DEFAULT_LANGUAGE
@@ -203,6 +205,7 @@ class AdminOrgNavigationController extends Controller
      *
      * @NoAdminRequired
      */
+    /** @spec openspec/specs/navigation-editor-org/spec.md */
     public function getPosition(): JSONResponse
     {
         $user = $this->userSession->getUser();
@@ -226,6 +229,7 @@ class AdminOrgNavigationController extends Controller
      *
      * @NoAdminRequired
      */
+    /** @spec openspec/specs/navigation-editor-org/spec.md */
     public function updatePosition(?string $position=null): JSONResponse
     {
         $guard = $this->requireAdmin();

@@ -123,6 +123,7 @@ class DashboardTreeService
      *                                  cycle, or the resulting depth
      *                                  exceeds the cap.
      */
+    /** @spec openspec/specs/dashboard-switcher/spec.md */
     public function validateParent(
         ?string $movingUuid,
         ?string $newParentUuid
@@ -177,6 +178,7 @@ class DashboardTreeService
      *
      * @throws InvalidArgumentException When the slug is already in use.
      */
+    /** @spec openspec/specs/dashboard-switcher/spec.md */
     public function validateSlugUnique(
         ?string $parentUuid,
         string $slug,
@@ -213,6 +215,7 @@ class DashboardTreeService
      *
      * @return string The leading-slash path.
      */
+    /** @spec openspec/specs/dashboard-switcher/spec.md */
     public function computePath(string $uuid): string
     {
         $breadcrumbs = $this->computeBreadcrumbs(uuid: $uuid);
@@ -243,6 +246,7 @@ class DashboardTreeService
      *
      * @return array<int, array{uuid: ?string, name: ?string, slug: ?string}>
      */
+    /** @spec openspec/specs/dashboard-switcher/spec.md */
     public function computeBreadcrumbs(string $uuid): array
     {
         try {
@@ -282,6 +286,7 @@ class DashboardTreeService
      *
      * @return Dashboard|null The dashboard at the path, or NULL on miss.
      */
+    /** @spec openspec/specs/dashboard-switcher/spec.md */
     public function resolvePath(string $path): ?Dashboard
     {
         $segments = $this->splitPath(path: $path);
@@ -325,6 +330,7 @@ class DashboardTreeService
      *
      * @return array<int, array{uuid: ?string, name: ?string, slug: ?string, sortOrder: int, children: array}>
      */
+    /** @spec openspec/specs/dashboard-switcher/spec.md */
     public function buildTree(
         ?string $parentUuid,
         int $depth=0
@@ -383,6 +389,7 @@ class DashboardTreeService
      *
      * @return int The total number of dashboards removed (root + descendants).
      */
+    /** @spec openspec/specs/dashboard-switcher/spec.md */
     public function deleteSubtree(Dashboard $dashboard): int
     {
         $rootUuid = (string) $dashboard->getUuid();
