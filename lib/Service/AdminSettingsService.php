@@ -62,7 +62,7 @@ class AdminSettingsService
      *
      * @return array The settings array.
      *
-     * @spec admin-settings:REQ-ASET-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-1
      */
     public function getSettings(): array
     {
@@ -106,7 +106,7 @@ class AdminSettingsService
      *
      * @return void
      *
-     * @spec admin-settings:REQ-ASET-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-2
      */
     public function updateSettings(
         ?string $defaultPermLevel=null,

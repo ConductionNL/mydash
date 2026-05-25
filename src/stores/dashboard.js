@@ -570,6 +570,22 @@ export const useDashboardStore = defineStore('dashboard', {
 		 */
 		async addWidgetToDashboard(widgetId, position = null) {
 			try {
+				// AddWidgetModal emits a `{type, content}` payload for the
+				// registry-driven custom widgets (label, text, image, …).
+				// The legacy callers — sidebar "Add widget" buttons that
+				// pick a Nextcloud Dashboard API widget by id — pass a
+				// plain string. Both must funnel through the same store
+				// method, so unpack the object form into the API contract
+				// (`widgetId` string + `content` object) here rather than
+				// pushing the type-discrimination into every caller.
+				const isCustomPayload = (
+					widgetId !== null
+					&& typeof widgetId === 'object'
+					&& typeof widgetId.type === 'string'
+				)
+				const resolvedWidgetId = isCustomPayload ? widgetId.type : widgetId
+				const resolvedContent = isCustomPayload ? (widgetId.content ?? {}) : null
+
 				const placement = (position && Number.isFinite(position.x) && Number.isFinite(position.y))
 					? {
 						x: position.x,
@@ -584,13 +600,18 @@ export const useDashboardStore = defineStore('dashboard', {
 						{ gridColumns: this.activeDashboard?.gridColumns },
 					)
 
-				const response = await api.addWidget(this.activeDashboard.id, {
-					widgetId,
+				const requestBody = {
+					widgetId: resolvedWidgetId,
 					gridX: placement.x,
 					gridY: placement.y,
 					gridWidth: placement.w,
 					gridHeight: placement.h,
-				})
+				}
+				if (resolvedContent !== null) {
+					requestBody.content = resolvedContent
+				}
+
+				const response = await api.addWidget(this.activeDashboard.id, requestBody)
 				this.widgetPlacements.push(response.data)
 
 				if (placement.pushed.length > 0) {

@@ -97,7 +97,7 @@ class ConditionalService
      *
      * @return ConditionalRule[] The list of rules.
      *
-     * @spec conditional-visibility:REQ-VIS-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-9
      */
     public function getRules(int $placementId): array
     {
@@ -116,7 +116,7 @@ class ConditionalService
      *
      * @return ConditionalRule The created rule.
      *
-     * @spec conditional-visibility:REQ-VIS-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-8
      */
     public function addRule(
         int $placementId,
@@ -144,7 +144,7 @@ class ConditionalService
      *
      * @return ConditionalRule The updated rule.
      *
-     * @spec conditional-visibility:REQ-VIS-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-10
      */
     public function updateRule(int $ruleId, array $data): ConditionalRule
     {
@@ -172,7 +172,7 @@ class ConditionalService
      *
      * @return void
      *
-     * @spec conditional-visibility:REQ-VIS-004
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-11
      */
     public function deleteRule(int $ruleId): void
     {

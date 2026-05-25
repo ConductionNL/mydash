@@ -31,7 +31,7 @@ NOTE: The DB stores settings with snake_case keys, but the API response returns 
 
 ## Requirements
 
-### REQ-ASET-001: Retrieve Admin Settings
+### Requirement: Retrieve Admin Settings (REQ-ASET-001)
 
 Administrators MUST be able to retrieve all current admin settings via the API. The endpoint returns a flat JSON object with all four settings using camelCase keys.
 
@@ -81,7 +81,7 @@ Administrators MUST be able to retrieve all current admin settings via the API. 
 - AND no additional keys MUST be present in the response
 - AND the response MUST be a flat JSON object (no nesting)
 
-### REQ-ASET-002: Update Admin Settings
+### Requirement: Update Admin Settings (REQ-ASET-002)
 
 Administrators MUST be able to update individual or multiple admin settings in a single PUT request.
 
@@ -135,7 +135,7 @@ Administrators MUST be able to update individual or multiple admin settings in a
 - THEN the system MUST ignore the unknown key (unrecognized parameters are simply not matched to method arguments)
 - AND known settings MUST NOT be affected
 
-### REQ-ASET-003: Allow User Dashboards Setting (runtime gating + envelope)
+### Requirement: Allow User Dashboards Setting — runtime gating + envelope (REQ-ASET-003)
 
 The setting `allow_user_dashboards` (boolean stored as `'0'` / `'1'`, default `'0'`) MUST gate every endpoint that **creates** a personal (`type='user'`) dashboard. Read endpoints, update endpoints, and existing personal dashboards MUST remain accessible regardless of the flag's value. Toggling the flag MUST NOT mutate any dashboard records.
 
@@ -203,7 +203,7 @@ Admins MAY always create dashboards regardless of the flag (the `PermissionServi
 - AND the empty-state description MUST read "Personal dashboards are not enabled by your administrator"
 - AND if the call is invoked anyway (stale UI, direct API call) the backend MUST still return the 403 `personal_dashboards_disabled` envelope (defense in depth)
 
-### REQ-ASET-004: Allow Multiple Dashboards Setting
+### Requirement: Allow Multiple Dashboards Setting (REQ-ASET-004)
 
 When `allow_multiple_dashboards` is false, users MUST be limited to one dashboard.
 
@@ -244,7 +244,7 @@ When `allow_multiple_dashboards` is false, users MUST be limited to one dashboar
 - THEN the system MUST still create the template copy for alice
 - AND alice MUST have 2 dashboards (the restriction applies to user-initiated creation, not admin-initiated distribution)
 
-### REQ-ASET-005: Default Permission Level Setting
+### Requirement: Default Permission Level Setting (REQ-ASET-005)
 
 The `defaultPermissionLevel` setting MUST be applied as a fallback when resolving effective permission levels. The factory default is `add_only` (Dashboard::PERMISSION_ADD_ONLY).
 
@@ -279,7 +279,7 @@ The `defaultPermissionLevel` setting MUST be applied as a fallback when resolvin
 - THEN the system MUST check in order: (1) source template's `permissionLevel`, (2) dashboard's own `permissionLevel`, (3) admin default setting
 - AND the first non-empty value in the chain MUST be returned
 
-### REQ-ASET-006: Default Grid Columns Setting
+### Requirement: Default Grid Columns Setting (REQ-ASET-006)
 
 The `defaultGridColumns` setting MUST be applied to new dashboards when no explicit gridColumns is specified.
 
@@ -301,7 +301,7 @@ The `defaultGridColumns` setting MUST be applied to new dashboards when no expli
 - THEN the copy MUST have `gridColumns: 12` (from the template)
 - AND the global default MUST NOT override the template's grid configuration
 
-### REQ-ASET-007: Settings Persistence
+### Requirement: Settings Persistence (REQ-ASET-007)
 
 Admin settings MUST be persisted across server restarts and app updates.
 
@@ -331,7 +331,7 @@ Admin settings MUST be persisted across server restarts and app updates.
 - THEN all settings MUST be reset to their factory defaults
 - AND the response MUST confirm the update
 
-### REQ-ASET-008: Admin Settings UI
+### Requirement: Admin Settings UI (REQ-ASET-008)
 
 The admin settings MUST be accessible via a Nextcloud admin panel page.
 
@@ -363,7 +363,7 @@ The admin settings MUST be accessible via a Nextcloud admin panel page.
 - THEN the system MUST display a success notification
 - AND GET /api/admin/settings MUST reflect the change
 
-### REQ-ASET-009: Settings Impact on Existing Data
+### Requirement: Settings Impact on Existing Data (REQ-ASET-009)
 
 Admin settings changes MUST only affect future operations and MUST NOT retroactively modify existing dashboards.
 
@@ -386,7 +386,7 @@ Admin settings changes MUST only affect future operations and MUST NOT retroacti
 - AND users MUST continue to access their existing dashboards
 - AND only new dashboard creation MUST be blocked
 
-### REQ-ASET-010: Settings Concurrency
+### Requirement: Settings Concurrency (REQ-ASET-010)
 
 Concurrent admin settings updates MUST be handled safely.
 
@@ -402,7 +402,7 @@ Concurrent admin settings updates MUST be handled safely.
 - THEN the system MUST process each request independently
 - AND the final state MUST reflect the last request's values
 
-### REQ-ASET-011: Settings API Error Handling
+### Requirement: Settings API Error Handling (REQ-ASET-011)
 
 The settings API MUST return consistent error responses for various failure scenarios.
 
@@ -424,7 +424,7 @@ The settings API MUST return consistent error responses for various failure scen
 - THEN the system MUST return HTTP 200 with `{"status": "ok"}`
 - AND no settings MUST be modified (all parameters are null, so no updates are applied)
 
-### REQ-ASET-012: Group order setting
+### Requirement: Group order setting (REQ-ASET-012)
 
 The system MUST persist an ordered list of Nextcloud group IDs as the global setting `group_order` (JSON `string[]`, default `[]`). The order MUST be preserved exactly as provided. The setting determines which groups are "active" for MyDash workspace routing (REQ-TMPL-012). Corrupt or unparseable JSON in the database MUST resolve to `[]` at read time without throwing — the resolver and admin UI MUST never see a fatal error from a malformed value.
 
@@ -461,7 +461,7 @@ The system MUST persist an ordered list of Nextcloud group IDs as the global set
 - WHEN `AdminSettingsService::getGroupOrder()` is called
 - THEN it MUST return `[]` (factory default)
 
-### REQ-ASET-013: List groups for admin UI
+### Requirement: List groups for admin UI (REQ-ASET-013)
 
 The system MUST expose `GET /api/admin/groups` returning `{active: [id…], inactive: [id…], allKnown: [{id, displayName}…]}`:
 
@@ -502,7 +502,7 @@ Stale IDs (present in `active` but no longer in Nextcloud) MUST remain in `activ
 - AND `inactive` MUST NOT include it
 - NOTE: The UI SHOULD render stale IDs with a "(removed)" affix.
 
-### REQ-ASET-014: Admin guard and payload validation
+### Requirement: Admin guard and payload validation (REQ-ASET-014)
 
 `POST /api/admin/groups` MUST be admin-only (`IGroupManager::isAdmin`). Non-admins MUST receive HTTP 403 with no side effects. `GET /api/admin/groups` MUST also be admin-only because the inactive list reveals every group on the system.
 
@@ -552,7 +552,7 @@ Unknown (not currently in Nextcloud) IDs MUST NOT cause validation failure — t
 - THEN the request MUST succeed (HTTP 200)
 - AND `group_order` MUST be persisted as `["does-not-exist", "engineering"]`
 
-### REQ-ASET-015: Initial-state mirror of the allow-user-dashboards flag
+### Requirement: Initial-state mirror of the allow-user-dashboards flag (REQ-ASET-015)
 
 The current value of `allow_user_dashboards` MUST be pushed as initial state `allowUserDashboards: bool` on every workspace and admin page render so the frontend can hide the "+ New Dashboard" affordance and any "Fork as personal" affordance without an extra round-trip. The push MUST happen via `InitialStateBuilder::setAllowUserDashboards()` (REQ-INIT-002) — direct calls to `IInitialState::provideInitialState()` are forbidden by the `lint:initial-state` CI guard.
 

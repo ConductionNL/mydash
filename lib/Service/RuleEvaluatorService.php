@@ -54,7 +54,7 @@ class RuleEvaluatorService
      *
      * @return bool Whether the rule matches.
      *
-     * @spec conditional-visibility:REQ-VIS-010
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-14
      */
     public function evaluateRule(
         ConditionalRule $rule,

@@ -44,16 +44,20 @@ class PlacementService
     /**
      * Add a widget to a dashboard.
      *
-     * @param int    $dashboardId Dashboard ID.
-     * @param string $widgetId    Widget ID.
-     * @param int    $gridX       Grid X position.
-     * @param int    $gridY       Grid Y position.
-     * @param int    $gridWidth   Grid width.
-     * @param int    $gridHeight  Grid height.
+     * @param int        $dashboardId Dashboard ID.
+     * @param string     $widgetId    Widget ID.
+     * @param int        $gridX       Grid X position.
+     * @param int        $gridY       Grid Y position.
+     * @param int        $gridWidth   Grid width.
+     * @param int        $gridHeight  Grid height.
+     * @param array|null $content     Optional per-type content payload for
+     *                                custom widgets (registry-driven types
+     *                                like `label`, `text`, etc. — shape
+     *                                matches the type's `defaultContent`).
      *
      * @return WidgetPlacement The created widget placement.
      *
-     * @spec widgets:REQ-WDG-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-34
      */
     public function addWidget(
         int $dashboardId,
@@ -61,7 +65,8 @@ class PlacementService
         int $gridX=0,
         int $gridY=0,
         int $gridWidth=4,
-        int $gridHeight=4
+        int $gridHeight=4,
+        ?array $content=null
     ): WidgetPlacement {
         $placement = new WidgetPlacement();
         $now       = (new DateTime())->format(format: 'Y-m-d H:i:s');
@@ -74,6 +79,11 @@ class PlacementService
         $placement->setIsCompulsory(0);
         $placement->setIsVisible(1);
         $placement->setShowTitle(1);
+
+        if ($content !== null) {
+            $placement->setContentArray($content);
+        }
+
         $placement->setCreatedAt($now);
         $placement->setUpdatedAt($now);
 
@@ -125,7 +135,7 @@ class PlacementService
      *
      * @return WidgetPlacement The updated widget placement.
      *
-     * @spec widgets:REQ-WDG-004
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-35
      */
     public function updatePlacement(
         int $placementId,
@@ -160,7 +170,7 @@ class PlacementService
      *
      * @return void
      *
-     * @spec widgets:REQ-WDG-005
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-36
      */
     public function removePlacement(int $placementId): void
     {

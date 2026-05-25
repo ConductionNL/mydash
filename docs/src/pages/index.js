@@ -251,8 +251,8 @@ const WIDGETS = [
 export default function Home() {
   return (
     <Layout
-      title="MyDash"
-      description="Personal and team dashboards built directly on your Nextcloud registers. No separate BI tool, no extra login, no ETL."
+      title="MyDash, customizable dashboards for Nextcloud workspaces"
+      description="Build customizable dashboards on Nextcloud. Widgets, KPIs, and live charts on top of OpenRegister data with no separate BI stack."
     >
       <main className="marketing-page">
         <DetailHero

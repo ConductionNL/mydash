@@ -12,6 +12,9 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
+ *
+ * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-3
+ * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-4
  */
 
 declare(strict_types=1);
@@ -31,6 +34,8 @@ class ResponseHelper
      * Create an unauthorized response.
      *
      * @return JSONResponse The unauthorized response.
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-3
      */
     public static function unauthorized(): JSONResponse
     {
@@ -46,6 +51,8 @@ class ResponseHelper
      * @param string $message The error message.
      *
      * @return JSONResponse The forbidden response.
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-3
      */
     public static function forbidden(
         string $message='Access denied'
@@ -72,6 +79,8 @@ class ResponseHelper
      * @param string               $message    Generic client-facing message.
      *
      * @return JSONResponse The error response.
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-4
      */
     public static function error(
         \Exception $exception,
@@ -99,6 +108,8 @@ class ResponseHelper
      * @param int   $statusCode The HTTP status code.
      *
      * @return JSONResponse The success response.
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-3
      */
     public static function success(
         array $data,
@@ -116,6 +127,8 @@ class ResponseHelper
      * @param array $entities The entities to serialize.
      *
      * @return array The serialized entities.
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-3
      */
     public static function serializeList(array $entities): array
     {

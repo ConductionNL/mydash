@@ -1,4 +1,7 @@
 includes:
+    # Per-app tracked lint debt lives here (auto-generated via `phpstan --generate-baseline`).
+    # Apps without debt ship an empty baseline file; canonical includes are otherwise byte-identical
+    # across the fleet.
     - phpstan-baseline.neon
 
 parameters:
@@ -9,98 +12,48 @@ parameters:
         - phpstan-bootstrap.php
     excludePaths:
         - vendor
-    # nextcloud/ocp ships stubs without an autoload section, so list the
-    # namespace roots explicitly. Keep both OCP (public API) and NCU
-    # (unstable internal API) reachable for symbol resolution.
+        - vendor-bin
+        # Apps that ship a verbatim template snapshot under lib/Resources/template/ (e.g. openbuilt).
+        - lib/Resources/template
     scanDirectories:
-        - vendor/nextcloud/ocp/OCP
-        - vendor/nextcloud/ocp/NCU
+        - vendor/nextcloud/ocp
     reportUnmatchedIgnoredErrors: false
     ignoreErrors:
-        # Nextcloud internal classes that PHPStan might not recognize
+        # Nextcloud server internals (\OC, OC_App, OC\) not stubbed in nextcloud/ocp
         - '#Call to an undefined method OC::#'
         - '#Class OC not found#'
         - '#Access to static property \$server on an unknown class OC#'
-        # Doctrine\DBAL\Schema\Table is provided by Nextcloud server's
-        # 3rdparty bundle, not by our app's vendor/. Migration table
-        # builders type-hint the class but PHPStan cannot resolve it
-        # locally; they are exercised at runtime under Nextcloud.
-        -
-            message: '#unknown class Doctrine\\DBAL\\Schema\\Table#'
-            path: lib/Migration/*
-        -
-            message: '#has invalid type Doctrine\\DBAL\\Schema\\Table#'
-            path: lib/Migration/*
-        # JSONResponse uses a strict status-code union; a plain int parameter
-        # widens that. Both call sites already constrain via Http::STATUS_*
-        # defaults at the public boundary, so the runtime behaviour is sound.
-        -
-            message: '#Parameter \$statusCode of class OCP\\AppFramework\\Http\\JSONResponse constructor#'
-            path: lib/Controller/ResponseHelper.php
-        # Same JSONResponse status-code union widening — ResourceController
-        # builds the int from typed exceptions whose `getHttpStatus()` only
-        # ever returns members of the literal union (verified by tests).
-        -
-            message: '#Parameter \$statusCode of class OCP\\AppFramework\\Http\\JSONResponse constructor#'
-            path: lib/Controller/ResourceController.php
-        # Same JSONResponse status-code union widening — FileController
-        # forwards an HTTP status int from typed createFile exceptions.
-        -
-            message: '#Parameter \$statusCode of class OCP\\AppFramework\\Http\\JSONResponse constructor#'
-            path: lib/Controller/FileController.php
-        # Same JSONResponse status-code union widening — comment exceptions
-        # carry a typed `getHttpStatus()` that only returns 400/403/404 but
-        # PHPStan cannot prove the constraint statically.
-        -
-            message: '#Parameter \$statusCode of class OCP\\AppFramework\\Http\\JSONResponse constructor#'
-            path: lib/Controller/DashboardCommentsApiController.php
-        # DataResponse declares a `T of DataResponseType` template parameter
-        # whose union does not cover plain associative arrays. Every call
-        # site here passes a JSON-serialisable array — runtime is sound;
-        # the type system cannot narrow `array<string, X>` into the
-        # template union without a generic helper. Suppressing here keeps
-        # the controller readable until Nextcloud upstream loosens the
-        # generic bound.
-        -
-            message: '#Parameter \$data of class OCP\\AppFramework\\Http\\DataResponse constructor#'
-            path: lib/Controller/DashboardShareApiController.php
-        # Same DataResponse template-narrowing issue — FeedController's
-        # `{token, url}` envelopes are `array<string, string>` and the
-        # 401 envelope is `array<string, string>`; both are sound at
-        # runtime but trip the upstream generic bound. The 204 path
-        # also widens an int-literal status code that PHPStan refuses
-        # to narrow without a generic helper.
-        -
-            message: '#Parameter \$data of class OCP\\AppFramework\\Http\\DataResponse constructor#'
-            path: lib/Controller/FeedController.php
-        -
-            message: '#Parameter \$statusCode of class OCP\\AppFramework\\Http\\DataResponse constructor#'
-            path: lib/Controller/FeedController.php
-        # `getimagesizefromstring` shape from PHPStan's stubs already
-        # guarantees the `mime` key exists; the `??` is intentional defence
-        # in depth for older runtimes / stubs.
-        -
-            message: "#Offset 'mime' on .* on left side of \\?\\? always exists#"
-            path: lib/Service/ImageMimeValidator.php
-        # Entity types implement JsonSerializable on the concrete subclass;
-        # the OCP stub for Entity does not declare jsonSerialize() so PHPStan
-        # cannot statically prove the call. The only callers wrap entities
-        # that always define it.
-        -
-            message: '#Call to an undefined method OCP\\AppFramework\\Db\\Entity::jsonSerialize\(\)#'
-            path: lib/Db/EntitySerializer.php
-        # registerRepairStep / getLanguage exist on server but not in nextcloud/ocp stub
+        - '#unknown class OC\\#'
+        - '#Caught class OC\\#'
+        - '#unknown class OC_App#'
+        - '#Class OC_App not found#'
+        # OCA\DAV is server-internal and not in nextcloud/ocp stubs
+        - '#unknown class OCA\\DAV\\#'
+        - '#Class OCA\\DAV\\#'
+        # OCA classes from other apps (OpenRegister) not available during static analysis
+        - '#unknown class OCA\\OpenRegister\\#'
+        - '#OCA\\OpenRegister\\[a-zA-Z\\]+.*not found#'
+        - '#on an unknown class OCA\\OpenRegister\\#'
+        - '#has invalid return type OCA\\OpenRegister\\#'
+        - '#has invalid type OCA\\OpenRegister\\#'
+        - '#implements unknown interface OCA\\OpenRegister\\#'
+        # GuzzleHttp is available at runtime via Nextcloud but not in composer require
+        - '#unknown class GuzzleHttp\\#'
+        - '#GuzzleHttp\\[a-zA-Z\\]+.*not found#'
+        - '#on an unknown class GuzzleHttp\\#'
+        - '#invalid type GuzzleHttp\\#'
+        - '#Caught class GuzzleHttp\\#'
+        # Doctrine\DBAL is shipped by Nextcloud server but not stubbed in nextcloud/ocp
+        - '#unknown class Doctrine\\DBAL\\#'
+        - '#Doctrine\\DBAL\\[a-zA-Z\\]+.*not found#'
+        - '#on an unknown class Doctrine\\DBAL\\#'
+        # Dynamic HTTP status codes from business rule validation results
+        # (matches both `Parameter $statusCode` and `Parameter #N $statusCode` forms emitted by phpstan)
+        - '#Parameter (\#\d+ )?\$statusCode of class OCP\\AppFramework\\Http\\JSONResponse constructor expects#'
+        # registerRepairStep exists on server; not yet in nextcloud/ocp stub used for analysis
         - '#Call to an undefined method OCP\\AppFramework\\Bootstrap\\IRegistrationContext::registerRepairStep#'
-        - '#Call to an undefined method OCP\\IUser::getLanguage#'
-        # OCP\AppFramework\Db\Entity implements JsonSerializable at runtime but stub omits it
+        # OCP stub gaps for methods that exist at runtime
+        - '#Call to an undefined method OCP\\IRequest::getContent\(\)#'
+        - '#Call to an undefined method OCP\\IRequest::setParameter\(\)#'
+        - '#Call to an undefined method OCP\\Mail\\IMessage::attachFile\(\)#'
         - '#Call to an undefined method OCP\\AppFramework\\Db\\Entity::jsonSerialize#'
-        # `Dashboard::MAX_DEPTH` is a literal-typed integer constant; PHPStan
-        # collapses depth-bounded loops on it to "always true" comparisons.
-        # The bound exists so future MAX_DEPTH bumps work unchanged — the
-        # comparison is correct at runtime.
-        -
-            message: "#Comparison operation \"<\" between .* and 5 is always true#"
-            path: lib/Db/DashboardMapper.php
-        -
-            message: "#Comparison operation \"<\" between .* and 5 is always true#"
-            path: lib/Service/DashboardTreeService.php

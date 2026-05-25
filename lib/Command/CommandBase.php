@@ -147,7 +147,9 @@ abstract class CommandBase extends Command
             );
             if ($this->isJson(input: $input) === true) {
                 $output->writeln(messages: $this->commandService->encodeEnvelope(envelope: $envelope));
-            } else {
+            }
+
+            if ($this->isJson(input: $input) === false) {
                 $this->writeError(output: $output, message: '<error>'.$e->getMessage().'</error>');
             }
         } finally {
@@ -264,9 +266,11 @@ abstract class CommandBase extends Command
                     )
                 )
             );
-        } else {
-            $this->writeError(output: $output, message: '<error>'.$message.'</error>');
+
+            return $exitCode;
         }
+
+        $this->writeError(output: $output, message: '<error>'.$message.'</error>');
 
         return $exitCode;
     }//end emitError()

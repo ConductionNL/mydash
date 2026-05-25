@@ -117,7 +117,7 @@ class DashboardApiController extends Controller
      *
      * @return JSONResponse The list of dashboards.
      *
-     * @spec dashboards:REQ-DASH-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-17
      */
     #[NoAdminRequired]
     public function list(): JSONResponse
@@ -170,7 +170,7 @@ class DashboardApiController extends Controller
      *
      * @return JSONResponse The active dashboard data.
      *
-     * @spec dashboards:REQ-DASH-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-18
      */
     #[NoAdminRequired]
     public function getActive(): JSONResponse
@@ -220,7 +220,7 @@ class DashboardApiController extends Controller
      * @return JSONResponse The dashboard envelope (200) or
      *                      `{'error': 'Not found'}` (404).
      *
-     * @spec dashboards:REQ-SWITCH-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-21
      */
     #[NoAdminRequired]
     public function show(int $id): JSONResponse
@@ -277,7 +277,7 @@ class DashboardApiController extends Controller
      *
      * @return JSONResponse The created dashboard.
      *
-     * @spec dashboards:REQ-DASH-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-16
      */
     #[NoAdminRequired]
     public function create(
@@ -386,7 +386,7 @@ class DashboardApiController extends Controller
      *
      * @return JSONResponse The updated dashboard.
      *
-     * @spec dashboards:REQ-DASH-004
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-19
      */
     #[NoAdminRequired]
     public function update(
@@ -407,22 +407,22 @@ class DashboardApiController extends Controller
         // allowed for all permission levels. Widget/tile/layout changes
         // require add_only or full permission.
         $isMetadataOnly = $placements === null;
-        if ($isMetadataOnly === true) {
-            if ($this->permissionService->canEditDashboardMetadata(
+        if ($isMetadataOnly === true
+            && $this->permissionService->canEditDashboardMetadata(
                 userId: $this->userId,
                 dashboardId: $id
             ) === false
-            ) {
-                return ResponseHelper::forbidden();
-            }
-        } else {
-            if ($this->permissionService->canEditDashboard(
+        ) {
+            return ResponseHelper::forbidden();
+        }
+
+        if ($isMetadataOnly === false
+            && $this->permissionService->canEditDashboard(
                 userId: $this->userId,
                 dashboardId: $id
             ) === false
-            ) {
-                return ResponseHelper::forbidden();
-            }
+        ) {
+            return ResponseHelper::forbidden();
         }
 
         try {
@@ -480,7 +480,7 @@ class DashboardApiController extends Controller
      *
      * @return JSONResponse The deletion confirmation.
      *
-     * @spec dashboards:REQ-DASH-005
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-20
      */
     #[NoAdminRequired]
     public function delete(int $id): JSONResponse
@@ -1521,10 +1521,9 @@ class DashboardApiController extends Controller
         // else (non-null string) is forwarded verbatim — including the
         // empty string, which the service treats as a NULL parent.
         if ($parentUuid !== null) {
+            $data['parentUuid'] = $parentUuid;
             if ($parentUuid === '__null__' || $parentUuid === '') {
                 $data['parentUuid'] = null;
-            } else {
-                $data['parentUuid'] = $parentUuid;
             }
         }
 

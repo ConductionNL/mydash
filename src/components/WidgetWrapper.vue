@@ -88,19 +88,34 @@ export default {
 
 	computed: {
 		isTileWidget() {
-			const result = this.placement.widgetId && this.placement.widgetId.startsWith('tile-')
-			console.log('[WidgetWrapper] isTileWidget check:', {
-				widgetId: this.placement.widgetId,
-				result,
-			})
-			return result
+			return this.placement.widgetId && this.placement.widgetId.startsWith('tile-')
+		},
+
+		/**
+		 * Widget types that own their entire visual surface — labels,
+		 * dividers, header banners, and the registry-driven `tile` are
+		 * "chrome-less": rendering a "Widget"-titled wrapper above them
+		 * is visual noise that competes with the renderer's own
+		 * heading. The wrapper still draws its frame for any other
+		 * type AND for these types when the user has set a per-placement
+		 * `customTitle` (which is an explicit opt-in to show chrome).
+		 */
+		isChromelessType() {
+			return ['label', 'divider', 'header', 'tile'].includes(this.placement?.widgetId)
 		},
 
 		showHeader() {
-			// Tiles don't show headers - they render directly.
-			const show = this.isTileWidget ? false : (this.placement.showTitle !== false)
-			console.log('[WidgetWrapper] showHeader:', show, 'isTileWidget:', this.isTileWidget)
-			return show
+			// Tiles (legacy `tile-{id}` widgetId) render directly with no
+			// wrapper. Registry-driven chrome-less types keep the wrapper
+			// frame but skip the header row unless the user supplied a
+			// `customTitle` override.
+			if (this.isTileWidget) {
+				return false
+			}
+			if (this.isChromelessType && !this.placement.customTitle) {
+				return false
+			}
+			return this.placement.showTitle !== false
 		},
 
 		widgetTitle() {

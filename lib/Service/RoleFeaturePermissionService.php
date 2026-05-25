@@ -27,6 +27,7 @@ declare(strict_types=1);
 namespace OCA\MyDash\Service;
 
 use DateTime;
+use InvalidArgumentException;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\RoleFeaturePermission;
 use OCA\MyDash\Db\RoleFeaturePermissionMapper;
@@ -105,7 +106,7 @@ class RoleFeaturePermissionService
     {
         $groupId = (string) ($data['groupId'] ?? '');
         if ($groupId === '') {
-            throw new \InvalidArgumentException(message: 'groupId is required');
+            throw new InvalidArgumentException(message: 'groupId is required');
         }
 
         try {
@@ -205,7 +206,7 @@ class RoleFeaturePermissionService
         $groupId  = (string) ($data['groupId'] ?? '');
         $widgetId = (string) ($data['widgetId'] ?? '');
         if ($groupId === '' || $widgetId === '') {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 message: 'groupId and widgetId are required'
             );
         }

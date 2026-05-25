@@ -58,7 +58,7 @@ class MetricsController extends Controller
      *
      * @NoCSRFRequired
      *
-     * @spec prometheus-metrics:REQ-PROM-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-25
      */
     public function index(): TextPlainResponse
     {

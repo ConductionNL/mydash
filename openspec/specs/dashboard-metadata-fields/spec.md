@@ -55,7 +55,7 @@ If a field definition is deleted without cascade, the corresponding value rows r
 
 ## Requirements
 
-### REQ-MDFL-001: Field Definition CRUD
+### Requirement: Field Definition CRUD (REQ-MDFL-001)
 
 Administrators MUST be able to create, read, update, and delete field definitions via a dedicated admin API endpoint. Field definitions form the global schema against which all dashboard values are validated.
 
@@ -109,7 +109,7 @@ Administrators MUST be able to create, read, update, and delete field definition
 - THEN the system MUST return HTTP 200 with an envelope `{"fields": [...], "count": 3}`
 - AND fields MUST be sorted by `sort_order` ascending (0, 5, 10)
 
-### REQ-MDFL-002: Field Definition Updates
+### Requirement: Field Definition Updates (REQ-MDFL-002)
 
 Administrators MUST be able to update a field definition's metadata (label, sort order, required flag, options), but renaming the field's `key` MUST be forbidden — the key is the stable identifier and renaming it breaks existing values.
 
@@ -128,7 +128,7 @@ Administrators MUST be able to update a field definition's metadata (label, sort
 - THEN the system MUST return HTTP 400 with error `"Field key cannot be renamed"`
 - AND the key MUST remain "department"
 
-### REQ-MDFL-003: Field Definition Deletion
+### Requirement: Field Definition Deletion (REQ-MDFL-003)
 
 Administrators MUST be able to delete field definitions. Deletion has two modes: soft (reject if orphans would be created) or cascade (delete all values).
 
@@ -154,7 +154,7 @@ Administrators MUST be able to delete field definitions. Deletion has two modes:
 - THEN the system MUST return HTTP 409 with body containing `error: "metadata_field_has_values"` and `valueCount: 3`
 - AND the field and its values MUST remain unchanged
 
-### REQ-MDFL-004: Dashboard Metadata Read
+### Requirement: Dashboard Metadata Read (REQ-MDFL-004)
 
 Users MUST be able to read all metadata values for a given dashboard as a flat key-value object.
 
@@ -185,7 +185,7 @@ Users MUST be able to read all metadata values for a given dashboard as a flat k
 - AND MUST log a warning describing the orphan
 - AND MUST NOT crash
 
-### REQ-MDFL-005: Dashboard Metadata Write
+### Requirement: Dashboard Metadata Write (REQ-MDFL-005)
 
 Users MUST be able to set or update metadata values for a dashboard via a flat key-value object. Omitted keys are NOT deleted; only keys in the request body are upserted. Explicit empty values on optional fields delete the slot so it disappears from the read payload.
 
@@ -210,7 +210,7 @@ Users MUST be able to set or update metadata values for a dashboard via a flat k
 - WHEN user sends `PUT /api/dashboards/abc-123/metadata` with body `{"metadata": {"department": null}}`
 - THEN the system MUST return HTTP 400 with error `"Field 'Department' is required"`
 
-### REQ-MDFL-006: Type Validation at Write
+### Requirement: Type Validation at Write (REQ-MDFL-006)
 
 The system MUST validate each value against its field's type definition before persisting. Invalid values are rejected with a 400 error.
 
@@ -238,7 +238,7 @@ The system MUST validate each value against its field's type definition before p
 - WHEN user sends `PUT /api/dashboards/{uuid}/metadata` with body `{"metadata": {"status": "rejected"}}`
 - THEN the system MUST return HTTP 400 with error `"Field 'Status' value 'rejected' not in allowed options"`
 
-### REQ-MDFL-007: Dashboard Filtering by Metadata
+### Requirement: Dashboard Filtering by Metadata (REQ-MDFL-007)
 
 The system MUST expose a query filter mechanism on the dashboard list endpoint to filter dashboards by metadata values using `?metadata.<key>=<value>` syntax. The filter resolver is implemented in `MetadataService::filterDashboards($dashboards, $filters)` and is consumed by every dashboard-list endpoint that accepts metadata filters; unknown filter keys are silently dropped so a stale URL never empties the list when a field is deleted.
 
@@ -266,7 +266,7 @@ The system MUST expose a query filter mechanism on the dashboard list endpoint t
 - WHEN a user sends `GET /api/dashboards?metadata.status=open`
 - THEN the system MUST return only dashboards with status="open"
 
-### REQ-MDFL-008: Permission and Ownership
+### Requirement: Permission and Ownership (REQ-MDFL-008)
 
 Reading and writing metadata MUST be scoped to the dashboard's owner (for personal dashboards) or to users with access to the dashboard. Admin templates are world-readable; group-shared dashboards are readable + writable by every member of the owning group.
 

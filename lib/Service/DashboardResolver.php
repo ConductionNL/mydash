@@ -49,7 +49,7 @@ class DashboardResolver
      *
      * @return array|null The dashboard result or null.
      *
-     * @spec dashboards:REQ-DASH-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-18
      */
     public function tryGetActiveDashboard(string $userId): ?array
     {
@@ -77,7 +77,7 @@ class DashboardResolver
      *
      * @return array|null The dashboard result or null.
      *
-     * @spec dashboards:REQ-DASH-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-18
      */
     public function tryActivateExistingDashboard(string $userId): ?array
     {
@@ -180,7 +180,7 @@ class DashboardResolver
      *
      * @return string The effective permission level.
      *
-     * @spec permissions:REQ-PERM-008
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-24
      */
     public function getEffectivePermissionLevel(
         Dashboard $dashboard

@@ -303,10 +303,24 @@ export default {
 		 * Handle a `<select>` change: swap the active sub-form and reset
 		 * its state to defaults. REQ-WDG-010 — switching type discards
 		 * any in-progress field input (explicit trade-off, see proposal).
+		 *
+		 * The sub-form is keyed on `state.type`, so changing the type
+		 * tears down the old `<component :is>` and remounts a new one;
+		 * `$refs.activeSubForm` is briefly null between teardown and
+		 * mount. The first `validationTick++` fires while the ref is
+		 * stale, so `validate()` returns `__no-active-form__` and
+		 * `isValid` flips to false — the visible symptom is an Add
+		 * button that stays disabled until the user touches a field.
+		 * Bumping the tick again on the NEXT tick (after Vue has
+		 * remounted the sub-form and rebound the ref) lets the
+		 * computed re-run against the fresh sub-form's `validate()`.
 		 */
 		onTypeSwitch() {
 			this.form.resetForm(this.state.type)
 			this.validationTick++
+			this.$nextTick(() => {
+				this.validationTick++
+			})
 		},
 
 		/**

@@ -19,6 +19,7 @@ declare(strict_types=1);
 namespace OCA\MyDash\Controller;
 
 use DateTimeImmutable;
+use InvalidArgumentException;
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Service\CalendarWidgetService;
 use OCA\MyDash\Service\NewsWidgetService;
@@ -79,7 +80,7 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse The list of available widgets.
      *
-     * @spec widgets:REQ-WDG-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-32
      */
     #[NoAdminRequired]
     public function listAvailable(): JSONResponse
@@ -124,7 +125,7 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse The widget items.
      *
-     * @spec widgets:REQ-WDG-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-33
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -157,7 +158,7 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse The created widget placement.
      *
-     * @spec widgets:REQ-WDG-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-34
      */
     #[NoAdminRequired]
     public function addWidget(
@@ -179,7 +180,7 @@ class WidgetApiController extends Controller
         // without the field and used to crash the dispatcher.
         if ($widgetId === null || $widgetId === '') {
             return ResponseHelper::error(
-                exception: new \InvalidArgumentException(
+                exception: new InvalidArgumentException(
                     'Missing required field: widgetId'
                 ),
                 statusCode: Http::STATUS_BAD_REQUEST
@@ -213,6 +214,16 @@ class WidgetApiController extends Controller
             }
         }
 
+        // Forward the per-type content payload (registry-driven custom
+        // widgets carry their config here — `label`, `text`, `image`, etc.).
+        // Tolerant of legacy callers that send only `widgetId` and grid
+        // coords with no content blob: $contentParam stays null and
+        // PlacementService leaves the column NULL.
+        $contentToPersist = null;
+        if (is_array($contentParam) === true) {
+            $contentToPersist = $contentParam;
+        }
+
         try {
             $placement = $this->widgetService->addWidget(
                 dashboardId: $dashboardId,
@@ -220,7 +231,8 @@ class WidgetApiController extends Controller
                 gridX: $gridX,
                 gridY: $gridY,
                 gridWidth: $gridWidth,
-                gridHeight: $gridHeight
+                gridHeight: $gridHeight,
+                content: $contentToPersist
             );
 
             return ResponseHelper::success(
@@ -239,7 +251,7 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse
      *
-     * @spec container-widget:REQ-CONT-006
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-15
      */
     private function containerDepthExceededResponse(): JSONResponse
     {
@@ -299,7 +311,7 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse The updated widget placement.
      *
-     * @spec widgets:REQ-WDG-004
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-35
      */
     #[NoAdminRequired]
     public function updatePlacement(int $placementId): JSONResponse
@@ -357,7 +369,7 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse The removal confirmation.
      *
-     * @spec widgets:REQ-WDG-005
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-36
      */
     #[NoAdminRequired]
     public function removePlacement(int $placementId): JSONResponse

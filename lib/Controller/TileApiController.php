@@ -79,7 +79,7 @@ class TileApiController extends Controller
      *
      * @return JSONResponse The list of tiles.
      *
-     * @spec tiles:REQ-TILE-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-29
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -106,7 +106,7 @@ class TileApiController extends Controller
      *
      * @return JSONResponse The HTTP 410 Gone envelope.
      *
-     * @spec tiles:REQ-TILE-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-28
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -126,7 +126,7 @@ class TileApiController extends Controller
      *
      * @return JSONResponse The HTTP 410 Gone envelope.
      *
-     * @spec tiles:REQ-TILE-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-30
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -144,7 +144,7 @@ class TileApiController extends Controller
      *
      * @return JSONResponse The HTTP 410 Gone envelope.
      *
-     * @spec tiles:REQ-TILE-004
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-31
      */
     #[NoAdminRequired]
     public function destroy(): JSONResponse

@@ -1,5 +1,5 @@
 {
-	"name": "mydash/mydash",
+	"name": "conductionnl/mydash",
 	"description": "Enhanced dashboard with grid layout and admin controls for Nextcloud",
 	"type": "project",
 	"license": "EUPL-1.2",
@@ -9,7 +9,7 @@
 		}
 	],
 	"require": {
-		"php": "^8.1"
+		"php": "^8.3"
 	},
 	"require-dev": {
 		"cyclonedx/cyclonedx-php-composer": "^6.2",
@@ -94,7 +94,7 @@
 		"optimize-autoloader": true,
 		"sort-packages": true,
 		"platform": {
-			"php": "8.1"
+			"php": "8.3"
 		}
 	}
 }

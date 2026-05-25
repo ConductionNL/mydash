@@ -224,7 +224,7 @@ class AdminTemplateService
      *
      * @return Dashboard[] The list of admin templates.
      *
-     * @spec admin-templates:REQ-TMPL-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-4
      */
     public function listTemplates(): array
     {
@@ -269,7 +269,7 @@ class AdminTemplateService
      *
      * @return Dashboard The created template.
      *
-     * @spec admin-templates:REQ-TMPL-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-3
      */
     public function createTemplate(
         string $name,
@@ -329,7 +329,7 @@ class AdminTemplateService
      *
      * @throws Exception If the dashboard is not an admin template.
      *
-     * @spec admin-templates:REQ-TMPL-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-5
      */
     public function updateTemplate(int $id, array $data): Dashboard
     {
@@ -360,7 +360,7 @@ class AdminTemplateService
      *
      * @throws Exception If the dashboard is not an admin template.
      *
-     * @spec admin-templates:REQ-TMPL-004
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-6
      */
     public function deleteTemplate(int $id): void
     {

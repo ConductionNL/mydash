@@ -21,7 +21,7 @@ Templates own their widget placements (in `oc_mydash_widget_placements`) which s
 
 ## Requirements
 
-### REQ-TMPL-001: Create Admin Template
+### Requirement: Create Admin Template (REQ-TMPL-001)
 
 Nextcloud administrators MUST be able to create dashboard templates for distribution to users.
 
@@ -76,7 +76,7 @@ Nextcloud administrators MUST be able to create dashboard templates for distribu
 - THEN the system MUST assign a UUID v4 via `Ramsey\Uuid\Uuid::uuid4()` (unlike user dashboards which use a custom UUID generator in `DashboardFactory`)
 - AND the UUID MUST be unique across all dashboards
 
-### REQ-TMPL-002: List Admin Templates
+### Requirement: List Admin Templates (REQ-TMPL-002)
 
 Administrators MUST be able to view all existing templates with their configuration.
 
@@ -109,7 +109,7 @@ Administrators MUST be able to view all existing templates with their configurat
 - THEN the response MUST contain only her user dashboards
 - AND admin templates MUST NOT appear in the user's dashboard list
 
-### REQ-TMPL-003: Update Admin Template
+### Requirement: Update Admin Template (REQ-TMPL-003)
 
 Administrators MUST be able to modify template configuration including name, description, target groups, permission level, and grid columns.
 
@@ -144,7 +144,7 @@ Administrators MUST be able to modify template configuration including name, des
 - WHEN regular user "alice" sends PUT /api/admin/templates/1
 - THEN the system MUST return HTTP 403
 
-### REQ-TMPL-004: Delete Admin Template
+### Requirement: Delete Admin Template (REQ-TMPL-004)
 
 Administrators MUST be able to delete templates, with proper cleanup of associated widget placements.
 
@@ -180,7 +180,7 @@ Administrators MUST be able to delete templates, with proper cleanup of associat
 - AND no template MUST be the default afterward (this is allowed)
 - AND new users without a group-targeted template will get no template on first access
 
-### REQ-TMPL-005: Template Distribution on First Access
+### Requirement: Template Distribution on First Access (REQ-TMPL-005)
 
 When a user accesses MyDash for the first time, the system MUST create personal copies of matching templates via the `DashboardResolver` chain.
 
@@ -224,7 +224,7 @@ When a user accesses MyDash for the first time, the system MUST create personal 
 - THEN alice MUST receive a copy of "Marketing Dashboard" (group-targeted template takes priority over default)
 - NOTE: Only ONE template per first-access. Group-targeted templates are evaluated first; the default template is the fallback.
 
-### REQ-TMPL-006: Template Copy Independence
+### Requirement: Template Copy Independence (REQ-TMPL-006)
 
 User copies of templates MUST be fully independent from the source template after creation, with the exception of permission level resolution.
 
@@ -247,7 +247,7 @@ User copies of templates MUST be fully independent from the source template afte
 - AND alice's dashboard MUST retain all placements
 - AND permission resolution MUST fall back to the dashboard's own `permissionLevel` (template lookup caught by `DoesNotExistException`)
 
-### REQ-TMPL-007: Template Widget Management
+### Requirement: Template Widget Management (REQ-TMPL-007)
 
 Administrators MUST be able to manage widget placements on templates using the same API as regular dashboards.
 
@@ -275,7 +275,7 @@ Administrators MUST be able to manage widget placements on templates using the s
 - THEN the tile placement MUST be cloned with all inline tile data via `clonePlacement()`
 - AND the user copy MUST render the tile identically to the template
 
-### REQ-TMPL-008: Only One Default Template
+### Requirement: Only One Default Template (REQ-TMPL-008)
 
 The system MUST enforce that at most one template is marked as the default at any time.
 
@@ -298,7 +298,7 @@ The system MUST enforce that at most one template is marked as the default at an
 - THEN the template MUST have `isDefault` set to 0 (false)
 - AND no template MUST be the default (this is allowed)
 
-### REQ-TMPL-009: Get Template with Placements
+### Requirement: Get Template with Placements (REQ-TMPL-009)
 
 Administrators MUST be able to retrieve a specific template along with all its widget placements for editing.
 
@@ -318,7 +318,7 @@ Administrators MUST be able to retrieve a specific template along with all its w
 - WHEN the admin sends GET /api/admin/templates/2
 - THEN the system MUST return the template object with an empty placements array
 
-### REQ-TMPL-010: Template Group Resolution
+### Requirement: Template Group Resolution (REQ-TMPL-010)
 
 Template distribution MUST use Nextcloud's `IGroupManager` API to resolve user group memberships accurately.
 
@@ -343,7 +343,7 @@ Template distribution MUST use Nextcloud's `IGroupManager` API to resolve user g
 - THEN the template MUST NOT match any user (no user is in a non-existent group)
 - AND the system MUST NOT throw errors during group resolution
 
-### REQ-TMPL-011: Template Administration UI
+### Requirement: Template Administration UI (REQ-TMPL-011)
 
 The admin settings page MUST provide a UI for managing templates.
 
@@ -362,7 +362,7 @@ The admin settings page MUST provide a UI for managing templates.
 - THEN a group selector MUST allow selecting from available Nextcloud groups
 - NOTE: The current implementation uses `NcSelectTags` but `availableGroups` is hardcoded to an empty array. Groups are NOT fetched from the server.
 
-### REQ-TMPL-012: Primary-group resolution for workspace routing
+### Requirement: Primary-group resolution for workspace routing (REQ-TMPL-012)
 
 The system MUST expose a pure function `resolvePrimaryGroup(string $userId): string` that returns the Nextcloud group ID whose `group_shared` dashboards the user should see, OR the literal string `'default'` when no match is found. The algorithm MUST be:
 
@@ -410,7 +410,7 @@ The function MUST be deterministic and idempotent (no writes).
 - AND MUST NOT raise an error
 - NOTE: Cleanup of stale group IDs in `group_order` is the admin UI's responsibility; the resolver MUST be tolerant.
 
-### REQ-TMPL-013: Resolver is the single routing authority
+### Requirement: Resolver is the single routing authority (REQ-TMPL-013)
 
 All workspace-rendering and dashboard-resolution code paths (REQ-DASH-013, REQ-DASH-018) MUST consult `resolvePrimaryGroup` for the user's primary group. There MUST NOT be parallel implementations of this lookup.
 
@@ -421,7 +421,7 @@ All workspace-rendering and dashboard-resolution code paths (REQ-DASH-013, REQ-D
 - THEN it MUST go through `AdminTemplateService::resolvePrimaryGroup` (or its declared service interface)
 - AND duplicating the algorithm inline is forbidden by code review
 
-### REQ-TMPL-014: Template Gallery Endpoint
+### Requirement: Template Gallery Endpoint (REQ-TMPL-014)
 
 The system MUST expose a read-only gallery endpoint that lists all `admin_template` dashboards with metadata suitable for discovery and instantiation.
 
@@ -463,7 +463,7 @@ The system MUST expose a read-only gallery endpoint that lists all `admin_templa
 - THEN the template MUST be included
 - AND when calling `GET /api/templates/gallery?category=marketing`, the template with `null` category MUST NOT be included
 
-### REQ-TMPL-015: Save-as-template Action
+### Requirement: Save-as-template Action (REQ-TMPL-015)
 
 Any dashboard owner MUST be able to convert their current dashboard into a reusable admin template, creating a snapshot with a fresh UUID and a deep-copied widget tree.
 
@@ -517,7 +517,7 @@ Any dashboard owner MUST be able to convert their current dashboard into a reusa
   - `templatePreviewImage: null`
 - AND HTTP 201 MUST be returned with the new template
 
-### REQ-TMPL-016: Template Metadata Fields
+### Requirement: Template Metadata Fields (REQ-TMPL-016)
 
 Admin templates MUST support three new metadata fields for categorization and discovery: `templateCategory` (VARCHAR 64, nullable), `templateDescription` (TEXT, nullable), and `templatePreviewImage` (TEXT, nullable). The fields are stored as nullable columns on `oc_mydash_dashboards` and only meaningful for rows with `type = 'admin_template'`.
 
@@ -551,7 +551,7 @@ Admin templates MUST support three new metadata fields for categorization and di
 - THEN the response MUST include the fields with null values
 - AND no error MUST be thrown
 
-### REQ-TMPL-017: Preview Image Upload Endpoint
+### Requirement: Preview Image Upload Endpoint (REQ-TMPL-017)
 
 Administrators MUST be able to upload a preview image for a template, persisted using the existing resource-uploads ("custom-icon-upload") pipeline. The endpoint accepts a base64 data URL body so it shares MIME validation, SVG sanitisation, and the 5 MB size cap with `POST /api/resources`.
 

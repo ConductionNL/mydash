@@ -12,7 +12,7 @@ The shell deliberately holds NO source-of-truth data of its own — every key it
 
 ## Requirements
 
-### REQ-SHELL-001: Single mount point
+### Requirement: Single mount point (REQ-SHELL-001)
 
 The system MUST render the workspace Vue app into exactly one DOM element (id `mydash-app`), located inside a `<div id="app-workspace" class="mydash-workspace">` provided by `templates/index.php`. Nextcloud's chrome MUST treat `#app-workspace` as the main content slot (`'id-app-content' => '#app-workspace'`). No left navigation slot MUST be allocated by the chrome (`'id-app-navigation' => null`) — the shell renders its own slide-in sidebar instead.
 
@@ -86,7 +86,7 @@ The shell MUST NOT render a standalone "Active dashboard" select dropdown anywhe
 - THEN the label MUST be empty
 - AND the empty-state component MUST render in the grid area instead
 
-### REQ-SHELL-005: Empty state
+### Requirement: Empty state (REQ-SHELL-005)
 
 When the resolver returned no active dashboard, the shell MUST render an empty-state UI inside the grid container with: a friendly message ("No dashboards available"), an explanation, and — if `allowUserDashboards` is `true` — a primary "Create your first dashboard" button that calls the create-personal flow. When `allowUserDashboards` is `false` no Create button MUST be shown and the message MUST direct the user to contact their administrator.
 
@@ -106,7 +106,7 @@ When the resolver returned no active dashboard, the shell MUST render an empty-s
 - THEN the empty-state MUST render with a message explaining personal dashboards are disabled
 - AND no "Create" button MUST be present
 
-### REQ-SHELL-006: Sidebar backdrop
+### Requirement: Sidebar backdrop (REQ-SHELL-006)
 
 When `sidebarOpen` is `true`, the shell MUST render a fixed-position backdrop that intercepts clicks and closes the sidebar. The backdrop MUST start at the same `top` offset as the Nextcloud header (50 px) and span the rest of the viewport. Clicks on the sidebar itself MUST NOT close the sidebar.
 
@@ -122,7 +122,7 @@ When `sidebarOpen` is `true`, the shell MUST render a fixed-position backdrop th
 - WHEN the user clicks on a non-actionable area of the sidebar panel
 - THEN `sidebarOpen` MUST remain `true`
 
-### REQ-SHELL-007: Lifecycle hooks
+### Requirement: Lifecycle hooks (REQ-SHELL-007)
 
 The shell MUST register a global `document.click` listener on mount (delegated to the grid composable's `handleClickOutside`) and remove it on unmount. The GridStack instance MUST be initialised after `nextTick()` (so the grid container ref is non-null) and destroyed on unmount.
 

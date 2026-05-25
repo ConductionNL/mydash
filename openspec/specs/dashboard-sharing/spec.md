@@ -24,7 +24,7 @@ The unique tuple `(dashboardId, shareType, shareWith)` enforces that a recipient
 
 ## Requirements
 
-### REQ-SHARE-001: Owner-only share management
+### Requirement: Owner-only share management (REQ-SHARE-001)
 
 Only the owner of a dashboard MUST be allowed to list, create, update, or delete shares on that dashboard. All share-management endpoints MUST return HTTP 403 for any caller that is not the dashboard owner, including users who themselves have a `full`-level share on the dashboard.
 
@@ -49,7 +49,7 @@ Only the owner of a dashboard MUST be allowed to list, create, update, or delete
 - THEN the system MUST update the existing share row, not create a second one
 - AND only one share row MUST exist for `(dashboardId=5, shareType=user, shareWith=bob)`
 
-### REQ-SHARE-002: Listing dashboards visible to a user
+### Requirement: Listing dashboards visible to a user (REQ-SHARE-002)
 
 `GET /api/dashboards` MUST return both dashboards owned by the caller AND dashboards the caller has access to via a direct or group share. Each entry MUST be decorated with `isOwner: bool`, `sharedBy: string|null` (the owner's userId when not the caller's own dashboard), and `effectivePermissionLevel: 'view_only'|'add_only'|'full'`.
 
@@ -74,7 +74,7 @@ Only the owner of a dashboard MUST be allowed to list, create, update, or delete
 - WHEN carol fetches `GET /api/dashboards`
 - THEN the entry for dashboard `5` MUST report `effectivePermissionLevel: "full"`
 
-### REQ-SHARE-003: Loading a shared dashboard with placements
+### Requirement: Loading a shared dashboard with placements (REQ-SHARE-003)
 
 `GET /api/dashboard/{id}` MUST return the dashboard, its widget placements, and the caller's effective permission level for any dashboard the caller can view (owned or shared). Callers without ownership AND without any matching share MUST receive HTTP 403.
 
@@ -90,7 +90,7 @@ Only the owner of a dashboard MUST be allowed to list, create, update, or delete
 - WHEN carol fetches `GET /api/dashboard/5`
 - THEN the system MUST return HTTP 403
 
-### REQ-SHARE-004: Per-share permission resolution overrides admin defaults
+### Requirement: Per-share permission resolution overrides admin defaults (REQ-SHARE-004)
 
 When a user accesses a dashboard via a share, the system MUST evaluate widget/tile/layout permission checks against **the share's** `permissionLevel` rather than the dashboard's globally-set `permissionLevel` field. The dashboard's own `permissionLevel` continues to apply only to the owner.
 
@@ -102,7 +102,7 @@ When a user accesses a dashboard via a share, the system MUST evaluate widget/ti
 - THEN the system MUST allow the operation (HTTP 201)
 - AND when alice attempts the same call, the system MUST return HTTP 403
 
-### REQ-SHARE-005: Owner-only metadata and lifecycle operations
+### Requirement: Owner-only metadata and lifecycle operations (REQ-SHARE-005)
 
 Even with a `full`-level share, recipients MUST NOT be able to:
 
@@ -130,7 +130,7 @@ Even with a `full`-level share, recipients MUST NOT be able to:
 - THEN the system MUST return HTTP 200 with the dashboard payload
 - AND no row's `is_active` flag MUST change as a result
 
-### REQ-SHARE-006: Sharee autocomplete
+### Requirement: Sharee autocomplete (REQ-SHARE-006)
 
 `GET /api/sharees?query={q}` MUST return up to 10 matching users and 10 matching groups whose name (display name or id) contains `q`. The endpoint MUST exclude the caller from the user results to prevent self-shares. Recipients are matched server-side via `IUserManager::search` and `IGroupManager::search`.
 
@@ -141,7 +141,7 @@ Even with a `full`-level share, recipients MUST NOT be able to:
 - THEN the response MUST include the matching users in the `users` array and any matching groups in the `groups` array
 - AND alice MUST NOT appear in the `users` array
 
-### REQ-SHARE-007: Cascade on dashboard delete
+### Requirement: Cascade on dashboard delete (REQ-SHARE-007)
 
 When a dashboard is deleted (by its owner), every share row referencing that dashboard MUST be deleted in the same transaction. No orphan share rows MAY remain.
 
@@ -153,7 +153,7 @@ When a dashboard is deleted (by its owner), every share row referencing that das
 - AND all 3 share rows in `oc_mydash_dashboard_shares` referencing `dashboard_id = 5` MUST also be deleted
 - AND a query for shares on dashboard `5` MUST return 0 rows
 
-### REQ-SHARE-008: Notify recipient on share add and on level upgrade
+### Requirement: Notify recipient on share add and on level upgrade (REQ-SHARE-008)
 
 When a share is created OR its `permission_level` is **upgraded** (`view_only → add_only|full`, or `add_only → full`), the system MUST publish a Nextcloud notification to each affected recipient via `OCP\Notification\IManager`. The notification MUST use:
 
@@ -208,7 +208,7 @@ The system MUST NOT publish notifications when:
 - THEN the share row MUST be deleted
 - AND no `INotification` MUST be published
 
-### REQ-SHARE-009: Bulk replace shares
+### Requirement: Bulk replace shares (REQ-SHARE-009)
 
 The system MUST support `PUT /api/dashboard/{id}/shares` accepting a JSON body `{"shares": Share[]}` that replaces the entire share list for the dashboard atomically. Only the dashboard owner MUST be allowed to call this endpoint. The operation MUST run in a single DB transaction.
 
@@ -236,7 +236,7 @@ After the transaction commits, the system MUST publish notifications per REQ-SHA
 - THEN the system MUST return HTTP 403
 - AND no rows MUST be modified
 
-### REQ-SHARE-010: Revoke all shares granted to a recipient
+### Requirement: Revoke all shares granted to a recipient (REQ-SHARE-010)
 
 The system MUST support `DELETE /api/sharees/{shareType}/{shareWith}` for an authenticated user. The operation MUST delete every share row where:
 
@@ -257,7 +257,7 @@ The response MUST include the count of removed share rows. No notifications MUST
 - AND any share row on dashboard `9` MUST remain unchanged (alice is not the owner of `9`)
 - AND the response MUST report the number of rows actually deleted (2 in this scenario)
 
-### REQ-SHARE-011: Notifier renders share and ownership-transfer subjects
+### Requirement: Notifier renders share and ownership-transfer subjects (REQ-SHARE-011)
 
 The app MUST register an `OCP\Notification\INotifier` implementation with `id = 'mydash'` that handles two subjects: `dashboard_shared` and `dashboard_ownership_transferred`. For any other subject the notifier MUST throw `\OCP\Notification\UnknownNotificationException` so that other notifiers may handle it.
 
@@ -287,7 +287,7 @@ Localisation MUST be performed via `IFactory::get('mydash')` so the existing Dut
 - WHEN the notifier prepares it
 - THEN `\OCP\Notification\UnknownNotificationException` MUST be thrown
 
-### REQ-SHARE-012: Cascade and admin retention on user deletion
+### Requirement: Cascade and admin retention on user deletion (REQ-SHARE-012)
 
 The app MUST listen to `OCP\User\Events\UserDeletedEvent`. On every event for user `X`, in a single DB transaction per affected dashboard, the system MUST:
 
@@ -343,7 +343,7 @@ The app MUST listen to `OCP\User\Events\UserDeletedEvent`. On every event for us
 - WHEN the system processes `UserDeletedEvent` for alice
 - THEN dashboard `5` MUST be deleted (admin pool is empty after filtering)
 
-### REQ-SHARE-013: Deterministic new-owner selection
+### Requirement: Deterministic new-owner selection (REQ-SHARE-013)
 
 When REQ-SHARE-012 calls for picking a new owner from the admin pool, the system MUST apply this ordering rule:
 
