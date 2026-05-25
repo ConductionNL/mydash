@@ -1,0 +1,332 @@
+[
+  {
+    "slug": "activity-feed-integration",
+    "title": "Activity Feed Integration",
+    "summary": "Surface MyDash events in Nextcloud's standard Activity feed so every action on a dashboard — creation, editing, publication, sharing, commenting, locking, and role changes — is visible to the relevant users in their NC notifications and activity stream. This capability defines the NC Activity extension class, all event-type constants, audience-targeting rules, debounce logic, subject/message templates, icon conventions, the cross-capability emission contract, and the unit-test contract. Actual `publishActivity()` call-sites are delegated to the sibling capability that owns each action.",
+    "docsUrl": "openspec/specs/activity-feed-integration/spec.md"
+  },
+  {
+    "slug": "admin-roles",
+    "title": "Admin Roles",
+    "summary": "Admin Roles provides a built-in role system scoped entirely within MyDash. Organization administrators can delegate dashboard management, widget installation, metadata field configuration, and other MyDash operations to trusted users without granting full Nextcloud system administration rights. Three roles (Dashboard Admin, Dashboard Editor, Dashboard Viewer) map to real organizational needs, and role assignments persist in a new table with support for both individual user and group-based delegation. Effective role resolution ensures the highest privilege wins when a user has multiple group memberships.",
+    "docsUrl": "openspec/specs/admin-roles/spec.md"
+  },
+  {
+    "slug": "admin-settings",
+    "title": "Admin Settings",
+    "summary": "Admin settings provide Nextcloud administrators with global configuration options for the MyDash app. These settings control system-wide behavior such as whether users can create their own dashboards, how many dashboards they can have, default permission levels for new dashboards, and default grid configuration. Settings are stored as key-value pairs in a dedicated database table and are applied as defaults or constraints across the entire MyDash installation.",
+    "docsUrl": "openspec/specs/admin-settings/spec.md"
+  },
+  {
+    "slug": "admin-templates",
+    "title": "Admin Templates",
+    "summary": "Admin templates allow Nextcloud administrators to create pre-configured dashboards that are automatically distributed to users based on group membership. When a user opens MyDash for the first time (or when a new template targets their group), the system creates a personal copy of the matching template. This copy is an independent dashboard that the user can modify within the limits of the inherited permission level. Templates enable organizations to provide standardized dashboard layouts with compulsory widgets while still allowing user customization where appropriate.",
+    "docsUrl": "openspec/specs/admin-templates/spec.md"
+  },
+  {
+    "slug": "calendar-widget",
+    "title": "Calendar Widget",
+    "summary": "The calendar widget is a built-in MyDash widget type that renders aggregated events from internal Nextcloud calendars and external ICS feeds in a single dashboard tile. Users can switch between three view modes (month, week, agenda), restrict the look-ahead window for agenda mode, and color events by their source calendar. External ICS feeds are fetched server-side with caching, an HTTPS-only / SSRF-safe guard, and an optional admin allow-list of permitted hostnames, so that adding a public calendar link to a dashboard does not expose the Nextcloud instance to internal-network probing or runaway expansion.",
+    "docsUrl": "openspec/specs/calendar-widget/spec.md"
+  },
+  {
+    "slug": "conditional-visibility",
+    "title": "Conditional Visibility",
+    "summary": "Conditional visibility allows widget placements to be shown or hidden based on dynamic rules. This enables dashboards that adapt to the user's context -- for example, showing a \"Team Updates\" widget only during business hours, displaying a \"Holiday Schedule\" widget only in December, or restricting certain widgets to specific user groups. Rules are evaluated at render time and can be inclusive (show when matched) or exclusive (hide when matched). Include rules use OR logic (at least one must match); exclude rules use AND logic (any match hides the widget).",
+    "docsUrl": "openspec/specs/conditional-visibility/spec.md"
+  },
+  {
+    "slug": "confluence-html-import",
+    "title": "Confluence HTML Export Importer",
+    "summary": "Organisations migrating from Atlassian Confluence (or supplementing it with MyDash) need a one-shot bulk import that converts existing Confluence page hierarchies into MyDash dashboards. Manual recreation of hundreds of pages is impractical. This capability lets a Nextcloud admin upload a Confluence \"HTML Export\" archive and automatically generate MyDash dashboards with the page content preserved, the page tree mirrored via the `dashboard-tree` capability, and Confluence Storage Format macros expanded into safe HTML.",
+    "docsUrl": "openspec/specs/confluence-html-import/spec.md"
+  },
+  {
+    "slug": "container-widget",
+    "title": "Container Widget",
+    "summary": "The container widget hosts a sub-grid of child widget placements inside a single outer-grid cell. Authors compose dashboards out of logical sections (a heading + four KPI tiles, a \"tabs\" surface, a card with grouped content) without losing the move-as-one-unit drag behaviour of a top-level placement. Children are stored as nested `placements: WidgetPlacement[]` in the container's `content` blob and dispatched through the same widget registry that drives the top-level grid, so any registered widget type — including another container — can live inside one. Server-side validation caps recursion at three nested container levels (REQ-CONT-006) to prevent runaway depth.",
+    "docsUrl": "openspec/specs/container-widget/spec.md"
+  },
+  {
+    "slug": "dashboard-bulk-operations",
+    "title": "Dashboard Bulk Operations",
+    "summary": "Dashboard bulk operations expose four batch admin endpoints for large-scale management of MyDash dashboards: bulk delete, bulk re-parent, bulk publication-status update, and bulk re-index. The endpoints provide all-or-nothing permission pre-checks, per-dashboard atomic mutations with continue-on-error semantics, dry-run preview support, and a single audit Activity event per request. The design closes the misclick gap of the source implementation (which defaulted `cascade=true` on bulk delete) by requiring an explicit opt-in for recursive deletion, and pins a 500-dashboard per-request cap that is admin-tunable via the `bulk_operation_max_per_request` app config key.",
+    "docsUrl": "openspec/specs/dashboard-bulk-operations/spec.md"
+  },
+  {
+    "slug": "dashboard-cascade-events",
+    "title": "Dashboard Cascade Events",
+    "summary": "When a MyDash dashboard is deleted, all dependent data (widget placements, comments, reactions, locks, versions, public shares, metadata values, translations, view analytics, child-tree dashboards) MUST be automatically removed. When a Nextcloud user or group is deleted, their associated dashboards and downstream records MUST likewise be cleaned up. This capability defines the event, the listener registry, failure isolation, idempotency, and cascade stats reporting.",
+    "docsUrl": "openspec/specs/dashboard-cascade-events/spec.md"
+  },
+  {
+    "slug": "dashboard-comments",
+    "title": "Dashboard Comments",
+    "summary": "Dashboards are shared workspaces within teams and organizations. Dashboard Comments adds a threaded discussion surface so users can ask \"why is this widget red?\" or \"we should change this metric next sprint\" directly on the dashboard they are looking at. Comments are persisted via Nextcloud's native `ICommentsManager` infrastructure (the same backend used by the file comments and Talk integrations) so administrators get unified comment storage, notifications, and audit trails — and so MyDash does not introduce a redundant comment table.",
+    "docsUrl": "openspec/specs/dashboard-comments/spec.md"
+  },
+  {
+    "slug": "dashboard-deeplinking",
+    "title": "Dashboard Deep-Linking",
+    "summary": "Each dashboard has a stable, addressable URL based on its slug-chain. Visiting `/apps/mydash/{slug-chain}` lands the workspace on the matching dashboard; switching dashboards via the sidebar pushes a new history entry; the browser back/forward buttons navigate between dashboards.",
+    "docsUrl": "openspec/specs/dashboard-deeplinking/spec.md"
+  },
+  {
+    "slug": "dashboard-export-import",
+    "title": "Dashboard Export & Import",
+    "summary": "Dashboard export and import allow MyDash administrators to create versioned snapshots of dashboard configurations, widgets, metadata fields, and associated assets. Snapshots are portable across Nextcloud instances, enabling backup, disaster recovery, template authoring, and cross-instance sharing. This capability defines a standardised ZIP container format (`mydash-export-v1.zip`), collision handling semantics, and API/CLI endpoints for end-to-end export-import workflows. Downstream capabilities such as `confluence-html-import` consume the same ZIP shape, so the manifest schema (`schemaVersion: 1`) is treated as a stable contract.",
+    "docsUrl": "openspec/specs/dashboard-export-import/spec.md"
+  },
+  {
+    "slug": "dashboard-icons",
+    "title": "Dashboard Icons",
+    "summary": "MyDash dashboards (and the dashboard-list items in the switcher sidebar and admin UI) display an icon next to their name. This capability owns the icon vocabulary: a small curated registry of named built-in icons that live in the frontend bundle, plus the lookup/render functions consumers use, plus the convention for storing per-dashboard icons in a single column that may also hold an uploaded resource URL.",
+    "docsUrl": "openspec/specs/dashboard-icons/spec.md"
+  },
+  {
+    "slug": "dashboard-language-content",
+    "title": "Dashboard Language Content",
+    "summary": "Per-language content variants for MyDash dashboards. A single dashboard can carry multiple localised widget trees, names, and descriptions. The viewer's Nextcloud locale (or an explicit `?lang=` query parameter) is matched against the available variants; when no match is found the system falls back to the dashboard's primary variant. Each dashboard MUST have exactly one row marked `isPrimary = 1`. New dashboards auto-seed a primary translation in the owner's current Nextcloud locale.",
+    "docsUrl": "openspec/specs/dashboard-language-content/spec.md"
+  },
+  {
+    "slug": "dashboard-locking",
+    "title": "Dashboard Locking",
+    "summary": "Dashboard locking provides a concurrent-edit guard for dashboards. When two users open the same dashboard's edit view, the system MUST prevent the second user from editing until the first releases the lock. The mechanism uses a time-based lease (default 15 minutes) with client-driven heartbeat renewal to tolerate transient network outages and browser crashes without manual intervention.",
+    "docsUrl": "openspec/specs/dashboard-locking/spec.md"
+  },
+  {
+    "slug": "dashboard-metadata-fields",
+    "title": "Dashboard Metadata Fields",
+    "summary": "Dashboard Metadata Fields allow administrators to define custom, queryable attributes that can be attached to every dashboard in a MyDash instance. Once an administrator defines a global registry of field definitions (e.g., \"department\", \"project stage\", \"audience\"), end users populate values for those fields on their dashboards. The field values are then queryable for filtering dashboards in search, widget configuration, and API calls. This capability standardizes what would otherwise be ad-hoc naming conventions and enables the discovery and organization of dashboards at scale.",
+    "docsUrl": "openspec/specs/dashboard-metadata-fields/spec.md"
+  },
+  {
+    "slug": "dashboard-reactions",
+    "title": "Dashboard Reactions",
+    "summary": "Dashboard reactions enable lightweight social feedback via emoji on MyDash dashboards. Users can react with a configurable whitelist of emojis to mark dashboards as useful, appreciated, or funny, without requiring full-featured comments. Reactions are aggregated by emoji and visible to all viewers. An administrator can enable/disable reactions globally and per-dashboard, and can curate the allowed emoji list.",
+    "docsUrl": "openspec/specs/dashboard-reactions/spec.md"
+  },
+  {
+    "slug": "dashboard-rss-feeds",
+    "title": "Dashboard RSS Feeds",
+    "summary": "Expose a user's accessible dashboards as an RSS 2.0 / Atom feed accessible without Nextcloud browser authentication via a per-user secret token. Each user may opt-in by requesting their feed token; the feed is filtered by the token-owner's dashboard ACLs (permissions) so private content remains private. The feed enables integration with RSS readers, monitoring tools, and third-party systems without requiring full Nextcloud login.",
+    "docsUrl": "openspec/specs/dashboard-rss-feeds/spec.md"
+  },
+  {
+    "slug": "dashboard-sharing",
+    "title": "Dashboard Sharing",
+    "summary": "Dashboard sharing lets a dashboard owner grant read or edit access on a personal (`type: 'user'`) dashboard to specific Nextcloud users or groups. It complements the existing dashboard scopes (`user`, `admin_template`, `group_shared`) by enabling **ad-hoc peer-to-peer collaboration** without needing administrator involvement: any user can decide to share their own dashboard with a colleague or a group, with view, add, or full access. The recipient sees the shared dashboard alongside their own in the dashboard switcher and can act on it according to the share's permission level. Only the owner can manage shares; only the owner can rename, change description, or delete the dashboard.",
+    "docsUrl": "openspec/specs/dashboard-sharing/spec.md"
+  },
+  {
+    "slug": "dashboard-switcher",
+    "title": "Dashboard Switcher",
+    "summary": "The dashboard switcher is a left-edge slide-in sidebar that lets a user see every dashboard visible to them and switch between them with a single click. Dashboards are grouped into three labelled sections by source (primary group, default group, personal). The sidebar also surfaces personal-dashboard creation and deletion when allowed.",
+    "docsUrl": "openspec/specs/dashboard-switcher/spec.md"
+  },
+  {
+    "slug": "dashboard-versioning",
+    "title": "Dashboard Versioning",
+    "summary": "Enable version history and one-click restoration for MyDash dashboards. The feature delegates storage strategy to the underlying content backend: dashboards stored in Nextcloud Files (via the `groupfolder` backend) use NC's native file versioning; dashboards in the database backend use a dedicated `oc_mydash_dashboard_versions` table. All APIs are backend-agnostic.",
+    "docsUrl": "openspec/specs/dashboard-versioning/spec.md"
+  },
+  {
+    "slug": "dashboard-view-analytics",
+    "title": "Dashboard View Analytics",
+    "summary": "Aggregate, privacy-preserving view counts per dashboard so MyDash administrators can understand which dashboards are actually being used. Counts are bucketed by UTC day and stored in a single aggregate table (`oc_mydash_dashboard_views`). Unique-viewer deduplication uses a daily-rotating salted SHA-256 hash kept exclusively in the Nextcloud cache layer; no per-user-per-event rows are persisted, and cross-day re-identification from the analytics database alone is computationally infeasible. Admins query top dashboards, per-dashboard daily breakdowns, instance-wide totals, and CSV exports through admin-only endpoints. A daily background job purges rows older than the configured retention window (default 365 days, clamped to `[30, 3650]`).",
+    "docsUrl": "openspec/specs/dashboard-view-analytics/spec.md"
+  },
+  {
+    "slug": "dashboards",
+    "title": "Dashboards",
+    "summary": "Dashboards are the core organizational unit in MyDash. Each user can create and manage multiple personal dashboards, each acting as a container for widget placements, tiles, and layout configuration. Dashboards define the grid structure, permission level, and active state. Only one dashboard can be active per user at a time, serving as their landing page when they open Nextcloud. Dashboards can also be of type `admin_template`, managed by administrators for distribution to users.",
+    "docsUrl": "openspec/specs/dashboards/spec.md"
+  },
+  {
+    "slug": "default-widget-bundle",
+    "title": "Default Widget Bundle",
+    "summary": "Every newly-created personal dashboard ships with a preconfigured set of four widget placements so the user lands on a non-empty grid. Empty grids on first-create were a documented friction point — the \"No dashboard yet\" empty-state CTA flashed on every cold load and new dashboards rendered as a blank canvas with no way to discover the widget catalog.",
+    "docsUrl": "openspec/specs/default-widget-bundle/spec.md"
+  },
+  {
+    "slug": "demo-data-showcases",
+    "title": "Demo Data Showcases",
+    "summary": "The `demo-data-showcases` capability provides administrators with one-click installation of pre-built, fully populated example dashboards that illustrate different organizational use cases. Showcases are bundled as ZIP archives containing a machine-readable `export.json` manifest plus per-locale page JSON files and media assets, loaded from disk on demand, and installed as `group_shared` dashboards visible to all users (via REQ-DASH-012 default-group sentinel). The capability includes widget type validation, graceful skip-on-missing for unknown widgets, NL-only localization in v1, and idempotent installation via API and CLI commands.",
+    "docsUrl": "openspec/specs/demo-data-showcases/spec.md"
+  },
+  {
+    "slug": "divider-widget",
+    "title": "Divider Widget",
+    "summary": "The divider widget is a lightweight, configurable visual separator for MyDash dashboards. It enables dashboard creators to break up widget sections into logical groups using minimal UI — a horizontal line, whitespace spacer, or centered heading with dividing lines — all rendered client-side with full theme awareness and print support. This capability adds no backend endpoints or data storage; all configuration is stored in the placement's `widgetContent JSON` blob and rendered in-browser.",
+    "docsUrl": "openspec/specs/divider-widget/spec.md"
+  },
+  {
+    "slug": "effective-default-marker",
+    "title": "Effective Default Marker",
+    "summary": "The dashboard switcher sidebar marks the user's *effective default dashboard* — the dashboard the resolver lands them on when they visit `/apps/mydash/` cold — with a small ★ icon and a tooltip.",
+    "docsUrl": "openspec/specs/effective-default-marker/spec.md"
+  },
+  {
+    "slug": "files-widget",
+    "title": "Files Widget",
+    "summary": "The files widget is a built-in MyDash widget type that lets dashboard authors embed an inline Nextcloud Files browser directly on a dashboard. The widget reads the configured folder live at render time, applies view-time ACL so each viewer sees only files they may read, supports folder navigation via a breadcrumb, deep-links file clicks into the standard Files application, and exposes optional upload and delete actions gated by both placement-level toggles and per-viewer permission. The capability is one widget type, one renderer, one sub-form, one registry entry, and three HTTP endpoints (contents listing, multi-file upload, single-file delete) — small enough to ship and evolve independently while anchoring the future \"shared workspace folder\" experience that other widgets will build on top of.",
+    "docsUrl": "openspec/specs/files-widget/spec.md"
+  },
+  {
+    "slug": "footer-customization",
+    "title": "Footer Customization",
+    "summary": "Footer Customization provides per-instance branding, legal disclaimers, and contact information rendered below the dashboard surface. Administrators configure global footer content (HTML or structured form), with optional per-dashboard overrides. The footer respects theme colors, supports multi-language variants, and prints correctly in PDF exports.",
+    "docsUrl": "openspec/specs/footer-customization/spec.md"
+  },
+  {
+    "slug": "grid-layout",
+    "title": "Grid Layout",
+    "summary": "The grid layout system powers the drag-and-drop dashboard experience in MyDash. Built on GridStack 12.x, it provides a 12-column responsive grid that reflows at four explicit viewport breakpoints (1400/1100/768/480 px → 12/8/4/1 cols) where users can position, resize, and rearrange widget placements and tiles. The grid operates in two modes: view mode (static, no interaction) and edit mode (drag-and-drop enabled). Position changes are emitted via Vue events and persisted via the API by the parent component.",
+    "docsUrl": "openspec/specs/grid-layout/spec.md"
+  },
+  {
+    "slug": "header-widget",
+    "title": "Header Widget",
+    "summary": "The header widget is a built-in MyDash widget type that drops a full-width banner onto a dashboard with a configurable title, optional subtitle, optional background image (URL or NC file), an optional color overlay, and an optional call-to-action button. It replaces the legacy \"header row\" prototype with a first-class, typed widget that participates in the same registry, modal, and grid pipeline as every other built-in widget — no special-casing in the dashboard renderer.",
+    "docsUrl": "openspec/specs/header-widget/spec.md"
+  },
+  {
+    "slug": "image-widget",
+    "title": "Image Widget",
+    "summary": "The image widget is a built-in MyDash widget type that lets dashboard authors place a single image — logo, screenshot, branding, or decorative imagery — onto a dashboard cell with proper `object-fit` control, broken-image fallback, optional click-through, and a first-class file-upload UX. It replaces the prior workarounds where users jammed `<img>` tags into the markdown widget or pointed an iframe widget at an image URL.",
+    "docsUrl": "openspec/specs/image-widget/spec.md"
+  },
+  {
+    "slug": "infrastructure-helpers",
+    "title": "Infrastructure Helpers",
+    "summary": "The `infrastructure-helpers` capability collects small, pure (or nearly-pure) utility classes that are reused across multiple capability boundaries. These are not domain logic — they are primitives: string transformation, lookup, parameter extraction. Each helper has a single narrow contract, no persistence, and is invoked from multiple capability code paths. Grouping them here keeps each individual capability spec focused on domain behaviour rather than utility internals.",
+    "docsUrl": "openspec/specs/infrastructure-helpers/spec.md"
+  },
+  {
+    "slug": "initial-state-contract",
+    "title": "Initial State Contract",
+    "summary": "The `initial-state-contract` capability formalises the precise set of keys that PHP pushes via Nextcloud's `IInitialState::provideInitialState` for each Vue mount in MyDash, and the matching `provide()` calls each entry point emits to expose those keys to the rest of the component tree. Without this contract the keys drift silently — frontend reads a key the backend stopped sending, or vice versa, and the breakage only surfaces at runtime.",
+    "docsUrl": "openspec/specs/initial-state-contract/spec.md"
+  },
+  {
+    "slug": "label-widget",
+    "title": "Label Widget",
+    "summary": "The label widget is a built-in MyDash widget type that lets dashboard authors drop a short, single-line, plain-text heading onto a dashboard to title a row of widgets or mark a zone. It is intentionally narrower than the `text` widget (which carries multi-line HTML content via `v-html`): the label widget renders content with Vue interpolation only, eliminating the XSS surface entirely, and ships heading-style defaults (`16px` bold centred) so a freshly added label looks correct without any styling input.",
+    "docsUrl": "openspec/specs/label-widget/spec.md"
+  },
+  {
+    "slug": "legacy-widget-bridge",
+    "title": "Legacy Widget Bridge",
+    "summary": "MyDash's grid can render widgets from two eras of the Nextcloud widget API: modern widgets that implement `IAPIWidget` / `IAPIWidgetV2` (covered by the [widgets](../widgets/spec.md) capability), and legacy widgets that use the older callback-registration pattern by calling `window.OCA.Dashboard.register(appId, callback)` at bootstrap. This capability covers the client-side bridge that captures those legacy registrations so MyDash can mount them into the grid on demand.",
+    "docsUrl": "openspec/specs/legacy-widget-bridge/spec.md"
+  },
+  {
+    "slug": "link-button-widget",
+    "title": "Link-Button Widget",
+    "summary": "The link-button widget is a built-in MyDash widget type that lets dashboard authors drop a styled, clickable tile onto a dashboard. The tile dispatches one of three explicit action types — open an external URL in a new tab, invoke a registered in-app workflow, or create a fresh document in the user's Files area. The capability formalises a typed `actionType` enum so the action set can grow safely (no fragile auto-detect-from-extension semantics like the earlier prototype), pairs the renderer with a singleton frontend registry of named internal actions, and pairs the createFile flow with a strictly-validated server endpoint that gates new files behind an admin-configurable extension allow-list.",
+    "docsUrl": "openspec/specs/link-button-widget/spec.md"
+  },
+  {
+    "slug": "links-widget",
+    "title": "Links Widget",
+    "summary": "Provide a multi-column dashboard widget that renders a curated grid of link cards organised into named sections. Distinct from the single-button `link-button-widget` and the high-density `quicklinks-widget`, this widget is optimised for \"link directory\" layouts: each section carries a heading and an arbitrary number of links, each link carries a label, URL, optional icon, and optional description, and the renderer offers three layout modes (`card`, `inline`, `icon-only`). All configuration lives in the placement `widgetContent` JSON — there is no backend data endpoint and no migration. URL sanitisation runs at save time to defend against `javascript:`, `data:`, and `file://` XSS vectors.",
+    "docsUrl": "openspec/specs/links-widget/spec.md"
+  },
+  {
+    "slug": "menu-widget",
+    "title": "Menu Widget",
+    "summary": "The menu widget is a built-in MyDash widget type that renders a hierarchical, in-page navigation tree distinct from the application sidebar. It supports up to three levels of nesting and three visual styles — `dropdown`, `megamenu`, and `tree` — so dashboard authors can publish curated link sets that fit the surrounding layout without writing custom Vue code.",
+    "docsUrl": "openspec/specs/menu-widget/spec.md"
+  },
+  {
+    "slug": "navigation-editor-org",
+    "title": "Organization-wide Navigation Editor",
+    "summary": "The `navigation-editor-org` capability provides a robust, admin-curated, group-aware org-wide navigation tree distinct from the personal dashboard list. Where the existing `dashboard-switcher-sidebar` shows the dashboards a user owns or can access, this capability adds a second navigation surface — an admin-controlled tree of links and sections shared across the whole organisation. Useful for company resources, policy hubs, and tools panels.",
+    "docsUrl": "openspec/specs/navigation-editor-org/spec.md"
+  },
+  {
+    "slug": "nc-unified-search-integration",
+    "title": "Nextcloud Unified Search Integration",
+    "summary": "Nextcloud's unified search (Ctrl+K / Cmd+K) provides a global discovery mechanism for content across all installed apps. MyDash dashboards, widgets, and metadata are exposed to this search via a registered `OCP\\Search\\IProvider` so users can discover and navigate to dashboards by name, description, widget content, or metadata field values from the global search bar without entering the app first.",
+    "docsUrl": "openspec/specs/nc-unified-search-integration/spec.md"
+  },
+  {
+    "slug": "news-widget",
+    "title": "News Widget",
+    "summary": "The news widget aggregates RSS and Atom feed items from one or more configured sources and renders them on a MyDash dashboard. Per-placement configuration controls which feeds are included, the layout mode (list, grid, carousel), an optional item cap, presentation switches (thumbnails, summary, date format), and an optional metadata-based filter that suppresses the widget on dashboards whose metadata does not match. HTML sanitisation, host allow-listing, failure tolerance, and link-security defaults are all enforced server-side; the Vue renderer never re-sanitises and never performs upstream fetches.",
+    "docsUrl": "openspec/specs/news-widget/spec.md"
+  },
+  {
+    "slug": "orphaned-data-cleanup",
+    "title": "Orphaned Data Cleanup",
+    "summary": "Provide administrators with a comprehensive, safe, and auditable mechanism to scan for and remove orphaned MyDash data: expired locks and tokens, widget assets from deleted dashboards, metadata-value rows with missing field definitions, placements with no dashboard, tokens for deleted users, role assignments for deleted users/groups, and translations for deleted dashboards. The capability MUST support dry-run (safe preview), per-category selectivity (scan vs. auto-purge), background automation (daily safe-categories job), and audit trails (activity events). A registry pattern enables adding new cleanup categories without editing central code.",
+    "docsUrl": "openspec/specs/orphaned-data-cleanup/spec.md"
+  },
+  {
+    "slug": "people-widget",
+    "title": "People Widget",
+    "summary": "The `people-widget` capability registers a dashboard widget that displays a discoverable directory of Nextcloud users with customizable layout (card/grid/list), profile field visibility control, group filtering, and birthday tracking. The widget integrates with Nextcloud's Dashboard Widget API via `OCP\\Dashboard\\IManager`, stores configuration in the widget placement's JSON config, and provides a paginated API endpoint for user lookup. Results expose each user's profile fields as returned by `OCP\\Accounts\\IAccountManager`; scope-based visibility filtering is a planned follow-up (see REQ-PPL-004).",
+    "docsUrl": "openspec/specs/people-widget/spec.md"
+  },
+  {
+    "slug": "permissions",
+    "title": "Permission Levels",
+    "summary": "Permission levels control what users can do with their dashboards. When an admin template is distributed to users, the template's permission level is inherited by the user's personal copy, restricting their editing capabilities. This system allows administrators to create locked-down dashboards (e.g., a company-mandated layout with compulsory widgets) while still giving users varying degrees of customization freedom. The three levels -- `view_only`, `add_only`, and `full` -- form a hierarchy of increasing user control.",
+    "docsUrl": "openspec/specs/permissions/spec.md"
+  },
+  {
+    "slug": "prometheus-metrics",
+    "title": "Prometheus Metrics",
+    "summary": "Expose application metrics in Prometheus text exposition format at `GET /api/metrics` for monitoring, alerting, and operational dashboards. Additionally, provide a health check endpoint at `GET /api/health` for container orchestration and load balancer readiness probes.",
+    "docsUrl": "openspec/specs/prometheus-metrics/spec.md"
+  },
+  {
+    "slug": "quicklinks-widget",
+    "title": "Quicklinks Widget",
+    "summary": "The quicklinks widget is a built-in MyDash widget type that renders a flat, dense grid of icon-and-label shortcuts inside a single placement. Where the link-button widget owns one shortcut per placement and the links widget spreads grouped sections across multiple columns, the quicklinks widget targets the \"app launcher\" use case: 8–40 frequently used URLs in one widget, with admin-configurable icon size, shape, label position, columns, tile background, and hover effect. Bulk-add via CSV paste is first-class so admins can move dozens of shortcuts off a spreadsheet without typing each row.",
+    "docsUrl": "openspec/specs/quicklinks-widget/spec.md"
+  },
+  {
+    "slug": "resource-uploads",
+    "title": "Resource Uploads",
+    "summary": "The `resource-uploads` capability owns a small mini file API for binary assets that MyDash widgets reference directly: dashboard icons, image-widget images, link-button icons, etc. Resources are stored in MyDash's app-data folder (NOT the user's Files), addressed by a stable URL, uploaded admin-only via a base64-data-URL JSON request, and served back to any logged-in user via a non-OCS streaming endpoint plus an OCS listing endpoint. SVG sanitisation is specified in the sibling `svg-sanitisation` capability.",
+    "docsUrl": "openspec/specs/resource-uploads/spec.md"
+  },
+  {
+    "slug": "runtime-shell",
+    "title": "Runtime Shell",
+    "summary": "The `runtime-shell` capability owns the user-facing workspace page chrome — the mount point, the sidebar toggle, the active-dashboard label strip, the empty-state branch, and the lifecycle hooks that bind it all together. It is the page-level orchestrator that coordinates four sibling capabilities (`dashboard-switcher`, `widget-add-edit-modal`, `widget-context-menu`, `grid-layout`) and gates editing affordances based on user role and active dashboard scope.",
+    "docsUrl": "openspec/specs/runtime-shell/spec.md"
+  },
+  {
+    "slug": "setup-wizard",
+    "title": "Setup Wizard",
+    "summary": "The Setup Wizard is a multi-step first-run configuration flow for freshly installed MyDash instances. It guides administrators through selecting a storage backend, setting group priority order, installing optional demo data, assigning admin roles, and configuring footer content. The wizard detects first-run state via an admin-setting flag, supports both interactive and non-interactive (CLI) flows, and ensures all choices are persisted immediately so progress is not lost.",
+    "docsUrl": "openspec/specs/setup-wizard/spec.md"
+  },
+  {
+    "slug": "text-display-widget",
+    "title": "Text-Display Widget",
+    "summary": "The text-display widget renders user-authored text content inside a dashboard cell, with limited HTML support for inline formatting (bold, italics, links, line breaks). It is the primary \"annotation\" widget — useful for section captions, instructions, contact details, callouts.",
+    "docsUrl": "openspec/specs/text-display-widget/spec.md"
+  },
+  {
+    "slug": "tiles",
+    "title": "Custom Tiles",
+    "summary": "Custom tiles are user-created shortcut cards that provide quick access to Nextcloud apps or external URLs. Unlike widgets (which render dynamic content from Nextcloud apps), tiles are simple, static cards with an icon, label, and link. Tiles are first created as reusable entities in the `oc_mydash_tiles` table, then placed onto dashboards via a special tile placement mechanism that stores tile data inline on the placement. This inline-copy model means tile placements are independent snapshots -- changes to the tile definition do NOT propagate to existing placements.",
+    "docsUrl": "openspec/specs/tiles/spec.md"
+  },
+  {
+    "slug": "video-widget",
+    "title": "Video Widget",
+    "summary": "Embed video content directly on a MyDash dashboard from four source types: YouTube, Vimeo, self-hosted PeerTube instances, and Nextcloud Files. Hosted-platform embeds use a sandboxed iframe with the canonical embed URL (extracted server-side at save time); internal-file embeds use a native HTML5 `<video>` element backed by an ACL-checked streaming endpoint. An admin-controlled domain allow-list governs which hosted origins may be embedded; an empty list is interpreted as \"deny all\" to fail safe.",
+    "docsUrl": "openspec/specs/video-widget/spec.md"
+  },
+  {
+    "slug": "widgets",
+    "title": "Widgets",
+    "summary": "Widgets are the primary content blocks on MyDash dashboards. MyDash integrates with the Nextcloud Dashboard Widget API (v1 and v2) via `OCP\\Dashboard\\IManager::getWidgets()` to discover all registered dashboard widgets across installed Nextcloud apps. Users can add these discovered widgets to their dashboards as \"placements\" -- records that track the widget's position on the grid, display configuration, and custom styling. Widget placements bridge the Nextcloud widget ecosystem with the MyDash grid layout system.",
+    "docsUrl": "openspec/specs/widgets/spec.md"
+  }
+]
