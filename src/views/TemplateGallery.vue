@@ -55,6 +55,7 @@ import { useTemplatesStore } from '../stores/templates.js'
 export default {
 	name: 'TemplateGallery',
 	components: { TemplateCard },
+	/** @spec openspec/specs/admin-templates/spec.md */
 	setup() {
 		const store = useTemplatesStore()
 		return { store }
@@ -64,10 +65,12 @@ export default {
 	},
 	methods: {
 		t,
+		/** @spec openspec/specs/admin-templates/spec.md */
 		onCategoryChange(event) {
 			const value = event.target.value || null
 			this.store.fetchGallery({ category: value, sort: this.store.sortBy })
 		},
+		/** @spec openspec/specs/admin-templates/spec.md */
 		onSortChange(event) {
 			this.store.fetchGallery({
 				category: this.store.selectedCategory,

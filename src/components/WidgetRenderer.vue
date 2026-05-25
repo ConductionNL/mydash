@@ -112,6 +112,7 @@ export default {
 		 * `getWidgetTypeEntry` to keep types like `nc-widget` (renderer-only
 		 * proxy) flowing through this branch as well.
 		 */
+		/** @spec openspec/specs/widgets/spec.md */
 		registryEntry() {
 			const widgetId = this.placement?.widgetId
 			if (typeof widgetId !== 'string' || widgetId === '') {
@@ -128,11 +129,13 @@ export default {
 			return this.placement.widgetId && this.placement.widgetId.startsWith('tile-')
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		tileId() {
 			if (!this.isTileWidget) return null
 			return parseInt(this.placement.widgetId.replace('tile-', ''))
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		tileData() {
 			if (!this.isTileWidget) return null
 			const { tiles } = storeToRefs(useTileStore())
@@ -151,11 +154,13 @@ export default {
 			return this.isApiWidgetV1 || this.isApiWidgetV2
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		widgetItemsData() {
 			// Return local reactive data that is updated by watcher.
 			return this.localWidgetItemsData
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		widgetItems() {
 			const items = this.widgetItemsData.items || []
 			console.log('[WidgetRenderer] widgetItems computed:', {
@@ -181,6 +186,7 @@ export default {
 			}))
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		emptyContentMessage() {
 			return this.widgetItemsData.emptyContentMessage || ''
 		},
@@ -189,6 +195,7 @@ export default {
 	watch: {
 		widget: {
 			immediate: false, // Don't run immediately, wait for mounted
+			/** @spec openspec/specs/widgets/spec.md */
 			handler(newWidget) {
 				console.log('[WidgetRenderer] widget watch triggered:', newWidget?.id, newWidget)
 				if (newWidget || this.isTileWidget) {
@@ -198,6 +205,7 @@ export default {
 		},
 		placement: {
 			immediate: false, // Don't run immediately
+			/** @spec openspec/specs/widgets/spec.md */
 			handler() {
 				console.log('[WidgetRenderer] placement watch triggered:', this.placement)
 				if (this.isTileWidget) {
@@ -207,6 +215,7 @@ export default {
 		},
 	},
 
+	/** @spec openspec/specs/widgets/spec.md */
 	mounted() {
 		// Initialize widget after component is mounted and refs are available
 		console.log('[WidgetRenderer] mounted hook called')
@@ -224,6 +233,7 @@ export default {
 		}
 	},
 
+	/** @spec openspec/specs/widgets/spec.md */
 	beforeDestroy() {
 		if (this.refreshInterval) {
 			clearInterval(this.refreshInterval)
@@ -237,6 +247,7 @@ export default {
 	methods: {
 		...mapActions(useWidgetStore, ['loadWidgetItems', 'refreshWidgetItems']),
 
+		/** @spec openspec/specs/widgets/spec.md */
 		setupStoreSubscription() {
 			// Subscribe to store changes.
 			const widgetStore = useWidgetStore()
@@ -251,6 +262,7 @@ export default {
 			})
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		updateLocalWidgetItems() {
 			if (!this.widget?.id) return
 			const widgetStore = useWidgetStore()
@@ -261,6 +273,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		async initWidget() {
 			console.log('[WidgetRenderer] initWidget called:', {
 				widgetId: this.widget?.id,
@@ -322,6 +335,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		mountLegacyWidget() {
 			if (!this.$refs.legacyWidgetContainer) {
 				console.error('[WidgetRenderer] No legacyWidgetContainer ref found!')
@@ -358,6 +372,7 @@ export default {
 			})
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		setupAutoRefresh(intervalSeconds) {
 			if (this.refreshInterval) {
 				clearInterval(this.refreshInterval)

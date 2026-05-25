@@ -86,16 +86,19 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/container-widget/spec.md */
 		children() {
 			const list = this.content?.placements
 			return Array.isArray(list) ? list : []
 		},
 
+		/** @spec openspec/specs/container-widget/spec.md */
 		backgroundColor() {
 			const value = this.content?.backgroundColor
 			return (typeof value === 'string' && value !== '') ? value : 'transparent'
 		},
 
+		/** @spec openspec/specs/container-widget/spec.md */
 		paddingToken() {
 			const value = this.content?.padding
 			if (typeof value === 'string' && Object.prototype.hasOwnProperty.call(PADDING_TOKENS, value)) {
@@ -104,10 +107,12 @@ export default {
 			return 'medium'
 		},
 
+		/** @spec openspec/specs/container-widget/spec.md */
 		paddingPx() {
 			return PADDING_TOKENS[this.paddingToken]
 		},
 
+		/** @spec openspec/specs/container-widget/spec.md */
 		titleText() {
 			return typeof this.content?.title === 'string' ? this.content.title : ''
 		},
@@ -116,6 +121,7 @@ export default {
 			return this.titleText.trim() !== ''
 		},
 
+		/** @spec openspec/specs/container-widget/spec.md */
 		wrapperStyle() {
 			return {
 				width: '100%',
@@ -151,6 +157,7 @@ export default {
 		 * @param {number} index the loop index
 		 * @return {string|number}
 		 */
+		/** @spec openspec/specs/container-widget/spec.md */
 		childKey(child, index) {
 			if (child && (child.id !== undefined && child.id !== null)) {
 				return `id-${child.id}`
@@ -170,6 +177,7 @@ export default {
 		 *
 		 * @return {Promise<void>}
 		 */
+		/** @spec openspec/specs/container-widget/spec.md */
 		async initInnerGrid() {
 			if (!this.$refs.innerGrid) {
 				return
@@ -211,6 +219,7 @@ export default {
 		 * @param {Event} _event the GridStack event (ignored)
 		 * @param {Array<object>} nodes the changed nodes
 		 */
+		/** @spec openspec/specs/container-widget/spec.md */
 		onGridChange(_event, nodes) {
 			if (!Array.isArray(nodes) || nodes.length === 0) {
 				return
@@ -243,6 +252,7 @@ export default {
 		 *
 		 * @param {Array<object>} placements the new child placements
 		 */
+		/** @spec openspec/specs/container-widget/spec.md */
 		handlePersist(placements) {
 			this.$emit('update:content', {
 				...(this.content || {}),
@@ -250,6 +260,7 @@ export default {
 			})
 		},
 
+		/** @spec openspec/specs/container-widget/spec.md */
 		destroyInnerGrid() {
 			if (this.gridInstance && typeof this.gridInstance.destroy === 'function') {
 				try {

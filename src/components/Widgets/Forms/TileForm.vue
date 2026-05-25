@@ -140,26 +140,31 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/tiles/spec.md */
 		iconTypeOptions() {
 			return ['class', 'url', 'emoji', 'svg']
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		linkTypeOptions() {
 			return ['app', 'url']
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		linkValueLabel() {
 			return this.linkType === 'app'
 				? t('mydash', 'App route')
 				: t('mydash', 'URL')
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		linkValuePlaceholder() {
 			return this.linkType === 'app'
 				? '/apps/files'
 				: 'https://example.com'
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		assembledContent() {
 			return {
 				title: this.title,
@@ -180,6 +185,7 @@ export default {
 		 * @param {string} field one of: title, icon, iconType, backgroundColor, textColor, linkType, linkValue
 		 * @param {string} value new value
 		 */
+		/** @spec openspec/specs/tiles/spec.md */
 		updateField(field, value) {
 			this[field] = value
 			this.$emit('update:content', this.assembledContent)
@@ -192,6 +198,7 @@ export default {
 		 *
 		 * @param {string} value the emitted icon value
 		 */
+		/** @spec openspec/specs/tiles/spec.md */
 		onIconChange(value) {
 			this.icon = value || ''
 			this.iconType = isCustomIconUrl(this.icon) ? 'url' : 'class'
@@ -203,6 +210,7 @@ export default {
 		 *
 		 * @return {string[]} validation errors
 		 */
+		/** @spec openspec/specs/tiles/spec.md */
 		validate() {
 			const errors = []
 			if (typeof this.title !== 'string' || this.title.trim() === '') {

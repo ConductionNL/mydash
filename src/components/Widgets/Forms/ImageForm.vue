@@ -229,6 +229,7 @@ export default {
 			return typeof this.url === 'string' && this.url.trim() !== ''
 		},
 
+		/** @spec openspec/specs/image-widget/spec.md */
 		fitOptions() {
 			return [
 				{ value: 'cover', label: t('mydash', 'Cover') },
@@ -238,6 +239,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/image-widget/spec.md */
 		assembledContent() {
 			return {
 				url: this.url,
@@ -252,6 +254,7 @@ export default {
 	},
 
 	watch: {
+		/** @spec openspec/specs/image-widget/spec.md */
 		url() {
 			// When the URL changes the preview must re-arm so a
 			// previously broken URL does not permanently mask a freshly
@@ -269,6 +272,7 @@ export default {
 		 * @param {string} field one of: url, alt, link, fit, sourceType, fileId, filePath
 		 * @param {*} value new value
 		 */
+		/** @spec openspec/specs/image-widget/spec.md */
 		updateField(field, value) {
 			this[field] = value
 			this.$emit('update:content', this.assembledContent)
@@ -281,6 +285,7 @@ export default {
 		 * sources (those live in their own fields and stay in component
 		 * state for round-trip).
 		 */
+		/** @spec openspec/specs/image-widget/spec.md */
 		onSourceChange() {
 			this.uploadError = ''
 			this.pickError = ''
@@ -295,6 +300,7 @@ export default {
 		 *
 		 * @param {Event} event the input change event
 		 */
+		/** @spec openspec/specs/image-widget/spec.md */
 		async onFileSelected(event) {
 			const target = event && event.target
 			const file = target && target.files && target.files[0]
@@ -343,6 +349,7 @@ export default {
 		 * NOT an error — we leave the previous selection intact and
 		 * suppress the inline error message per REQ-IMP-002 task 4.5.
 		 */
+		/** @spec openspec/specs/image-widget/spec.md */
 		async onPickFromFiles() {
 			this.picking = true
 			this.pickError = ''
@@ -403,6 +410,7 @@ export default {
 		 * fallback for the dashboard cell — this is purely the form-side
 		 * affordance.
 		 */
+		/** @spec openspec/specs/image-widget/spec.md */
 		onPreviewError() {
 			this.previewError = true
 		},
@@ -419,6 +427,7 @@ export default {
 		 *
 		 * @return {string[]} validation errors
 		 */
+		/** @spec openspec/specs/image-widget/spec.md */
 		validate() {
 			if (this.sourceType === 'files') {
 				if (typeof this.filePath !== 'string' || this.filePath.trim() === '') {

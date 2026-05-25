@@ -169,6 +169,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/news-widget/spec.md */
 		layoutOptions() {
 			return [
 				{ value: 'list', label: t('mydash', 'List') },
@@ -177,6 +178,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		dateFormatOptions() {
 			return [
 				{ value: 'relative', label: t('mydash', 'Relative (2 hours ago)') },
@@ -184,6 +186,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		assembledContent() {
 			const filter = this.metadataFilterEnabled
 				? { fieldKey: this.metadataFieldKey, value: this.metadataValue }
@@ -202,15 +205,18 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/news-widget/spec.md */
 		emitUpdate() {
 			this.$emit('update:content', this.assembledContent)
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		updateField(field, value) {
 			this[field] = value
 			this.emitUpdate()
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		updateNumericField(field, value, min, max) {
 			const parsed = parseInt(value, 10)
 			if (Number.isNaN(parsed)) {
@@ -221,26 +227,31 @@ export default {
 			this.emitUpdate()
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		updateFeedUrl(index, value) {
 			this.$set(this.feedUrls, index, value)
 			this.emitUpdate()
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		addFeedUrl() {
 			this.feedUrls.push('')
 			this.emitUpdate()
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		removeFeedUrl(index) {
 			this.feedUrls.splice(index, 1)
 			this.emitUpdate()
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		toggleMetadataFilter(enabled) {
 			this.metadataFilterEnabled = enabled
 			this.emitUpdate()
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		updateMetadataField(field, value) {
 			if (field === 'fieldKey') {
 				this.metadataFieldKey = value
@@ -257,6 +268,7 @@ export default {
 		 *
 		 * @return {string[]} validation errors (empty when ok)
 		 */
+		/** @spec openspec/specs/news-widget/spec.md */
 		validate() {
 			const errors = []
 			for (const url of this.feedUrls) {

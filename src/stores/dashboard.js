@@ -216,6 +216,7 @@ export const useDashboardStore = defineStore('dashboard', {
 	},
 
 	actions: {
+		/** @spec openspec/specs/dashboards/spec.md */
 		async loadDashboards() {
 			this.loading = true
 			try {
@@ -256,6 +257,7 @@ export const useDashboardStore = defineStore('dashboard', {
 			}
 		},
 
+		/** @spec openspec/specs/dashboards/spec.md */
 		async switchDashboard(dashboardId) {
 			this.loading = true
 			try {
@@ -301,6 +303,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 * @param {string} uuid The dashboard UUID, or empty string to clear.
 		 * @return {void}
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		persistActivePreference(uuid) {
 			api.setActiveDashboardPreference(uuid || '').catch((error) => {
 				console.warn('Failed to persist active dashboard preference:', error)
@@ -317,6 +320,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 * @return {Promise<object|null>} The updated dashboard payload or
 		 *   `null` on failure (an error toast is surfaced).
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		async publishDashboard(uuid) {
 			try {
 				const response = await api.publishDashboard(uuid)
@@ -336,6 +340,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 * @param {string} uuid The dashboard UUID to unpublish.
 		 * @return {Promise<object|null>} The updated dashboard or null.
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		async unpublishDashboard(uuid) {
 			try {
 				const response = await api.unpublishDashboard(uuid)
@@ -355,6 +360,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 * @param {string} publishAt The future ISO-8601 timestamp.
 		 * @return {Promise<object|null>} The updated dashboard or null.
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		async scheduleDashboard(uuid, publishAt) {
 			try {
 				const response = await api.scheduleDashboard(uuid, publishAt)
@@ -375,6 +381,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 * @param {object|null|undefined} dashboard The updated entity.
 		 * @return {void}
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		applyPublicationPatch(dashboard) {
 			if (!dashboard || !dashboard.uuid) {
 				return
@@ -407,6 +414,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 * @param {object} dashboard The dashboard entity.
 		 * @return {string} `'draft' | 'published' | 'scheduled'`.
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		effectivePublicationStatus(dashboard) {
 			if (!dashboard) {
 				return STATUS_DRAFT
@@ -426,6 +434,7 @@ export const useDashboardStore = defineStore('dashboard', {
 			return when.getTime() <= Date.now() ? STATUS_PUBLISHED : STATUS_SCHEDULED
 		},
 
+		/** @spec openspec/specs/dashboards/spec.md */
 		async createDashboard(payload = 'My Dashboard') {
 			// Accept either a plain name string or an object with
 			// name/description/icon (legacy callers may pass a string).
@@ -476,6 +485,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		// — we push it onto `dashboards` (tagged `source: 'user'` so
 		// the source-aware getters keep working) and pin
 		// `activeDashboard` so the UI rerenders without a reload.
+		/** @spec openspec/specs/dashboards/spec.md */
 		async forkDashboard(sourceUuid, name) {
 			this.loading = true
 			try {
@@ -514,6 +524,7 @@ export const useDashboardStore = defineStore('dashboard', {
 			}
 		},
 
+		/** @spec openspec/specs/dashboards/spec.md */
 		async updatePlacements(placements) {
 			console.log('[DashboardStore] updatePlacements called, count:', placements.length)
 
@@ -568,6 +579,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 * @param {string|object} widgetId widget identifier OR a `{type, content}` payload from AddWidgetModal
 		 * @param {object|null} [position] explicit `{x, y, w, h}` (skips auto-placement) or partial spec to seed the helper
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		async addWidgetToDashboard(widgetId, position = null) {
 			try {
 				// AddWidgetModal emits a `{type, content}` payload for the
@@ -631,6 +643,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 * @param {object} tileData tile payload (title/icon/colours/link)
 		 * @param {object|null} [position] explicit `{x, y, w, h}` (skips auto-placement) or partial spec to seed the helper
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		async addTileToDashboard(tileData, position = null) {
 			try {
 				const placement = (position && Number.isFinite(position.x) && Number.isFinite(position.y))
@@ -675,6 +688,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 *
 		 * @param {Array<{id: any, gridY: number}>} pushed list of push-down side effects from `placeNewWidget`
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		async applyPushedPlacements(pushed) {
 			if (!pushed || pushed.length === 0) {
 				return
@@ -690,6 +704,7 @@ export const useDashboardStore = defineStore('dashboard', {
 			await this.updatePlacements(merged)
 		},
 
+		/** @spec openspec/specs/dashboards/spec.md */
 		async removeWidgetFromDashboard(placementId) {
 			const placement = this.getPlacementById(placementId)
 			if (placement?.isCompulsory && this.permissionLevel !== 'full') {
@@ -716,6 +731,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 * @param {string} uuid The target dashboard's uuid.
 		 * @return {Promise<void>}
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		async setGroupDashboardDefault(groupId, uuid) {
 			// Snapshot the affected rows so we can roll back on failure.
 			const snapshot = this.dashboards
@@ -755,6 +771,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 *
 		 * @return {Promise<void>}
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		async loadDashboardTree() {
 			try {
 				const response = await api.getDashboardTree()
@@ -775,6 +792,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 * @param {string} path The slash-joined slug chain.
 		 * @return {Promise<object|null>} The dashboard payload or null.
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		async dashboardByPath(path) {
 			const key = String(path || '').replace(/\/+$/, '').replace(/^\/+/, '')
 			if (key === '') {
@@ -813,6 +831,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 * @param {string} uuid The dashboard UUID being viewed.
 		 * @return {Promise<void>}
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		async recordViewEvent(uuid) {
 			if (!uuid) {
 				return
@@ -824,6 +843,7 @@ export const useDashboardStore = defineStore('dashboard', {
 			}
 		},
 
+		/** @spec openspec/specs/dashboards/spec.md */
 		async updateWidgetPlacement(placementId, updates) {
 			console.log('[DashboardStore] updateWidgetPlacement called:', JSON.stringify({ placementId, updates }, null, 2))
 			try {
@@ -850,6 +870,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 * @param {string} dashboardUuid The dashboard UUID.
 		 * @return {Promise<object|null>} The summary, or null on error.
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		async fetchReactionsSummary(dashboardUuid) {
 			if (!dashboardUuid) {
 				return null
@@ -876,6 +897,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 * @param {string} emoji         The emoji to add.
 		 * @return {Promise<object|null>} Updated summary, or null on error.
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		async addReaction(dashboardUuid, emoji) {
 			if (!dashboardUuid || !emoji) {
 				return null
@@ -903,6 +925,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 * @param {string} emoji         The emoji to remove.
 		 * @return {Promise<object|null>} Updated summary, or null on error.
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		async removeReaction(dashboardUuid, emoji) {
 			if (!dashboardUuid || !emoji) {
 				return null
@@ -926,6 +949,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 *
 		 * @return {Promise<void>}
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		async fetchMetadataFields() {
 			try {
 				const response = await api.getMetadataFields()
@@ -954,6 +978,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 * @param {string} uuid The dashboard UUID.
 		 * @return {Promise<object>} The metadata map (always an object).
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		async fetchDashboardMetadata(uuid) {
 			if (!uuid) {
 				return {}
@@ -994,6 +1019,7 @@ export const useDashboardStore = defineStore('dashboard', {
 		 * @return {Promise<object|null>} The updated metadata map or
 		 *                                null on failure.
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		async updateDashboardMetadata(uuid, metadata) {
 			if (!uuid) {
 				return null

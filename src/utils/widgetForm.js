@@ -12,6 +12,7 @@ import { widgetRegistry } from '../constants/widgetRegistry.js'
  * @param {string} type the widget type discriminator (e.g. 'text')
  * @return {object} a shallow-cloned defaults object with `type` set
  */
+/** @spec openspec/specs/widgets/spec.md */
 export function resetForm(type) {
 	const entry = widgetRegistry[type]
 	const defaults = entry ? { ...entry.defaults } : {}
@@ -26,6 +27,7 @@ export function resetForm(type) {
  * @param {object} editingWidget the widget being edited (must have `.type` and `.content`)
  * @return {object} merged form state
  */
+/** @spec openspec/specs/widgets/spec.md */
 export function loadEditingWidget(form, editingWidget) {
 	if (!editingWidget) {
 		return { ...form }
@@ -54,6 +56,7 @@ export function loadEditingWidget(form, editingWidget) {
  * @param {object} form the current raw form state
  * @return {{type: string, content: object}} the clean submit payload
  */
+/** @spec openspec/specs/widgets/spec.md */
 export function assembleContent(type, form) {
 	const entry = widgetRegistry[type]
 	if (!entry) {

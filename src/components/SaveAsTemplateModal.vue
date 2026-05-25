@@ -71,11 +71,13 @@ export default {
 		}
 	},
 	computed: {
+		/** @spec openspec/specs/admin-templates/spec.md */
 		canSubmit() {
 			return String(this.form.name).trim().length > 0
 		},
 	},
 	watch: {
+		/** @spec openspec/specs/admin-templates/spec.md */
 		defaultName(value) {
 			if (!this.form.name) {
 				this.form.name = value
@@ -84,9 +86,11 @@ export default {
 	},
 	methods: {
 		t,
+		/** @spec openspec/specs/admin-templates/spec.md */
 		onCancel() {
 			this.$emit('cancel')
 		},
+		/** @spec openspec/specs/admin-templates/spec.md */
 		onSubmit() {
 			if (!this.canSubmit) {
 				return

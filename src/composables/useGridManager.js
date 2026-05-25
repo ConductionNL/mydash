@@ -113,6 +113,7 @@ export const CELL_HEIGHT_CSS_VAR = '--mydash-cell-height'
  *
  * @return {{ breakpoints: Array<{ w: number, c: number }>, layout: string, breakpointForWindow: boolean }}
  */
+/** @spec openspec/specs/grid-layout/spec.md */
 export function getColumnOpts() {
 	return {
 		breakpoints: BREAKPOINTS.map(b => ({ ...b })),
@@ -127,6 +128,7 @@ export function getColumnOpts() {
  *
  * @return {void}
  */
+/** @spec openspec/specs/grid-layout/spec.md */
 export function syncCellHeightCssVar() {
 	if (typeof document === 'undefined' || !document.documentElement) {
 		return
@@ -226,6 +228,7 @@ function scanForEmptySlot(sz, nodes, columns, maxScanRows) {
  * @param {object} [options.grid] live GridStack instance — when supplied the engine is used directly
  * @return {{ x: number, y: number, w: number, h: number, pushed: Array<{id: any, gridY: number}> }}
  */
+/** @spec openspec/specs/grid-layout/spec.md */
 export function placeNewWidget(spec, placements, options = {}) {
 	const w = (spec && Number.isFinite(spec.w) && spec.w > 0) ? spec.w : DEFAULT_W
 	const h = (spec && Number.isFinite(spec.h) && spec.h > 0) ? spec.h : DEFAULT_H
@@ -303,6 +306,7 @@ const DEFAULT_MENU_HEIGHT = 132
  *   detach: () => void,
  * }}
  */
+/** @spec openspec/specs/grid-layout/spec.md */
 export function useGridManager(options = {}) {
 	const {
 		canEdit,

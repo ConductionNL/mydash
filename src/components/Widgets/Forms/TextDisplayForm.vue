@@ -174,10 +174,12 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		textAlignOptions() {
 			return ['left', 'center', 'right', 'justify']
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		contentModeOptions() {
 			return [
 				{ value: 'markdown', label: t('mydash', 'Markdown') },
@@ -185,12 +187,14 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		modePlaceholder() {
 			return this.contentMode === 'markdown'
 				? t('mydash', 'Markdown — # heading, **bold**, *italic*, [link](url), - list')
 				: t('mydash', 'HTML — <b>bold</b>, <i>italic</i>, <a href="…">link</a>')
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		modeOptions() {
 			return [
 				{ id: 'text', label: t('mydash', 'Text') },
@@ -198,10 +202,12 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		modeOption() {
 			return this.modeOptions.find((o) => o.id === (this.tableMode ? 'table' : 'text'))
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		assembledContent() {
 			return {
 				text: this.text,
@@ -223,6 +229,7 @@ export default {
 		 * @param {string} field one of: text, fontSize, color, backgroundColor, textAlign, contentMode
 		 * @param {string} value new value
 		 */
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		updateField(field, value) {
 			if (field === 'contentMode' && !VALID_CONTENT_MODES.includes(value)) {
 				// Ignore invalid mode writes — keeps the form aligned with
@@ -240,6 +247,7 @@ export default {
 		 *
 		 * @param {object} option the selected modeOptions item
 		 */
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		onModeChange(option) {
 			const id = option?.id || 'text'
 			this.tableMode = id === 'table'
@@ -255,6 +263,7 @@ export default {
 		 *
 		 * @param {object} next the next tableData value
 		 */
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		onTableDataChange(next) {
 			this.tableData = next
 			this.$emit('update:content', this.assembledContent)
@@ -265,6 +274,7 @@ export default {
 		 *
 		 * @return {string[]} validation errors
 		 */
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		validate() {
 			if (this.tableMode) {
 				return validateTable(this.tableData)

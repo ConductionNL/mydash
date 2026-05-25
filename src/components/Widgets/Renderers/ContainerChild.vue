@@ -49,6 +49,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/container-widget/spec.md */
 		registryEntry() {
 			const type = this.placement?.type
 			if (typeof type !== 'string' || type === '') {
@@ -57,14 +58,17 @@ export default {
 			return getWidgetTypeEntry(type)
 		},
 
+		/** @spec openspec/specs/container-widget/spec.md */
 		childRenderer() {
 			return this.registryEntry?.renderer || null
 		},
 
+		/** @spec openspec/specs/container-widget/spec.md */
 		childContent() {
 			return this.placement?.content || {}
 		},
 
+		/** @spec openspec/specs/container-widget/spec.md */
 		unknownLabel() {
 			const type = this.placement?.type || ''
 			return t('mydash', 'Unknown widget type: {type}', { type })

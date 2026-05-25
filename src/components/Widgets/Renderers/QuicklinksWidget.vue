@@ -132,6 +132,7 @@ export default {
 	emits: ['edit'],
 
 	computed: {
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		links() {
 			const raw = this.content?.links
 			if (!Array.isArray(raw)) {
@@ -144,33 +145,40 @@ export default {
 			return this.links.length === 0
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		iconSize() {
 			const declared = this.content?.iconSize
 			return Object.prototype.hasOwnProperty.call(SIZE_PX, declared) ? declared : 'medium'
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		iconPx() {
 			return SIZE_PX[this.iconSize]
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		iconShape() {
 			const declared = this.content?.iconShape
 			return Object.prototype.hasOwnProperty.call(SHAPE_RADIUS, declared) ? declared : 'rounded'
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		iconRadius() {
 			return SHAPE_RADIUS[this.iconShape]
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		showLabels() {
 			return this.content?.showLabels !== false
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		labelPosition() {
 			const declared = this.content?.labelPosition
 			return ALLOWED_LABEL_POSITIONS.includes(declared) ? declared : 'below'
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		columns() {
 			const declared = this.content?.columns
 			if (declared === 'auto' || declared === undefined || declared === null) {
@@ -183,11 +191,13 @@ export default {
 			return n
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		tileBackgroundStyle() {
 			const declared = this.content?.tileBackgroundStyle
 			return ALLOWED_TILE_BG.includes(declared) ? declared : 'transparent'
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		hoverEffect() {
 			const declared = this.content?.hoverEffect
 			return ALLOWED_HOVER.includes(declared) ? declared : 'lift'
@@ -197,12 +207,14 @@ export default {
 			return this.isAdmin === true && this.canEdit === true
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		labelClasses() {
 			return [
 				`quicklinks-widget__label--${this.labelPosition}`,
 			]
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		rootClasses() {
 			return [
 				`quicklinks-widget--hover-${this.hoverEffect}`,
@@ -212,6 +224,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		rootStyle() {
 			return {
 				'--mydash-quicklinks-icon-size': `${this.iconPx}px`,
@@ -219,6 +232,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		listStyle() {
 			if (this.columns === 'auto') {
 				return {
@@ -232,12 +246,14 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		renderedLinks() {
 			return this.links.map((link) => this.decorateLink(link))
 		},
 	},
 
 	methods: {
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		decorateLink(link) {
 			const url = typeof link.url === 'string' ? link.url : ''
 			const label = typeof link.label === 'string' ? link.label : ''
@@ -279,6 +295,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		computeIconWrapperStyle(tileColor) {
 			const style = {
 				width: `${this.iconPx}px`,
@@ -293,6 +310,7 @@ export default {
 			return style
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		computeAriaLabel(url, label) {
 			if (this.showLabels && this.labelPosition === 'below' && label !== '') {
 				return label
@@ -304,6 +322,7 @@ export default {
 			return label !== '' ? label : t('mydash', 'Link')
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		extractHostname(url) {
 			if (typeof url !== 'string' || url === '') {
 				return ''
@@ -319,6 +338,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		onLinkClick(event, link) {
 			if (this.isInEditMode) {
 				event.preventDefault()
@@ -341,6 +361,7 @@ export default {
 			// navigation by following the `<a>`'s href. No preventDefault.
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		onEmptyClick() {
 			this.$emit('edit')
 		},

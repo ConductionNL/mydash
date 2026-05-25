@@ -91,6 +91,7 @@ export const useOrgNavigationStore = defineStore('orgNavigation', {
 		 *                      `state.language`).
 		 * @return {Promise<void>}
 		 */
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		async fetchTree(lang) {
 			const language = lang || this.language || 'nl'
 			this.loading = true
@@ -121,6 +122,7 @@ export const useOrgNavigationStore = defineStore('orgNavigation', {
 		 * @param {string} lang ISO language code (defaults to current).
 		 * @return {Promise<boolean>} true on success, false on failure.
 		 */
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		async updateTree(newTree, lang) {
 			const language = lang || this.language || 'nl'
 			this.loading = true
@@ -147,6 +149,7 @@ export const useOrgNavigationStore = defineStore('orgNavigation', {
 		 *
 		 * @return {Promise<void>}
 		 */
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		async fetchPosition() {
 			try {
 				const response = await api.getOrgNavigationPosition()
@@ -166,6 +169,7 @@ export const useOrgNavigationStore = defineStore('orgNavigation', {
 		 * @param {string} newPosition One of ORG_NAV_POSITIONS.
 		 * @return {Promise<boolean>} true on success.
 		 */
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		async updatePosition(newPosition) {
 			if (!ORG_NAV_POSITIONS.includes(newPosition)) {
 				this.error = 'Unsupported position'

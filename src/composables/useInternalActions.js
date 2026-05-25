@@ -41,6 +41,7 @@ const REGISTRY = new Map()
  *   has: (id: string) => boolean,
  * }} The shared `{register, invoke, has}` triple.
  */
+/** @spec openspec/specs/widgets/spec.md */
 export function useInternalActions() {
 	/**
 	 * Register a named action. Registering a duplicate id replaces the
@@ -100,6 +101,7 @@ export function useInternalActions() {
  *
  * @return {void}
  */
+/** @spec openspec/specs/widgets/spec.md */
 export function __resetInternalActionsForTest() {
 	REGISTRY.clear()
 }

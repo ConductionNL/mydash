@@ -145,10 +145,12 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		store() {
 			return useOrgNavigationStore()
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		errorMessage() {
 			return this.store.error
 		},
@@ -161,6 +163,7 @@ export default {
 	methods: {
 		t,
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		async bootstrap() {
 			await this.store.fetchPosition()
 			this.selectedPosition = this.store.position
@@ -168,10 +171,12 @@ export default {
 			this.workingTree = this.cloneTree(this.store.visibleTree)
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		cloneTree(tree) {
 			return JSON.parse(JSON.stringify(Array.isArray(tree) ? tree : []))
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		generateUuid() {
 			// RFC 4122 v4 — uses crypto.getRandomValues when available
 			// so the UUIDs pass the backend validator's regex.
@@ -188,6 +193,7 @@ export default {
 			})
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		makeNode(kind) {
 			return {
 				id: this.generateUuid(),
@@ -200,10 +206,12 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		addRoot(kind) {
 			this.workingTree.push(this.makeNode(kind))
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		addChild({ parent, kind }) {
 			if (!parent.children) {
 				parent.children = []
@@ -211,14 +219,17 @@ export default {
 			parent.children.push(this.makeNode(kind))
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		onUpdate({ node, patch }) {
 			Object.assign(node, patch)
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		onDelete({ siblings, index }) {
 			siblings.splice(index, 1)
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		moveUp({ siblings, index }) {
 			if (index <= 0) {
 				return
@@ -228,6 +239,7 @@ export default {
 			siblings.splice(index - 1, 0, item)
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		moveDown({ siblings, index }) {
 			if (index >= siblings.length - 1) {
 				return
@@ -237,11 +249,13 @@ export default {
 			siblings.splice(index + 1, 0, item)
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		async onLanguageChange() {
 			await this.store.fetchTree(this.selectedLanguage)
 			this.workingTree = this.cloneTree(this.store.visibleTree)
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		async onPositionChange() {
 			if (!ORG_NAV_POSITIONS.includes(this.selectedPosition)) {
 				return
@@ -249,6 +263,7 @@ export default {
 			await this.store.updatePosition(this.selectedPosition)
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		async save() {
 			this.saving = true
 			this.successFlag = false

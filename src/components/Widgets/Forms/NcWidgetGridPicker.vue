@@ -104,6 +104,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		normalisedWidgets() {
 			// PHP can serialise sequential arrays as objects; mirror the
 			// defensive normalisation used by NcDashboardForm.
@@ -120,12 +121,14 @@ export default {
 					iconUrl: typeof w.iconUrl === 'string' && w.iconUrl !== '' ? w.iconUrl : '',
 				}))
 		},
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		selectedIndex() {
 			return this.normalisedWidgets.findIndex((w) => w.id === this.value)
 		},
 	},
 
 	methods: {
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		cardTabIndex(id, idx) {
 			// Selected card always wins for tabindex=0; otherwise the first
 			// card is the entry point until the user focuses one.
@@ -135,10 +138,12 @@ export default {
 			return idx === 0 ? 0 : -1
 		},
 
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		select(id) {
 			this.$emit('input', id)
 		},
 
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		initialsFor(title) {
 			if (typeof title !== 'string' || title.length === 0) {
 				return '?'
@@ -150,6 +155,7 @@ export default {
 			return (parts[0][0] + parts[1][0]).toUpperCase()
 		},
 
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		onKeydown(event, idx) {
 			const total = this.normalisedWidgets.length
 			if (total === 0) {

@@ -110,6 +110,7 @@ export default {
 		 * URL, leave the select on the disabled placeholder so it's
 		 * obvious the upload has taken priority.
 		 */
+		/** @spec openspec/specs/dashboard-icons/spec.md */
 		builtInValue() {
 			if (this.value && !isCustomIconUrl(this.value)) {
 				return this.value
@@ -119,12 +120,14 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/dashboard-icons/spec.md */
 		selectIcon(event) {
 			const selected = event.target.value
 			this.uploadError = ''
 			this.$emit('input', selected || null)
 		},
 
+		/** @spec openspec/specs/dashboard-icons/spec.md */
 		handleFileSelect(event) {
 			const file = event.target.files?.[0]
 			if (!file) {
@@ -166,6 +169,7 @@ export default {
 			reader.readAsDataURL(file)
 		},
 
+		/** @spec openspec/specs/dashboard-icons/spec.md */
 		resetFileInput() {
 			if (this.$refs.fileInput) {
 				this.$refs.fileInput.value = ''

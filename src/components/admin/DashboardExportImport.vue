@@ -110,6 +110,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/dashboard-export-import/spec.md */
 		async exportSite() {
 			this.exporting = true
 			this.exportError = ''
@@ -125,6 +126,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/dashboard-export-import/spec.md */
 		onFileSelected(event) {
 			const files = event?.target?.files
 			this.selectedFile = (files && files.length > 0) ? files[0] : null
@@ -132,6 +134,7 @@ export default {
 			this.importError = ''
 		},
 
+		/** @spec openspec/specs/dashboard-export-import/spec.md */
 		async runImport() {
 			if (!this.selectedFile) return
 			this.importing = true
@@ -156,6 +159,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/dashboard-export-import/spec.md */
 		downloadBlob(blob, filename) {
 			const url = window.URL.createObjectURL(blob)
 			const link = document.createElement('a')
@@ -167,6 +171,7 @@ export default {
 			window.URL.revokeObjectURL(url)
 		},
 
+		/** @spec openspec/specs/dashboard-export-import/spec.md */
 		suggestedFilename() {
 			const stamp = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)
 			return `mydash-export-${stamp}.zip`

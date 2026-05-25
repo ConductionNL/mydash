@@ -243,6 +243,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		iconSizeOptions() {
 			return [
 				{ value: 'small', label: t('mydash', 'Small') },
@@ -251,6 +252,7 @@ export default {
 				{ value: 'xlarge', label: t('mydash', 'Extra Large') },
 			]
 		},
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		iconShapeOptions() {
 			return [
 				{ value: 'square', label: t('mydash', 'Square') },
@@ -258,12 +260,14 @@ export default {
 				{ value: 'circle', label: t('mydash', 'Circle') },
 			]
 		},
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		labelPositionOptions() {
 			return [
 				{ value: 'below', label: t('mydash', 'Below') },
 				{ value: 'overlay', label: t('mydash', 'Overlay') },
 			]
 		},
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		columnsOptions() {
 			const list = [{ value: 'auto', label: t('mydash', 'Auto') }]
 			for (let i = 1; i <= 12; i += 1) {
@@ -271,6 +275,7 @@ export default {
 			}
 			return list
 		},
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		tileBackgroundOptions() {
 			return [
 				{ value: 'transparent', label: t('mydash', 'Transparent') },
@@ -278,6 +283,7 @@ export default {
 				{ value: 'gradient', label: t('mydash', 'Gradient') },
 			]
 		},
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		hoverEffectOptions() {
 			return [
 				{ value: 'lift', label: t('mydash', 'Lift') },
@@ -286,9 +292,11 @@ export default {
 				{ value: 'none', label: t('mydash', 'None') },
 			]
 		},
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		showColorColumn() {
 			return this.tileBackgroundStyle === 'solid'
 		},
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		assembledContent() {
 			return {
 				links: this.links.map((link) => {
@@ -317,15 +325,18 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		updateOption(field, value) {
 			this[field] = value
 			this.$emit('update:content', this.assembledContent)
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		onContentChange() {
 			this.$emit('update:content', this.assembledContent)
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		onLinkColor(index, value) {
 			if (this.links[index]) {
 				this.$set(this.links, index, { ...this.links[index], color: value })
@@ -333,16 +344,19 @@ export default {
 			this.onContentChange()
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		addLink() {
 			this.links.push({ label: '', url: '', icon: '', color: '' })
 			this.onContentChange()
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		removeLink(index) {
 			this.links.splice(index, 1)
 			this.onContentChange()
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		isLinkUrlValid(link) {
 			// Empty input is "neutral" while editing — only flag as invalid
 			// once the user has typed something so the row stops blinking
@@ -353,6 +367,7 @@ export default {
 			return validateUrl(link.url)
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		applyBulkAdd() {
 			const draft = (this.csvDraft || '').trim()
 			if (draft === '') {
@@ -367,6 +382,7 @@ export default {
 			this.onContentChange()
 		},
 
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		parseCsv(input) {
 			const out = []
 			const rows = input.split(/\r?\n/)
@@ -398,6 +414,7 @@ export default {
 		 *
 		 * @return {string[]} validation errors
 		 */
+		/** @spec openspec/specs/quicklinks-widget/spec.md */
 		validate() {
 			const errors = []
 			for (let i = 0; i < this.links.length; i += 1) {

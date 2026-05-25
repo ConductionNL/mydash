@@ -157,6 +157,7 @@ export default {
 
 	computed: {
 		// Map id → displayName for fast O(1) label lookups.
+		/** @spec openspec/specs/admin-roles/spec.md */
 		displayNameMap() {
 			const map = {}
 			for (const row of this.allKnown) {
@@ -166,12 +167,15 @@ export default {
 		},
 		// Set of every known group id; anything in `active` not in here
 		// renders as a stale "(removed)" entry per REQ-ASET-013.
+		/** @spec openspec/specs/admin-roles/spec.md */
 		knownIdSet() {
 			return new Set(this.allKnown.map((row) => row.id))
 		},
+		/** @spec openspec/specs/admin-roles/spec.md */
 		filteredActive() {
 			return this.applyFilter(this.active, this.activeFilter)
 		},
+		/** @spec openspec/specs/admin-roles/spec.md */
 		filteredInactive() {
 			return this.applyFilter(this.inactive, this.inactiveFilter)
 		},
@@ -181,6 +185,7 @@ export default {
 		await this.loadGroups()
 	},
 
+	/** @spec openspec/specs/admin-roles/spec.md */
 	beforeDestroy() {
 		if (this.saveTimer) {
 			clearTimeout(this.saveTimer)
@@ -188,6 +193,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/admin-roles/spec.md */
 		async loadGroups() {
 			this.loading = true
 			try {
@@ -204,6 +210,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/admin-roles/spec.md */
 		applyFilter(list, filter) {
 			const f = (filter || '').trim().toLowerCase()
 			if (f === '') return list
@@ -213,6 +220,7 @@ export default {
 			})
 		},
 
+		/** @spec openspec/specs/admin-roles/spec.md */
 		displayName(id) {
 			return this.displayNameMap[id] || id
 		},
@@ -223,6 +231,7 @@ export default {
 
 		// --- Drag-and-drop handlers (native HTML5) ---
 
+		/** @spec openspec/specs/admin-roles/spec.md */
 		onDragStart(event, id, column, index) {
 			this.dragState = { id, fromColumn: column, fromIndex: index }
 			if (event.dataTransfer) {
@@ -231,12 +240,14 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/admin-roles/spec.md */
 		onDragOver(event, _column) {
 			if (event.dataTransfer) {
 				event.dataTransfer.dropEffect = 'move'
 			}
 		},
 
+		/** @spec openspec/specs/admin-roles/spec.md */
 		onItemDragOver(event, _index, _column) {
 			if (event.dataTransfer) {
 				event.dataTransfer.dropEffect = 'move'
@@ -244,6 +255,7 @@ export default {
 		},
 
 		// Drop on empty space inside a column → append at the end.
+		/** @spec openspec/specs/admin-roles/spec.md */
 		onDrop(event, toColumn) {
 			if (!this.dragState) return
 			const { id, fromColumn } = this.dragState
@@ -256,6 +268,7 @@ export default {
 		},
 
 		// Drop directly on another item → insert before that item.
+		/** @spec openspec/specs/admin-roles/spec.md */
 		onItemDrop(event, targetIndex, toColumn) {
 			if (!this.dragState) return
 			const { id, fromColumn, fromIndex } = this.dragState
@@ -276,6 +289,7 @@ export default {
 			this.moveBetweenColumns(id, fromColumn, toColumn, targetIndex)
 		},
 
+		/** @spec openspec/specs/admin-roles/spec.md */
 		moveBetweenColumns(id, fromColumn, toColumn, insertIndex) {
 			if (fromColumn === toColumn) return
 			if (fromColumn === 'active') {
@@ -307,15 +321,18 @@ export default {
 
 		// Click-to-move shortcuts for accessibility (drag-and-drop is
 		// not screen-reader friendly).
+		/** @spec openspec/specs/admin-roles/spec.md */
 		moveToActive(id) {
 			this.moveBetweenColumns(id, 'inactive', 'active', null)
 		},
 
+		/** @spec openspec/specs/admin-roles/spec.md */
 		moveToInactive(id) {
 			this.moveBetweenColumns(id, 'active', 'inactive', null)
 		},
 
 		// Debounced auto-save (300ms) — REQ-ASET-012 / tasks.md 3.3.
+		/** @spec openspec/specs/admin-roles/spec.md */
 		queueSave() {
 			if (this.saveTimer) {
 				clearTimeout(this.saveTimer)
@@ -326,6 +343,7 @@ export default {
 			}, 300)
 		},
 
+		/** @spec openspec/specs/admin-roles/spec.md */
 		async persist() {
 			this.saving = true
 			try {

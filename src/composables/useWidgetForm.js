@@ -41,6 +41,7 @@ import { getDefaultContent } from '../constants/widgetRegistry.js'
  *   assembleContent: (subFormRef: any) => {type: string, content: object},
  * }}
  */
+/** @spec openspec/specs/widgets/spec.md */
 export function useWidgetForm() {
 	// Vue.observable wraps the object so any component that touches
 	// state.content / state.type re-renders on change, the same way a

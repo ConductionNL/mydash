@@ -278,21 +278,25 @@ export default {
 		isCreate() {
 			return this.mode === 'create'
 		},
+		/** @spec openspec/specs/dashboards/spec.md */
 		canManageShares() {
 			// Only the owner can see / manage shares.
 			return this.dashboard?.isOwner !== false && (this.dashboard?.id ?? null) !== null
 		},
+		/** @spec openspec/specs/dashboards/spec.md */
 		modalTitle() {
 			return this.isCreate
 				? t('mydash', 'Create dashboard')
 				: t('mydash', 'Dashboard configuration')
 		},
+		/** @spec openspec/specs/dashboards/spec.md */
 		primaryButtonLabel() {
 			if (this.saving) {
 				return this.isCreate ? t('mydash', 'Creating…') : t('mydash', 'Saving…')
 			}
 			return this.isCreate ? t('mydash', 'Create') : t('mydash', 'Save')
 		},
+		/** @spec openspec/specs/dashboards/spec.md */
 		permissionOptions() {
 			return PERMISSION_OPTIONS.map(o => ({
 				value: o.value,
@@ -300,14 +304,17 @@ export default {
 			}))
 		},
 		selectedPermission: {
+			/** @spec openspec/specs/dashboards/spec.md */
 			get() {
 				const level = this.dashboard?.permissionLevel || 'full'
 				return this.permissionOptions.find(o => o.value === level) || this.permissionOptions[2]
 			},
+			/** @spec openspec/specs/dashboards/spec.md */
 			set() {
 				// Read-only — admin-managed.
 			},
 		},
+		/** @spec openspec/specs/dashboards/spec.md */
 		canSave() {
 			return this.form.name.trim().length > 0
 		},
@@ -317,9 +324,11 @@ export default {
 		 *
 		 * @return {string[]} Registry keys, in insertion order.
 		 */
+		/** @spec openspec/specs/dashboards/spec.md */
 		iconOptions() {
 			return Object.keys(DASHBOARD_ICONS)
 		},
+		/** @spec openspec/specs/dashboards/spec.md */
 		sharesDirty() {
 			if (this.localShares.length !== this.serverShares.length) return true
 			const key = s => `${s.shareType}:${s.shareWith}:${s.permissionLevel}`
@@ -332,6 +341,7 @@ export default {
 	watch: {
 		open: {
 			immediate: true,
+			/** @spec openspec/specs/dashboards/spec.md */
 			handler(isOpen) {
 				if (!isOpen) {
 					this.serverShares = []
@@ -368,9 +378,11 @@ export default {
 
 	methods: {
 		t,
+		/** @spec openspec/specs/dashboards/spec.md */
 		permissionOptionFor(level) {
 			return this.permissionOptions.find(o => o.value === level) || this.permissionOptions[0]
 		},
+		/** @spec openspec/specs/dashboards/spec.md */
 		async loadShares() {
 			try {
 				const response = await api.listShares(this.dashboard.id)
@@ -383,6 +395,7 @@ export default {
 				this.localShares = []
 			}
 		},
+		/** @spec openspec/specs/dashboards/spec.md */
 		async onShareeSearch(query) {
 			const trimmed = (query || '').trim()
 			if (trimmed.length < 1) {
@@ -414,6 +427,7 @@ export default {
 				this.shareeLoading = false
 			}
 		},
+		/** @spec openspec/specs/dashboards/spec.md */
 		onShareeSelected(option) {
 			if (!option) return
 			// Buffer locally — do not write to server until Save.
@@ -430,6 +444,7 @@ export default {
 			}
 			this.shareeOptions = []
 		},
+		/** @spec openspec/specs/dashboards/spec.md */
 		onShareLevelChange(idx, option) {
 			if (!option) return
 			const share = this.localShares[idx]
@@ -439,9 +454,11 @@ export default {
 				permissionLevel: option.value,
 			})
 		},
+		/** @spec openspec/specs/dashboards/spec.md */
 		onShareRemove(idx) {
 			this.localShares.splice(idx, 1)
 		},
+		/** @spec openspec/specs/dashboards/spec.md */
 		async onSave() {
 			if (!this.canSave) return
 			this.saving = true
@@ -489,6 +506,7 @@ export default {
 				this.saving = false
 			}
 		},
+		/** @spec openspec/specs/dashboards/spec.md */
 		onDelete() {
 			if (!this.canDelete) return
 			this.$emit('delete', this.dashboard)

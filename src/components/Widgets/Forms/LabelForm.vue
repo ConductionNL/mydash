@@ -113,14 +113,17 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/label-widget/spec.md */
 		fontWeightOptions() {
 			return ['normal', 'bold', '600', '700', '800']
 		},
 
+		/** @spec openspec/specs/label-widget/spec.md */
 		textAlignOptions() {
 			return ['left', 'center', 'right']
 		},
 
+		/** @spec openspec/specs/label-widget/spec.md */
 		assembledContent() {
 			return {
 				text: this.text,
@@ -140,6 +143,7 @@ export default {
 		 * @param {string} field one of: text, fontSize, color, backgroundColor, fontWeight, textAlign
 		 * @param {string} value new value
 		 */
+		/** @spec openspec/specs/label-widget/spec.md */
 		updateField(field, value) {
 			this[field] = value
 			this.$emit('update:content', this.assembledContent)
@@ -150,6 +154,7 @@ export default {
 		 *
 		 * @return {string[]} validation errors
 		 */
+		/** @spec openspec/specs/label-widget/spec.md */
 		validate() {
 			if (typeof this.text !== 'string' || this.text.trim() === '') {
 				return [t('mydash', 'Label text is required')]

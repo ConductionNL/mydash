@@ -315,6 +315,7 @@ export default {
 			return this.displayMode === DISPLAY_MODES.LIST
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		actionTypeOptions() {
 			return [
 				{ value: ACTION_TYPES.EXTERNAL, label: t('mydash', 'External Link') },
@@ -323,6 +324,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		displayModeOptions() {
 			return [
 				{ value: DISPLAY_MODES.BUTTON, label: t('mydash', 'Single button') },
@@ -330,6 +332,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		orientationOptions() {
 			return [
 				{ value: ORIENTATIONS.VERTICAL, label: t('mydash', 'Vertical (list)') },
@@ -337,6 +340,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		gapOptions() {
 			return [
 				{ value: GAPS.COMPACT, label: t('mydash', 'Compact') },
@@ -345,10 +349,12 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		urlPlaceholder() {
 			return this.urlPlaceholderFor(this.actionType)
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		assembledContent() {
 			return {
 				label: this.label,
@@ -368,6 +374,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		urlPlaceholderFor(actionType) {
 			switch (actionType) {
 			case ACTION_TYPES.INTERNAL:
@@ -387,6 +394,7 @@ export default {
 		 * @param {string} value new value
 		 * @return {void}
 		 */
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		updateField(field, value) {
 			this[field] = value
 			this.$emit('update:content', this.assembledContent)
@@ -402,6 +410,7 @@ export default {
 		 * @param {string} mode 'button' or 'list'
 		 * @return {void}
 		 */
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		updateDisplayMode(mode) {
 			const next = mode === DISPLAY_MODES.LIST ? DISPLAY_MODES.LIST : DISPLAY_MODES.BUTTON
 			this.displayMode = next
@@ -419,6 +428,7 @@ export default {
 			this.$emit('update:content', this.assembledContent)
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		updateLinkField(index, field, value) {
 			if (index < 0 || index >= this.links.length) {
 				return
@@ -429,6 +439,7 @@ export default {
 			this.$emit('update:content', this.assembledContent)
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		addLink() {
 			if (this.links.length >= MAX_LINKS) {
 				return
@@ -437,6 +448,7 @@ export default {
 			this.$emit('update:content', this.assembledContent)
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		removeLink(index) {
 			if (index < 0 || index >= this.links.length) {
 				return
@@ -447,6 +459,7 @@ export default {
 			this.$emit('update:content', this.assembledContent)
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		moveLinkUp(index) {
 			if (index <= 0 || index >= this.links.length) {
 				return
@@ -459,6 +472,7 @@ export default {
 			this.$emit('update:content', this.assembledContent)
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		moveLinkDown(index) {
 			if (index < 0 || index >= this.links.length - 1) {
 				return
@@ -471,6 +485,7 @@ export default {
 			this.$emit('update:content', this.assembledContent)
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		isLinkInvalid(link) {
 			return (typeof link.label !== 'string' || link.label.trim() === '')
 				|| (typeof link.url !== 'string' || link.url.trim() === '')
@@ -484,6 +499,7 @@ export default {
 		 *
 		 * @return {string[]} validation errors
 		 */
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		validate() {
 			const errors = []
 			if (this.isListMode) {

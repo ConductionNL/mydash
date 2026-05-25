@@ -83,6 +83,7 @@ function safeParseUrl(input) {
  * @param {string} input the user-provided URL
  * @return {('youtube'|'vimeo'|'peertube'|'nc-file'|null)} the detected source type or null
  */
+/** @spec openspec/specs/video-widget/spec.md */
 export function detectVideoSource(input) {
 	const parsed = safeParseUrl(input)
 	if (!parsed) {
@@ -208,6 +209,7 @@ function extractYouTubeTimeOffset(url) {
  * @param {('youtube'|'vimeo'|'peertube')} sourceType the detected source type
  * @return {string|null} canonical embed URL, or null when unparseable
  */
+/** @spec openspec/specs/video-widget/spec.md */
 export function normalizeEmbedUrl(input, sourceType) {
 	const parsed = safeParseUrl(input)
 	if (!parsed) {

@@ -166,6 +166,7 @@ export default {
 			return typeof this.videoUrl === 'string' && this.videoUrl.trim() !== ''
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		detectedSource() {
 			if (!this.hasUrl) {
 				return null
@@ -173,6 +174,7 @@ export default {
 			return detectVideoSource(this.videoUrl)
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		detectedSourceLabel() {
 			switch (this.detectedSource) {
 			case 'youtube':
@@ -188,6 +190,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		aspectRatioOptions() {
 			return [
 				{ value: '16:9', label: '16:9' },
@@ -197,6 +200,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		assembledContent() {
 			return {
 				sourceType: this.sourceType,
@@ -220,6 +224,7 @@ export default {
 		 *
 		 * @return {string} embed URL or empty string
 		 */
+		/** @spec openspec/specs/video-widget/spec.md */
 		normalizedVideoUrl() {
 			if (!this.detectedSource || this.detectedSource === 'nc-file') {
 				return this.videoUrl
@@ -229,6 +234,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/video-widget/spec.md */
 		updateField(field, value) {
 			this[field] = value
 			this.$emit('update:content', this.assembledContent)
@@ -241,6 +247,7 @@ export default {
 		 *
 		 * @param {string} value the new URL
 		 */
+		/** @spec openspec/specs/video-widget/spec.md */
 		onUrlInput(value) {
 			this.videoUrl = value
 			const detected = detectVideoSource(value)
@@ -248,6 +255,7 @@ export default {
 			this.$emit('update:content', this.assembledContent)
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		onFileIdInput(value) {
 			const parsed = parseInt(String(value).trim(), 10)
 			this.fileId = Number.isFinite(parsed) ? parsed : null
@@ -261,6 +269,7 @@ export default {
 		 *
 		 * @param {boolean} checked the autoplay checkbox value
 		 */
+		/** @spec openspec/specs/video-widget/spec.md */
 		onAutoplayToggle(checked) {
 			this.autoplay = checked
 			if (checked) {
@@ -274,6 +283,7 @@ export default {
 		 *
 		 * @return {string[]} validation errors
 		 */
+		/** @spec openspec/specs/video-widget/spec.md */
 		validate() {
 			const errors = []
 			if (!this.hasUrl) {

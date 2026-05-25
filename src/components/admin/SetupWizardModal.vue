@@ -193,6 +193,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/setup-wizard/spec.md */
 		async loadState() {
 			try {
 				const { data } = await api.getSetupWizardState()
@@ -210,6 +211,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/setup-wizard/spec.md */
 		async onNext() {
 			if (this.loading) {
 				return
@@ -235,18 +237,21 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/setup-wizard/spec.md */
 		onBack() {
 			if (this.currentStep > 1) {
 				this.currentStep -= 1
 			}
 		},
 
+		/** @spec openspec/specs/setup-wizard/spec.md */
 		onSkip() {
 			if (!this.isFinalStep) {
 				this.currentStep += 1
 			}
 		},
 
+		/** @spec openspec/specs/setup-wizard/spec.md */
 		onClose() {
 			this.$emit('close')
 		},

@@ -181,6 +181,7 @@ export default {
 		 * explicit `dashboard.isOwner` flag when present and otherwise
 		 * conservatively hide the destructive actions.
 		 */
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		isOwner() {
 			if (this.source === 'user') {
 				return true
@@ -194,6 +195,7 @@ export default {
 		 * StarCheck) and label ("Set as default" vs "Default
 		 * dashboard").
 		 */
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		isDefault() {
 			const uuid = this.dashboard?.uuid
 			return !!uuid && uuid === this.defaultUuid
@@ -207,6 +209,7 @@ export default {
 		 * user can still enter edit mode on them by switching first
 		 * (the host's `maybeSwitchTo` helper handles that).
 		 */
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		showSave() {
 			return this.isEditMode
 				&& this.activeDashboardId != null

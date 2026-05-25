@@ -125,11 +125,13 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/links-widget/spec.md */
 		sections() {
 			const raw = this.content?.sections
 			return Array.isArray(raw) ? raw : []
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		columns() {
 			const raw = Number(this.content?.columns)
 			if (!Number.isFinite(raw)) {
@@ -139,39 +141,47 @@ export default {
 			return Math.max(1, Math.min(6, Math.round(raw)))
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		linkLayout() {
 			const declared = this.content?.linkLayout
 			return VALID_LAYOUTS.includes(declared) ? declared : 'card'
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		layoutClass() {
 			return `links-widget--${this.linkLayout}`
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		iconSize() {
 			const declared = this.content?.iconSize
 			return VALID_SIZES.includes(declared) ? declared : 'medium'
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		iconPx() {
 			return ICON_PX[this.iconSize]
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		openInNewTab() {
 			const value = this.content?.openInNewTab
 			return value === undefined ? true : Boolean(value)
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		showSectionTitles() {
 			const value = this.content?.showSectionTitles
 			return value === undefined ? true : Boolean(value)
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		showLinkDescriptions() {
 			const value = this.content?.showLinkDescriptions
 			return value === undefined ? true : Boolean(value)
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		visibleSections() {
 			// REQ-LNKS-003: hide sections with zero links at render time;
 			// retain them in config (handled by the form, not here).
@@ -188,12 +198,14 @@ export default {
 			return this.visibleSections.length > 0
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		rootStyle() {
 			return {
 				'--links-widget-cols': this.columns,
 			}
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		iconWrapStyle() {
 			return {
 				width: `${this.iconPx}px`,
@@ -201,6 +213,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		emptyStateText() {
 			return t('mydash', 'No links yet — click the gear icon to add some.')
 		},
@@ -220,6 +233,7 @@ export default {
 		 * @param {string} icon raw icon field from link config
 		 * @return {string|null} `'img'` or `null`
 		 */
+		/** @spec openspec/specs/links-widget/spec.md */
 		resolveIconType(icon) {
 			return isCustomIconUrl(icon) ? 'img' : null
 		},
@@ -232,6 +246,7 @@ export default {
 		 * @param {string} url raw URL from link config
 		 * @return {string} sanitised URL or `'#'`
 		 */
+		/** @spec openspec/specs/links-widget/spec.md */
 		safeHref(url) {
 			if (typeof url !== 'string' || url === '') {
 				return '#'
@@ -253,6 +268,7 @@ export default {
 		 * @param {string} url raw URL from link config
 		 * @return {string|null} rel attribute value or `null` to omit
 		 */
+		/** @spec openspec/specs/links-widget/spec.md */
 		relAttr(url) {
 			if (!this.openInNewTab) {
 				return null
@@ -271,6 +287,7 @@ export default {
 		 * @param {MouseEvent} event the click event
 		 * @param {string} url raw URL from link config
 		 */
+		/** @spec openspec/specs/links-widget/spec.md */
 		onLinkClick(event, url) {
 			if (this.isInEditMode) {
 				event.preventDefault()

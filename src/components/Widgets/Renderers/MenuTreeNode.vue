@@ -130,6 +130,7 @@ export default {
 			return Array.isArray(this.item?.children) && this.item.children.length > 0
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		rowState() {
 			if (this.currentKey === this.activeLeafKey) {
 				return 'active'
@@ -137,6 +138,7 @@ export default {
 			return this.activePath[this.currentKey] || ''
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		rowClass() {
 			if (this.rowState === 'active') {
 				return 'menu-widget__item--active'
@@ -147,16 +149,19 @@ export default {
 			return ''
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		rowStyle() {
 			return { paddingLeft: `${(this.depth - 1) * 20}px` }
 		},
 	},
 
 	methods: {
+		/** @spec openspec/specs/menu-widget/spec.md */
 		toggle() {
 			this.expanded = !this.expanded
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		onLabelClick() {
 			if (typeof this.item?.url === 'string' && this.item.url !== '') {
 				this.$emit('navigate', this.item)
@@ -168,12 +173,14 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		onArrowRight() {
 			if (this.hasChildren && !this.expanded) {
 				this.expanded = true
 			}
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		onArrowLeft() {
 			if (this.hasChildren && this.expanded) {
 				this.expanded = false

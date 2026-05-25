@@ -152,6 +152,7 @@ export default {
 		 *
 		 * @return {Promise<void>}
 		 */
+		/** @spec openspec/specs/dashboard-view-analytics/spec.md */
 		async reload() {
 			this.loading = true
 			this.error = null
@@ -186,6 +187,7 @@ export default {
 		 *
 		 * @return {Promise<void>}
 		 */
+		/** @spec openspec/specs/dashboard-view-analytics/spec.md */
 		async exportCsv() {
 			this.exporting = true
 			try {

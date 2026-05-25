@@ -84,6 +84,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/divider-widget/spec.md */
 		style() {
 			const value = this.content?.style
 			if (value === 'whitespace' || value === 'heading-break' || value === 'line') {
@@ -92,6 +93,7 @@ export default {
 			return 'line'
 		},
 
+		/** @spec openspec/specs/divider-widget/spec.md */
 		lineColor() {
 			// REQ-DIV-007: explicit color overrides the theme variable.
 			const color = this.content?.lineColor
@@ -101,6 +103,7 @@ export default {
 			return 'var(--color-border)'
 		},
 
+		/** @spec openspec/specs/divider-widget/spec.md */
 		lineThickness() {
 			const raw = Number(this.content?.lineThickness)
 			if (!Number.isFinite(raw) || raw < 1) {
@@ -110,6 +113,7 @@ export default {
 			return Math.min(8, Math.max(1, Math.floor(raw)))
 		},
 
+		/** @spec openspec/specs/divider-widget/spec.md */
 		lineStyle() {
 			const value = this.content?.lineStyle
 			if (value === 'dashed' || value === 'dotted' || value === 'solid') {
@@ -118,6 +122,7 @@ export default {
 			return 'solid'
 		},
 
+		/** @spec openspec/specs/divider-widget/spec.md */
 		whitespaceSize() {
 			const value = this.content?.whitespaceSize
 			if (Object.prototype.hasOwnProperty.call(WHITESPACE_SIZES, value)) {
@@ -126,10 +131,12 @@ export default {
 			return 'medium'
 		},
 
+		/** @spec openspec/specs/divider-widget/spec.md */
 		whitespaceHeight() {
 			return WHITESPACE_SIZES[this.whitespaceSize]
 		},
 
+		/** @spec openspec/specs/divider-widget/spec.md */
 		headingText() {
 			const value = this.content?.headingText
 			return typeof value === 'string' && value.trim() !== ''
@@ -137,10 +144,12 @@ export default {
 				: t('mydash', 'Section')
 		},
 
+		/** @spec openspec/specs/divider-widget/spec.md */
 		headingAriaLabel() {
 			return t('mydash', '{heading} divider', { heading: this.headingText })
 		},
 
+		/** @spec openspec/specs/divider-widget/spec.md */
 		wrapperStyle() {
 			return {
 				width: '100%',
@@ -151,6 +160,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/divider-widget/spec.md */
 		lineStyleObject() {
 			// border-bottom keeps the element height equal to thickness so
 			// the surrounding flex layout centres the divider exactly.
@@ -162,6 +172,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/divider-widget/spec.md */
 		whitespaceStyleObject() {
 			return {
 				width: '100%',
@@ -170,6 +181,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/divider-widget/spec.md */
 		headingLineStyleObject() {
 			return {
 				flex: '1 1 auto',

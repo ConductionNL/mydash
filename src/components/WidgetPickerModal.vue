@@ -111,6 +111,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/widgets/spec.md */
 		filteredWidgets() {
 			if (!this.searchQuery) {
 				return this.sortedWidgets
@@ -120,6 +121,7 @@ export default {
 				w => w.title.toLowerCase().includes(query),
 			)
 		},
+		/** @spec openspec/specs/widgets/spec.md */
 		sortedWidgets() {
 			return [...this.widgets].sort((a, b) => {
 				const aPlaced = this.isPlaced(a.id)
@@ -133,6 +135,7 @@ export default {
 	},
 
 	watch: {
+		/** @spec openspec/specs/widgets/spec.md */
 		open(isOpen) {
 			if (!isOpen) {
 				this.searchQuery = ''
@@ -145,6 +148,7 @@ export default {
 		isPlaced(widgetId) {
 			return this.placedWidgetIds.includes(widgetId)
 		},
+		/** @spec openspec/specs/widgets/spec.md */
 		addWidget(widget) {
 			this.$emit('add', widget.id)
 		},

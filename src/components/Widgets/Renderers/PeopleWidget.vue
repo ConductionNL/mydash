@@ -144,15 +144,18 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/people-widget/spec.md */
 		layout() {
 			const value = this.content?.layout
 			return ['card', 'grid', 'list'].includes(value) ? value : DEFAULT_CONTENT.layout
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		layoutClass() {
 			return `people-widget--${this.layout}`
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		columns() {
 			const raw = this.content?.columns
 			if (typeof raw === 'number' && [2, 3, 4].includes(raw)) {
@@ -161,6 +164,7 @@ export default {
 			return this.layout === 'grid' ? 4 : 3
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		gridStyle() {
 			if (this.layout === 'list') {
 				return {}
@@ -168,6 +172,7 @@ export default {
 			return { 'grid-template-columns': `repeat(${this.columns}, minmax(0, 1fr))` }
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		avatarSize() {
 			switch (this.layout) {
 			case 'card':
@@ -180,10 +185,12 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		showBirthdays() {
 			return this.content?.showBirthdays !== false
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		birthdayWindowDays() {
 			const value = this.content?.birthdayWindowDays
 			if (typeof value === 'number' && value >= 0 && value <= 30) {
@@ -192,6 +199,7 @@ export default {
 			return DEFAULT_CONTENT.birthdayWindowDays
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		filteredUsers() {
 			if (!this.search) {
 				return this.users
@@ -204,6 +212,7 @@ export default {
 			})
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		queryParams() {
 			const filters = Array.isArray(this.content?.filters) ? this.content.filters : []
 			return {
@@ -217,6 +226,7 @@ export default {
 
 	watch: {
 		queryParams: {
+			/** @spec openspec/specs/people-widget/spec.md */
 			handler() {
 				this.cacheKey = ''
 				this.cacheStoredAt = 0
@@ -234,10 +244,12 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/people-widget/spec.md */
 		profileUrl(uid) {
 			return `/u/${encodeURIComponent(uid)}`
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		showBirthdayBadge(user) {
 			if (!this.showBirthdays || !user.birthdate) {
 				return false
@@ -249,6 +261,7 @@ export default {
 			return days >= 0 && days <= this.birthdayWindowDays
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		formatBirthdayBadge(user) {
 			const days = this.daysToBirthday(user.birthdate)
 			if (days === 0) {
@@ -257,6 +270,7 @@ export default {
 			return t('mydash', '🎂 in {n} days', { n: days })
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		daysToBirthday(iso) {
 			if (typeof iso !== 'string' || !iso) {
 				return null
@@ -281,6 +295,7 @@ export default {
 			return Math.round(diffMs / (24 * 60 * 60 * 1000))
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		async loadMore() {
 			if (this.loading || !this.hasMore) {
 				return
@@ -288,6 +303,7 @@ export default {
 			await this.fetchPage(this.users.length)
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		forceRefresh() {
 			this.cacheKey = ''
 			this.cacheStoredAt = 0
@@ -297,6 +313,7 @@ export default {
 			this.fetchPage(0)
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		async fetchPage(offset) {
 			const cacheKey = JSON.stringify({ params: this.queryParams, offset })
 			const fresh = this.cacheKey === cacheKey

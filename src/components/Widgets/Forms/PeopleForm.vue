@@ -186,6 +186,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/people-widget/spec.md */
 		layoutOptions() {
 			return [
 				{ value: 'card', label: t('mydash', 'Card') },
@@ -194,6 +195,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		sortByOptions() {
 			return [
 				{ value: 'displayName', label: t('mydash', 'Display name') },
@@ -201,10 +203,12 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		groupFilterText() {
 			return this.groupFilterValues.join(', ')
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		assembledFilters() {
 			if (this.groupFilterValues.length === 0) {
 				return []
@@ -216,6 +220,7 @@ export default {
 			}]
 		},
 
+		/** @spec openspec/specs/people-widget/spec.md */
 		assembledContent() {
 			return {
 				layout: this.layout,
@@ -240,6 +245,7 @@ export default {
 		 * @param {string} field one of the form's reactive keys
 		 * @param {*} value new value
 		 */
+		/** @spec openspec/specs/people-widget/spec.md */
 		updateField(field, value) {
 			this[field] = value
 			this.$emit('update:content', this.assembledContent)
@@ -252,6 +258,7 @@ export default {
 		 *
 		 * @param {string} raw the textbox value
 		 */
+		/** @spec openspec/specs/people-widget/spec.md */
 		updateGroupFilter(raw) {
 			this.groupFilterValues = (raw || '')
 				.split(',')
@@ -267,6 +274,7 @@ export default {
 		 *
 		 * @param {string|number} raw the input value
 		 */
+		/** @spec openspec/specs/people-widget/spec.md */
 		updateBirthdayWindow(raw) {
 			const numeric = Number(raw)
 			if (!Number.isFinite(numeric) || numeric < 0 || numeric > 30) {
@@ -284,6 +292,7 @@ export default {
 		 *
 		 * @return {string[]} validation errors
 		 */
+		/** @spec openspec/specs/people-widget/spec.md */
 		validate() {
 			const errors = []
 			if (typeof this.birthdayWindowDays !== 'number'

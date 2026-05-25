@@ -59,6 +59,7 @@ export const ALLOWED_SCHEMES = Object.freeze([
  * @param {*} url raw input value (typically a string from a form field)
  * @return {string} the sanitised URL, or '' when unsafe / non-string
  */
+/** @spec openspec/specs/link-button-widget/spec.md */
 export function sanitiseUrl(url) {
 	if (typeof url !== 'string') {
 		return ''
@@ -88,6 +89,7 @@ export function sanitiseUrl(url) {
  * @param {*} url candidate URL
  * @return {boolean} true when the URL passes every rule
  */
+/** @spec openspec/specs/link-button-widget/spec.md */
 export function validateUrl(url) {
 	if (typeof url !== 'string') {
 		return false
@@ -120,6 +122,7 @@ export function validateUrl(url) {
  * @param {string} url candidate URL
  * @return {boolean} true when the URL is external
  */
+/** @spec openspec/specs/link-button-widget/spec.md */
 export function isExternalUrl(url) {
 	if (typeof url !== 'string') {
 		return false

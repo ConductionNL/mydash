@@ -130,30 +130,37 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		title() {
 			return this.data.title
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		icon() {
 			return this.data.icon
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		iconType() {
 			return this.data.iconType
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		backgroundColor() {
 			return this.data.backgroundColor
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		textColor() {
 			return this.data.textColor
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		linkType() {
 			return this.data.linkType
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		linkValue() {
 			return this.data.linkValue
 		},
@@ -169,6 +176,7 @@ export default {
 		 *
 		 * @return {string} the resolved href
 		 */
+		/** @spec openspec/specs/tiles/spec.md */
 		resolvedHref() {
 			if (this.linkValue === '') {
 				return '#'
@@ -179,14 +187,17 @@ export default {
 			return this.linkValue
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		resolvedTarget() {
 			return this.linkType === 'url' ? '_blank' : '_self'
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		resolvedRel() {
 			return this.linkType === 'url' ? 'noopener noreferrer' : null
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		rootStyle() {
 			return {
 				'--tile-bg-color': this.backgroundColor,
@@ -195,6 +206,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		linkStyle() {
 			return {
 				backgroundColor: this.backgroundColor,
@@ -211,6 +223,7 @@ export default {
 		 *
 		 * @param {Event} event the click event
 		 */
+		/** @spec openspec/specs/tiles/spec.md */
 		onClick(event) {
 			if (this.isInEditMode) {
 				event.preventDefault()

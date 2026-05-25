@@ -97,10 +97,12 @@ export default {
 			return Array.isArray(this.item?.children) && this.item.children.length > 0
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		canAddChildren() {
 			return this.depth < 3
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		depthLabel() {
 			if (this.depth === 1) {
 				return t('mydash', 'Level 1')
@@ -111,12 +113,14 @@ export default {
 			return t('mydash', 'Level 3 - max reached')
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		rowStyle() {
 			return { paddingLeft: `${(this.depth - 1) * 16}px` }
 		},
 	},
 
 	methods: {
+		/** @spec openspec/specs/menu-widget/spec.md */
 		emitFieldChange(field, value) {
 			const updated = { ...this.item, [field]: value }
 			this.$emit('update-item', { path: this.path, item: updated })

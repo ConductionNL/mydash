@@ -135,6 +135,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/menu-widget/spec.md */
 		styleOptions() {
 			return [
 				{ value: 'dropdown', label: t('mydash', 'Dropdown') },
@@ -142,12 +143,14 @@ export default {
 				{ value: 'tree', label: t('mydash', 'Tree') },
 			]
 		},
+		/** @spec openspec/specs/menu-widget/spec.md */
 		orientationOptions() {
 			return [
 				{ value: 'horizontal', label: t('mydash', 'Horizontal') },
 				{ value: 'vertical', label: t('mydash', 'Vertical') },
 			]
 		},
+		/** @spec openspec/specs/menu-widget/spec.md */
 		highlightOptions() {
 			return [
 				{ value: 'underline', label: t('mydash', 'Underline') },
@@ -156,6 +159,7 @@ export default {
 				{ value: 'none', label: t('mydash', 'None') },
 			]
 		},
+		/** @spec openspec/specs/menu-widget/spec.md */
 		assembledContent() {
 			return {
 				items: this.cloneItems(this.items),
@@ -169,15 +173,18 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/menu-widget/spec.md */
 		updateField(field, value) {
 			this[field] = value
 			this.emitChange()
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		emitChange() {
 			this.$emit('update:content', this.assembledContent)
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		cloneItems(arr) {
 			if (!Array.isArray(arr)) {
 				return []
@@ -190,6 +197,7 @@ export default {
 			}))
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		setItemAtPath(items, path, mutator) {
 			if (path.length === 0) {
 				return
@@ -204,6 +212,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		onUpdateItem({ path, item }) {
 			this.setItemAtPath(this.items, path, (arr, idx) => {
 				const existing = arr[idx]
@@ -218,6 +227,7 @@ export default {
 			this.emitChange()
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		onRemoveItem({ path }) {
 			this.setItemAtPath(this.items, path, (arr, idx) => {
 				arr.splice(idx, 1)
@@ -225,6 +235,7 @@ export default {
 			this.emitChange()
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		onAddChild({ path }) {
 			this.setItemAtPath(this.items, path, (arr, idx) => {
 				const target = arr[idx]
@@ -236,6 +247,7 @@ export default {
 			this.emitChange()
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		onAddTop() {
 			this.items.push({ label: '', url: '', icon: '', children: [] })
 			this.emitChange()
@@ -247,6 +259,7 @@ export default {
 		 *
 		 * @return {string[]} validation errors (empty when valid)
 		 */
+		/** @spec openspec/specs/menu-widget/spec.md */
 		validate() {
 			const errors = []
 			const walk = (list, depth) => {

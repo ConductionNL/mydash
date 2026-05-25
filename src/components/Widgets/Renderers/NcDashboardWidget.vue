@@ -162,14 +162,17 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		widgetId() {
 			return typeof this.content?.widgetId === 'string' ? this.content.widgetId : ''
 		},
 
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		displayMode() {
 			return this.content?.displayMode === 'horizontal' ? 'horizontal' : 'vertical'
 		},
 
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		widgetMeta() {
 			// REQ-WDG-020: header title + iconUrl come from IManager::getWidgets()
 			// metadata (the `widgets` initial-state list, REQ-INIT-002).
@@ -177,18 +180,22 @@ export default {
 			return list.find((w) => w && w.id === this.widgetId) || null
 		},
 
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		widgetTitle() {
 			return this.widgetMeta?.title || this.widgetId || t('mydash', 'Widget')
 		},
 
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		widgetIconUrl() {
 			return this.widgetMeta?.iconUrl || ''
 		},
 
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		bodyClass() {
 			return `nc-dashboard-widget__body--${this.displayMode}`
 		},
 
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		itemClass() {
 			return `nc-dashboard-widget__item--${this.displayMode}`
 		},
@@ -211,6 +218,7 @@ export default {
 		 *
 		 * @return {Promise<void>} resolves when the initial mount step is wired up
 		 */
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		async tryMount() {
 			if (!this.widgetId) {
 				this.mode = 'api'
@@ -232,6 +240,7 @@ export default {
 		/**
 		 * Mount the widget natively via the legacy bridge.
 		 */
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		mountNative() {
 			this.mode = 'native'
 			// Wait one tick so the v-show flip has updated the DOM and the
@@ -249,6 +258,7 @@ export default {
 		 * (REQ-LWB-005). When it resolves true we switch to native mode and
 		 * abandon any in-flight or completed API render (REQ-WDG-019).
 		 */
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		startPoll() {
 			this.cancelPoll()
 			this.abortController = new AbortController()
@@ -261,6 +271,7 @@ export default {
 				})
 		},
 
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		cancelPoll() {
 			if (this.abortController) {
 				this.abortController.abort()
@@ -275,6 +286,7 @@ export default {
 		 *
 		 * @return {Promise<void>} resolves when items are loaded or the request fails
 		 */
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		async loadApiItems() {
 			try {
 				const response = await api.getWidgetItems([this.widgetId])

@@ -29,6 +29,7 @@ const emptyCell = () => ({ text: '', rowSpan: 1, colSpan: 1 })
  *
  * @return {object} a fresh empty tableData object
  */
+/** @spec openspec/specs/text-display-widget/spec.md */
 export function emptyTable() {
 	return {
 		headerRow: false,
@@ -46,6 +47,7 @@ export function emptyTable() {
  * @param {number} cIdx target column index
  * @return {boolean} true when this cell is hidden by another cell's span
  */
+/** @spec openspec/specs/text-display-widget/spec.md */
 export function isPlaceholderCell(rows, rIdx, cIdx) {
 	if (!Array.isArray(rows)) {
 		return false
@@ -89,6 +91,7 @@ export function isPlaceholderCell(rows, rIdx, cIdx) {
  * @param {'above'|'below'} position where to insert relative to the anchor
  * @return {object} new tableData with the row inserted
  */
+/** @spec openspec/specs/text-display-widget/spec.md */
 export function addRow(tableData, rIdx, position) {
 	const next = cloneTable(tableData)
 	const insertAt = position === 'above' ? rIdx : rIdx + 1
@@ -110,6 +113,7 @@ export function addRow(tableData, rIdx, position) {
  * @param {'left'|'right'} position where to insert relative to the anchor
  * @return {object} new tableData with the column inserted
  */
+/** @spec openspec/specs/text-display-widget/spec.md */
 export function addColumn(tableData, cIdx, position) {
 	const next = cloneTable(tableData)
 	const insertAt = position === 'left' ? cIdx : cIdx + 1
@@ -128,6 +132,7 @@ export function addColumn(tableData, cIdx, position) {
  * @param {number} rIdx row index to delete
  * @return {object} new tableData with the row removed (or unchanged if last)
  */
+/** @spec openspec/specs/text-display-widget/spec.md */
 export function deleteRow(tableData, rIdx) {
 	const next = cloneTable(tableData)
 	if (next.rows.length <= 1) {
@@ -145,6 +150,7 @@ export function deleteRow(tableData, rIdx) {
  * @param {number} cIdx column index to delete
  * @return {object} new tableData with the column removed (or unchanged)
  */
+/** @spec openspec/specs/text-display-widget/spec.md */
 export function deleteColumn(tableData, cIdx) {
 	const next = cloneTable(tableData)
 	if (next.columnAlignments.length <= 1) {
@@ -168,6 +174,7 @@ export function deleteColumn(tableData, cIdx) {
  * @param {{rIdx: number, cIdx: number}} to corner B
  * @return {object} new tableData with the cells merged
  */
+/** @spec openspec/specs/text-display-widget/spec.md */
 export function mergeCells(tableData, from, to) {
 	const next = cloneTable(tableData)
 	const r0 = Math.min(from.rIdx, to.rIdx)
@@ -197,6 +204,7 @@ export function mergeCells(tableData, from, to) {
  * @param {number} cIdx anchor column index
  * @return {object} new tableData with the cell split
  */
+/** @spec openspec/specs/text-display-widget/spec.md */
 export function splitCell(tableData, rIdx, cIdx) {
 	const next = cloneTable(tableData)
 	const cell = next.rows[rIdx][cIdx]
@@ -215,6 +223,7 @@ export function splitCell(tableData, rIdx, cIdx) {
  * @param {boolean} value the new headerRow value
  * @return {object} new tableData with the flag set
  */
+/** @spec openspec/specs/text-display-widget/spec.md */
 export function setHeaderRow(tableData, value) {
 	const next = cloneTable(tableData)
 	next.headerRow = value === true
@@ -230,6 +239,7 @@ export function setHeaderRow(tableData, value) {
  * @param {string} alignment one of 'left' | 'center' | 'right'
  * @return {object} new tableData with the alignment applied
  */
+/** @spec openspec/specs/text-display-widget/spec.md */
 export function setColumnAlignment(tableData, cIdx, alignment) {
 	const next = cloneTable(tableData)
 	const safe = ['left', 'center', 'right'].includes(alignment) ? alignment : 'left'
@@ -246,6 +256,7 @@ export function setColumnAlignment(tableData, cIdx, alignment) {
  * @param {string} text new cell text
  * @return {object} new tableData with the cell text updated
  */
+/** @spec openspec/specs/text-display-widget/spec.md */
 export function setCellText(tableData, rIdx, cIdx, text) {
 	const next = cloneTable(tableData)
 	if (next.rows[rIdx] && next.rows[rIdx][cIdx]) {
@@ -264,6 +275,7 @@ export function setCellText(tableData, rIdx, cIdx, text) {
  * @param {object} tableData the tableData to validate
  * @return {string[]} array of error messages (empty if valid)
  */
+/** @spec openspec/specs/text-display-widget/spec.md */
 export function validateTable(tableData) {
 	const errors = []
 	if (!tableData || !Array.isArray(tableData.rows) || tableData.rows.length === 0) {

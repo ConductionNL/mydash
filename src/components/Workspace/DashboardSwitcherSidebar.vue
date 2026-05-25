@@ -328,6 +328,7 @@ export default {
 		groupDashboards: {
 			type: Array,
 			required: true,
+			/** @spec openspec/specs/dashboard-switcher/spec.md */
 			validator(value) {
 				return Array.isArray(value)
 			},
@@ -339,6 +340,7 @@ export default {
 		userDashboards: {
 			type: Array,
 			required: true,
+			/** @spec openspec/specs/dashboard-switcher/spec.md */
 			validator(value) {
 				return Array.isArray(value)
 			},
@@ -419,14 +421,17 @@ export default {
 	],
 
 	computed: {
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		primaryGroupDashboards() {
 			return this.groupDashboards.filter(d => d.source !== 'default')
 		},
 
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		defaultGroupDashboards() {
 			return this.groupDashboards.filter(d => d.source === 'default')
 		},
 
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		primaryGroupHeading() {
 			return this.groupName || t('mydash', 'Dashboards')
 		},
@@ -435,6 +440,7 @@ export default {
 		 * Personal section is rendered when there is at least one personal
 		 * dashboard OR the user is allowed to create one (REQ-SWITCH-001).
 		 */
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		showPersonalSection() {
 			return this.userDashboards.length > 0 || this.allowUserDashboards === true
 		},
@@ -451,6 +457,7 @@ export default {
 		 * @return {string} UUID of the effective default, or '' when
 		 *                  no pin/group default applies.
 		 */
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		effectiveDefaultUuid() {
 			if (this.defaultUuid) {
 				return this.defaultUuid
@@ -486,6 +493,7 @@ export default {
 		 *
 		 * @return {'true'|'false'} String form of `!isOpen`.
 		 */
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		ariaHiddenAttr() {
 			return this.isOpen ? 'false' : 'true'
 		},
@@ -507,6 +515,7 @@ export default {
 		 * @param {object} dashboard Row payload from the parent.
 		 * @return {boolean} True when the row is the effective default.
 		 */
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		isDefaultDashboard(dashboard) {
 			return Boolean(this.effectiveDefaultUuid)
 				&& dashboard?.uuid === this.effectiveDefaultUuid
@@ -520,6 +529,7 @@ export default {
 		 * @param {string|number} id Dashboard id of the clicked row.
 		 * @param {'group'|'default'|'user'} source Section the row was rendered in.
 		 */
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		onSwitch(id, source) {
 			this.$emit('update:open', false)
 			this.$emit('switch', id, source)
@@ -533,18 +543,23 @@ export default {
 		 * `(dashboard, source)` so the host can switch to that
 		 * dashboard before applying the action.
 		 */
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		onRowToggleEdit(dashboard, source) {
 			this.$emit('toggle-edit', dashboard, source)
 		},
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		onRowOpenConfig(dashboard, source) {
 			this.$emit('open-config', dashboard, source)
 		},
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		onRowAddCustomWidget(dashboard, source) {
 			this.$emit('add-custom-widget', dashboard, source)
 		},
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		onRowDelete(dashboard, source) {
 			this.$emit('delete-dashboard', dashboard.id, source)
 		},
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		onRowSetDefault(dashboard, source) {
 			this.$emit('set-default', dashboard, source)
 		},
@@ -553,15 +568,18 @@ export default {
 		 * Click handler for the "Add Dashboard" card button. MUST emit
 		 * `update:open(false)` BEFORE `create-dashboard()` (REQ-SWITCH-008).
 		 */
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		onCreate() {
 			this.$emit('update:open', false)
 			this.$emit('create-dashboard')
 		},
 
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		onCloseClick() {
 			this.$emit('update:open', false)
 		},
 
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		onEscClose() {
 			if (this.isOpen) {
 				this.$emit('update:open', false)

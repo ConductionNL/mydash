@@ -96,12 +96,15 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/footer-customization/spec.md */
 		docsUrl() {
 			return DOCS_URL
 		},
+		/** @spec openspec/specs/footer-customization/spec.md */
 		sendentLogo() {
 			return generateFilePath('mydash', 'img', 'sendent-logo.png')
 		},
+		/** @spec openspec/specs/footer-customization/spec.md */
 		conductionLogo() {
 			return generateFilePath('mydash', 'img', 'conduction-logo.png')
 		},

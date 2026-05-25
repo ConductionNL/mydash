@@ -70,6 +70,7 @@ export const NESTED_DEFAULT_H = 2
  *
  * @return {{column: number, cellHeight: number, margin: number, acceptWidgets: boolean, disableOneColumnMode: boolean}}
  */
+/** @spec openspec/specs/container-widget/spec.md */
 export function getNestedGridOptions() {
 	return {
 		column: NESTED_COLUMNS,
@@ -97,6 +98,7 @@ export function getNestedGridOptions() {
  * @param {object} [options.grid] live inner GridStack instance
  * @return {{ x: number, y: number, w: number, h: number, pushed: Array<{id: any, gridY: number}> }}
  */
+/** @spec openspec/specs/container-widget/spec.md */
 export function placeNewWidget(spec, placements, options = {}) {
 	const w = (spec && Number.isFinite(spec.w) && spec.w > 0) ? spec.w : NESTED_DEFAULT_W
 	const h = (spec && Number.isFinite(spec.h) && spec.h > 0) ? spec.h : NESTED_DEFAULT_H
@@ -133,6 +135,7 @@ export function placeNewWidget(spec, placements, options = {}) {
  *   persist: (placements: Array<object>) => void,
  * }}
  */
+/** @spec openspec/specs/container-widget/spec.md */
 export function useNestedGridManager(options = {}) {
 	const persistPlacements = typeof options.persistPlacements === 'function'
 		? options.persistPlacements
@@ -141,6 +144,7 @@ export function useNestedGridManager(options = {}) {
 	return {
 		getOptions: getNestedGridOptions,
 		placeNewWidget,
+		/** @spec openspec/specs/container-widget/spec.md */
 		persist(placements) {
 			persistPlacements(Array.isArray(placements) ? placements : [])
 		},

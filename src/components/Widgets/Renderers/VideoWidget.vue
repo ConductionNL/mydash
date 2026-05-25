@@ -112,30 +112,36 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/video-widget/spec.md */
 		sourceType() {
 			const raw = this.content && this.content.sourceType
 			return VALID_SOURCE_TYPES.includes(raw) ? raw : null
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		videoUrl() {
 			const value = this.content && this.content.videoUrl
 			return typeof value === 'string' ? value : ''
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		fileStreamingUrl() {
 			const value = this.content && this.content.fileStreamingUrl
 			return typeof value === 'string' ? value : ''
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		fileId() {
 			const value = this.content && this.content.fileId
 			return typeof value === 'number' && Number.isFinite(value) ? value : null
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		autoplay() {
 			return Boolean(this.content && this.content.autoplay)
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		muted() {
 			// Default to true so autoplay-friendly behaviour matches the
 			// backend invariant; explicit false in content stays false unless
@@ -146,10 +152,12 @@ export default {
 			return true
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		loop() {
 			return Boolean(this.content && this.content.loop)
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		controls() {
 			if (this.content && typeof this.content.controls === 'boolean') {
 				return this.content.controls
@@ -157,6 +165,7 @@ export default {
 			return true
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		aspectRatio() {
 			const raw = this.content && this.content.aspectRatio
 			if (typeof raw === 'string' && VALID_ASPECT_RATIOS.includes(raw)) {
@@ -165,6 +174,7 @@ export default {
 			return DEFAULT_ASPECT_RATIO
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		posterUrl() {
 			const value = this.content && this.content.posterUrl
 			return typeof value === 'string' && value.trim() !== '' ? value : ''
@@ -176,10 +186,12 @@ export default {
 		 *
 		 * @return {boolean} effective muted value passed to <video>/iframe
 		 */
+		/** @spec openspec/specs/video-widget/spec.md */
 		effectiveMuted() {
 			return this.autoplay ? true : this.muted
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		effectiveAutoplay() {
 			// Don't autoplay a failed video — the error branch already
 			// renders, but defensive: never set autoplay when the source
@@ -187,6 +199,7 @@ export default {
 			return this.autoplay && this.hasSource
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		hasSource() {
 			if (this.sourceType === null) {
 				return false
@@ -205,6 +218,7 @@ export default {
 			return this.sourceType === 'nc-file'
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		hasError() {
 			if (this.content && typeof this.content.error === 'string' && this.content.error.trim() !== '') {
 				return true
@@ -215,6 +229,7 @@ export default {
 			return this.videoLoadFailed
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		errorMessage() {
 			const raw = this.content && this.content.error
 			if (typeof raw === 'string' && raw.trim() !== '') {
@@ -239,6 +254,7 @@ export default {
 		 *
 		 * @return {string} iframe src with query params applied
 		 */
+		/** @spec openspec/specs/video-widget/spec.md */
 		embedUrl() {
 			if (!this.isIframeSource || this.videoUrl === '') {
 				return ''
@@ -260,10 +276,12 @@ export default {
 			return this.videoUrl + separator + params.join('&')
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		placeholderColor() {
 			return 'var(--color-text-maxcontrast)'
 		},
 
+		/** @spec openspec/specs/video-widget/spec.md */
 		wrapperStyle() {
 			return {
 				width: '100%',
@@ -284,6 +302,7 @@ export default {
 		 *
 		 * @return {object} inline style object for the media wrapper
 		 */
+		/** @spec openspec/specs/video-widget/spec.md */
 		mediaStyle() {
 			const [w, h] = this.aspectRatio.split(':')
 			return {
@@ -301,9 +320,11 @@ export default {
 	watch: {
 		// Re-arm the failure flag when the video source changes so a
 		// previously failed file does not permanently lock the cell.
+		/** @spec openspec/specs/video-widget/spec.md */
 		fileStreamingUrl() {
 			this.videoLoadFailed = false
 		},
+		/** @spec openspec/specs/video-widget/spec.md */
 		videoUrl() {
 			this.videoLoadFailed = false
 		},
@@ -316,6 +337,7 @@ export default {
 		 * deliberately swallow the event so no exception bubbles up into
 		 * the GridStack grid layer (which would crash the dashboard).
 		 */
+		/** @spec openspec/specs/video-widget/spec.md */
 		onVideoError() {
 			this.videoLoadFailed = true
 		},

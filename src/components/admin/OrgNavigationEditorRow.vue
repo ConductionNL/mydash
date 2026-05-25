@@ -177,18 +177,22 @@ export default {
 			return Array.isArray(this.node.children) && this.node.children.length > 0
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		canAddChild() {
 			return this.level < this.maxDepth
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		canMoveUp() {
 			return this.index > 0
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		canMoveDown() {
 			return this.index < this.siblings.length - 1
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		indentPx() {
 			return ((this.level - 1) * 16) + 'px'
 		},
@@ -197,10 +201,12 @@ export default {
 	methods: {
 		t,
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		emitPatch(patch) {
 			this.$emit('update', { node: this.node, patch })
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		onToggleVisibilityAll(allVisible) {
 			if (allVisible) {
 				this.localVisibility = null
@@ -211,6 +217,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		onFreeTextGroupsInput() {
 			const ids = (this.freeTextGroups || '')
 				.split(',')

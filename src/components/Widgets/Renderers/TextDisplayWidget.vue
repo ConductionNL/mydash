@@ -140,6 +140,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		text() {
 			return typeof this.content?.text === 'string' ? this.content.text : ''
 		},
@@ -148,6 +149,7 @@ export default {
 			return this.text.trim() !== ''
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		contentMode() {
 			// REQ-TXMD-001: absent contentMode means legacy HTML mode for
 			// backward compatibility. Only the literal 'markdown' switches
@@ -156,6 +158,7 @@ export default {
 			return this.content?.contentMode === 'markdown' ? 'markdown' : 'html'
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		contentClass() {
 			return this.contentMode === 'markdown'
 				? 'text-display-widget__content--markdown'
@@ -170,6 +173,7 @@ export default {
 		 *
 		 * @return {string} sanitised HTML safe for v-html injection
 		 */
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		sanitizedHtml() {
 			let html
 			if (this.contentMode === 'markdown') {
@@ -200,51 +204,63 @@ export default {
 			})
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		placeholderText() {
 			return t('mydash', 'No text content')
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		emptyCellPlaceholder() {
 			return t('mydash', 'Empty cell')
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		fontSize() {
 			return this.content?.fontSize || '14px'
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		color() {
 			return this.content?.color || 'var(--color-main-text)'
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		backgroundColor() {
 			return this.content?.backgroundColor || 'transparent'
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		textAlign() {
 			return this.content?.textAlign || 'left'
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		tableMode() {
 			return this.content?.tableMode === true
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		tableData() {
 			return this.content?.tableData || null
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		tableRows() {
 			return Array.isArray(this.tableData?.rows) ? this.tableData.rows : []
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		headerRow() {
 			return this.tableData?.headerRow === true
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		columnAlignments() {
 			const aligns = this.tableData?.columnAlignments
 			return Array.isArray(aligns) ? aligns : []
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		wrapperStyle() {
 			return {
 				width: '100%',
@@ -258,6 +274,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		contentStyle() {
 			const base = {
 				'font-size': this.fontSize,
@@ -273,6 +290,7 @@ export default {
 			return base
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		tableContainerStyle() {
 			return {
 				'font-size': this.fontSize,
@@ -294,6 +312,7 @@ export default {
 		 * @param {string} text raw cell text (may contain HTML)
 		 * @return {string} sanitised HTML safe to render via v-html
 		 */
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		sanitizeCell(text) {
 			return DOMPurify.sanitize(typeof text === 'string' ? text : '')
 		},
@@ -330,10 +349,12 @@ export default {
 		 * @param {object} cell the cell object
 		 * @return {boolean} true when the cell has any non-whitespace text
 		 */
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		cellHasText(cell) {
 			return typeof cell?.text === 'string' && cell.text.trim() !== ''
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		dataCellStyle(cIdx) {
 			return {
 				'text-align': this.columnAlignments[cIdx] || 'left',
@@ -342,6 +363,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		headerCellStyle(cIdx) {
 			return {
 				...this.dataCellStyle(cIdx),

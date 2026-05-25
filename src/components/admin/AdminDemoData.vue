@@ -100,6 +100,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/demo-data-showcases/spec.md */
 		async fetch() {
 			this.loading = true
 			this.error = ''
@@ -113,6 +114,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/demo-data-showcases/spec.md */
 		async install(showcase) {
 			this.$set(this.busy, showcase.id, true)
 			this.$delete(this.warnings, showcase.id)
@@ -137,6 +139,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/demo-data-showcases/spec.md */
 		async confirmUninstall(showcase) {
 			const message = this.t('mydash', 'Remove the {name} showcase dashboard for all users? You can reinstall it later.', { name: showcase.name })
 			if (window.confirm(message) === false) {
@@ -155,6 +158,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/demo-data-showcases/spec.md */
 		onThumbError(event) {
 			// Hide broken images gracefully — fall back to the icon.
 			event.target.style.display = 'none'

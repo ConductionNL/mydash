@@ -124,6 +124,7 @@ export default {
 			return Array.isArray(this.node.children) && this.node.children.length > 0
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		iconIsUrl() {
 			const icon = this.node.icon
 			if (typeof icon !== 'string' || icon === '') {
@@ -140,12 +141,14 @@ export default {
 			return this.descendantMatches(this.node.children)
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		indentPx() {
 			// Visual indent — 12px per level beyond root.
 			return ((this.level - 1) * 12) + 'px'
 		},
 	},
 
+	/** @spec openspec/specs/navigation-editor-org/spec.md */
 	mounted() {
 		// Auto-expand when a descendant is active (REQ-ONAV-009).
 		if (this.hasActiveDescendant) {
@@ -154,12 +157,14 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		toggle() {
 			if (this.hasChildren) {
 				this.expanded = !this.expanded
 			}
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		onActivate() {
 			this.$emit('navigate')
 		},
@@ -171,6 +176,7 @@ export default {
 		 * @param {string|null} url Candidate URL.
 		 * @return {boolean}
 		 */
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		urlMatches(url) {
 			if (!url || !this.currentUrl) {
 				return false
@@ -193,6 +199,7 @@ export default {
 		 * @param {Array<object>|null} children Child nodes.
 		 * @return {boolean}
 		 */
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		descendantMatches(children) {
 			if (!Array.isArray(children) || children.length === 0) {
 				return false

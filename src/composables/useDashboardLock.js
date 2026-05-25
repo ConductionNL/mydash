@@ -55,6 +55,7 @@ const HEARTBEAT_INTERVAL_MS = 60 * 1000
  *   refresh: () => Promise<void>,
  * }} The composable handle.
  */
+/** @spec openspec/specs/dashboard-locking/spec.md */
 export function useDashboardLock(dashboardUuid) {
 	const lock = ref(null)
 	const conflict = ref(null)

@@ -93,6 +93,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		widgetOptions() {
 			// PHP can serialise sequential arrays as objects; normalise here
 			// the same way the renderer does (tasks.md §2 defensive
@@ -111,6 +112,7 @@ export default {
 				}))
 		},
 
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		assembledContent() {
 			return {
 				widgetId: this.widgetId,
@@ -120,6 +122,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		emitContent() {
 			this.$emit('update:content', this.assembledContent)
 		},
@@ -129,6 +132,7 @@ export default {
 		 *
 		 * @return {string[]} validation errors
 		 */
+		/** @spec openspec/specs/nc-dashboard-widget-proxy/spec.md */
 		validate() {
 			if (typeof this.widgetId !== 'string' || this.widgetId.trim() === '') {
 				return [t('mydash', 'Pick a widget')]

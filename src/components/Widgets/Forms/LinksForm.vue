@@ -292,6 +292,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/links-widget/spec.md */
 		assembledContent() {
 			return {
 				sections: this.cloneSections(this.sections),
@@ -306,6 +307,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/links-widget/spec.md */
 		cloneSections(sections) {
 			return sections.map((section) => ({
 				title: typeof section?.title === 'string' ? section.title : '',
@@ -320,6 +322,7 @@ export default {
 			}))
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		clampColumns(value) {
 			const num = Number(value)
 			if (!Number.isFinite(num)) {
@@ -328,20 +331,24 @@ export default {
 			return Math.max(1, Math.min(6, Math.round(num)))
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		emitUpdate() {
 			this.$emit('update:content', this.assembledContent)
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		addSection() {
 			this.sections.push(makeEmptySection())
 			this.emitUpdate()
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		deleteSection(index) {
 			this.sections.splice(index, 1)
 			this.emitUpdate()
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		moveSection(index, delta) {
 			const target = index + delta
 			if (target < 0 || target >= this.sections.length) {
@@ -352,6 +359,7 @@ export default {
 			this.emitUpdate()
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		updateSectionTitle(index, title) {
 			if (this.sections[index]) {
 				this.$set(this.sections[index], 'title', title)
@@ -359,6 +367,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		addLink(sectionIndex) {
 			const section = this.sections[sectionIndex]
 			if (section) {
@@ -367,6 +376,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		deleteLink(sectionIndex, linkIndex) {
 			const section = this.sections[sectionIndex]
 			if (section && section.links[linkIndex] !== undefined) {
@@ -375,6 +385,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		moveLink(sectionIndex, linkIndex, delta) {
 			const section = this.sections[sectionIndex]
 			if (!section) {
@@ -389,6 +400,7 @@ export default {
 			this.emitUpdate()
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		updateLink(sectionIndex, linkIndex, field, value) {
 			const section = this.sections[sectionIndex]
 			if (!section) {
@@ -402,6 +414,7 @@ export default {
 			this.emitUpdate()
 		},
 
+		/** @spec openspec/specs/links-widget/spec.md */
 		updateOption(field, value) {
 			if (field === 'linkLayout' && !VALID_LAYOUTS.includes(value)) {
 				return
@@ -421,6 +434,7 @@ export default {
 		 *
 		 * @return {string[]} validation errors (empty when valid)
 		 */
+		/** @spec openspec/specs/links-widget/spec.md */
 		validate() {
 			const errors = []
 			const linkErrors = []

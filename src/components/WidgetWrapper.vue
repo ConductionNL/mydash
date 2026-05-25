@@ -104,6 +104,7 @@ export default {
 			return ['label', 'divider', 'header', 'tile'].includes(this.placement?.widgetId)
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		showHeader() {
 			// Tiles (legacy `tile-{id}` widgetId) render directly with no
 			// wrapper. Registry-driven chrome-less types keep the wrapper
@@ -118,27 +119,33 @@ export default {
 			return this.placement.showTitle !== false
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		widgetTitle() {
 			return this.placement.customTitle || this.widget?.title || this.t('mydash', 'Widget')
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		widgetIconUrl() {
 			return this.widget?.iconUrl || null
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		widgetButtons() {
 			return this.widget?.buttons || []
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		canRemove() {
 			// Can't remove compulsory widgets unless full permission
 			return !this.placement.isCompulsory
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		styleConfig() {
 			return this.placement.styleConfig || {}
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		widgetStyles() {
 			const styles = {}
 
@@ -170,6 +177,7 @@ export default {
 			return styles
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		headerStyles() {
 			const styles = {}
 
@@ -187,6 +195,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/widgets/spec.md */
 		hexToRgba(hex, opacity) {
 			if (!hex) return 'transparent'
 			const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)

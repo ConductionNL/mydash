@@ -127,6 +127,7 @@ export default {
 		Delete,
 	},
 
+	/** @spec openspec/specs/admin-roles/spec.md */
 	setup() {
 		const store = useRoleFeaturePermissionStore()
 		return { store }
@@ -141,6 +142,7 @@ export default {
 		}
 	},
 
+	/** @spec openspec/specs/admin-roles/spec.md */
 	async mounted() {
 		try {
 			await this.store.loadPermissions()
@@ -150,6 +152,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/admin-roles/spec.md */
 		emptyRow() {
 			return {
 				id: null,
@@ -161,12 +164,14 @@ export default {
 				priorityWeights: {},
 			}
 		},
+		/** @spec openspec/specs/admin-roles/spec.md */
 		openCreate() {
 			this.editorRow = this.emptyRow()
 			this.allowedWidgetsCsv = ''
 			this.deniedWidgetsCsv = ''
 			this.showEditor = true
 		},
+		/** @spec openspec/specs/admin-roles/spec.md */
 		openEdit(row) {
 			this.editorRow = {
 				...row,
@@ -178,15 +183,18 @@ export default {
 			this.deniedWidgetsCsv = (row.deniedWidgets ?? []).join(', ')
 			this.showEditor = true
 		},
+		/** @spec openspec/specs/admin-roles/spec.md */
 		closeEditor() {
 			this.showEditor = false
 		},
+		/** @spec openspec/specs/admin-roles/spec.md */
 		parseCsv(s) {
 			return (s ?? '')
 				.split(',')
 				.map(x => x.trim())
 				.filter(x => x.length > 0)
 		},
+		/** @spec openspec/specs/admin-roles/spec.md */
 		async save() {
 			try {
 				const payload = {
@@ -203,6 +211,7 @@ export default {
 				console.error('Failed to save role permission', e)
 			}
 		},
+		/** @spec openspec/specs/admin-roles/spec.md */
 		async confirmDelete(row) {
 			// eslint-disable-next-line no-alert
 			if (!window.confirm(this.t('mydash', 'Delete role permission for "{group}"?', { group: row.groupId }))) {

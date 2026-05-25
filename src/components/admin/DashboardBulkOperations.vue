@@ -188,10 +188,12 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/dashboard-bulk-operations/spec.md */
 		allSelected() {
 			return this.dashboards.length > 0
 				&& this.selectedUuids.length === this.dashboards.length
 		},
+		/** @spec openspec/specs/dashboard-bulk-operations/spec.md */
 		someSelected() {
 			return this.selectedUuids.length > 0
 		},
@@ -202,6 +204,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/dashboard-bulk-operations/spec.md */
 		async loadDashboards() {
 			this.loading = true
 			try {
@@ -214,6 +217,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/dashboard-bulk-operations/spec.md */
 		toggleSelectAll(event) {
 			if (event.target.checked) {
 				this.selectedUuids = this.dashboards.map(d => d.uuid)
@@ -222,6 +226,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/dashboard-bulk-operations/spec.md */
 		toggleRow(uuid) {
 			const idx = this.selectedUuids.indexOf(uuid)
 			if (idx === -1) {
@@ -231,6 +236,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/dashboard-bulk-operations/spec.md */
 		runAction() {
 			this.errorMessage = ''
 			this.resultSummary = null
@@ -253,10 +259,12 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/dashboard-bulk-operations/spec.md */
 		cancelModal() {
 			this.modal = null
 		},
 
+		/** @spec openspec/specs/dashboard-bulk-operations/spec.md */
 		async confirmAction() {
 			this.running = true
 			try {

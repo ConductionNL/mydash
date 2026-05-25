@@ -176,6 +176,7 @@ export default {
 			return this.value.rows.length > 0 && this.value.columnAlignments.length > 0
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		canMerge() {
 			if (!this.hasSelection) {
 				return false
@@ -184,6 +185,7 @@ export default {
 				|| this.anchor.cIdx !== this.extent.cIdx
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		canSplit() {
 			if (!this.hasSelection) {
 				return false
@@ -200,6 +202,7 @@ export default {
 		 *
 		 * @param {object} next the next tableData value
 		 */
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		emitUpdate(next) {
 			const errors = validateTable(next)
 			this.errorMessage = errors.length > 0 ? errors[0] : ''
@@ -214,6 +217,7 @@ export default {
 		 * @param {number} cIdx the clicked column
 		 * @param {Event} event the originating click/focus event
 		 */
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		selectCell(rIdx, cIdx, event) {
 			if (event && event.shiftKey) {
 				this.extent = { rIdx, cIdx }
@@ -227,6 +231,7 @@ export default {
 			return isPlaceholderCell(this.value.rows, rIdx, cIdx)
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		cellClass(rIdx, cIdx) {
 			const isAnchor = rIdx === this.anchor.rIdx && cIdx === this.anchor.cIdx
 			const inSelection = this.cellInSelection(rIdx, cIdx)
@@ -238,6 +243,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		cellInSelection(rIdx, cIdx) {
 			const r0 = Math.min(this.anchor.rIdx, this.extent.rIdx)
 			const r1 = Math.max(this.anchor.rIdx, this.extent.rIdx)
@@ -246,42 +252,51 @@ export default {
 			return rIdx >= r0 && rIdx <= r1 && cIdx >= c0 && cIdx <= c1
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		cellStyle(cIdx) {
 			return {
 				'text-align': this.value.columnAlignments[cIdx] || 'left',
 			}
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		cellPlaceholder(rIdx) {
 			return this.value.headerRow && rIdx === 0
 				? t('mydash', 'Header')
 				: t('mydash', 'Cell')
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		cellLabel(rIdx, cIdx) {
 			return t('mydash', 'Row {row}, column {col}', { row: rIdx + 1, col: cIdx + 1 })
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		onCellInput(rIdx, cIdx, text) {
 			this.emitUpdate(setCellText(this.value, rIdx, cIdx, text))
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		onHeaderRowToggle(checked) {
 			this.emitUpdate(setHeaderRow(this.value, checked === true))
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		onAlignmentChange(cIdx, alignment) {
 			this.emitUpdate(setColumnAlignment(this.value, cIdx, alignment))
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		onAddRow(position) {
 			this.emitUpdate(addRow(this.value, this.anchor.rIdx, position))
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		onAddColumn(position) {
 			this.emitUpdate(addColumn(this.value, this.anchor.cIdx, position))
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		onDeleteRow() {
 			const rIdx = this.anchor.rIdx
 			const row = this.value.rows[rIdx] || []
@@ -299,6 +314,7 @@ export default {
 			this.extent = { ...this.anchor }
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		onDeleteColumn() {
 			const cIdx = this.anchor.cIdx
 			const hasText = this.value.rows.some(
@@ -317,11 +333,13 @@ export default {
 			this.extent = { ...this.anchor }
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		onMergeCells() {
 			this.emitUpdate(mergeCells(this.value, this.anchor, this.extent))
 			this.extent = { ...this.anchor }
 		},
 
+		/** @spec openspec/specs/text-display-widget/spec.md */
 		onSplitCell() {
 			this.emitUpdate(splitCell(this.value, this.anchor.rIdx, this.anchor.cIdx))
 		},

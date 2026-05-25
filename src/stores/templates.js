@@ -59,6 +59,7 @@ export const useTemplatesStore = defineStore('templates', {
 		 * @param {string} [options.sort] Sort key (`name`/`updatedAt`).
 		 * @return {Promise<Array>} The gallery entries.
 		 */
+		/** @spec openspec/specs/admin-templates/spec.md */
 		async fetchGallery({ category = null, sort = 'name' } = {}) {
 			this.loading = true
 			this.selectedCategory = category
@@ -87,6 +88,7 @@ export const useTemplatesStore = defineStore('templates', {
 		 *                           previewImage?}`.
 		 * @return {Promise<object>} The newly created template entity.
 		 */
+		/** @spec openspec/specs/admin-templates/spec.md */
 		async saveAsTemplate(dashboardUuid, metadata) {
 			this.saving = true
 			try {
@@ -123,6 +125,7 @@ export const useTemplatesStore = defineStore('templates', {
 		 * @param {string} base64DataUrl `data:image/...;base64,...` URL.
 		 * @return {Promise<string>} The persisted image URL.
 		 */
+		/** @spec openspec/specs/admin-templates/spec.md */
 		async uploadPreviewImage(templateUuid, base64DataUrl) {
 			try {
 				const { data } = await api.uploadTemplatePreviewImage(

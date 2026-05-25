@@ -252,22 +252,27 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		store() {
 			return useCommentsStore()
 		},
 
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		thread() {
 			return this.store.threadFor(this.dashboardUuid)
 		},
 
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		topLevelInputId() {
 			return `mydash-comments-input-${this.dashboardUuid}`
 		},
 
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		canSubmitTopLevel() {
 			return this.topLevelDraft.trim().length > 0 && !this.submitting
 		},
 
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		canSubmitReply() {
 			return this.replyDraft.trim().length > 0 && !this.submitting
 		},
@@ -276,6 +281,7 @@ export default {
 	watch: {
 		dashboardUuid: {
 			immediate: true,
+			/** @spec openspec/specs/dashboard-comments/spec.md */
 			handler(uuid) {
 				if (uuid) {
 					this.store.loadComments(uuid).catch((err) => {
@@ -289,6 +295,7 @@ export default {
 	methods: {
 		t,
 
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		canEditComment(comment) {
 			if (this.isAdmin) {
 				return true
@@ -296,6 +303,7 @@ export default {
 			return this.currentUserId !== '' && comment.author === this.currentUserId
 		},
 
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		formatTimestamp(iso) {
 			if (!iso) {
 				return ''
@@ -308,6 +316,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		async submitTopLevel() {
 			if (!this.canSubmitTopLevel) {
 				return
@@ -327,16 +336,19 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		startReply(comment) {
 			this.replyingTo = comment.id
 			this.replyDraft = ''
 		},
 
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		cancelReply() {
 			this.replyingTo = null
 			this.replyDraft = ''
 		},
 
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		async submitReply(parent) {
 			if (!this.canSubmitReply) {
 				return
@@ -356,16 +368,19 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		startEdit(comment) {
 			this.editingId = comment.id
 			this.editDraft = comment.message
 		},
 
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		cancelEdit() {
 			this.editingId = null
 			this.editDraft = ''
 		},
 
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		async submitEdit(comment) {
 			if (this.editDraft.trim().length === 0) {
 				return
@@ -384,6 +399,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		async confirmDelete(comment) {
 			const isTopLevel = comment.parentId === null || comment.parentId === undefined
 			const message = isTopLevel

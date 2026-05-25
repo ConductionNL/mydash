@@ -24,6 +24,7 @@ export const useWidgetStore = defineStore('widgets', {
 	},
 
 	actions: {
+		/** @spec openspec/specs/widgets/spec.md */
 		async loadAvailableWidgets() {
 			this.loading = true
 			try {
@@ -36,6 +37,7 @@ export const useWidgetStore = defineStore('widgets', {
 			}
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		async loadWidgetItems(widgetIds) {
 			console.log('[WidgetStore] loadWidgetItems called:', widgetIds)
 			// Mark widgets as loading
@@ -63,6 +65,7 @@ export const useWidgetStore = defineStore('widgets', {
 			}
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		async refreshWidgetItems(widgetId) {
 			await this.loadWidgetItems([widgetId])
 		},

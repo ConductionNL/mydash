@@ -71,6 +71,7 @@ export default {
 		fit: {
 			type: String,
 			default: undefined,
+			/** @spec openspec/specs/image-widget/spec.md */
 			validator(value) {
 				if (value === undefined || value === null) {
 					return true
@@ -90,16 +91,19 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/image-widget/spec.md */
 		url() {
 			const value = this.content && this.content.url
 			return typeof value === 'string' ? value : ''
 		},
 
+		/** @spec openspec/specs/image-widget/spec.md */
 		alt() {
 			const value = this.content && this.content.alt
 			return typeof value === 'string' ? value : ''
 		},
 
+		/** @spec openspec/specs/image-widget/spec.md */
 		link() {
 			const value = this.content && this.content.link
 			return typeof value === 'string' ? value : ''
@@ -113,6 +117,7 @@ export default {
 			return this.link.trim() !== ''
 		},
 
+		/** @spec openspec/specs/image-widget/spec.md */
 		showImage() {
 			return this.hasUrl && this.loadFailed === false
 		},
@@ -125,6 +130,7 @@ export default {
 		 *
 		 * @return {string} one of cover, contain, fill, none
 		 */
+		/** @spec openspec/specs/image-widget/spec.md */
 		resolvedFit() {
 			let candidate = this.fit
 			if (candidate === undefined || candidate === null) {
@@ -136,16 +142,19 @@ export default {
 			return candidate
 		},
 
+		/** @spec openspec/specs/image-widget/spec.md */
 		placeholderLabel() {
 			return this.loadFailed
 				? t('mydash', 'Image failed to load')
 				: t('mydash', 'No image')
 		},
 
+		/** @spec openspec/specs/image-widget/spec.md */
 		placeholderColor() {
 			return 'var(--color-text-maxcontrast)'
 		},
 
+		/** @spec openspec/specs/image-widget/spec.md */
 		wrapperStyle() {
 			return {
 				width: '100%',
@@ -156,6 +165,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/image-widget/spec.md */
 		imgStyle() {
 			return {
 				width: '100%',
@@ -165,6 +175,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/image-widget/spec.md */
 		placeholderStyle() {
 			return {
 				width: '100%',
@@ -183,6 +194,7 @@ export default {
 		// When the URL changes (for example after the user edits the
 		// placement) we must re-arm the `<img>` so a previously failed
 		// URL doesn't permanently lock the cell into the placeholder.
+		/** @spec openspec/specs/image-widget/spec.md */
 		url() {
 			this.loadFailed = false
 		},
@@ -195,6 +207,7 @@ export default {
 		 * swallow the event here so no exception bubbles up into the
 		 * GridStack grid layer (which would crash the whole dashboard).
 		 */
+		/** @spec openspec/specs/image-widget/spec.md */
 		onImageError() {
 			this.loadFailed = true
 		},
@@ -204,6 +217,7 @@ export default {
 		 * no-op otherwise. We pass `noopener,noreferrer` so the opened
 		 * page can never reach back into the dashboard via `window.opener`.
 		 */
+		/** @spec openspec/specs/image-widget/spec.md */
 		onClick() {
 			if (this.hasLink === false) {
 				return

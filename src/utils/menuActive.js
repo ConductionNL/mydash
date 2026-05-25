@@ -24,6 +24,7 @@
  * @param {string} url URL or path.
  * @return {boolean} true when the URL has an absolute http(s) scheme.
  */
+/** @spec openspec/specs/menu-widget/spec.md */
 export function isExternalUrl(url) {
 	return typeof url === 'string' && /^https?:\/\//i.test(url)
 }
@@ -39,6 +40,7 @@ export function isExternalUrl(url) {
  * @param {{pathname: string, host?: string}} currentLocation Live location bag.
  * @return {boolean} true when the URL is a same-page or prefix match.
  */
+/** @spec openspec/specs/menu-widget/spec.md */
 export function isActiveItem(itemUrl, currentLocation) {
 	if (typeof itemUrl !== 'string' || itemUrl === '') {
 		return false
@@ -72,6 +74,7 @@ export function isActiveItem(itemUrl, currentLocation) {
  * @param {{pathname: string, host?: string}} args.currentLocation Location bag.
  * @return {{path: Record<string,'active'|'in-path'>, leafKey: string|null}} Map and leaf.
  */
+/** @spec openspec/specs/menu-widget/spec.md */
 export function computeActivePath({ items, currentLocation }) {
 	const path = {}
 	if (!Array.isArray(items)) {

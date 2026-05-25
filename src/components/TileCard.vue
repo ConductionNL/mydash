@@ -79,6 +79,7 @@ export default {
 	emits: ['edit', 'remove'],
 
 	computed: {
+		/** @spec openspec/specs/tiles/spec.md */
 		tileUrl() {
 			// If it's a relative path or starts with /apps/, keep it as is.
 			// Otherwise, treat it as an external URL.
@@ -100,6 +101,7 @@ export default {
 			// Otherwise, assume it's an app name and generate the URL.
 			return generateUrl('/apps/' + url)
 		},
+		/** @spec openspec/specs/tiles/spec.md */
 		isExternalLink() {
 			const url = this.tile.linkValue || ''
 			return url.startsWith('http://') || url.startsWith('https://')

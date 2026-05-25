@@ -407,6 +407,7 @@ export default {
 		}
 	},
 
+	/** @spec openspec/specs/admin-settings/spec.md */
 	async created() {
 		await this.loadData()
 		await this.loadGroupSharedDashboards()
@@ -414,6 +415,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/admin-settings/spec.md */
 		async loadData() {
 			this.loading = true
 			try {
@@ -444,6 +446,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/admin-settings/spec.md */
 		async saveSettings() {
 			try {
 				// REQ-ASET-002: the PUT /api/admin/settings endpoint accepts
@@ -464,11 +467,13 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/admin-settings/spec.md */
 		updateSetting(key, value) {
 			this.settings[key] = value
 			this.saveSettings()
 		},
 
+		/** @spec openspec/specs/admin-settings/spec.md */
 		createTemplate() {
 			this.editingTemplate = {
 				id: null,
@@ -480,6 +485,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/admin-settings/spec.md */
 		editTemplate(template) {
 			this.editingTemplate = {
 				...template,
@@ -489,10 +495,12 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/admin-settings/spec.md */
 		closeTemplateEditor() {
 			this.editingTemplate = null
 		},
 
+		/** @spec openspec/specs/admin-settings/spec.md */
 		async saveTemplate() {
 			try {
 				const data = {
@@ -516,6 +524,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/admin-settings/spec.md */
 		async deleteTemplate(template) {
 			if (!confirm(this.t('mydash', 'Are you sure you want to delete this template?'))) {
 				return
@@ -529,6 +538,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/admin-settings/spec.md */
 		formatTargetGroups(groups) {
 			if (!groups || groups.length === 0) {
 				return this.t('mydash', 'All users')
@@ -544,6 +554,7 @@ export default {
 		 *
 		 * @return {string[]} Group ids to render.
 		 */
+		/** @spec openspec/specs/admin-settings/spec.md */
 		resolveAdminGroupIds() {
 			const configured = Array.isArray(this.injectedConfiguredGroups)
 				? this.injectedConfiguredGroups
@@ -564,6 +575,7 @@ export default {
 		 *
 		 * @return {Promise<void>}
 		 */
+		/** @spec openspec/specs/admin-settings/spec.md */
 		async loadGroupSharedDashboards() {
 			this.loadingGroupDashboards = true
 			const groupIds = this.resolveAdminGroupIds()
@@ -601,6 +613,7 @@ export default {
 		 *
 		 * @return {Promise<void>}
 		 */
+		/** @spec openspec/specs/admin-settings/spec.md */
 		async loadWizardState() {
 			try {
 				const { data } = await api.getSetupWizardState()
@@ -611,14 +624,17 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/admin-settings/spec.md */
 		openWizard() {
 			this.showWizard = true
 		},
 
+		/** @spec openspec/specs/admin-settings/spec.md */
 		closeWizard() {
 			this.showWizard = false
 		},
 
+		/** @spec openspec/specs/admin-settings/spec.md */
 		async onWizardCompleted() {
 			this.showWizard = false
 			// REQ-WIZ-002 final scenario: the banner MUST disappear without
@@ -627,6 +643,7 @@ export default {
 			await this.loadWizardState()
 		},
 
+		/** @spec openspec/specs/admin-settings/spec.md */
 		async setGroupDefault(groupId, uuid) {
 			const rows = this.groupSharedDashboards[groupId] || []
 			// Snapshot prior `isDefault` values for rollback.

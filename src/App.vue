@@ -58,6 +58,7 @@ export default {
 		},
 	},
 
+	/** @spec openspec/specs/runtime-shell/spec.md */
 	provide() {
 		// Re-provide the reactive manifest refs so deeply nested
 		// descendants don't need to prop-drill through WorkspaceApp/Views.

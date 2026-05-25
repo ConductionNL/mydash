@@ -69,6 +69,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/tiles/spec.md */
 		tileUrl() {
 			if (this.tile.linkType === 'app') {
 				return generateUrl('/apps/' + this.tile.linkValue)
@@ -77,6 +78,7 @@ export default {
 		},
 	},
 
+	/** @spec openspec/specs/tiles/spec.md */
 	mounted() {
 		console.log('[TileWidget] Mounted with tile:', JSON.stringify({
 			id: this.tile?.id,

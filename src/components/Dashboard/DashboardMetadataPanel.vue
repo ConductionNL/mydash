@@ -142,6 +142,7 @@ export default {
 	computed: {
 		...mapState(useDashboardStore, ['metadataFields', 'metadataByDashboard']),
 
+		/** @spec openspec/specs/dashboard-metadata-fields/spec.md */
 		sortedFields() {
 			return [...this.metadataFields].sort((a, b) => {
 				const ao = Number(a.sortOrder || 0)
@@ -158,6 +159,7 @@ export default {
 	watch: {
 		dashboardUuid: {
 			immediate: true,
+			/** @spec openspec/specs/dashboard-metadata-fields/spec.md */
 			handler() {
 				this.bootstrap()
 			},
@@ -173,6 +175,7 @@ export default {
 			'updateDashboardMetadata',
 		]),
 
+		/** @spec openspec/specs/dashboard-metadata-fields/spec.md */
 		async bootstrap() {
 			await this.fetchMetadataFields()
 			if (!this.dashboardUuid) {
@@ -182,6 +185,7 @@ export default {
 			this.localValues = { ...(map || {}) }
 		},
 
+		/** @spec openspec/specs/dashboard-metadata-fields/spec.md */
 		async onSave() {
 			if (this.saving || !this.dashboardUuid) {
 				return

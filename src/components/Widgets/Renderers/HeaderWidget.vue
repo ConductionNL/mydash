@@ -113,11 +113,13 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/header-widget/spec.md */
 		title() {
 			const value = this.content && this.content.title
 			return typeof value === 'string' ? value : ''
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		subtitle() {
 			const value = this.content && this.content.subtitle
 			return typeof value === 'string' ? value : ''
@@ -131,6 +133,7 @@ export default {
 			return this.subtitle !== ''
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		backgroundImageUrl() {
 			// REQ-HDR-003: file ID takes precedence over URL.
 			const fileId = this.content && this.content.backgroundImageFileId
@@ -148,6 +151,7 @@ export default {
 			return this.backgroundImageUrl !== '' && this.imageFailed === false
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		backgroundColor() {
 			const value = this.content && this.content.backgroundColor
 			if (typeof value === 'string' && value !== '') {
@@ -156,6 +160,7 @@ export default {
 			return 'var(--color-primary, #0070c0)'
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		overlayMode() {
 			const declared = this.content && this.content.overlayMode
 			if (typeof declared === 'string' && ALLOWED_OVERLAY_MODES.includes(declared)) {
@@ -170,6 +175,7 @@ export default {
 			return this.overlayMode !== 'none'
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		overlayColor() {
 			const value = this.content && this.content.overlayColor
 			if (typeof value === 'string' && value !== '') {
@@ -182,6 +188,7 @@ export default {
 			return (typeof bg === 'string' && bg !== '') ? bg : '#000000'
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		overlayOpacity() {
 			const raw = this.content && this.content.overlayOpacity
 			const value = typeof raw === 'number' ? raw : Number.parseFloat(raw)
@@ -197,6 +204,7 @@ export default {
 			return value
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		height() {
 			const declared = this.content && this.content.height
 			if (typeof declared === 'string' && ALLOWED_HEIGHTS.includes(declared)) {
@@ -205,10 +213,12 @@ export default {
 			return 'medium'
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		heightPixels() {
 			return HEIGHT_PIXELS[this.height]
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		textAlign() {
 			const declared = this.content && this.content.textAlign
 			if (typeof declared === 'string' && ALLOWED_TEXT_ALIGN.includes(declared)) {
@@ -217,6 +227,7 @@ export default {
 			return 'center'
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		verticalAlign() {
 			const declared = this.content && this.content.verticalAlign
 			if (typeof declared === 'string' && ALLOWED_VERTICAL_ALIGN.includes(declared)) {
@@ -225,6 +236,7 @@ export default {
 			return 'middle'
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		textColor() {
 			const value = this.content && this.content.textColor
 			if (typeof value === 'string' && value !== '') {
@@ -238,6 +250,7 @@ export default {
 			return this.isLightColor(this.backgroundColor) ? '#000000' : '#ffffff'
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		wrapperStyle() {
 			const style = {
 				position: 'relative',
@@ -255,6 +268,7 @@ export default {
 			return style
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		overlayStyle() {
 			if (this.overlayMode === 'gradient-bottom') {
 				return {
@@ -274,6 +288,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		contentStyle() {
 			return {
 				position: 'relative',
@@ -291,6 +306,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		flexAlignFromTextAlign() {
 			if (this.textAlign === 'left') {
 				return 'flex-start'
@@ -301,6 +317,7 @@ export default {
 			return 'center'
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		textStyle() {
 			return {
 				color: this.textColor,
@@ -308,6 +325,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		cta() {
 			const raw = this.content && this.content.cta
 			if (raw === null || typeof raw !== 'object') {
@@ -329,26 +347,32 @@ export default {
 			return this.cta !== null
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		ctaLabel() {
 			return this.hasCta ? this.cta.label : ''
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		ctaUrl() {
 			return this.hasCta ? this.cta.url : ''
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		ctaIsExternal() {
 			return this.hasCta && /^https?:\/\//i.test(this.ctaUrl)
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		ctaTarget() {
 			return this.ctaIsExternal ? '_blank' : null
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		ctaRel() {
 			return this.ctaIsExternal ? 'noopener noreferrer' : null
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		ctaAriaLabel() {
 			if (this.hasCta === false) {
 				return null
@@ -359,6 +383,7 @@ export default {
 			return this.ctaLabel
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		ctaClasses() {
 			if (this.hasCta === false) {
 				return []
@@ -371,6 +396,7 @@ export default {
 	},
 
 	watch: {
+		/** @spec openspec/specs/header-widget/spec.md */
 		backgroundImageUrl() {
 			// Re-arm the probe so a previously failing URL can recover
 			// when the user edits the placement.
@@ -379,6 +405,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/header-widget/spec.md */
 		onImageError() {
 			this.imageFailed = true
 		},
@@ -392,6 +419,7 @@ export default {
 		 * @param {string} color CSS color value
 		 * @return {boolean} true when the color is perceived as light
 		 */
+		/** @spec openspec/specs/header-widget/spec.md */
 		isLightColor(color) {
 			if (typeof color !== 'string') {
 				return false

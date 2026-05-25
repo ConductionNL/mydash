@@ -141,14 +141,17 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/files-widget/spec.md */
 		fileIdString() {
 			return this.fileId === null || this.fileId === undefined ? '' : String(this.fileId)
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		mimeTypeFilterString() {
 			return this.mimeTypeFilter.join(', ')
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		viewModeOptions() {
 			return [
 				{ value: 'list', label: t('mydash', 'List') },
@@ -157,6 +160,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		sortByOptions() {
 			return [
 				{ value: 'name', label: t('mydash', 'Name') },
@@ -166,6 +170,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		assembledContent() {
 			return {
 				folderPath: this.folderPath,
@@ -182,6 +187,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/files-widget/spec.md */
 		coerceFileId(raw) {
 			if (raw === null || raw === undefined || raw === '') {
 				return null
@@ -193,16 +199,19 @@ export default {
 			return Math.floor(num)
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		updateField(field, value) {
 			this[field] = value
 			this.$emit('update:content', this.assembledContent)
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		updateFileId(value) {
 			this.fileId = this.coerceFileId(value)
 			this.$emit('update:content', this.assembledContent)
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		updateMimeFilter(value) {
 			const raw = String(value || '')
 			this.mimeTypeFilter = raw
@@ -219,6 +228,7 @@ export default {
 		 *
 		 * @return {string[]} validation errors
 		 */
+		/** @spec openspec/specs/files-widget/spec.md */
 		validate() {
 			const errors = []
 			const hasPath = typeof this.folderPath === 'string' && this.folderPath.trim() !== ''

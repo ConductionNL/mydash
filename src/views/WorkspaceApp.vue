@@ -222,6 +222,7 @@ export default {
 		 *
 		 * @return {boolean}
 		 */
+		/** @spec openspec/specs/runtime-shell/spec.md */
 		canEdit() {
 			return Boolean(this.injectedIsAdmin) || this.injectedDashboardSource === 'user'
 		},
@@ -243,6 +244,7 @@ export default {
 		 *
 		 * @return {string}
 		 */
+		/** @spec openspec/specs/runtime-shell/spec.md */
 		activeDashboardName() {
 			if (!this.injectedActiveDashboardId) {
 				return ''
@@ -266,6 +268,7 @@ export default {
 		 *
 		 * @return {object | null}
 		 */
+		/** @spec openspec/specs/runtime-shell/spec.md */
 		effectiveFooter() {
 			if (!this.injectedActiveDashboardId) {
 				return this.injectedEffectiveFooter
@@ -288,6 +291,7 @@ export default {
 		 *
 		 * @return {object}
 		 */
+		/** @spec openspec/specs/runtime-shell/spec.md */
 		orgNavStore() {
 			return useOrgNavigationStore()
 		},
@@ -299,6 +303,7 @@ export default {
 		 *
 		 * @return {string[]}
 		 */
+		/** @spec openspec/specs/runtime-shell/spec.md */
 		orgNavWrapperClass() {
 			if (!this.orgNavStore.shouldRender) {
 				return []
@@ -307,6 +312,7 @@ export default {
 		},
 	},
 
+	/** @spec openspec/specs/runtime-shell/spec.md */
 	mounted() {
 		// REQ-SHELL-007 — register the document-level click listener
 		// after `nextTick()` so any grid container refs are non-null
@@ -321,6 +327,7 @@ export default {
 		})
 	},
 
+	/** @spec openspec/specs/runtime-shell/spec.md */
 	beforeDestroy() {
 		// REQ-SHELL-007 — drop the document listener so it never leaks
 		// across mounts. The embedded Views.vue handles GridStack
@@ -334,10 +341,12 @@ export default {
 	methods: {
 		t,
 
+		/** @spec openspec/specs/runtime-shell/spec.md */
 		toggleSidebar() {
 			this.sidebarOpen = !this.sidebarOpen
 		},
 
+		/** @spec openspec/specs/runtime-shell/spec.md */
 		closeSidebar() {
 			this.sidebarOpen = false
 		},
@@ -353,6 +362,7 @@ export default {
 		 * @param {MouseEvent} _event the click event
 		 * @return {void}
 		 */
+		/** @spec openspec/specs/runtime-shell/spec.md */
 		handleClickOutside(_event) {
 			// no-op
 		},
@@ -362,6 +372,7 @@ export default {
 		 * CTA (REQ-SHELL-005 enabled scenario). Delegates to the dashboard
 		 * store so the existing `POST /api/dashboard` flow is reused.
 		 */
+		/** @spec openspec/specs/runtime-shell/spec.md */
 		async onCreateFirstDashboard() {
 			const store = useDashboardStore()
 			try {

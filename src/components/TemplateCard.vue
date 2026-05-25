@@ -48,6 +48,7 @@ export default {
 		},
 	},
 	computed: {
+		/** @spec openspec/specs/admin-templates/spec.md */
 		widgetCountLabel() {
 			return t('mydash', '{count} widgets', {
 				count: this.template.widgetCount ?? 0,

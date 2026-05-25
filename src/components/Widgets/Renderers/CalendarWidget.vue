@@ -181,10 +181,12 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		viewModes() {
 			return VIEW_MODES
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		hasSources() {
 			const internal = Array.isArray(this.content?.internalCalendars)
 				? this.content.internalCalendars
@@ -195,30 +197,36 @@ export default {
 			return internal.length + external.length > 0
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		daysAhead() {
 			const value = parseInt(this.content?.daysAhead ?? 14, 10)
 			return Number.isFinite(value) && value > 0 ? value : 14
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		colorByCalendar() {
 			return this.content?.colorByCalendar !== false
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		headerTitle() {
 			return t('mydash', 'Calendar')
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		emptyMessage() {
 			return t('mydash', 'No events in the next {N} days')
 				.replace('{N}', String(this.daysAhead))
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		failureSummary() {
 			const count = this.failures.length
 			return t('mydash', '{N} calendar source(s) unavailable')
 				.replace('{N}', String(count))
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		weekdayHeaders() {
 			return [
 				t('mydash', 'Sun'),
@@ -231,6 +239,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		monthRange() {
 			const today = this.today
 			const first = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -238,6 +247,7 @@ export default {
 			return { from: first, to: last }
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		weekRange() {
 			const today = this.today
 			const start = new Date(today)
@@ -249,6 +259,7 @@ export default {
 			return { from: start, to: end }
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		monthGrid() {
 			const { from, to } = this.monthRange
 			const cells = []
@@ -270,6 +281,7 @@ export default {
 			return cells
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		weekDays() {
 			const { from } = this.weekRange
 			const out = []
@@ -288,6 +300,7 @@ export default {
 			return out
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		eventsByDay() {
 			const buckets = {}
 			for (const event of this.events) {
@@ -300,6 +313,7 @@ export default {
 			return buckets
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		agendaGroups() {
 			const groups = []
 			const seen = {}
@@ -319,10 +333,12 @@ export default {
 	watch: {
 		content: {
 			deep: true,
+			/** @spec openspec/specs/calendar-widget/spec.md */
 			handler() {
 				this.fetchEvents()
 			},
 		},
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		activeMode() {
 			this.fetchEvents()
 		},
@@ -335,12 +351,14 @@ export default {
 	methods: {
 		t,
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		setMode(mode) {
 			if (VIEW_MODES.includes(mode)) {
 				this.activeMode = mode
 			}
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		modeLabel(mode) {
 			if (mode === 'month') {
 				return t('mydash', 'Month')
@@ -356,6 +374,7 @@ export default {
 		 *
 		 * @return {{from: Date, to: Date}|null} the date window
 		 */
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		computeRange() {
 			if (this.activeMode === 'month') {
 				return this.monthRange
@@ -371,6 +390,7 @@ export default {
 			return { from, to }
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		async fetchEvents() {
 			if (!this.placementId || !this.hasSources) {
 				this.events = []
@@ -398,6 +418,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		parseDate(value) {
 			if (!value) {
 				return new Date()
@@ -406,6 +427,7 @@ export default {
 			return Number.isNaN(d.getTime()) ? new Date() : d
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		toIsoDate(date) {
 			const yyyy = date.getFullYear()
 			const mm = String(date.getMonth() + 1).padStart(2, '0')
@@ -413,6 +435,7 @@ export default {
 			return `${yyyy}-${mm}-${dd}`
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		formatTime(event) {
 			if (event.allDay) {
 				return t('mydash', 'All day')
@@ -423,11 +446,13 @@ export default {
 			return `${hh}:${mm}`
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		formatDayHeader(date) {
 			const month = date.toLocaleString(undefined, { month: 'short' })
 			return `${this.weekdayHeaders[date.getDay()]} ${date.getDate()} ${month}`
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		eventStyle(event) {
 			if (!this.colorByCalendar) {
 				return {}

@@ -229,6 +229,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/widgets/spec.md */
 		filteredWidgets() {
 			if (!this.searchQuery) {
 				return this.sortedWidgets
@@ -240,6 +241,7 @@ export default {
 			)
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		sortedWidgets() {
 			return [...this.widgets].sort((a, b) => {
 				// Show not-placed widgets first.
@@ -259,19 +261,23 @@ export default {
 			return this.placedWidgetIds.includes(widgetId)
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		addWidget(widget) {
 			// Allow adding the same widget multiple times.
 			this.$emit('add', widget.id)
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		createDashboard() {
 			this.$emit('create-dashboard')
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		editDashboard(dashboard) {
 			this.$emit('edit-dashboard', dashboard)
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		deleteDashboard(dashboard) {
 			this.$emit('delete-dashboard', dashboard)
 		},

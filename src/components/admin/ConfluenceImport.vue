@@ -131,6 +131,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/confluence-html-import/spec.md */
 		onFileSelected(event) {
 			const files = event?.target?.files
 			this.selectedFile = (files && files.length > 0) ? files[0] : null
@@ -139,6 +140,7 @@ export default {
 			this.errorMessage = ''
 		},
 
+		/** @spec openspec/specs/confluence-html-import/spec.md */
 		async runDryRun() {
 			if (!this.selectedFile) return
 			this.running = 'dry-run'
@@ -157,6 +159,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/confluence-html-import/spec.md */
 		async runImport() {
 			if (!this.selectedFile) return
 			this.running = 'import'

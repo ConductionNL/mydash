@@ -109,6 +109,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/container-widget/spec.md */
 		paddingOptions() {
 			return [
 				{ value: 'none', label: t('mydash', 'None') },
@@ -126,6 +127,7 @@ export default {
 		 *
 		 * @return {string}
 		 */
+		/** @spec openspec/specs/container-widget/spec.md */
 		backgroundColorValue() {
 			const value = this.backgroundColor
 			if (typeof value !== 'string' || value === '' || value === 'transparent') {
@@ -134,6 +136,7 @@ export default {
 			return value
 		},
 
+		/** @spec openspec/specs/container-widget/spec.md */
 		assembledContent() {
 			return {
 				placements: this.placements,
@@ -151,6 +154,7 @@ export default {
 		 * @param {string} field one of: backgroundColor, padding, title
 		 * @param {string} value new value
 		 */
+		/** @spec openspec/specs/container-widget/spec.md */
 		updateField(field, value) {
 			this[field] = value
 			this.$emit('update:content', this.assembledContent)
@@ -162,6 +166,7 @@ export default {
 		 *
 		 * @return {string[]} validation errors (always empty)
 		 */
+		/** @spec openspec/specs/container-widget/spec.md */
 		validate() {
 			return []
 		},

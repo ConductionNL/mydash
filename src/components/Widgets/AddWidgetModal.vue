@@ -136,6 +136,7 @@ export default {
 
 	emits: ['close', 'submit'],
 
+	/** @spec openspec/specs/widgets/spec.md */
 	setup() {
 		// One composable instance per modal mount. The composable owns the
 		// type/content/editingWidget reactive state shared with sub-forms.
@@ -156,6 +157,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/widgets/spec.md */
 		state() {
 			return this.form.state
 		},
@@ -167,6 +169,7 @@ export default {
 		 *
 		 * @return {string[]}
 		 */
+		/** @spec openspec/specs/widgets/spec.md */
 		availableTypes() {
 			return listWidgetTypes()
 		},
@@ -177,6 +180,7 @@ export default {
 		 *
 		 * @return {boolean}
 		 */
+		/** @spec openspec/specs/widgets/spec.md */
 		showTypeSelect() {
 			return !this.editingWidget && !this.preselectedType
 		},
@@ -190,6 +194,7 @@ export default {
 		 *
 		 * @return {object|null}
 		 */
+		/** @spec openspec/specs/widgets/spec.md */
 		activeSubFormComponent() {
 			const entry = getWidgetTypeEntry(this.state.type)
 			return entry?.form || null
@@ -201,6 +206,7 @@ export default {
 		 *
 		 * @return {string}
 		 */
+		/** @spec openspec/specs/widgets/spec.md */
 		modalTitle() {
 			return this.editingWidget
 				? t('mydash', 'Edit Widget')
@@ -212,6 +218,7 @@ export default {
 		 *
 		 * @return {string}
 		 */
+		/** @spec openspec/specs/widgets/spec.md */
 		submitLabel() {
 			return this.editingWidget ? t('mydash', 'Save') : t('mydash', 'Add')
 		},
@@ -222,6 +229,7 @@ export default {
 		 *
 		 * @return {string[]}
 		 */
+		/** @spec openspec/specs/widgets/spec.md */
 		validationErrors() {
 			// touch the tick so Vue tracks it as a dependency
 			// eslint-disable-next-line no-unused-expressions
@@ -233,6 +241,7 @@ export default {
 			return this.validationErrors.length === 0
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		firstError() {
 			const err = this.validationErrors[0]
 			// Hide the internal "no active form" sentinel from the user UI.
@@ -241,6 +250,7 @@ export default {
 	},
 
 	watch: {
+		/** @spec openspec/specs/widgets/spec.md */
 		show(isOpen) {
 			if (isOpen) {
 				this.openLifecycle()
@@ -248,12 +258,14 @@ export default {
 		},
 		editingWidget: {
 			immediate: false,
+			/** @spec openspec/specs/widgets/spec.md */
 			handler(widget) {
 				if (this.show && widget) {
 					this.form.loadEditingWidget(widget)
 				}
 			},
 		},
+		/** @spec openspec/specs/widgets/spec.md */
 		preselectedType(type) {
 			if (this.show && type && !this.editingWidget) {
 				this.form.resetForm(type)
@@ -261,6 +273,7 @@ export default {
 		},
 	},
 
+	/** @spec openspec/specs/widgets/spec.md */
 	created() {
 		// Seed state synchronously before the first render so the
 		// `v-if="activeSubFormComponent"` path resolves to the right
@@ -287,6 +300,7 @@ export default {
 		 * from `editingWidget`; create mode resets to the preselected type
 		 * (toolbar invocation) or to the first available registered type.
 		 */
+		/** @spec openspec/specs/widgets/spec.md */
 		openLifecycle() {
 			if (this.editingWidget) {
 				this.form.loadEditingWidget(this.editingWidget)
@@ -315,6 +329,7 @@ export default {
 		 * remounted the sub-form and rebound the ref) lets the
 		 * computed re-run against the fresh sub-form's `validate()`.
 		 */
+		/** @spec openspec/specs/widgets/spec.md */
 		onTypeSwitch() {
 			this.form.resetForm(this.state.type)
 			this.validationTick++
@@ -332,6 +347,7 @@ export default {
 		 *
 		 * @param {object} content the sub-form's current content payload
 		 */
+		/** @spec openspec/specs/widgets/spec.md */
 		onContentUpdate(content) {
 			this.state.content = { ...content }
 			this.validationTick++
@@ -341,6 +357,7 @@ export default {
 		 * Cancel button / backdrop / NcModal `close` event. REQ-WDG-013 —
 		 * close is non-destructive; it does not emit submit.
 		 */
+		/** @spec openspec/specs/widgets/spec.md */
 		onCancel() {
 			this.$emit('close')
 		},
@@ -353,6 +370,7 @@ export default {
 		 *
 		 * @param {KeyboardEvent} event the keydown event
 		 */
+		/** @spec openspec/specs/widgets/spec.md */
 		onKeydown(event) {
 			if (this.show && event.key === 'Escape') {
 				this.$emit('close')
@@ -368,6 +386,7 @@ export default {
 		 * (REQ-GRID-014: single placement authority). The modal MUST
 		 * NOT call the GridStack add-widget API directly. REQ-WDG-010.
 		 */
+		/** @spec openspec/specs/widgets/spec.md */
 		onSubmit() {
 			if (!this.isValid) {
 				return
@@ -383,6 +402,7 @@ export default {
 		 * @param {string} type the registry type key
 		 * @return {string}
 		 */
+		/** @spec openspec/specs/widgets/spec.md */
 		typeDisplayName(type) {
 			const entry = getWidgetTypeEntry(type)
 			return entry?.displayName || type

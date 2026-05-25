@@ -128,11 +128,13 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/news-widget/spec.md */
 		feedUrls() {
 			const value = this.content && this.content.feedUrls
 			return Array.isArray(value) ? value : []
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		layout() {
 			const value = this.content && this.content.layout
 			if (typeof value !== 'string' || ALLOWED_LAYOUTS.includes(value) === false) {
@@ -141,10 +143,12 @@ export default {
 			return value
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		layoutClass() {
 			return `news-widget--${this.layout}`
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		itemLimit() {
 			const value = this.content && this.content.itemLimit
 			if (typeof value !== 'number' || value < 1 || value > 50) {
@@ -153,16 +157,19 @@ export default {
 			return value
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		showThumbnails() {
 			const value = this.content && this.content.showThumbnails
 			return value === undefined ? true : value === true
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		showSummary() {
 			const value = this.content && this.content.showSummary
 			return value === undefined ? true : value === true
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		summaryMaxChars() {
 			const value = this.content && this.content.summaryMaxChars
 			if (typeof value !== 'number' || value < 0) {
@@ -171,15 +178,18 @@ export default {
 			return value
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		dateFormat() {
 			const value = this.content && this.content.dateFormat
 			return value === 'absolute' ? 'absolute' : 'relative'
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		placementId() {
 			return this.placement && this.placement.id ? this.placement.id : null
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		failedBadgeLabel() {
 			if (this.failedCount === 1) {
 				return t('mydash', '1 feed failed')
@@ -187,6 +197,7 @@ export default {
 			return t('mydash', '{count} feeds failed').replace('{count}', String(this.failedCount))
 		},
 
+		/** @spec openspec/specs/news-widget/spec.md */
 		failedTooltip() {
 			if (this.failedUrls.length === 0) {
 				return ''
@@ -198,6 +209,7 @@ export default {
 	watch: {
 		placementId: {
 			immediate: true,
+			/** @spec openspec/specs/news-widget/spec.md */
 			handler(newId) {
 				if (newId !== null && newId !== undefined) {
 					this.loadItems()
@@ -207,6 +219,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/news-widget/spec.md */
 		async loadItems() {
 			if (this.placementId === null) {
 				return
@@ -241,6 +254,7 @@ export default {
 		 * @param {Event}  event MouseEvent
 		 * @param {object} item  the rendered news item
 		 */
+		/** @spec openspec/specs/news-widget/spec.md */
 		onItemClick(event, item) {
 			if (!item || !item.link) {
 				return
@@ -260,6 +274,7 @@ export default {
 		 * @param {object} item news item
 		 * @return {string} truncated summary HTML
 		 */
+		/** @spec openspec/specs/news-widget/spec.md */
 		formattedSummary(item) {
 			const raw = typeof item.summary === 'string' ? item.summary : ''
 			if (raw.length <= this.summaryMaxChars) {
@@ -278,6 +293,7 @@ export default {
 		 * @param {string} pubDate ISO 8601 date string
 		 * @return {string} formatted date label
 		 */
+		/** @spec openspec/specs/news-widget/spec.md */
 		formatDate(pubDate) {
 			if (typeof pubDate !== 'string' || pubDate === '') {
 				return ''

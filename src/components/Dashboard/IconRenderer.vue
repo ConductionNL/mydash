@@ -83,6 +83,7 @@ export default {
 			return isCustomIconUrl(this.name)
 		},
 
+		/** @spec openspec/specs/dashboard-icons/spec.md */
 		iconComponent() {
 			return getIconComponent(this.name)
 		},

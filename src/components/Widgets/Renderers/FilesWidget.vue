@@ -216,18 +216,22 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/files-widget/spec.md */
 		placementId() {
 			return Number(this.placement?.id || 0)
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		allowUpload() {
 			return this.content?.allowUpload === true
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		allowDelete() {
 			return this.content?.allowDelete === true
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		viewerCanWrite() {
 			// REQ-FLS-007: when at least one item is editable we treat
 			// the viewer as having write permission on the folder. The
@@ -243,10 +247,12 @@ export default {
 			return this.items.some((item) => item.canEdit === true)
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		canShowUpload() {
 			return this.allowUpload && this.viewerCanWrite && !this.errorCode
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		pathSegments() {
 			if (!this.currentSubPath || this.currentSubPath === '/') {
 				return []
@@ -257,6 +263,7 @@ export default {
 				.filter((segment) => segment !== '')
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		filteredItems() {
 			const query = this.searchQuery.trim().toLowerCase()
 			if (query === '') {
@@ -268,6 +275,7 @@ export default {
 			})
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		noSearchResultsLabel() {
 			return t(
 				'mydash',
@@ -280,6 +288,7 @@ export default {
 	watch: {
 		placement: {
 			immediate: true,
+			/** @spec openspec/specs/files-widget/spec.md */
 			handler() {
 				this.currentSubPath = '/'
 				this.items = []
@@ -291,6 +300,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/files-widget/spec.md */
 		async fetchContents(append = false) {
 			if (this.placementId === 0) {
 				return
@@ -341,12 +351,14 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		loadMore() {
 			if (this.nextCursor) {
 				this.fetchContents(true)
 			}
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		onItemClick(item) {
 			if (item.isFolder) {
 				const next = this.joinPath(this.currentSubPath, item.name)
@@ -356,6 +368,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		navigateTo(path) {
 			this.currentSubPath = path || '/'
 			this.searchQuery = ''
@@ -363,11 +376,13 @@ export default {
 			this.fetchContents()
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		segmentPathTo(index) {
 			const segments = this.pathSegments.slice(0, index + 1)
 			return '/' + segments.join('/')
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		joinPath(base, name) {
 			const trimmedBase = String(base || '/').replace(/\/+$/, '')
 			const trimmedName = String(name || '').replace(/^\/+/, '')
@@ -377,6 +392,7 @@ export default {
 			return `${trimmedBase}/${trimmedName}`
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		openFileInFilesApp(fileId) {
 			if (!fileId) {
 				return
@@ -385,18 +401,22 @@ export default {
 			window.open(url, '_blank', 'noopener,noreferrer')
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		canDeleteItem(item) {
 			return this.allowDelete === true && item.canDelete === true
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		confirmDelete(item) {
 			this.confirmTarget = item
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		cancelDelete() {
 			this.confirmTarget = null
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		async performDelete() {
 			const target = this.confirmTarget
 			if (!target) {
@@ -423,12 +443,14 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		triggerUpload() {
 			if (this.$refs.fileInput) {
 				this.$refs.fileInput.click()
 			}
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		async onFileInputChange(event) {
 			const fileList = event?.target?.files
 			if (!fileList || fileList.length === 0) {
@@ -464,6 +486,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/files-widget/spec.md */
 		formatSize(bytes, isFolder) {
 			if (isFolder) {
 				return ''

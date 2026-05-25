@@ -86,6 +86,7 @@ export default {
 	methods: {
 		t,
 
+		/** @spec openspec/specs/dashboard-rss-feeds/spec.md */
 		async enable() {
 			this.loading = true
 			try {
@@ -98,6 +99,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/dashboard-rss-feeds/spec.md */
 		async regenerate() {
 			this.loading = true
 			try {
@@ -110,6 +112,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/dashboard-rss-feeds/spec.md */
 		async revoke() {
 			this.loading = true
 			try {
@@ -123,6 +126,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/dashboard-rss-feeds/spec.md */
 		applyToken(payload) {
 			if (!payload) {
 				return
@@ -131,6 +135,7 @@ export default {
 			this.feedUrl = payload.url || ''
 		},
 
+		/** @spec openspec/specs/dashboard-rss-feeds/spec.md */
 		async copyUrl() {
 			if (!this.feedUrl) {
 				return

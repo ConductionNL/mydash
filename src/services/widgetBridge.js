@@ -17,6 +17,7 @@
  */
 class WidgetBridge {
 
+	/** @spec openspec/specs/legacy-widget-bridge/spec.md */
 	constructor() {
 		this.widgetCallbacks = new Map()
 		this.statusCallbacks = new Map()

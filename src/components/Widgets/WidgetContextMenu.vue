@@ -89,6 +89,7 @@ export default {
 		 *
 		 * @return {object}
 		 */
+		/** @spec openspec/specs/widgets/spec.md */
 		positionStyle() {
 			return {
 				top: `${this.top}px`,
@@ -100,16 +101,19 @@ export default {
 	methods: {
 		t,
 
+		/** @spec openspec/specs/widgets/spec.md */
 		onEdit() {
 			this.$emit('edit')
 			this.$emit('close')
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		onRemove() {
 			this.$emit('remove')
 			this.$emit('close')
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		onCancel() {
 			this.$emit('close')
 		},

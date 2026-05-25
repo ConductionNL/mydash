@@ -168,6 +168,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/divider-widget/spec.md */
 		styleOptions() {
 			return [
 				{ value: STYLES.LINE, label: t('mydash', 'Horizontal line') },
@@ -176,6 +177,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/divider-widget/spec.md */
 		lineStyleOptions() {
 			return [
 				{ value: 'solid', label: t('mydash', 'Solid') },
@@ -184,6 +186,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/divider-widget/spec.md */
 		whitespaceSizeOptions() {
 			return [
 				{ value: 'small', label: t('mydash', 'Small (16px)') },
@@ -193,6 +196,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/divider-widget/spec.md */
 		assembledContent() {
 			return {
 				style: this.style,
@@ -213,6 +217,7 @@ export default {
 		 *                        lineStyle, whitespaceSize, headingText
 		 * @param {string|number} value new value
 		 */
+		/** @spec openspec/specs/divider-widget/spec.md */
 		updateField(field, value) {
 			this[field] = value
 			this.$emit('update:content', this.assembledContent)
@@ -224,6 +229,7 @@ export default {
 		 *
 		 * @param {string} raw raw value from the NcTextField number input
 		 */
+		/** @spec openspec/specs/divider-widget/spec.md */
 		updateThickness(raw) {
 			const parsed = Number(raw)
 			const clamped = Number.isFinite(parsed)
@@ -238,6 +244,7 @@ export default {
 		 *
 		 * @return {string[]} validation errors
 		 */
+		/** @spec openspec/specs/divider-widget/spec.md */
 		validate() {
 			if (this.style === STYLES.HEADING_BREAK) {
 				if (typeof this.headingText !== 'string' || this.headingText.trim() === '') {

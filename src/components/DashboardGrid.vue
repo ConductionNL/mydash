@@ -121,6 +121,7 @@ export default {
 	},
 
 	watch: {
+		/** @spec openspec/specs/grid-layout/spec.md */
 		editMode(newVal) {
 			if (this.grid) {
 				if (newVal) {
@@ -133,6 +134,7 @@ export default {
 
 		placements: {
 			deep: true,
+			/** @spec openspec/specs/grid-layout/spec.md */
 			handler(newPlacements) {
 				if (this.grid) {
 					this.syncGridItems(newPlacements)
@@ -141,6 +143,7 @@ export default {
 		},
 	},
 
+	/** @spec openspec/specs/grid-layout/spec.md */
 	mounted() {
 		this.initGrid()
 		this.computeViewportRows()
@@ -148,6 +151,7 @@ export default {
 		document.addEventListener('click', this.handleDocumentClick)
 	},
 
+	/** @spec openspec/specs/grid-layout/spec.md */
 	beforeDestroy() {
 		if (this.grid) {
 			this.grid.destroy(false)
@@ -167,6 +171,7 @@ export default {
 		 * @param {MouseEvent} event the contextmenu event
 		 * @param {object} placement the placement under the cursor
 		 */
+		/** @spec openspec/specs/grid-layout/spec.md */
 		onItemContextMenu(event, placement) {
 			this.$emit('widget-right-click', event, placement)
 		},
@@ -180,6 +185,7 @@ export default {
 		 * @param {object} spec widget spec with optional {w, h} dimensions
 		 * @return {object} placement position {x, y, w, h}
 		 */
+		/** @spec openspec/specs/grid-layout/spec.md */
 		placeWidget(spec) {
 			return placeNewWidget(spec, this.placements, this.grid, this.viewportRows)
 		},
@@ -188,6 +194,7 @@ export default {
 		 * Compute viewport rows from the grid container height.
 		 * Called on mount and resize events.
 		 */
+		/** @spec openspec/specs/grid-layout/spec.md */
 		computeViewportRows() {
 			if (!this.$refs.gridContainer) return
 			const containerHeight = this.$refs.gridContainer.offsetHeight
@@ -195,6 +202,7 @@ export default {
 			this.viewportRows = Math.ceil(containerHeight / rowHeight)
 		},
 
+		/** @spec openspec/specs/grid-layout/spec.md */
 		getPlacementKey(placement) {
 			// Generate a key that changes when placement properties update.
 			// Include updatedAt or stringify relevant properties to force re-render.
@@ -205,11 +213,13 @@ export default {
 			return this.widgets.find(w => w.id === widgetId)
 		},
 
+		/** @spec openspec/specs/grid-layout/spec.md */
 		isTilePlacement(placement) {
 			// Check if this placement is for a tile (has tileType field).
 			return placement.tileType === 'custom'
 		},
 
+		/** @spec openspec/specs/grid-layout/spec.md */
 		getTileData(placement) {
 			// Return tile data from the placement itself.
 			if (!this.isTilePlacement(placement)) return null
@@ -226,6 +236,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/grid-layout/spec.md */
 		initGrid() {
 			// Mirror the JS cell-height constant into the CSS custom
 			// property BEFORE GridStack initialises so any first-paint
@@ -255,6 +266,7 @@ export default {
 			})
 		},
 
+		/** @spec openspec/specs/grid-layout/spec.md */
 		handleGridChange(items) {
 			if (!items || items.length === 0) return
 
@@ -282,6 +294,7 @@ export default {
 			this.$emit('update:placements', updatedPlacements)
 		},
 
+		/** @spec openspec/specs/grid-layout/spec.md */
 		syncGridItems(placements) {
 			// Add new items
 			for (const placement of placements) {
@@ -316,6 +329,7 @@ export default {
 		 * @param {MouseEvent} event right-click event
 		 * @param {object} placement widget placement object
 		 */
+		/** @spec openspec/specs/grid-layout/spec.md */
 		onWidgetRightClick(event, placement) {
 			if (!this.editMode) {
 				// In view mode, let the browser native menu appear
@@ -333,6 +347,7 @@ export default {
 		/**
 		 * Close the context menu (REQ-WDG-016).
 		 */
+		/** @spec openspec/specs/grid-layout/spec.md */
 		closeContextMenu() {
 			this.contextMenu.show = false
 			this.contextMenu.widget = null
@@ -344,6 +359,7 @@ export default {
 		 *
 		 * @param {object} placement widget placement object
 		 */
+		/** @spec openspec/specs/grid-layout/spec.md */
 		onContextEdit(placement) {
 			this.$emit('widget-edit', placement)
 		},
@@ -354,6 +370,7 @@ export default {
 		 *
 		 * @param {object} placement widget placement object
 		 */
+		/** @spec openspec/specs/grid-layout/spec.md */
 		onContextRemove(placement) {
 			this.$emit('widget-remove', placement.id)
 		},
@@ -363,6 +380,7 @@ export default {
 		 *
 		 * @param {MouseEvent} event click event
 		 */
+		/** @spec openspec/specs/grid-layout/spec.md */
 		handleDocumentClick(event) {
 			if (!this.contextMenu.show) {
 				return

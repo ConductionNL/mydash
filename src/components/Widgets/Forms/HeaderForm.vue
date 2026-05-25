@@ -273,6 +273,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/header-widget/spec.md */
 		overlayModeOptions() {
 			return [
 				{ value: 'none', label: t('mydash', 'None') },
@@ -281,6 +282,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		textAlignOptions() {
 			return [
 				{ value: 'left', label: t('mydash', 'Left') },
@@ -289,6 +291,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		verticalAlignOptions() {
 			return [
 				{ value: 'top', label: t('mydash', 'Top') },
@@ -297,6 +300,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		heightOptions() {
 			return [
 				{ value: 'small', label: t('mydash', 'Small (120px)') },
@@ -306,6 +310,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		ctaStyleOptions() {
 			return [
 				{ value: 'primary', label: t('mydash', 'Primary') },
@@ -314,6 +319,7 @@ export default {
 			]
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		ctaPayload() {
 			const label = typeof this.ctaLabel === 'string' ? this.ctaLabel.trim() : ''
 			const url = typeof this.ctaUrl === 'string' ? this.ctaUrl.trim() : ''
@@ -327,6 +333,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/header-widget/spec.md */
 		assembledContent() {
 			return {
 				title: this.title,
@@ -353,6 +360,7 @@ export default {
 		 * @param {string} field one of the top-level keys
 		 * @param {*} value new value
 		 */
+		/** @spec openspec/specs/header-widget/spec.md */
 		updateField(field, value) {
 			this[field] = value
 			this.$emit('update:content', this.assembledContent)
@@ -364,6 +372,7 @@ export default {
 		 * @param {string} field one of: label, url, style
 		 * @param {string} value new value
 		 */
+		/** @spec openspec/specs/header-widget/spec.md */
 		updateCta(field, value) {
 			if (field === 'label') {
 				this.ctaLabel = value
@@ -382,6 +391,7 @@ export default {
 		 *
 		 * @param {Event} event the input change event
 		 */
+		/** @spec openspec/specs/header-widget/spec.md */
 		async onFileSelected(event) {
 			const target = event && event.target
 			const file = target && target.files && target.files[0]
@@ -419,6 +429,7 @@ export default {
 		 *
 		 * @return {string[]} validation errors
 		 */
+		/** @spec openspec/specs/header-widget/spec.md */
 		validate() {
 			const errors = []
 			if (typeof this.title !== 'string' || this.title.trim() === '') {

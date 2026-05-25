@@ -58,6 +58,7 @@ function rectsOverlap(aX, aY, aW, aH, bX, bY, bW, bH) {
  * @return {object} placement position {x, y, w, h} for the new widget
  *   Note: the caller MUST persist this position AND any pushed-down widgets via the standard API.
  */
+/** @spec openspec/specs/grid-layout/spec.md */
 export function placeNewWidget(spec, layout, gridInstance, viewportRows = 8) {
 	const newW = spec.w ?? DEFAULT_W
 	const newH = spec.h ?? DEFAULT_H

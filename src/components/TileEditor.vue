@@ -264,9 +264,11 @@ export default {
 
 	computed: {
 		isOpen: {
+			/** @spec openspec/specs/tiles/spec.md */
 			get() {
 				return this.open
 			},
+			/** @spec openspec/specs/tiles/spec.md */
 			set(value) {
 				if (!value) {
 					this.$emit('close')
@@ -274,14 +276,17 @@ export default {
 			},
 		},
 		selectedIcon: {
+			/** @spec openspec/specs/tiles/spec.md */
 			get() {
 				const option = this.iconOptions.find(opt => opt.id === this.form.icon)
 				return option || this.iconOptions.find(opt => opt.id === 'link')
 			},
+			/** @spec openspec/specs/tiles/spec.md */
 			set(value) {
 				this.form.icon = value.id
 			},
 		},
+		/** @spec openspec/specs/tiles/spec.md */
 		iconPath() {
 			return this.selectedIcon.icon
 		},
@@ -290,6 +295,7 @@ export default {
 	watch: {
 		tile: {
 			immediate: true,
+			/** @spec openspec/specs/tiles/spec.md */
 			handler(newTile) {
 				if (newTile) {
 					this.form = {
@@ -304,11 +310,13 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/tiles/spec.md */
 		getNlDesignIconUrl(iconName) {
 			// Generate URL for NlDesign icons
 			return `${window.location.origin}/apps/nldesign/img/icons/${iconName}.svg`
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		resetForm() {
 			this.form = {
 				title: '',
@@ -321,6 +329,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		saveTile() {
 			// Convert icon ID to the actual SVG path for the API
 			const tileData = {

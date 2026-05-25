@@ -100,6 +100,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/footer-customization/spec.md */
 		showFooter() {
 			if (!this.footer) {
 				return false
@@ -107,6 +108,7 @@ export default {
 			return this.resolvedHtml !== null || this.resolvedConfig !== null
 		},
 
+		/** @spec openspec/specs/footer-customization/spec.md */
 		resolvedHtml() {
 			if (!this.footer) {
 				return null
@@ -124,6 +126,7 @@ export default {
 			return null
 		},
 
+		/** @spec openspec/specs/footer-customization/spec.md */
 		resolvedConfig() {
 			if (!this.footer) {
 				return null
@@ -150,6 +153,7 @@ export default {
 			return out
 		},
 
+		/** @spec openspec/specs/footer-customization/spec.md */
 		layoutMode() {
 			if (!this.resolvedConfig) {
 				return 'columns'
@@ -157,6 +161,7 @@ export default {
 			return this.resolvedConfig.layoutMode === 'inline' ? 'inline' : 'columns'
 		},
 
+		/** @spec openspec/specs/footer-customization/spec.md */
 		orgName() {
 			if (!this.resolvedConfig) {
 				return ''
@@ -164,6 +169,7 @@ export default {
 			return this.resolvedConfig.organisation || ''
 		},
 
+		/** @spec openspec/specs/footer-customization/spec.md */
 		addressLines() {
 			if (!this.resolvedConfig || !this.resolvedConfig.address) {
 				return []
@@ -174,6 +180,7 @@ export default {
 				.filter((l) => l.length > 0)
 		},
 
+		/** @spec openspec/specs/footer-customization/spec.md */
 		legalText() {
 			if (!this.resolvedConfig) {
 				return ''
@@ -181,6 +188,7 @@ export default {
 			return this.resolvedConfig.legal || ''
 		},
 
+		/** @spec openspec/specs/footer-customization/spec.md */
 		hasLinksOrLegal() {
 			if (!this.resolvedConfig) {
 				return false
@@ -190,6 +198,7 @@ export default {
 			return hasLinks || hasLegal
 		},
 
+		/** @spec openspec/specs/footer-customization/spec.md */
 		footerStyle() {
 			const style = {}
 			if (this.footer && this.footer.backgroundColor) {
@@ -210,6 +219,7 @@ export default {
 		 * the map.
 		 * @param map
 		 */
+		/** @spec openspec/specs/footer-customization/spec.md */
 		pickVariant(map) {
 			if (!map || typeof map !== 'object') {
 				return ''

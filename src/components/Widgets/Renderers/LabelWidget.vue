@@ -33,6 +33,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/label-widget/spec.md */
 		text() {
 			return typeof this.content?.text === 'string' ? this.content.text : ''
 		},
@@ -41,30 +42,37 @@ export default {
 			return this.text.trim() !== ''
 		},
 
+		/** @spec openspec/specs/label-widget/spec.md */
 		displayText() {
 			return this.hasText ? this.text : t('mydash', 'Label')
 		},
 
+		/** @spec openspec/specs/label-widget/spec.md */
 		fontSize() {
 			return this.content?.fontSize || '16px'
 		},
 
+		/** @spec openspec/specs/label-widget/spec.md */
 		color() {
 			return this.content?.color || 'var(--color-main-text)'
 		},
 
+		/** @spec openspec/specs/label-widget/spec.md */
 		backgroundColor() {
 			return this.content?.backgroundColor || 'transparent'
 		},
 
+		/** @spec openspec/specs/label-widget/spec.md */
 		fontWeight() {
 			return this.content?.fontWeight || 'bold'
 		},
 
+		/** @spec openspec/specs/label-widget/spec.md */
 		textAlign() {
 			return this.content?.textAlign || 'center'
 		},
 
+		/** @spec openspec/specs/label-widget/spec.md */
 		wrapperStyle() {
 			return {
 				width: '100%',
@@ -77,6 +85,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/label-widget/spec.md */
 		spanStyle() {
 			return {
 				'font-size': this.fontSize,

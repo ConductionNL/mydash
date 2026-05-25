@@ -265,18 +265,22 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		label() {
 			return typeof this.content?.label === 'string' ? this.content.label : ''
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		url() {
 			return typeof this.content?.url === 'string' ? this.content.url : ''
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		icon() {
 			return typeof this.content?.icon === 'string' ? this.content.icon : ''
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		actionType() {
 			const declared = this.content?.actionType
 			if (declared === ACTION_TYPES.INTERNAL || declared === ACTION_TYPES.CREATE_FILE) {
@@ -285,11 +289,13 @@ export default {
 			return ACTION_TYPES.EXTERNAL
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		backgroundColor() {
 			const value = this.content?.backgroundColor
 			return (typeof value === 'string' && value !== '') ? value : 'var(--color-primary)'
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		textColor() {
 			const value = this.content?.textColor
 			return (typeof value === 'string' && value !== '') ? value : 'var(--color-primary-text)'
@@ -299,10 +305,12 @@ export default {
 			return this.icon !== ''
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		displayLabel() {
 			return this.label !== '' ? this.label : t('mydash', 'Link Button')
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		buttonStyle() {
 			return {
 				'background-color': this.backgroundColor,
@@ -314,6 +322,7 @@ export default {
 			return this.isAdmin === true && this.canEdit === true
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		extension() {
 			// In createFile mode the widget's `url` field carries the
 			// extension token (e.g. `docx`, `txt`). Strip a leading dot
@@ -322,6 +331,7 @@ export default {
 			return raw.toLowerCase()
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		canCreate() {
 			return this.filenameDraft.trim() !== ''
 		},
@@ -332,6 +342,7 @@ export default {
 		 *
 		 * @return {string} 'button' or 'list'
 		 */
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		displayMode() {
 			return this.content?.displayMode === DISPLAY_MODES.LIST
 				? DISPLAY_MODES.LIST
@@ -344,6 +355,7 @@ export default {
 		 *
 		 * @return {boolean} true when the list renderer should activate
 		 */
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		isListMode() {
 			return this.displayMode === DISPLAY_MODES.LIST
 				&& Array.isArray(this.content?.links)
@@ -355,6 +367,7 @@ export default {
 		 *
 		 * @return {string} 'vertical' or 'horizontal'
 		 */
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		listOrientation() {
 			return this.content?.listOrientation === ORIENTATIONS.HORIZONTAL
 				? ORIENTATIONS.HORIZONTAL
@@ -370,6 +383,7 @@ export default {
 		 *
 		 * @return {string} 'compact' | 'normal' | 'spacious'
 		 */
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		listItemGap() {
 			const declared = this.content?.listItemGap
 			if (declared === GAPS.COMPACT || declared === GAPS.SPACIOUS) {
@@ -378,10 +392,12 @@ export default {
 			return GAPS.NORMAL
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		listGapValue() {
 			return GAP_REM[this.listItemGap]
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		listContainerStyle() {
 			return { gap: this.listGapValue }
 		},
@@ -393,6 +409,7 @@ export default {
 		 *
 		 * @return {Array<object>} normalised link entries
 		 */
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		renderableLinks() {
 			if (Array.isArray(this.content?.links) === false) {
 				return []
@@ -416,6 +433,7 @@ export default {
 			})
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		rootClass() {
 			return {
 				'link-button-widget--list': this.isListMode,
@@ -429,6 +447,7 @@ export default {
 			return isCustomIconUrl(icon)
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		listItemStyle(link) {
 			const bg = (typeof link.backgroundColor === 'string' && link.backgroundColor !== '')
 				? link.backgroundColor
@@ -447,6 +466,7 @@ export default {
 		 *
 		 * @return {void}
 		 */
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		onSingleClick() {
 			if (this.isInEditMode || this.isExecuting) {
 				return
@@ -466,6 +486,7 @@ export default {
 		 * @param {object} link the normalised link entry
 		 * @return {void}
 		 */
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		onListClick(link) {
 			if (this.isInEditMode || this.isExecuting) {
 				return
@@ -477,6 +498,7 @@ export default {
 			})
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		dispatchAction({ actionType, url, value }) {
 			switch (actionType) {
 			case ACTION_TYPES.EXTERNAL:
@@ -494,6 +516,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		handleExternal(url) {
 			if (typeof url !== 'string' || url === '') {
 				return
@@ -501,6 +524,7 @@ export default {
 			window.open(url, '_blank', 'noopener,noreferrer')
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		handleInternal(actionId) {
 			const { invoke } = useInternalActions()
 			const result = invoke(actionId)
@@ -514,6 +538,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		openCreateFileModal(extensionToken) {
 			const raw = (typeof extensionToken === 'string' ? extensionToken : '')
 				.trim()
@@ -529,6 +554,7 @@ export default {
 			})
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		closeModal() {
 			if (this.isExecuting) {
 				return
@@ -536,6 +562,7 @@ export default {
 			this.modalOpen = false
 		},
 
+		/** @spec openspec/specs/link-button-widget/spec.md */
 		async onCreateConfirm() {
 			if (!this.canCreate || this.isExecuting) {
 				return

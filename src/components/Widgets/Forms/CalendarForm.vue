@@ -107,18 +107,22 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		viewModeOptions() {
 			return VIEW_MODES
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		internalCalendarsText() {
 			return this.internalCalendars.join('\n')
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		externalIcsUrlsText() {
 			return this.externalIcsUrls.join('\n')
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		assembledContent() {
 			return {
 				internalCalendars: [...this.internalCalendars],
@@ -131,21 +135,25 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		coerceNumber(value, fallback) {
 			const num = parseInt(value, 10)
 			return Number.isFinite(num) && num > 0 ? num : fallback
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		updateField(field, value) {
 			this[field] = value
 			this.$emit('update:content', this.assembledContent)
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		updateNumber(field, value) {
 			this[field] = this.coerceNumber(value, DEFAULT_CONTENT[field])
 			this.$emit('update:content', this.assembledContent)
 		},
 
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		updateMulti(field, raw) {
 			const lines = String(raw || '')
 				.split('\n')
@@ -161,6 +169,7 @@ export default {
 		 *
 		 * @return {string[]} error strings; empty array means valid.
 		 */
+		/** @spec openspec/specs/calendar-widget/spec.md */
 		validate() {
 			const errors = []
 

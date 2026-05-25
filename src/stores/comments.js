@@ -55,6 +55,7 @@ export const useCommentsStore = defineStore('comments', {
 		 * @param {string} uuid The dashboard UUID.
 		 * @return {Promise<{enabled: boolean, comments: Array}>} The envelope.
 		 */
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		async loadComments(uuid) {
 			this.loading = { ...this.loading, [uuid]: true }
 			this.errors = { ...this.errors, [uuid]: null }
@@ -81,6 +82,7 @@ export const useCommentsStore = defineStore('comments', {
 		 * @param {object} payload  `{message, parentId?}` body.
 		 * @return {Promise<object>} The created comment envelope.
 		 */
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		async createComment(uuid, payload) {
 			const response = await api.createDashboardComment(uuid, payload)
 			const created = response.data
@@ -118,6 +120,7 @@ export const useCommentsStore = defineStore('comments', {
 		 * @param {object} payload `{message}` body.
 		 * @return {Promise<object>} The updated comment envelope.
 		 */
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		async updateComment(uuid, id, payload) {
 			const response = await api.updateDashboardComment(uuid, id, payload)
 			const updated = response.data
@@ -144,6 +147,7 @@ export const useCommentsStore = defineStore('comments', {
 		 * @param {number} id   The comment ID.
 		 * @return {Promise<void>} Resolves on success.
 		 */
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		async deleteComment(uuid, id) {
 			await api.deleteDashboardComment(uuid, id)
 			const thread = this.threadFor(uuid)
@@ -166,6 +170,7 @@ export const useCommentsStore = defineStore('comments', {
 		 * @param {string} uuid The dashboard UUID.
 		 * @return {void}
 		 */
+		/** @spec openspec/specs/dashboard-comments/spec.md */
 		clearThread(uuid) {
 			const next = { ...this.byDashboard }
 			delete next[uuid]

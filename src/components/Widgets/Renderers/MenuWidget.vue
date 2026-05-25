@@ -264,6 +264,7 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/menu-widget/spec.md */
 		items() {
 			const arr = this.content?.items
 			return Array.isArray(arr) ? arr : []
@@ -273,11 +274,13 @@ export default {
 			return this.items.length === 0
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		effectiveStyle() {
 			const s = this.content?.style
 			return VALID_STYLES.includes(s) ? s : 'dropdown'
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		orientation() {
 			const o = this.content?.orientation
 			if (this.effectiveStyle === 'tree') {
@@ -286,14 +289,17 @@ export default {
 			return VALID_ORIENTATIONS.includes(o) ? o : 'horizontal'
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		showIcons() {
 			return this.content?.showIcons !== false
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		expandedByDefault() {
 			return this.content?.expandedByDefault === true
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		activeItemHighlight() {
 			const h = this.content?.activeItemHighlight
 			return VALID_HIGHLIGHTS.includes(h) ? h : 'underline'
@@ -303,6 +309,7 @@ export default {
 			return this.isAdmin === true && this.canEdit === true
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		rootClasses() {
 			return {
 				[`menu-widget--style-${this.effectiveStyle}`]: true,
@@ -312,6 +319,7 @@ export default {
 		},
 
 		/** Map of dotted-key -> 'active' | 'in-path' | undefined. */
+		/** @spec openspec/specs/menu-widget/spec.md */
 		activePathMap() {
 			return computeActivePath({
 				items: this.items,
@@ -319,15 +327,18 @@ export default {
 			})
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		activePath() {
 			return this.activePathMap.path
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		activeLeafKey() {
 			return this.activePathMap.leafKey
 		},
 	},
 
+	/** @spec openspec/specs/menu-widget/spec.md */
 	mounted() {
 		this.boundLocationListener = () => {
 			this.currentLocation = this.readLocation()
@@ -338,6 +349,7 @@ export default {
 		}
 	},
 
+	/** @spec openspec/specs/menu-widget/spec.md */
 	beforeDestroy() {
 		if (typeof window !== 'undefined' && this.boundLocationListener) {
 			window.removeEventListener('popstate', this.boundLocationListener)
@@ -346,6 +358,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/menu-widget/spec.md */
 		readLocation() {
 			if (typeof window === 'undefined' || !window.location) {
 				return { pathname: '/', host: '' }
@@ -356,6 +369,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		setTopRef(el, idx) {
 			if (el) {
 				this.topRefs[idx] = el
@@ -366,6 +380,7 @@ export default {
 			return item && Array.isArray(item.children) && item.children.length > 0
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		topItemClass(key) {
 			const state = this.activePath[key]
 			if (state === 'active' || key === this.activeLeafKey) {
@@ -377,6 +392,7 @@ export default {
 			return ''
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		onDropdownTopClick(idx, item) {
 			if (!this.hasChildren(item)) {
 				this.onNavigate(item)
@@ -391,12 +407,14 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		openDropdown(idx) {
 			if (this.hasChildren(this.items[idx])) {
 				this.dropOpenIndex = idx
 			}
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		onMegaTopClick(idx, item) {
 			if (!this.hasChildren(item)) {
 				this.onNavigate(item)
@@ -405,6 +423,7 @@ export default {
 			this.megaOpenIndex = this.megaOpenIndex === idx ? null : idx
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		onMegaTopKey(event, idx, item) {
 			if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
 				event.preventDefault()
@@ -414,12 +433,14 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		closeAll() {
 			this.dropOpenIndex = null
 			this.flyoutOpenKey = null
 			this.megaOpenIndex = null
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		onNavigate(item) {
 			if (!item || typeof item.url !== 'string' || item.url === '') {
 				return
@@ -450,6 +471,7 @@ export default {
 			return typeof url === 'string' && /^https?:\/\//i.test(url)
 		},
 
+		/** @spec openspec/specs/menu-widget/spec.md */
 		onEmptyStateClick() {
 			if (this.isInEditMode) {
 				this.$emit('edit-request')
@@ -457,6 +479,7 @@ export default {
 		},
 
 		// Exposed for tests.
+		/** @spec openspec/specs/menu-widget/spec.md */
 		__isActive(itemUrl) {
 			return isActiveItem(itemUrl, this.currentLocation)
 		},

@@ -86,23 +86,28 @@ export default {
 	},
 
 	computed: {
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		store() {
 			return useOrgNavigationStore()
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		tree() {
 			return this.store.visibleTree
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		shouldRender() {
 			return this.store.shouldRender
 		},
 
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		positionClass() {
 			return ['org-nav--' + (this.store.position || 'hidden')]
 		},
 	},
 
+	/** @spec openspec/specs/navigation-editor-org/spec.md */
 	mounted() {
 		this.currentUrl = (typeof window !== 'undefined' && window.location)
 			? window.location.pathname
@@ -121,6 +126,7 @@ export default {
 		 * navigation via the standard `<a href>` semantics emitted by
 		 * `OrgNavigationItem`.
 		 */
+		/** @spec openspec/specs/navigation-editor-org/spec.md */
 		onNavigate() {
 			this.openDrawer = false
 		},
