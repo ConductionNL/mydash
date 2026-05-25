@@ -17,6 +17,10 @@ return [
 		['name' => 'metrics#index', 'url' => '/api/metrics', 'verb' => 'GET'],
 		['name' => 'health#index', 'url' => '/api/health', 'verb' => 'GET'],
 
+		// Generic per-user preferences (used by shared nextcloud-vue widgets, e.g. CnSupportDialog).
+		['name' => 'preferences#getPreference', 'url' => '/api/preferences/{key}', 'verb' => 'GET'],
+		['name' => 'preferences#setPreference', 'url' => '/api/preferences/{key}', 'verb' => 'PUT'],
+
 		// Main page
 		['name' => 'page#index', 'url' => '/', 'verb' => 'GET'],
 
