@@ -90,6 +90,7 @@
 					:options="shareeOptions"
 					:filterable="false"
 					:loading="shareeLoading"
+					:aria-label-combobox="t('mydash', 'Share with users and groups')"
 					:placeholder="t('mydash', 'Search users and groups…')"
 					label="displayName"
 					track-by="key"
@@ -118,6 +119,7 @@
 						<NcSelect
 							:value="permissionOptionFor(share.permissionLevel)"
 							:options="permissionOptions"
+							:input-label="t('mydash', 'Permission level')"
 							label="label"
 							track-by="value"
 							:clearable="false"

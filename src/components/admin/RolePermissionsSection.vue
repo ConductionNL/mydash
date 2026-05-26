@@ -69,48 +69,30 @@
 			{{ t('mydash', 'Add role permission') }}
 		</NcButton>
 
-		<NcModal v-if="showEditor" @close="closeEditor">
-			<div class="mydash-admin__editor">
-				<h3>{{ editorRow.id ? t('mydash', 'Edit role permission') : t('mydash', 'Add role permission') }}</h3>
-				<NcTextField :value.sync="editorRow.name"
-					:label="t('mydash', 'Name')"
-					required />
-				<NcTextField :value.sync="editorRow.groupId"
-					:label="t('mydash', 'Nextcloud group ID')"
-					required
-					:disabled="!!editorRow.id" />
-				<NcTextField :value.sync="editorRow.description"
-					:label="t('mydash', 'Description (optional)')" />
-				<NcTextField :value.sync="allowedWidgetsCsv"
-					:label="t('mydash', 'Allowed widget IDs (comma separated)')" />
-				<NcTextField :value.sync="deniedWidgetsCsv"
-					:label="t('mydash', 'Denied widget IDs (comma separated)')" />
-				<div class="mydash-admin__editor-actions">
-					<NcButton type="tertiary" @click="closeEditor">
-						{{ t('mydash', 'Cancel') }}
-					</NcButton>
-					<NcButton type="primary"
-						:disabled="store.saving || !editorRow.name || !editorRow.groupId"
-						@click="save">
-						{{ t('mydash', 'Save') }}
-					</NcButton>
-				</div>
-			</div>
-		</NcModal>
+		<RolePermissionEditorModal
+			v-if="showEditor"
+			:row="editorRow"
+			:allowed-widgets-csv="allowedWidgetsCsv"
+			:denied-widgets-csv="deniedWidgetsCsv"
+			:saving="store.saving"
+			@update:row="editorRow = $event"
+			@update:allowed-widgets-csv="allowedWidgetsCsv = $event"
+			@update:denied-widgets-csv="deniedWidgetsCsv = $event"
+			@save="save"
+			@close="closeEditor" />
 	</div>
 </template>
 
 <script>
 import {
 	NcButton,
-	NcModal,
-	NcTextField,
 	NcEmptyContent,
 } from '@conduction/nextcloud-vue'
 import AccountGroup from 'vue-material-design-icons/AccountGroup.vue'
 import Plus from 'vue-material-design-icons/Plus.vue'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
+import RolePermissionEditorModal from '../../modals/RolePermissionEditorModal.vue'
 import { useRoleFeaturePermissionStore } from '../../stores/roleFeaturePermissions.js'
 
 export default {
@@ -118,13 +100,12 @@ export default {
 
 	components: {
 		NcButton,
-		NcModal,
-		NcTextField,
 		NcEmptyContent,
 		AccountGroup,
 		Plus,
 		Pencil,
 		Delete,
+		RolePermissionEditorModal,
 	},
 
 	/** @spec openspec/specs/admin-roles/spec.md */

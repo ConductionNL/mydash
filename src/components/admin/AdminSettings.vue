@@ -273,6 +273,7 @@
 						v-model="editingTemplate.targetGroups"
 						:options="availableGroups"
 						:multiple="true"
+						:aria-label-combobox="t('mydash', 'Target groups')"
 						:placeholder="t('mydash', 'Select groups (leave empty for all users)')" />
 				</div>
 
