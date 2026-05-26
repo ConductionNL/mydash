@@ -430,6 +430,7 @@ export const api = {
 		return axios.get(`${baseUrl}/api/admin/action-matrix`)
 	},
 
+	/** @spec openspec/architecture/adr-023-action-authorization.md */
 	updateActionMatrix(matrix) {
 		return axios.put(`${baseUrl}/api/admin/action-matrix`, { matrix })
 	},
