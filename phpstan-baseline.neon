@@ -1,29 +1,53 @@
-# Per-app phpstan lint debt baseline.
-#
-# Regenerate with: ./vendor/bin/phpstan analyse --generate-baseline
-# Apps without lint debt ship this file empty.
-#
-# Tracked-debt entries here MUST have an open GitHub issue. The directive for the
-# Conduction fleet is "no per-app validation rules; if we need exceptions then
-# they are for all apps." A baseline entry is acceptable only as a temporary
-# tracked-debt marker with a removal timeline.
-#
-# Tracking issue: https://github.com/ConductionNL/mydash/issues/269
-# Generated: 2026-05-21 by canonical-root-configs sync (Phase 2 fleet rollout).
-# Captures the 50 errors that surfaced when the prior 14 path-scoped JSONResponse
-# / DataResponse suppressions in phpstan.neon were removed, plus pre-existing
-# latent debt. Remove entries incrementally per the strategy in #269.
-
 parameters:
 	ignoreErrors:
 		-
-			message: "#^Parameter \\$data of class OCP\\\\AppFramework\\\\Http\\\\DataResponse constructor expects T of OCP\\\\AppFramework\\\\Http\\\\DataResponseType, array given\\.$#"
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
 			count: 2
-			path: lib/Controller/DashboardShareApiController.php
+			path: lib/Controller/ActionMatrixController.php
 
 		-
-			message: "#^Parameter \\$data of class OCP\\\\AppFramework\\\\Http\\\\DataResponse constructor expects T of OCP\\\\AppFramework\\\\Http\\\\DataResponseType, array\\<array\\> given\\.$#"
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 4
+			path: lib/Controller/AdminBulkController.php
+
+		-
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
 			count: 2
+			path: lib/Controller/AdminCleanupController.php
+
+		-
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 19
+			path: lib/Controller/AdminController.php
+
+		-
+			message: "#^Property OCA\\\\MyDash\\\\Controller\\\\AdminController\\:\\:\\$groupManager is never read, only written\\.$#"
+			count: 1
+			path: lib/Controller/AdminController.php
+
+		-
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 3
+			path: lib/Controller/AdminDemoShowcasesController.php
+
+		-
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 2
+			path: lib/Controller/AdminOrgNavigationController.php
+
+		-
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 4
+			path: lib/Controller/AnalyticsController.php
+
+		-
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 2
+			path: lib/Controller/ConfluenceImportController.php
+
+		-
+			message: "#^Parameter \\$data of class OCP\\\\AppFramework\\\\Http\\\\DataResponse constructor expects T of OCP\\\\AppFramework\\\\Http\\\\DataResponseType, array given\\.$#"
+			count: 4
 			path: lib/Controller/DashboardShareApiController.php
 
 		-
@@ -62,9 +86,94 @@ parameters:
 			path: lib/Controller/FeedController.php
 
 		-
+			message: "#^Access to constant STATUS_UNAUTHORIZED on an unknown class OCA\\\\MyDash\\\\Controller\\\\Http\\.$#"
+			count: 1
+			path: lib/Controller/ManifestController.php
+
+		-
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 5
+			path: lib/Controller/MetadataAdminController.php
+
+		-
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 1
+			path: lib/Controller/ResourceController.php
+
+		-
+			message: "#^Property OCA\\\\MyDash\\\\Controller\\\\ResourceController\\:\\:\\$l10n is never read, only written\\.$#"
+			count: 1
+			path: lib/Controller/ResourceController.php
+
+		-
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 6
+			path: lib/Controller/RoleFeaturePermissionApiController.php
+
+		-
 			message: "#^Comparison operation \"\\<\" between 0\\|1 and 5 is always true\\.$#"
 			count: 1
 			path: lib/Db/DashboardMapper.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/CommentsListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/GroupDeletedListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/LocksListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/MetadataValuesListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/PublicSharesListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/ReactionsListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/TranslationsListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/TreeListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/UserDeletedListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/VersionsListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/ViewAnalyticsListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/WidgetPlacementsListener.php
 
 		-
 			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\DashboardTableBuilder\\:\\:addColumns\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
@@ -155,6 +264,16 @@ parameters:
 			message: "#^Parameter \\$table of method OCA\\\\MyDash\\\\Migration\\\\SettingsTableBuilder\\:\\:addIndexes\\(\\) has invalid type Doctrine\\\\DBAL\\\\Schema\\\\Table\\.$#"
 			count: 1
 			path: lib/Migration/SettingsTableBuilder.php
+
+		-
+			message: "#^Result of \\|\\| is always false\\.$#"
+			count: 1
+			path: lib/Service/ActionAuthService.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 2
+			path: lib/Service/ActionAuthService.php
 
 		-
 			message: "#^Offset 'mime' on array\\{0\\: int\\<0, max\\>, 1\\: int\\<0, max\\>, 2\\: int, 3\\: string, mime\\: string, channels\\?\\: int, bits\\?\\: int\\} on left side of \\?\\? always exists and is not nullable\\.$#"
