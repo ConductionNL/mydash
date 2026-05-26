@@ -32,7 +32,7 @@ use Exception;
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\FeedToken;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IURLGenerator;
 use OCP\IUserManager;
 use OCP\L10N\IFactory;
@@ -94,7 +94,7 @@ class FeedService
      *                                           (REQ-DASH-013 / REQ-FEED-006).
      * @param IUserManager     $userManager      Display-name lookup.
      * @param IURLGenerator    $urlGenerator     Absolute-URL builder.
-     * @param IConfig          $config           App-config reader.
+     * @param IAppConfig       $appConfig        App-config reader.
      * @param IFactory         $l10nFactory      L10N factory for feed labels.
      * @param LoggerInterface  $logger           Diagnostic logger.
      */
@@ -102,7 +102,7 @@ class FeedService
         private readonly DashboardService $dashboardService,
         private readonly IUserManager $userManager,
         private readonly IURLGenerator $urlGenerator,
-        private readonly IConfig $config,
+        private readonly IAppConfig $appConfig,
         private readonly IFactory $l10nFactory,
         private readonly LoggerInterface $logger,
     ) {
@@ -339,13 +339,12 @@ XML;
      */
     private function resolveItemCap(): int
     {
-        $raw = $this->config->getAppValue(
+        $cap = $this->appConfig->getValueInt(
             Application::APP_ID,
             self::CONFIG_KEY_ITEM_CAP,
-            (string) self::DEFAULT_ITEM_CAP
+            self::DEFAULT_ITEM_CAP
         );
 
-        $cap = (int) $raw;
         if ($cap < 1) {
             return self::DEFAULT_ITEM_CAP;
         }

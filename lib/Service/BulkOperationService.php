@@ -46,7 +46,7 @@ use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCA\MyDash\Exception\DashboardHasChildrenException;
 use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IGroupManager;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -119,7 +119,7 @@ class BulkOperationService
      *                                                 caller an NC admin"
      *                                                 short-circuit on the
      *                                                 permission pre-check.
-     * @param IConfig               $config            App config for
+     * @param IAppConfig            $appConfig         App config for
      *                                                 reading the
      *                                                 per-request cap.
      * @param LoggerInterface       $logger            Diagnostic logger.
@@ -131,7 +131,7 @@ class BulkOperationService
         private readonly DashboardTreeService $treeService,
         private readonly ActivityPublisher $activityPublisher,
         private readonly IGroupManager $groupManager,
-        private readonly IConfig $config,
+        private readonly IAppConfig $appConfig,
         private readonly LoggerInterface $logger,
     ) {
     }//end __construct()
@@ -609,17 +609,16 @@ class BulkOperationService
     /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function getEffectiveCap(): int
     {
-        $raw = $this->config->getAppValue(
+        $value = $this->appConfig->getValueInt(
             Application::APP_ID,
             self::CONFIG_KEY_MAX_PER_REQUEST,
-            (string) self::DEFAULT_MAX_PER_REQUEST
+            self::DEFAULT_MAX_PER_REQUEST
         );
 
-        $value = (int) $raw;
         if ($value <= 0) {
             $this->logger->warning(
                 message: 'Invalid bulk operation cap; falling back to default',
-                context: ['raw' => $raw]
+                context: ['raw' => (string) $value]
             );
 
             return self::DEFAULT_MAX_PER_REQUEST;

@@ -30,6 +30,7 @@ use OCA\MyDash\Service\FeedRefreshService;
 use OCP\Http\Client\IClient;
 use OCP\Http\Client\IClientService;
 use OCP\Http\Client\IResponse;
+use OCP\IAppConfig;
 use OCP\IConfig;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -47,6 +48,9 @@ class FeedRefreshServiceTest extends TestCase
 
     /** @var IClient&MockObject */
     private $client;
+
+    /** @var IAppConfig&MockObject */
+    private $appConfig;
 
     /** @var IConfig&MockObject */
     private $config;
@@ -73,6 +77,7 @@ class FeedRefreshServiceTest extends TestCase
 
         $this->clientService   = $this->createMock(IClientService::class);
         $this->client          = $this->createMock(IClient::class);
+        $this->appConfig       = $this->createMock(IAppConfig::class);
         $this->config          = $this->createMock(IConfig::class);
         $this->cacheMapper     = $this->createMock(FeedCacheMapper::class);
         $this->placementMapper = $this->createMock(WidgetPlacementMapper::class);
@@ -82,6 +87,7 @@ class FeedRefreshServiceTest extends TestCase
 
         $this->service = new FeedRefreshService(
             clientService: $this->clientService,
+            appConfig: $this->appConfig,
             config: $this->config,
             cacheMapper: $this->cacheMapper,
             placementMapper: $this->placementMapper,
@@ -360,7 +366,7 @@ XML;
         $row = new FeedCache();
         $row->setFeedUrl('https://blocked-site.com/feed');
 
-        $this->config->method('getAppValue')
+        $this->appConfig->method('getValueString')
             ->willReturnCallback(static function (string $app, string $key, string $default): string {
                 if ($key === FeedRefreshService::CONFIG_KEY_ALLOWED_HOSTS) {
                     return 'bbc.com,example.org';
@@ -402,7 +408,7 @@ XML;
         $row = new FeedCache();
         $row->setFeedUrl('https://bbc.com/news/rss.xml');
 
-        $this->config->method('getAppValue')
+        $this->appConfig->method('getValueString')
             ->willReturnCallback(static function (string $app, string $key, string $default): string {
                 if ($key === FeedRefreshService::CONFIG_KEY_ALLOWED_HOSTS) {
                     return 'BBC.com';
@@ -506,7 +512,7 @@ XML;
      */
     private function configEmpty(): void
     {
-        $this->config->method('getAppValue')
+        $this->appConfig->method('getValueString')
             ->willReturnCallback(static function (string $app, string $key, string $default): string {
                 return $default;
             });

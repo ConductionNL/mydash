@@ -39,6 +39,7 @@ use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\DashboardView;
 use OCA\MyDash\Db\DashboardViewMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IAppConfig;
 use OCP\IConfig;
 
 /**
@@ -102,14 +103,14 @@ class AnalyticsService
      *                                             name lookups.
      * @param UniqueViewerDedup   $dedup           Unique-viewer dedup
      *                                             service.
-     * @param IConfig             $config          Nextcloud config
-     *                                             service for
-     *                                             admin/user settings.
+     * @param IAppConfig          $appConfig       App config for admin settings.
+     * @param IConfig             $config          Nextcloud config for user values.
      */
     public function __construct(
         private readonly DashboardViewMapper $viewMapper,
         private readonly DashboardMapper $dashboardMapper,
         private readonly UniqueViewerDedup $dedup,
+        private readonly IAppConfig $appConfig,
         private readonly IConfig $config,
     ) {
     }//end __construct()
@@ -123,13 +124,11 @@ class AnalyticsService
     /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function isGloballyEnabled(): bool
     {
-        $value = $this->config->getAppValue(
+        return $this->appConfig->getValueBool(
             'mydash',
             self::CONFIG_KEY_ENABLED,
-            'true'
+            true
         );
-
-        return ($value === 'true' || $value === '1');
     }//end isGloballyEnabled()
 
     /**
@@ -163,13 +162,11 @@ class AnalyticsService
     /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function getRetentionDays(): int
     {
-        $value = $this->config->getAppValue(
+        $days = $this->appConfig->getValueInt(
             'mydash',
             self::CONFIG_KEY_RETENTION_DAYS,
-            (string) self::DEFAULT_RETENTION_DAYS
+            self::DEFAULT_RETENTION_DAYS
         );
-
-        $days = (int) $value;
         if ($days < self::MIN_RETENTION_DAYS) {
             return self::MIN_RETENTION_DAYS;
         }
@@ -202,10 +199,10 @@ class AnalyticsService
             $clamped = self::MAX_RETENTION_DAYS;
         }
 
-        $this->config->setAppValue(
+        $this->appConfig->setValueInt(
             'mydash',
             self::CONFIG_KEY_RETENTION_DAYS,
-            (string) $clamped
+            $clamped
         );
 
         return $clamped;
@@ -222,15 +219,10 @@ class AnalyticsService
     /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function setGlobalEnabled(bool $enabled): void
     {
-        $value = 'false';
-        if ($enabled === true) {
-            $value = 'true';
-        }
-
-        $this->config->setAppValue(
+        $this->appConfig->setValueBool(
             'mydash',
             self::CONFIG_KEY_ENABLED,
-            $value
+            $enabled
         );
     }//end setGlobalEnabled()
 

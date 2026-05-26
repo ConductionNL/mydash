@@ -26,7 +26,7 @@ namespace OCA\MyDash\Migration;
 use Closure;
 use OCP\DB\ISchemaWrapper;
 use OCP\DB\Types;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\IUserManager;
@@ -43,13 +43,13 @@ class Version001006Date20260430130000 extends SimpleMigrationStep
     /**
      * Constructor
      *
-     * @param IConfig       $config       The app config.
+     * @param IAppConfig    $appConfig    The app config.
      * @param IDBConnection $db           The database connection.
      * @param IUserManager  $userManager  The user manager.
      * @param IGroupManager $groupManager The group manager.
      */
     public function __construct(
-        private readonly IConfig $config,
+        private readonly IAppConfig $appConfig,
         private readonly IDBConnection $db,
         private readonly IUserManager $userManager,
         private readonly IGroupManager $groupManager,
@@ -172,8 +172,8 @@ class Version001006Date20260430130000 extends SimpleMigrationStep
         Closure $schemaClosure,
         array $options
     ): void {
-        $enabled = $this->config->getAppValue(
-            appName: 'mydash',
+        $enabled = $this->appConfig->getValueString(
+            app: 'mydash',
             key: 'cleanup_orphan_shares',
             default: 'false'
         );

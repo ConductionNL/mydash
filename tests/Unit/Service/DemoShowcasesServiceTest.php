@@ -31,7 +31,7 @@ use OCA\MyDash\Service\DemoShowcasesService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\Dashboard\IManager;
 use OCP\Dashboard\IWidget;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IDBConnection;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -52,8 +52,8 @@ class DemoShowcasesServiceTest extends TestCase
     /** @var IDBConnection&MockObject */
     private $db;
 
-    /** @var IConfig&MockObject */
-    private $config;
+    /** @var IAppConfig&MockObject */
+    private $appConfig;
 
     /** @var IManager&MockObject */
     private $dashboardManager;
@@ -69,14 +69,14 @@ class DemoShowcasesServiceTest extends TestCase
         $this->dashboardMapper  = $this->createMock(originalClassName: DashboardMapper::class);
         $this->placementMapper  = $this->createMock(originalClassName: WidgetPlacementMapper::class);
         $this->db               = $this->createMock(originalClassName: IDBConnection::class);
-        $this->config           = $this->createMock(originalClassName: IConfig::class);
+        $this->appConfig        = $this->createMock(originalClassName: IAppConfig::class);
         $this->dashboardManager = $this->createMock(originalClassName: IManager::class);
 
         $this->service = new DemoShowcasesService(
             dashboardMapper: $this->dashboardMapper,
             placementMapper: $this->placementMapper,
             db: $this->db,
-            config: $this->config,
+            appConfig: $this->appConfig,
             dashboardManager: $this->dashboardManager,
             logger: new NullLogger(),
         );
@@ -98,7 +98,7 @@ class DemoShowcasesServiceTest extends TestCase
      */
     public function testDescribeShowcaseReturnsNullWhenZipMissing(): void
     {
-        $this->config->method('getAppValue')->willReturn('');
+        $this->appConfig->method('getValueString')->willReturn('');
         $result = $this->service->describeShowcase(showcaseId: 'de-bron');
         $this->assertNull(actual: $result);
     }
@@ -120,7 +120,7 @@ class DemoShowcasesServiceTest extends TestCase
             dashboardPayload: $this->validDashboardPayload(uuid: 'dashbrd-uuid', widgets: []),
         );
 
-        $this->config->method('getAppValue')->willReturn('');
+        $this->appConfig->method('getValueString')->willReturn('');
 
         $result = $this->service->describeShowcase(showcaseId: 'de-bron');
         $this->assertIsArray(actual: $result);
@@ -149,7 +149,7 @@ class DemoShowcasesServiceTest extends TestCase
             dashboardPayload: $this->validDashboardPayload(uuid: 'b-uuid', widgets: []),
         );
 
-        $this->config->method('getAppValue')->willReturn('');
+        $this->appConfig->method('getValueString')->willReturn('');
 
         $available = $this->service->getAvailableShowcases();
         $ids = array_map(callback: static fn(array $row) => $row['id'], array: $available);
@@ -171,7 +171,7 @@ class DemoShowcasesServiceTest extends TestCase
         );
 
         $this->dashboardManager->method('getWidgets')->willReturn([]);
-        $this->config->method('getAppValue')->willReturn('');
+        $this->appConfig->method('getValueString')->willReturn('');
 
         $persisted = new Dashboard();
         // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
@@ -189,9 +189,9 @@ class DemoShowcasesServiceTest extends TestCase
                 return $persisted;
             });
 
-        $this->config
+        $this->appConfig
             ->expects($this->once())
-            ->method('setAppValue')
+            ->method('setValueString')
             ->with('mydash', 'showcase_installed_de-bron', 'installed-uuid');
 
         $this->db->expects($this->once())->method('beginTransaction');
@@ -226,7 +226,7 @@ class DemoShowcasesServiceTest extends TestCase
         $widget = $this->createMock(originalClassName: IWidget::class);
         $widget->method('getId')->willReturn('recommendations');
         $this->dashboardManager->method('getWidgets')->willReturn([$widget]);
-        $this->config->method('getAppValue')->willReturn('');
+        $this->appConfig->method('getValueString')->willReturn('');
 
         $persisted = new Dashboard();
         // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
@@ -256,7 +256,7 @@ class DemoShowcasesServiceTest extends TestCase
             dashboardPayload: $this->validDashboardPayload(uuid: 'src', widgets: []),
         );
 
-        $this->config->method('getAppValue')->willReturn('previously-installed-uuid');
+        $this->appConfig->method('getValueString')->willReturn('previously-installed-uuid');
         $this->dashboardMapper->expects($this->never())->method('insert');
 
         $result = $this->service->installShowcase(showcaseId: 'de-bron');
@@ -286,7 +286,7 @@ class DemoShowcasesServiceTest extends TestCase
         // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
         $existing->setUuid('installed-uuid');
 
-        $this->config->method('getAppValue')->willReturn('installed-uuid');
+        $this->appConfig->method('getValueString')->willReturn('installed-uuid');
         $this->dashboardMapper
             ->method('findByUuid')
             ->with(uuid: 'installed-uuid')
@@ -294,9 +294,9 @@ class DemoShowcasesServiceTest extends TestCase
 
         $this->placementMapper->expects($this->once())->method('deleteByDashboardId')->with(dashboardId: 42);
         $this->dashboardMapper->expects($this->once())->method('delete')->with(entity: $existing);
-        $this->config
+        $this->appConfig
             ->expects($this->once())
-            ->method('deleteAppValue')
+            ->method('deleteKey')
             ->with('mydash', 'showcase_installed_de-bron');
 
         $this->service->uninstallShowcase(showcaseId: 'de-bron');
@@ -307,10 +307,10 @@ class DemoShowcasesServiceTest extends TestCase
      */
     public function testUninstallIsIdempotent(): void
     {
-        $this->config->method('getAppValue')->willReturn('');
+        $this->appConfig->method('getValueString')->willReturn('');
         $this->dashboardMapper->expects($this->never())->method('delete');
         $this->placementMapper->expects($this->never())->method('deleteByDashboardId');
-        $this->config->expects($this->never())->method('deleteAppValue');
+        $this->appConfig->expects($this->never())->method('deleteKey');
 
         $this->service->uninstallShowcase(showcaseId: 'de-bron');
     }
@@ -321,14 +321,14 @@ class DemoShowcasesServiceTest extends TestCase
      */
     public function testUninstallTolerantWhenDashboardMissing(): void
     {
-        $this->config->method('getAppValue')->willReturn('orphan-uuid');
+        $this->appConfig->method('getValueString')->willReturn('orphan-uuid');
         $this->dashboardMapper
             ->method('findByUuid')
             ->willThrowException(exception: new DoesNotExistException(msg: 'gone'));
 
-        $this->config
+        $this->appConfig
             ->expects($this->once())
-            ->method('deleteAppValue')
+            ->method('deleteKey')
             ->with('mydash', 'showcase_installed_de-bron');
 
         $this->service->uninstallShowcase(showcaseId: 'de-bron');
