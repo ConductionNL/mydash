@@ -37,8 +37,8 @@ use OCA\MyDash\Service\Cleanup\CategoryRegistryService;
 use OCA\MyDash\Service\OrphanedDataCleanupService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\AuthorizedAdminSetting;
 use OCP\AppFramework\Http\JSONResponse;
-use OCP\IGroupManager;
 use OCP\IRequest;
 use OCP\IUserSession;
 
@@ -55,14 +55,12 @@ class AdminCleanupController extends Controller
      * @param CategoryRegistryService    $registry       Category registry
      *                                                   (for unknown-name
      *                                                   error messages).
-     * @param IGroupManager              $groupManager   Admin check.
      * @param IUserSession               $userSession    Current user.
      */
     public function __construct(
         IRequest $request,
         private readonly OrphanedDataCleanupService $cleanupService,
         private readonly CategoryRegistryService $registry,
-        private readonly IGroupManager $groupManager,
         private readonly IUserSession $userSession,
     ) {
         parent::__construct(
@@ -80,17 +78,11 @@ class AdminCleanupController extends Controller
      * can display "last refreshed" badges.
      *
      * @return JSONResponse The scan result.
-     *
-     * @NoAdminRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function scan(): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         $cached = $this->cleanupService->getCachedScanResult();
         if ($cached !== null) {
             return new JSONResponse(
@@ -136,17 +128,11 @@ class AdminCleanupController extends Controller
      * @param bool|null              $dryRun     Dry-run flag.
      *
      * @return JSONResponse The purge result.
-     *
-     * @NoAdminRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function purge(?array $categories=null, ?bool $dryRun=null): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         $names = $this->normaliseCategories(input: ($categories ?? []));
         if ($names === null) {
             return new JSONResponse(
@@ -216,32 +202,4 @@ class AdminCleanupController extends Controller
         return $normalised;
     }//end normaliseCategories()
 
-    /**
-     * Verify the caller is an authenticated Nextcloud admin.
-     *
-     * Returns `null` to signal "proceed". Returns a 403 JSON envelope
-     * for unauthenticated and non-admin callers — see class docblock
-     * for the rationale of not distinguishing the two.
-     *
-     * @return JSONResponse|null Null when admin, else 403.
-     */
-    private function requireAdmin(): ?JSONResponse
-    {
-        $user = $this->userSession->getUser();
-        if ($user === null) {
-            return new JSONResponse(
-                data: ['error' => 'Administrator privileges required.'],
-                statusCode: Http::STATUS_FORBIDDEN
-            );
-        }
-
-        if ($this->groupManager->isAdmin(userId: $user->getUID()) === false) {
-            return new JSONResponse(
-                data: ['error' => 'Administrator privileges required.'],
-                statusCode: Http::STATUS_FORBIDDEN
-            );
-        }
-
-        return null;
-    }//end requireAdmin()
 }//end class

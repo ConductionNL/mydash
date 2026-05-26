@@ -79,7 +79,7 @@ class DashboardMetadataController extends Controller
     public function getMetadata(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         $dashboard = $this->loadDashboard(uuid: $uuid);
@@ -118,7 +118,7 @@ class DashboardMetadataController extends Controller
     public function setMetadata(string $uuid, array $metadata=[]): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         $dashboard = $this->loadDashboard(uuid: $uuid);

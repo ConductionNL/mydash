@@ -43,37 +43,6 @@ class ConditionalService
     }//end __construct()
 
     /**
-     * Check if a widget placement should be visible for a user.
-     *
-     * @param WidgetPlacement $placement The widget placement.
-     * @param string          $userId    The user ID.
-     *
-     * @return bool Whether the widget is visible.
-     */
-    /** @spec openspec/specs/conditional-visibility/spec.md */
-    public function isWidgetVisible(
-        WidgetPlacement $placement,
-        string $userId
-    ): bool {
-        if ($placement->getIsVisible() === 0) {
-            return false;
-        }
-
-        $rules = $this->ruleMapper->findByPlacementId(
-            placementId: $placement->getId()
-        );
-
-        if (empty($rules) === true) {
-            return true;
-        }
-
-        return $this->visibilityChecker->checkRules(
-            rules: $rules,
-            userId: $userId
-        );
-    }//end isWidgetVisible()
-
-    /**
      * Evaluate a single rule.
      *
      * @param ConditionalRule $rule   The rule to evaluate.
@@ -91,6 +60,37 @@ class ConditionalService
             userId: $userId
         );
     }//end evaluateRule()
+
+    /**
+     * Check whether all rules for a placement allow visibility for a user.
+     *
+     * Fetches the rules for the placement and delegates to
+     * {@see VisibilityChecker::checkRules()} for include/exclude
+     * aggregation logic (REQ-VIS-003). Returns `true` when no rules
+     * are configured (no restriction = visible).
+     *
+     * @param int    $placementId The widget placement ID.
+     * @param string $userId      The acting user's UID.
+     *
+     * @return bool `true` when the placement is visible for the user.
+     *
+     * @spec openspec/specs/conditional-visibility/spec.md
+     */
+    public function checkRulesForPlacement(int $placementId, string $userId): bool
+    {
+        $rules = $this->ruleMapper->findByPlacementId(
+            placementId: $placementId
+        );
+
+        if (empty($rules) === true) {
+            return true;
+        }
+
+        return $this->visibilityChecker->checkRules(
+            rules: $rules,
+            userId: $userId
+        );
+    }//end checkRulesForPlacement()
 
     /**
      * Get rules for a placement.

@@ -39,8 +39,9 @@ use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Service\OrgNavigationService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\AuthorizedAdminSetting;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
-use OCP\IGroupManager;
 use OCP\IRequest;
 use OCP\IUserSession;
 
@@ -86,14 +87,12 @@ class AdminOrgNavigationController extends Controller
      *                                           service.
      * @param AdminSettingMapper   $settings     Persistence layer for
      *                                           the position scalar.
-     * @param IGroupManager        $groupManager Admin guard.
      * @param IUserSession         $userSession  Current user session.
      */
     public function __construct(
         IRequest $request,
         private readonly OrgNavigationService $service,
         private readonly AdminSettingMapper $settings,
-        private readonly IGroupManager $groupManager,
         private readonly IUserSession $userSession,
     ) {
         parent::__construct(
@@ -112,14 +111,14 @@ class AdminOrgNavigationController extends Controller
      * @return JSONResponse The filtered tree under `tree` plus the
      *                      effective `language`.
      *
-     * @NoAdminRequired
      */
+    #[NoAdminRequired]
     /** @spec openspec/specs/navigation-editor-org/spec.md */
     public function getOrgNavigation(string $lang=OrgNavigationService::DEFAULT_LANGUAGE): JSONResponse
     {
         $user = $this->userSession->getUser();
         if ($user === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         $language = $this->validateLanguage(language: $lang);
@@ -154,17 +153,13 @@ class AdminOrgNavigationController extends Controller
      *
      * @return JSONResponse The persisted tree (unchanged) on success.
      *
-     * @NoAdminRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/navigation-editor-org/spec.md */
     public function updateOrgNavigation(
         ?array $tree=null,
         string $lang=OrgNavigationService::DEFAULT_LANGUAGE
     ): JSONResponse {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
 
         $language = $this->validateLanguage(language: $lang);
         if ($language === null) {
@@ -203,14 +198,14 @@ class AdminOrgNavigationController extends Controller
      *
      * @return JSONResponse The current effective position.
      *
-     * @NoAdminRequired
      */
+    #[NoAdminRequired]
     /** @spec openspec/specs/navigation-editor-org/spec.md */
     public function getPosition(): JSONResponse
     {
         $user = $this->userSession->getUser();
         if ($user === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         return ResponseHelper::success(
@@ -227,15 +222,11 @@ class AdminOrgNavigationController extends Controller
      *
      * @return JSONResponse The persisted position on success.
      *
-     * @NoAdminRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/navigation-editor-org/spec.md */
     public function updatePosition(?string $position=null): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
 
         if ($position === null
             || in_array(needle: $position, haystack: self::ALLOWED_POSITIONS, strict: true) === false
@@ -300,25 +291,4 @@ class AdminOrgNavigationController extends Controller
         return $raw;
     }//end readPosition()
 
-    /**
-     * Verify the current session belongs to a Nextcloud admin.
-     *
-     * @return JSONResponse|null `null` when the caller is an admin;
-     *                           a 401/403 response otherwise.
-     */
-    private function requireAdmin(): ?JSONResponse
-    {
-        $user = $this->userSession->getUser();
-        if ($user === null) {
-            return ResponseHelper::unauthorized();
-        }
-
-        if ($this->groupManager->isAdmin(userId: $user->getUID()) === false) {
-            return ResponseHelper::forbidden(
-                message: 'Administrator privileges required.'
-            );
-        }
-
-        return null;
-    }//end requireAdmin()
 }//end class

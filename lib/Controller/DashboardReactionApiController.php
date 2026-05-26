@@ -82,7 +82,7 @@ class DashboardReactionApiController extends Controller
     public function getReactions(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -126,7 +126,7 @@ class DashboardReactionApiController extends Controller
     public function addReaction(string $uuid, string $emoji=''): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -177,7 +177,7 @@ class DashboardReactionApiController extends Controller
     public function removeReaction(string $uuid, string $emoji): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -231,7 +231,7 @@ class DashboardReactionApiController extends Controller
         ?string $cursor=null
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {

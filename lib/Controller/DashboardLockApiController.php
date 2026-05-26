@@ -89,7 +89,7 @@ class DashboardLockApiController extends Controller
     public function acquire(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -134,7 +134,7 @@ class DashboardLockApiController extends Controller
     public function heartbeat(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -183,7 +183,7 @@ class DashboardLockApiController extends Controller
     public function release(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -226,7 +226,7 @@ class DashboardLockApiController extends Controller
     public function get(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         $lock = $this->lockService->getLockState(dashboardUuid: $uuid);
@@ -263,7 +263,7 @@ class DashboardLockApiController extends Controller
     public function forceRelease(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {

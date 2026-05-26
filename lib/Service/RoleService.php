@@ -346,27 +346,6 @@ class RoleService
     }//end isEditorOrHigher()
 
     /**
-     * Whether the user has any MyDash role at all (Viewer or higher).
-     *
-     * Returns true even for users with no role — Viewer is the
-     * implicit baseline for any reader; the predicate is provided for
-     * call-site readability (REQ-ROLE-003).
-     *
-     * @param string $userId The user ID (unused; kept for API parity).
-     *
-     * @return bool Always true.
-     *
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
-     */
-    /** @spec openspec/specs/admin-roles/spec.md */
-    public function isViewerOrHigher(string $userId): bool
-    {
-        unset($userId);
-
-        return true;
-    }//end isViewerOrHigher()
-
-    /**
      * Whether the user is explicitly Viewer (REQ-ROLE-008 mutation guard).
      *
      * @param string $userId The user ID.

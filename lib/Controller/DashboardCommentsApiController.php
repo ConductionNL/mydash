@@ -93,7 +93,7 @@ class DashboardCommentsApiController extends Controller
     public function index(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -153,7 +153,7 @@ class DashboardCommentsApiController extends Controller
         $parentId=null
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -225,7 +225,7 @@ class DashboardCommentsApiController extends Controller
         ?string $message=null
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -287,7 +287,7 @@ class DashboardCommentsApiController extends Controller
     public function destroy(string $uuid, int $id): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {

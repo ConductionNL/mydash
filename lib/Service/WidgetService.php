@@ -167,6 +167,13 @@ class WidgetService
         int $gridHeight=4,
         ?array $content=null
     ): WidgetPlacement {
+        if ($content !== null) {
+            $this->validateWidgetContent(
+                widgetType: $widgetId,
+                content: $content
+            );
+        }
+
         return $this->placementService->addWidget(
             dashboardId: $dashboardId,
             widgetId: $widgetId,

@@ -109,7 +109,7 @@ class ManifestController extends Controller
     public function index(): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         // Retrieve ObjectService lazily — OpenRegister may not be enabled on

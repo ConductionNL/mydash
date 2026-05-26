@@ -97,7 +97,7 @@ class PeopleWidgetController extends Controller
         ?int $offset=0,
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {

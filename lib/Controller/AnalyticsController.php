@@ -40,13 +40,11 @@ use OCA\MyDash\Service\AnalyticsService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
-use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\AuthorizedAdminSetting;
 use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Http\Response;
-use OCP\IGroupManager;
 use OCP\IRequest;
-use OCP\IUserSession;
 
 /**
  * Admin-only controller for dashboard view-analytics endpoints.
@@ -59,16 +57,12 @@ class AnalyticsController extends Controller
      * @param IRequest         $request          The HTTP request.
      * @param AnalyticsService $analyticsService The analytics
      *                                           reporting service.
-     * @param IGroupManager    $groupManager     Nextcloud group
      *                                           manager (admin guard).
-     * @param IUserSession     $userSession      Active session
      *                                           accessor.
      */
     public function __construct(
         IRequest $request,
         private readonly AnalyticsService $analyticsService,
-        private readonly IGroupManager $groupManager,
-        private readonly IUserSession $userSession,
     ) {
         parent::__construct(
             appName: Application::APP_ID,
@@ -84,16 +78,12 @@ class AnalyticsController extends Controller
      *
      * @return JSONResponse The response.
      */
-    #[NoAdminRequired]
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function topDashboards(
         string $period='30d',
         int $limit=10
     ): JSONResponse {
-        $forbidden = $this->assertAdmin();
-        if ($forbidden !== null) {
-            return $forbidden;
-        }
 
         try {
             $rows = $this->analyticsService->getTopDashboards(
@@ -123,17 +113,12 @@ class AnalyticsController extends Controller
      *
      * @return JSONResponse The response.
      */
-    #[NoAdminRequired]
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function dashboardDetail(
         string $uuid,
         string $period='30d'
     ): JSONResponse {
-        $forbidden = $this->assertAdmin();
-        if ($forbidden !== null) {
-            return $forbidden;
-        }
-
         try {
             $rows = $this->analyticsService->getDashboardDetail(
                 dashboardUuid: $uuid,
@@ -168,14 +153,10 @@ class AnalyticsController extends Controller
      *
      * @return JSONResponse The response.
      */
-    #[NoAdminRequired]
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function instanceSummary(string $period='30d'): JSONResponse
     {
-        $forbidden = $this->assertAdmin();
-        if ($forbidden !== null) {
-            return $forbidden;
-        }
 
         try {
             $summary = $this->analyticsService->getInstanceSummary(
@@ -206,14 +187,10 @@ class AnalyticsController extends Controller
      * @return Response The CSV download response or a JSON error
      *                  envelope.
      */
-    #[NoAdminRequired]
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function exportCsv(string $period='30d'): Response
     {
-        $forbidden = $this->assertAdmin();
-        if ($forbidden !== null) {
-            return $forbidden;
-        }
 
         try {
             $csv = $this->analyticsService->generateCsvExport(
@@ -237,24 +214,4 @@ class AnalyticsController extends Controller
         );
     }//end exportCsv()
 
-    /**
-     * Assert that the active session belongs to an administrator.
-     *
-     * @return JSONResponse|null `null` when the caller is admin, or
-     *                           a 403 response that the calling
-     *                           action should return verbatim.
-     */
-    private function assertAdmin(): ?JSONResponse
-    {
-        $user = $this->userSession->getUser();
-        if ($user === null) {
-            return ResponseHelper::forbidden();
-        }
-
-        if ($this->groupManager->isAdmin(userId: $user->getUID()) === false) {
-            return ResponseHelper::forbidden();
-        }
-
-        return null;
-    }//end assertAdmin()
 }//end class

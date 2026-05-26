@@ -340,6 +340,10 @@ class PermissionService
     /** @spec openspec/specs/permissions/spec.md */
     public function canHaveMultipleDashboards(string $userId): bool
     {
+        // Currently a global admin setting; $userId reserved for future
+        // per-user or per-group overrides (REQ-PERM-007).
+        unset($userId);
+
         return $this->settingMapper->getValue(
             key: AdminSetting::KEY_ALLOW_MULTIPLE_DASHBOARDS,
             default: true

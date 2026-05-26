@@ -66,7 +66,7 @@ class RuleApiController extends Controller
     public function getRules(int $placementId): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -74,12 +74,19 @@ class RuleApiController extends Controller
                 userId: $this->userId,
                 placementId: $placementId
             );
-            $rules = $this->conditionalService->getRules(
+            $rules     = $this->conditionalService->getRules(
                 placementId: $placementId
+            );
+            $isVisible = $this->conditionalService->checkRulesForPlacement(
+                placementId: $placementId,
+                userId: $this->userId
             );
 
             return ResponseHelper::success(
-                data: ResponseHelper::serializeList(entities: $rules)
+                data: [
+                    'rules'     => ResponseHelper::serializeList(entities: $rules),
+                    'isVisible' => $isVisible,
+                ]
             );
         } catch (\Exception $e) {
             return ResponseHelper::error(exception: $e);
@@ -106,7 +113,7 @@ class RuleApiController extends Controller
         bool $isInclude=true
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         // Validate body shape explicitly so missing fields return a clean
@@ -171,7 +178,7 @@ class RuleApiController extends Controller
         ?bool $isInclude=null
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -207,7 +214,7 @@ class RuleApiController extends Controller
     public function deleteRule(int $ruleId): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {

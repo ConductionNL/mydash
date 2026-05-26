@@ -390,26 +390,6 @@ class RoleFeaturePermissionService
     }//end getAllowedWidgetIds()
 
     /**
-     * Convenience: is a single widget allowed for a user?
-     *
-     * @param string $userId   The user's UID.
-     * @param string $widgetId The widget id to check.
-     *
-     * @return bool True when the widget is allowed (or no restriction is configured).
-     */
-    /** @spec openspec/specs/admin-roles/spec.md */
-    public function isWidgetAllowed(string $userId, string $widgetId): bool
-    {
-        $allowed = $this->getAllowedWidgetIds(userId: $userId);
-        if ($allowed === null) {
-            // No restriction configured — backwards-compatible.
-            return true;
-        }
-
-        return in_array(needle: $widgetId, haystack: $allowed, strict: true);
-    }//end isWidgetAllowed()
-
-    /**
      * Seed the default layout for a freshly created dashboard from the
      * RoleLayoutDefault rows attached to the user's primary group.
      *

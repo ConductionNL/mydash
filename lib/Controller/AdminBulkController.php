@@ -38,8 +38,8 @@ use OCA\MyDash\Service\BulkOperationService;
 use OCA\MyDash\Service\PermissionDeniedException;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\AuthorizedAdminSetting;
 use OCP\AppFramework\Http\JSONResponse;
-use OCP\IGroupManager;
 use OCP\IRequest;
 use OCP\IUserSession;
 
@@ -58,13 +58,11 @@ class AdminBulkController extends Controller
      * @param IRequest             $request      The current request.
      * @param BulkOperationService $bulkService  The bulk service.
      * @param IUserSession         $userSession  The user session.
-     * @param IGroupManager        $groupManager The group manager.
      */
     public function __construct(
         IRequest $request,
         private readonly BulkOperationService $bulkService,
         private readonly IUserSession $userSession,
-        private readonly IGroupManager $groupManager,
     ) {
         parent::__construct(
             appName: Application::APP_ID,
@@ -81,19 +79,14 @@ class AdminBulkController extends Controller
      *
      * @return JSONResponse The bulk-delete envelope.
      *
-     * @NoAdminRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkDelete(
         mixed $dashboardUuids=null,
         ?bool $dryRun=null,
         ?bool $cascade=null
     ): JSONResponse {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         $uuids = $this->extractUuids(value: $dashboardUuids);
         if ($uuids === null) {
             return new JSONResponse(
@@ -141,19 +134,14 @@ class AdminBulkController extends Controller
      *
      * @return JSONResponse The bulk-move envelope.
      *
-     * @NoAdminRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkMove(
         mixed $dashboardUuids=null,
         ?string $parentUuid=null,
         ?bool $dryRun=null
     ): JSONResponse {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         $uuids = $this->extractUuids(value: $dashboardUuids);
         if ($uuids === null) {
             return new JSONResponse(
@@ -200,8 +188,8 @@ class AdminBulkController extends Controller
      *
      * @return JSONResponse The bulk-status envelope.
      *
-     * @NoAdminRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkStatus(
         mixed $dashboardUuids=null,
@@ -209,11 +197,6 @@ class AdminBulkController extends Controller
         ?string $publishAt=null,
         ?bool $dryRun=null
     ): JSONResponse {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         $uuids = $this->extractUuids(value: $dashboardUuids);
         if ($uuids === null) {
             return new JSONResponse(
@@ -266,18 +249,13 @@ class AdminBulkController extends Controller
      *
      * @return JSONResponse The bulk-reindex envelope.
      *
-     * @NoAdminRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkReindex(
         mixed $dashboardUuids=null,
         ?bool $dryRun=null
     ): JSONResponse {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         $uuids = $this->extractUuids(value: $dashboardUuids);
         if ($uuids === null) {
             return new JSONResponse(
@@ -370,26 +348,4 @@ class AdminBulkController extends Controller
         return in_array(needle: $lower, haystack: ['1', 'true', 'yes', 'on'], strict: true);
     }//end resolveBool()
 
-    /**
-     * Verify the current session belongs to a Nextcloud admin
-     * (REQ-BULK-011 — non-admins are rejected before any service call).
-     *
-     * @return JSONResponse|null Null when the caller is admin; the 401/403
-     *                           envelope otherwise.
-     */
-    private function requireAdmin(): ?JSONResponse
-    {
-        $user = $this->userSession->getUser();
-        if ($user === null) {
-            return ResponseHelper::unauthorized();
-        }
-
-        if ($this->groupManager->isAdmin(userId: $user->getUID()) === false) {
-            return ResponseHelper::forbidden(
-                message: 'Administrator privileges required.'
-            );
-        }
-
-        return null;
-    }//end requireAdmin()
 }//end class

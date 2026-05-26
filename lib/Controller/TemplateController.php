@@ -91,6 +91,10 @@ class TemplateController extends Controller
         ?string $category=null,
         string $sort='name'
     ): JSONResponse {
+        if ($this->userSession->getUser() === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
+        }
+
         $templates = $this->templateService->getGallery(
             category: $category,
             sortBy: $sort

@@ -81,7 +81,7 @@ class DashboardVersionApiController extends Controller
     public function listVersions(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -120,7 +120,7 @@ class DashboardVersionApiController extends Controller
         int $versionNumber
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -173,7 +173,7 @@ class DashboardVersionApiController extends Controller
         ?string $note=null
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -217,7 +217,7 @@ class DashboardVersionApiController extends Controller
         int $versionNumber
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {

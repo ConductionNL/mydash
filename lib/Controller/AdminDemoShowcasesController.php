@@ -36,11 +36,9 @@ use OCA\MyDash\Exception\ShowcaseNotFoundException;
 use OCA\MyDash\Service\DemoShowcasesService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
-use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\AuthorizedAdminSetting;
 use OCP\AppFramework\Http\JSONResponse;
-use OCP\IGroupManager;
 use OCP\IRequest;
-use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -54,9 +52,7 @@ class AdminDemoShowcasesController extends Controller
      *
      * @param IRequest             $request      The HTTP request.
      * @param DemoShowcasesService $showcasesSvc Showcase service.
-     * @param IGroupManager        $groupManager Nextcloud group manager
      *                                           (admin gate).
-     * @param IUserSession         $userSession  Current session.
      * @param LoggerInterface      $logger       PSR-3 logger for
      *                                           ADR-005
      *                                           redaction.
@@ -64,8 +60,6 @@ class AdminDemoShowcasesController extends Controller
     public function __construct(
         IRequest $request,
         private readonly DemoShowcasesService $showcasesSvc,
-        private readonly IGroupManager $groupManager,
-        private readonly IUserSession $userSession,
         private readonly LoggerInterface $logger,
     ) {
         parent::__construct(
@@ -79,17 +73,11 @@ class AdminDemoShowcasesController extends Controller
      *
      * @return JSONResponse Showcase descriptors, or 401/403.
      *
-     * @NoAdminRequired
      */
-    #[NoAdminRequired]
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function index(): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         return ResponseHelper::success(
             data: $this->showcasesSvc->getAvailableShowcases()
         );
@@ -111,20 +99,14 @@ class AdminDemoShowcasesController extends Controller
      *
      * @return JSONResponse The install result, or an error.
      *
-     * @NoAdminRequired
      */
-    #[NoAdminRequired]
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function install(
         string $id,
         string $lang='nl',
         bool $force=false
     ): JSONResponse {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         try {
             $result = $this->showcasesSvc->installShowcase(
                 showcaseId: $id,
@@ -175,17 +157,11 @@ class AdminDemoShowcasesController extends Controller
      *
      * @return JSONResponse Empty 204, or 401/403.
      *
-     * @NoAdminRequired
      */
-    #[NoAdminRequired]
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function destroy(string $id): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         try {
             $this->showcasesSvc->uninstallShowcase(showcaseId: $id);
         } catch (Throwable $e) {
@@ -205,29 +181,4 @@ class AdminDemoShowcasesController extends Controller
         return new JSONResponse(data: [], statusCode: Http::STATUS_NO_CONTENT);
     }//end destroy()
 
-    /**
-     * Verify the current session belongs to a Nextcloud admin.
-     *
-     * Returns `null` when the caller is an admin (proceed). Returns a
-     * 401 JSONResponse when no user is logged in, and a 403 JSONResponse
-     * when the user is not an admin.
-     *
-     * @return JSONResponse|null The error response when the guard fails;
-     *                           `null` when the caller is an admin.
-     */
-    private function requireAdmin(): ?JSONResponse
-    {
-        $user = $this->userSession->getUser();
-        if ($user === null) {
-            return ResponseHelper::unauthorized();
-        }
-
-        if ($this->groupManager->isAdmin(userId: $user->getUID()) === false) {
-            return ResponseHelper::forbidden(
-                message: 'Administrator privileges required.'
-            );
-        }
-
-        return null;
-    }//end requireAdmin()
 }//end class

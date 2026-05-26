@@ -57,9 +57,11 @@ use OCA\MyDash\Service\ResourceServeService;
 use OCA\MyDash\Service\ResourceService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Http\StreamResponse;
 use OCP\IRequest;
+use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -78,14 +80,16 @@ class ResourceServeController extends Controller
     /**
      * Constructor.
      *
-     * @param IRequest             $request The HTTP request.
-     * @param ResourceServeService $serve   Filesystem + formatting helper.
-     * @param LoggerInterface      $logger  PSR logger.
+     * @param IRequest             $request     The HTTP request.
+     * @param ResourceServeService $serve       Filesystem + formatting helper.
+     * @param LoggerInterface      $logger      PSR logger.
+     * @param IUserSession         $userSession The current user session.
      */
     public function __construct(
         IRequest $request,
         private readonly ResourceServeService $serve,
         private readonly LoggerInterface $logger,
+        private readonly IUserSession $userSession,
     ) {
         parent::__construct(
             appName: Application::APP_ID,
@@ -115,9 +119,14 @@ class ResourceServeController extends Controller
      * @NoAdminRequired
      * @NoCSRFRequired
      */
+    #[NoAdminRequired]
     /** @spec openspec/specs/resource-uploads/spec.md */
     public function getResource(string $filename): StreamResponse|JSONResponse
     {
+        if ($this->userSession->getUser() === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
+        }
+
         if ($this->isUnsafeFilename(filename: $filename) === true) {
             return $this->notFoundResponse();
         }
@@ -171,9 +180,14 @@ class ResourceServeController extends Controller
      * @NoAdminRequired
      * @NoCSRFRequired
      */
+    #[NoAdminRequired]
     /** @spec openspec/specs/resource-uploads/spec.md */
     public function listResources(): JSONResponse
     {
+        if ($this->userSession->getUser() === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
+        }
+
         $files = $this->serve->listFiles();
 
         $resources = [];

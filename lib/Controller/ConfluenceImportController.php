@@ -28,8 +28,8 @@ use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Service\ConfluenceImportService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\AuthorizedAdminSetting;
 use OCP\AppFramework\Http\JSONResponse;
-use OCP\IGroupManager;
 use OCP\IRequest;
 use OCP\IUserSession;
 use Throwable;
@@ -47,13 +47,11 @@ class ConfluenceImportController extends Controller
      *
      * @param IRequest                $request       Request handle.
      * @param ConfluenceImportService $importService The import orchestrator.
-     * @param IGroupManager           $groupManager  Group manager (admin guard).
      * @param IUserSession            $userSession   Current session.
      */
     public function __construct(
         IRequest $request,
         private readonly ConfluenceImportService $importService,
-        private readonly IGroupManager $groupManager,
         private readonly IUserSession $userSession,
     ) {
         parent::__construct(
@@ -67,17 +65,12 @@ class ConfluenceImportController extends Controller
      *
      * @return JSONResponse The dry-run preview, or an error response.
      *
-     * @NoAdminRequired
      * @NoCSRFRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/confluence-html-import/spec.md */
     public function dryRun(): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         $tmpName = $this->resolveUpload();
         if ($tmpName instanceof JSONResponse) {
             return $tmpName;
@@ -108,17 +101,12 @@ class ConfluenceImportController extends Controller
      *
      * @return JSONResponse The import summary, or an error response.
      *
-     * @NoAdminRequired
      * @NoCSRFRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/confluence-html-import/spec.md */
     public function import(?string $parentUuid=null): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         $tmpName = $this->resolveUpload();
         if ($tmpName instanceof JSONResponse) {
             return $tmpName;
@@ -178,19 +166,4 @@ class ConfluenceImportController extends Controller
      *
      * @return JSONResponse|null Null when admin; an error response otherwise.
      */
-    private function requireAdmin(): ?JSONResponse
-    {
-        $user = $this->userSession->getUser();
-        if ($user === null) {
-            return ResponseHelper::unauthorized();
-        }
-
-        if ($this->groupManager->isAdmin(userId: $user->getUID()) === false) {
-            return ResponseHelper::forbidden(
-                message: 'Administrator privileges required.'
-            );
-        }
-
-        return null;
-    }//end requireAdmin()
 }//end class

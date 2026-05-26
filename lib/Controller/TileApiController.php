@@ -86,7 +86,7 @@ class TileApiController extends Controller
     public function index(): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         $tiles = $this->tileService->getUserTiles(userId: $this->userId);
@@ -112,6 +112,10 @@ class TileApiController extends Controller
     #[NoCSRFRequired]
     public function create(): JSONResponse
     {
+        if ($this->userId === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
+        }
+
         return $this->goneResponse();
     }//end create()
 
@@ -132,6 +136,10 @@ class TileApiController extends Controller
     #[NoCSRFRequired]
     public function update(): JSONResponse
     {
+        if ($this->userId === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
+        }
+
         return $this->goneResponse();
     }//end update()
 
@@ -149,6 +157,10 @@ class TileApiController extends Controller
     #[NoAdminRequired]
     public function destroy(): JSONResponse
     {
+        if ($this->userId === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
+        }
+
         return $this->goneResponse();
     }//end destroy()
 

@@ -83,7 +83,7 @@ class DashboardTranslationApiController extends Controller
     public function list(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         $ownerCheck = $this->assertOwner(uuid: $uuid);
@@ -129,7 +129,7 @@ class DashboardTranslationApiController extends Controller
         ?string $copyFrom=null
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         $ownerCheck = $this->assertOwner(uuid: $uuid);
@@ -211,7 +211,7 @@ class DashboardTranslationApiController extends Controller
         ?string $widgetTreeJson=null
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         $ownerCheck = $this->assertOwner(uuid: $uuid);
@@ -263,7 +263,7 @@ class DashboardTranslationApiController extends Controller
     public function destroy(string $uuid, string $lang): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         $ownerCheck = $this->assertOwner(uuid: $uuid);
@@ -319,7 +319,7 @@ class DashboardTranslationApiController extends Controller
     public function setPrimary(string $uuid, string $lang): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         $ownerCheck = $this->assertOwner(uuid: $uuid);
@@ -372,7 +372,7 @@ class DashboardTranslationApiController extends Controller
     public function resolved(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {

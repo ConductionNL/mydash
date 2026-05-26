@@ -28,10 +28,9 @@ use OCA\MyDash\Service\RoleFeaturePermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\AuthorizedAdminSetting;
 use OCP\AppFramework\Http\JSONResponse;
-use OCP\IGroupManager;
 use OCP\IRequest;
-use OCP\IUserSession;
 
 /**
  * Admin-only API for role-feature permissions and role-layout defaults.
@@ -45,14 +44,10 @@ class RoleFeaturePermissionApiController extends Controller
      *
      * @param IRequest                     $request     The HTTP request.
      * @param RoleFeaturePermissionService $service     Permission service.
-     * @param IGroupManager                $groupMgr    Group manager (admin guard).
-     * @param IUserSession                 $userSession The current user session.
      */
     public function __construct(
         IRequest $request,
         private readonly RoleFeaturePermissionService $service,
-        private readonly IGroupManager $groupMgr,
-        private readonly IUserSession $userSession,
     ) {
         parent::__construct(
             appName: Application::APP_ID,
@@ -65,14 +60,10 @@ class RoleFeaturePermissionApiController extends Controller
      *
      * @return JSONResponse The list of permission rows.
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/admin-roles/spec.md */
     public function listPermissions(): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         $rows = $this->service->listPermissions();
         return ResponseHelper::success(
             data: ResponseHelper::serializeList(entities: $rows)
@@ -87,14 +78,10 @@ class RoleFeaturePermissionApiController extends Controller
      *
      * @return JSONResponse The persisted row.
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/admin-roles/spec.md */
     public function savePermission(): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         try {
             $payload = $this->readJsonBody();
             $entity  = $this->service->savePermission(data: $payload);
@@ -119,14 +106,10 @@ class RoleFeaturePermissionApiController extends Controller
      *
      * @return JSONResponse Empty 204 on success.
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/admin-roles/spec.md */
     public function deletePermission(int $id): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         try {
             $this->service->deletePermission(id: $id);
             return new JSONResponse(data: [], statusCode: Http::STATUS_NO_CONTENT);
@@ -143,14 +126,10 @@ class RoleFeaturePermissionApiController extends Controller
      *
      * @return JSONResponse The list of layout default rows.
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/admin-roles/spec.md */
     public function listLayoutDefaults(): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         $rows = $this->service->listLayoutDefaults();
         return ResponseHelper::success(
             data: ResponseHelper::serializeList(entities: $rows)
@@ -162,14 +141,10 @@ class RoleFeaturePermissionApiController extends Controller
      *
      * @return JSONResponse The persisted row.
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/admin-roles/spec.md */
     public function saveLayoutDefault(): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         try {
             $payload = $this->readJsonBody();
             $entity  = $this->service->saveLayoutDefault(data: $payload);
@@ -194,14 +169,10 @@ class RoleFeaturePermissionApiController extends Controller
      *
      * @return JSONResponse Empty 204 on success.
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     /** @spec openspec/specs/admin-roles/spec.md */
     public function deleteLayoutDefault(int $id): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         try {
             $this->service->deleteLayoutDefault(id: $id);
             return new JSONResponse(data: [], statusCode: Http::STATUS_NO_CONTENT);
@@ -233,24 +204,4 @@ class RoleFeaturePermissionApiController extends Controller
         return $decoded;
     }//end readJsonBody()
 
-    /**
-     * Admin guard — same pattern as `AdminController::requireAdmin()`.
-     *
-     * @return JSONResponse|null `null` when caller is admin; the error otherwise.
-     */
-    private function requireAdmin(): ?JSONResponse
-    {
-        $user = $this->userSession->getUser();
-        if ($user === null) {
-            return ResponseHelper::unauthorized();
-        }
-
-        if ($this->groupMgr->isAdmin(userId: $user->getUID()) === false) {
-            return ResponseHelper::forbidden(
-                message: 'Administrator privileges required.'
-            );
-        }
-
-        return null;
-    }//end requireAdmin()
 }//end class
