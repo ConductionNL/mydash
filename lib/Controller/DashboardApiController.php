@@ -1575,9 +1575,7 @@ class DashboardApiController extends Controller
             userId: $userId
         );
         if (empty($existing) === false
-            && $this->permissionService->canHaveMultipleDashboards(
-                userId: $userId
-            ) === false
+            && $this->permissionService->canHaveMultipleDashboards() === false
         ) {
             return ResponseHelper::forbidden(
                 message: 'Multiple dashboards not allowed'

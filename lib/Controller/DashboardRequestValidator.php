@@ -98,9 +98,7 @@ class DashboardRequestValidator
             userId: $userId
         );
         if (empty($existing) === false
-            && $this->permissionService->canHaveMultipleDashboards(
-                userId: $userId
-            ) === false
+            && $this->permissionService->canHaveMultipleDashboards() === false
         ) {
             return ResponseHelper::forbidden(
                 message: $this->l10n->t('Multiple dashboards not allowed')

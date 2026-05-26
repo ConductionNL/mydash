@@ -331,16 +331,20 @@ class PermissionService
     }//end canCreateDashboard()
 
     /**
-     * Check if user can have multiple dashboards.
+     * Check if multiple dashboards are allowed (global admin setting).
      *
-     * @param string $userId The user ID.
+     * This is a global configuration flag, not per-user — the admin setting
+     * `allow_multiple_dashboards` either permits or blocks all users from
+     * owning more than one dashboard. Call-sites already hold the user's
+     * dashboard list; they only need this flag to decide whether to allow
+     * the creation of an additional one.
      *
-     * @return bool Whether the user can have multiple dashboards.
+     * @return bool Whether multiple dashboards are allowed.
      */
     /** @spec openspec/specs/permissions/spec.md */
-    public function canHaveMultipleDashboards(string $userId): bool
+    public function canHaveMultipleDashboards(): bool
     {
-        return $this->settingMapper->getValue(
+        return (bool) $this->settingMapper->getValue(
             key: AdminSetting::KEY_ALLOW_MULTIPLE_DASHBOARDS,
             default: true
         );
