@@ -21,6 +21,7 @@ namespace OCA\MyDash\Controller;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use OCA\MyDash\AppInfo\Application;
+use OCA\MyDash\Service\ActionAuthService;
 use OCA\MyDash\Service\CalendarWidgetService;
 use OCA\MyDash\Service\NewsWidgetService;
 use OCA\MyDash\Service\PermissionService;
@@ -33,6 +34,7 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
+use OCP\IUserSession;
 use Throwable;
 
 /**
@@ -56,6 +58,9 @@ class WidgetApiController extends Controller
      * @param CalendarWidgetService        $calendarWidgetService  The calendar widget service (REQ-CAL-003).
      * @param WidgetPlacementService       $widgetPlacementService Placement-payload validators (REQ-CONT-006).
      * @param RoleFeaturePermissionService $roleFeaturePerm        Role-feature filter (REQ-RFP-001..010).
+     * @param IUserSession                 $userSession            User session, used to resolve the
+     *                                                             authenticated IUser for ADR-023 action checks.
+     * @param ActionAuthService            $actionAuth             The ADR-023 action authorization service.
      * @param string|null                  $userId                 The user ID.
      */
     public function __construct(
@@ -66,6 +71,8 @@ class WidgetApiController extends Controller
         private readonly CalendarWidgetService $calendarWidgetService,
         private readonly WidgetPlacementService $widgetPlacementService,
         private readonly RoleFeaturePermissionService $roleFeaturePerm,
+        private readonly IUserSession $userSession,
+        private readonly ActionAuthService $actionAuth,
         private readonly ?string $userId,
     ) {
         parent::__construct(
@@ -85,6 +92,10 @@ class WidgetApiController extends Controller
     #[NoAdminRequired]
     public function listAvailable(): JSONResponse
     {
+        if ($this->userSession->getUser() === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
+        }
+
         $widgets = $this->widgetService->getAvailableWidgets();
 
         if ($this->userId === null) {
@@ -133,6 +144,10 @@ class WidgetApiController extends Controller
         array $widgets=[],
         int $limit=7
     ): JSONResponse {
+        if ($this->userSession->getUser() === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
+        }
+
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }
@@ -169,6 +184,13 @@ class WidgetApiController extends Controller
         int $gridWidth=4,
         int $gridHeight=4
     ): JSONResponse {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
+        }
+
+        $this->actionAuth->requireAction($user, 'widget.add-widget');
+
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }
@@ -276,6 +298,13 @@ class WidgetApiController extends Controller
     /** @spec openspec/specs/widgets/spec.md */
     public function addTile(int $dashboardId): JSONResponse
     {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
+        }
+
+        $this->actionAuth->requireAction($user, 'widget.add-tile');
+
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }
@@ -317,6 +346,13 @@ class WidgetApiController extends Controller
     #[NoAdminRequired]
     public function updatePlacement(int $placementId): JSONResponse
     {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
+        }
+
+        $this->actionAuth->requireAction($user, 'widget.update-placement');
+
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }
@@ -375,6 +411,13 @@ class WidgetApiController extends Controller
     #[NoAdminRequired]
     public function removePlacement(int $placementId): JSONResponse
     {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
+        }
+
+        $this->actionAuth->requireAction($user, 'widget.remove-placement');
+
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }
@@ -419,6 +462,10 @@ class WidgetApiController extends Controller
     /** @spec openspec/specs/widgets/spec.md */
     public function newsItems(int $placementId, ?int $limit=10): JSONResponse
     {
+        if ($this->userSession->getUser() === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
+        }
+
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }
@@ -475,6 +522,10 @@ class WidgetApiController extends Controller
         string $from='',
         string $to=''
     ): JSONResponse {
+        if ($this->userSession->getUser() === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
+        }
+
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }

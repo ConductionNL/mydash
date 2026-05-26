@@ -328,6 +328,11 @@ return [
 		['name' => 'admin#getSettings', 'url' => '/api/admin/settings', 'verb' => 'GET'],
 		['name' => 'admin#updateSettings', 'url' => '/api/admin/settings', 'verb' => 'PUT'],
 
+		// ADR-023 action-authorization matrix. Admin-only via
+		// #[AuthorizedAdminSetting] on the controller methods.
+		['name' => 'action_matrix#getMatrix', 'url' => '/api/admin/action-matrix', 'verb' => 'GET'],
+		['name' => 'action_matrix#setMatrix', 'url' => '/api/admin/action-matrix', 'verb' => 'PUT'],
+
 		// Global footer settings (REQ-FTR-001, REQ-FTR-010). Both
 		// admin-only via runtime `IGroupManager::isAdmin` check inside
 		// the controller. The PUT verb is a partial-patch contract —

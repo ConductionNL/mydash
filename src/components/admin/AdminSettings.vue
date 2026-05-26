@@ -231,6 +231,11 @@
 				<RolePermissionsSection />
 			</div>
 
+			<!-- Action authorization matrix (ADR-023) -->
+			<div class="mydash-admin__section">
+				<ActionAuthMatrix />
+			</div>
+
 			<!-- Info -->
 			<div class="mydash-admin__section">
 				<h3>{{ t('mydash', 'Setting as default app') }}</h3>
@@ -329,6 +334,7 @@ import AdminDemoData from './AdminDemoData.vue'
 import SetupWizardModal from './SetupWizardModal.vue'
 import { api } from '../../services/api.js'
 import RolePermissionsSection from './RolePermissionsSection.vue'
+import ActionAuthMatrix from './ActionAuthMatrix.vue'
 
 export default {
 	name: 'AdminSettings',
@@ -353,6 +359,7 @@ export default {
 		SetupWizardModal,
 		ViewDashboard,
 		RolePermissionsSection,
+		ActionAuthMatrix,
 	},
 
 	// REQ-INIT-004: read the initial-state snapshot the PHP admin form

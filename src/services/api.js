@@ -423,6 +423,17 @@ export const api = {
 		return axios.post(`${baseUrl}/api/admin/groups`, { groups })
 	},
 
+	// ADR-023 action-authorization matrix. Both endpoints are admin-only
+	// on the server side via #[AuthorizedAdminSetting]; the UI gates the
+	// section behind the same admin check.
+	getActionMatrix() {
+		return axios.get(`${baseUrl}/api/admin/action-matrix`)
+	},
+
+	updateActionMatrix(matrix) {
+		return axios.put(`${baseUrl}/api/admin/action-matrix`, { matrix })
+	},
+
 	// Setup wizard endpoints (REQ-WIZ-008, REQ-WIZ-009, REQ-WIZ-003).
 	// All three are admin-only on the server side; the UI gates the
 	// banner + modal behind the same check via `getSetupWizardState`.

@@ -81,6 +81,16 @@ Vrij en open source onder de EUPL-1.2-licentie.
 		<job>OCA\MyDash\BackgroundJob\OrphanedDataCleanupJob</job>
 	</background-jobs>
 
+	<repair-steps>
+		<!-- ADR-023: seed the action-authorization matrix (default admin-only). -->
+		<install>
+			<step>OCA\MyDash\Repair\InitializeActions</step>
+		</install>
+		<post-migration>
+			<step>OCA\MyDash\Repair\InitializeActions</step>
+		</post-migration>
+	</repair-steps>
+
 	<settings>
 		<admin>OCA\MyDash\Settings\MyDashAdmin</admin>
 		<admin-section>OCA\MyDash\Settings\MyDashAdminSection</admin-section>
