@@ -484,7 +484,9 @@ class WidgetApiController extends Controller
             );
         }
 
-        if ($this->permissionService->canStyleWidget(
+        // M1: data-fetch endpoints only need view permission; canStyleWidget
+        // blocks VIEW_ONLY users who are legitimate consumers of this data.
+        if ($this->permissionService->canViewPlacement(
             userId: $this->userId,
             placementId: $placementId
         ) === false
@@ -574,7 +576,9 @@ class WidgetApiController extends Controller
             );
         }
 
-        if ($this->permissionService->canStyleWidget(
+        // M1: data-fetch endpoint — view permission is sufficient;
+        // canStyleWidget would block VIEW_ONLY users.
+        if ($this->permissionService->canViewPlacement(
             userId: $this->userId,
             placementId: $placementId
         ) === false

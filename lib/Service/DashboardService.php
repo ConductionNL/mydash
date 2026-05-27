@@ -657,6 +657,25 @@ class DashboardService
     }//end activateDashboard()
 
     /**
+     * Look up a dashboard by its UUID.
+     *
+     * Thin wrapper so controllers can resolve a UUID to a Dashboard entity
+     * for permission checks without importing DashboardMapper directly.
+     *
+     * @param string $uuid The dashboard UUID.
+     *
+     * @return Dashboard The dashboard entity.
+     *
+     * @throws DoesNotExistException When no dashboard with that UUID exists.
+     *
+     * @spec openspec/specs/dashboards/spec.md
+     */
+    public function findByUuid(string $uuid): Dashboard
+    {
+        return $this->dashboardMapper->findByUuid(uuid: $uuid);
+    }//end findByUuid()
+
+    /**
      * List the group-shared dashboards in a single group.
      *
      * Any logged-in user may list — REQ-DASH-014.
@@ -1750,6 +1769,30 @@ class DashboardService
     {
         return $this->groupManager->isAdmin(userId: $userId);
     }//end isAdmin()
+
+    /**
+     * Check whether the user is a member of a group or is an admin.
+     *
+     * Used by listGroup / getGroup to gate group-shared dashboard
+     * endpoints against non-member callers (REQ-DASH-014, H1).
+     *
+     * @param string $userId  The user ID.
+     * @param string $groupId The group ID from the URL.
+     *
+     * @return bool True when the user is in the group or is a NC admin.
+     */
+    public function userCanAccessGroup(string $userId, string $groupId): bool
+    {
+        if ($this->groupManager->isAdmin(userId: $userId) === true) {
+            return true;
+        }
+
+        $userGroupIds = $this->adminTemplateService->getUserGroupIdsFor(
+            userId: $userId
+        );
+
+        return in_array(needle: $groupId, haystack: $userGroupIds, strict: true);
+    }//end userCanAccessGroup()
 
     /**
      * Read the admin `allow_user_dashboards` flag without throwing.

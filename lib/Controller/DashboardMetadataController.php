@@ -31,33 +31,38 @@ use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Exception\InvalidMetadataFieldException;
 use OCA\MyDash\Service\MetadataService;
+use OCA\MyDash\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
-use OCP\IGroupManager;
 use OCP\IRequest;
 
 /**
  * Dashboard metadata read/write controller.
+ *
+ * All access decisions are delegated to PermissionService — the single
+ * source of truth for dashboard ACL (H5, REQ-MDFL-008).
  */
 class DashboardMetadataController extends Controller
 {
     /**
      * Constructor.
      *
-     * @param IRequest        $request         The HTTP request.
-     * @param MetadataService $metadataService The metadata service facade.
-     * @param DashboardMapper $dashboardMapper For ownership/visibility lookup.
-     * @param IGroupManager   $groupManager    For group-share access checks.
-     * @param string|null     $userId          The active user id.
+     * @param IRequest         $request           The HTTP request.
+     * @param MetadataService  $metadataService   The metadata service facade.
+     * @param DashboardMapper  $dashboardMapper   For dashboard lookup.
+     * @param PermissionService $permissionService Authoritative ACL service
+     *                                            (replaces inline canRead /
+     *                                            canWrite helpers — H5).
+     * @param string|null      $userId            The active user id.
      */
     public function __construct(
         IRequest $request,
         private readonly MetadataService $metadataService,
         private readonly DashboardMapper $dashboardMapper,
-        private readonly IGroupManager $groupManager,
+        private readonly PermissionService $permissionService,
         private readonly ?string $userId,
     ) {
         parent::__construct(
@@ -91,7 +96,12 @@ class DashboardMetadataController extends Controller
             );
         }
 
-        if ($this->canRead(dashboard: $dashboard) === false) {
+        // H5: delegate to PermissionService — the single ACL source of truth.
+        if ($this->permissionService->canViewDashboard(
+            userId: $this->userId,
+            dashboardId: $dashboard->getId()
+        ) === false
+        ) {
             return ResponseHelper::forbidden();
         }
 
@@ -131,7 +141,15 @@ class DashboardMetadataController extends Controller
             );
         }
 
-        if ($this->canWrite(dashboard: $dashboard) === false) {
+        // H5: delegate to PermissionService — canEditDashboardMetadata is
+        // owner-only for personal dashboards; admin-only for admin templates.
+        // This replaces the previous inline canWrite() which incorrectly
+        // allowed any group member to write group-shared metadata.
+        if ($this->permissionService->canEditDashboardMetadata(
+            userId: $this->userId,
+            dashboardId: $dashboard->getId()
+        ) === false
+        ) {
             return ResponseHelper::forbidden();
         }
 
@@ -168,77 +186,4 @@ class DashboardMetadataController extends Controller
             return null;
         }
     }//end loadDashboard()
-
-    /**
-     * Read access check (REQ-MDFL-008).
-     *
-     * Owners always read. For group-shared dashboards, group members
-     * read. Admin templates and the default group are world-readable
-     * (consistent with the existing dashboard read paths).
-     *
-     * @param Dashboard $dashboard The dashboard.
-     *
-     * @return bool True when the active user can read.
-     */
-    private function canRead(Dashboard $dashboard): bool
-    {
-        if ($dashboard->getUserId() !== null
-            && $dashboard->getUserId() === $this->userId
-        ) {
-            return true;
-        }
-
-        $type = (string) $dashboard->getType();
-        if ($type === Dashboard::TYPE_ADMIN_TEMPLATE) {
-            return true;
-        }
-
-        $groupId = $dashboard->getGroupId();
-        if ($groupId !== null && $this->userId !== null) {
-            return $this->groupManager->isInGroup(
-                userId: $this->userId,
-                group: $groupId
-            );
-        }
-
-        return false;
-    }//end canRead()
-
-    /**
-     * Write access check (REQ-MDFL-008).
-     *
-     * Owners write. Admins can write to admin templates. Group members
-     * can write to group-shared dashboards (same gating as the existing
-     * group-shared update path).
-     *
-     * @param Dashboard $dashboard The dashboard.
-     *
-     * @return bool True when the active user can write.
-     */
-    private function canWrite(Dashboard $dashboard): bool
-    {
-        if ($dashboard->getUserId() !== null
-            && $dashboard->getUserId() === $this->userId
-        ) {
-            return true;
-        }
-
-        $type = (string) $dashboard->getType();
-        if ($type === Dashboard::TYPE_ADMIN_TEMPLATE
-            && $this->userId !== null
-            && $this->groupManager->isAdmin(userId: $this->userId) === true
-        ) {
-            return true;
-        }
-
-        $groupId = $dashboard->getGroupId();
-        if ($groupId !== null && $this->userId !== null) {
-            return $this->groupManager->isInGroup(
-                userId: $this->userId,
-                group: $groupId
-            );
-        }
-
-        return false;
-    }//end canWrite()
 }//end class

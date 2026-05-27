@@ -782,13 +782,29 @@ class DashboardApiController extends Controller
             return ResponseHelper::unauthorized();
         }
 
+        // H1: verify the caller is a member of the requested group (or
+        // admin) before returning its dashboards — mirrors the group-
+        // membership check in PermissionService::resolveAccessLevel.
+        if ($this->dashboardService->userCanAccessGroup(
+            userId: $this->userId,
+            groupId: $groupId
+        ) === false
+        ) {
+            return ResponseHelper::forbidden();
+        }
+
         $dashboards = $this->dashboardService->listGroupDashboards(
             groupId: $groupId
         );
 
-        return ResponseHelper::success(
-            data: ResponseHelper::serializeList(entities: $dashboards)
+        // M5: strip internal identity fields (userId, groupId, targetGroups)
+        // from group-shared dashboard payloads returned to non-owner viewers.
+        $viewerData = array_map(
+            static fn ($d) => $d->toViewerArray(),
+            $dashboards
         );
+
+        return ResponseHelper::success(data: $viewerData);
     }//end listGroup()
 
     /**
@@ -869,6 +885,16 @@ class DashboardApiController extends Controller
             return ResponseHelper::unauthorized();
         }
 
+        // H1: verify the caller is a member of the requested group (or
+        // admin) before fetching the dashboard payload.
+        if ($this->dashboardService->userCanAccessGroup(
+            userId: $this->userId,
+            groupId: $groupId
+        ) === false
+        ) {
+            return ResponseHelper::forbidden();
+        }
+
         try {
             $dashboard = $this->dashboardService->findGroupDashboard(
                 groupId: $groupId,
@@ -882,8 +908,9 @@ class DashboardApiController extends Controller
             );
         }
 
+        // M5: strip internal identity fields from viewer-facing payload.
         return ResponseHelper::success(
-            data: ['dashboard' => $dashboard->jsonSerialize()]
+            data: ['dashboard' => $dashboard->toViewerArray()]
         );
     }//end getGroup()
 
@@ -1448,6 +1475,28 @@ class DashboardApiController extends Controller
 
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
+        }
+
+        // H4: resolve the dashboard and assert the caller can view it
+        // before recording any counter increment (REQ-ANLT-002).
+        try {
+            $dashboard = $this->dashboardService->findByUuid(uuid: $uuid);
+        } catch (DoesNotExistException) {
+            return new JSONResponse(
+                data: [
+                    'status' => 'error',
+                    'error'  => 'not_found',
+                ],
+                statusCode: Http::STATUS_NOT_FOUND
+            );
+        }
+
+        if ($this->permissionService->canViewDashboard(
+            userId: $this->userId,
+            dashboardId: $dashboard->getId()
+        ) === false
+        ) {
+            return ResponseHelper::forbidden();
         }
 
         try {
