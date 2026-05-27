@@ -141,9 +141,11 @@ class ManifestController extends Controller
     /**
      * Fetch dashboard objects from OpenRegister for the given user.
      *
-     * Returns objects the user owns (matched by OpenRegister's built-in owner
-     * filter) and objects where the user appears in the `sharedWith` array.
-     * Both result sets are merged and de-duplicated by UUID.
+     * C5 fix (REQ-MVR-001): replaces the non-existent `findObjects()` call
+     * (which caused a BadMethodCallException silently swallowed by Throwable)
+     * with the real `ObjectService::findAll()` API. The `owner` filter
+     * constrains results to the calling user's records — without it every
+     * user would receive the full dataset (latent IDOR on top of the API drift).
      *
      * @param object $objectService The OpenRegister ObjectService instance.
      * @param string $userId        The authenticated Nextcloud user ID.
@@ -156,13 +158,19 @@ class ManifestController extends Controller
         $seen       = [];
 
         try {
-            // Fetch dashboards owned by the current user.
-            $ownedResults = $objectService->findObjects(
-                self::REGISTER,
-                self::SCHEMA,
-                [],
-                [],
-                500,
+            // C5 fix: use the real ObjectService::findAll() API.
+            // `findObjects()` does not exist; the old call threw
+            // BadMethodCallException that was silently swallowed, causing the
+            // manifest to always return empty pages/menu arrays.
+            $ownedResults = $objectService->findAll(
+                config: [
+                    'filters' => [
+                        'register' => self::REGISTER,
+                        'schema'   => self::SCHEMA,
+                        'owner'    => $userId,
+                    ],
+                    'limit' => 500,
+                ]
             );
 
             if (is_array($ownedResults) === true) {
@@ -179,7 +187,9 @@ class ManifestController extends Controller
                     }
                 }
             }
-        } catch (\Throwable $e) {
+        } catch (\RuntimeException|\InvalidArgumentException $e) {
+            // Narrow catch: only handle recoverable OR API errors. Let
+            // unexpected errors propagate so they are visible in the logs.
             $this->logger->error(
                 'MyDash: failed to fetch dashboards from OpenRegister: '.$e->getMessage(),
                 ['app' => Application::APP_ID, 'userId' => $userId]
@@ -196,7 +206,7 @@ class ManifestController extends Controller
      * OpenRegister items may be returned as objects with a `getObject()`
      * method or as plain associative arrays.
      *
-     * @param mixed $item A single result from ObjectService::findObjects().
+     * @param mixed $item A single result from ObjectService::findAll().
      *
      * @return array<string, mixed> The plain data array, or [] on failure.
      */

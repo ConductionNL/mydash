@@ -90,7 +90,7 @@ class RuleApiController extends Controller
             );
         } catch (\Exception $e) {
             return ResponseHelper::error(exception: $e);
-        }//end try
+        }
     }//end getRules()
 
     /**
@@ -161,6 +161,12 @@ class RuleApiController extends Controller
     /**
      * Update a conditional rule.
      *
+     * C4 fix (REQ-PERM-001): the rule's owning placement is resolved and
+     * `verifyPlacementOwnership` is called before any mutation, mirroring
+     * the guard already present on `addRule`. Without this check any
+     * authenticated user could overwrite rules on other users' placements
+     * by iterating rule IDs.
+     *
      * @param int         $ruleId     The rule ID.
      * @param string|null $ruleType   The rule type.
      * @param array|null  $ruleConfig The rule configuration.
@@ -182,6 +188,14 @@ class RuleApiController extends Controller
         }
 
         try {
+            // C4 fix: load the rule first to get its placement, then verify
+            // the caller owns that placement before applying any update.
+            $rule = $this->conditionalService->findRule(ruleId: $ruleId);
+            $this->permissionService->verifyPlacementOwnership(
+                userId: $this->userId,
+                placementId: $rule->getWidgetPlacementId()
+            );
+
             $data = $this->buildRuleUpdateData(
                 ruleType: $ruleType,
                 ruleConfig: $ruleConfig,
@@ -204,6 +218,12 @@ class RuleApiController extends Controller
     /**
      * Delete a conditional rule.
      *
+     * C4 fix (REQ-PERM-001): the rule's owning placement is resolved and
+     * `verifyPlacementOwnership` is called before the deletion, mirroring
+     * the guard already present on `addRule`. Without this check any
+     * authenticated user could permanently delete conditional display
+     * logic on other users' widget placements by iterating rule IDs.
+     *
      * @param int $ruleId The rule ID.
      *
      * @return JSONResponse The deletion confirmation.
@@ -218,6 +238,14 @@ class RuleApiController extends Controller
         }
 
         try {
+            // C4 fix: load the rule first to get its placement, then verify
+            // the caller owns that placement before deleting.
+            $rule = $this->conditionalService->findRule(ruleId: $ruleId);
+            $this->permissionService->verifyPlacementOwnership(
+                userId: $this->userId,
+                placementId: $rule->getWidgetPlacementId()
+            );
+
             $this->conditionalService->deleteRule(ruleId: $ruleId);
 
             return ResponseHelper::success(data: ['status' => 'ok']);

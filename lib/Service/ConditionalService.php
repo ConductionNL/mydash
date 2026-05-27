@@ -49,9 +49,8 @@ class ConditionalService
      * @param string          $userId The user ID.
      *
      * @return bool Whether the rule matches.
-     *
-     * @spec openspec/specs/conditional-visibility/spec.md
      */
+    /** @spec openspec/specs/conditional-visibility/spec.md */
     public function evaluateRule(
         ConditionalRule $rule,
         string $userId
@@ -108,6 +107,27 @@ class ConditionalService
             placementId: $placementId
         );
     }//end getRules()
+
+    /**
+     * Fetch a single rule by its primary key.
+     *
+     * Used by the controller before calling updateRule/deleteRule so that
+     * ownership of the associated placement can be verified first
+     * (C4 fix: REQ-PERM-001).
+     *
+     * @param int $ruleId The rule primary key.
+     *
+     * @return ConditionalRule The found rule.
+     *
+     * @throws \OCP\AppFramework\Db\DoesNotExistException When the rule does
+     *                                                     not exist.
+     *
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-10
+     */
+    public function findRule(int $ruleId): ConditionalRule
+    {
+        return $this->ruleMapper->find(id: $ruleId);
+    }//end findRule()
 
     /**
      * Add a rule to a placement.
