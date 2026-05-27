@@ -30,6 +30,7 @@ use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Exception\InvalidMetadataFieldException;
+use OCA\MyDash\Service\AdminTemplateService;
 use OCA\MyDash\Service\MetadataService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -47,17 +48,23 @@ class DashboardMetadataController extends Controller
     /**
      * Constructor.
      *
-     * @param IRequest        $request         The HTTP request.
-     * @param MetadataService $metadataService The metadata service facade.
-     * @param DashboardMapper $dashboardMapper For ownership/visibility lookup.
-     * @param IGroupManager   $groupManager    For group-share access checks.
-     * @param string|null     $userId          The active user id.
+     * @param IRequest            $request              The HTTP request.
+     * @param MetadataService     $metadataService      The metadata service facade.
+     * @param DashboardMapper     $dashboardMapper       For ownership/visibility lookup.
+     * @param IGroupManager       $groupManager         For admin-check only (isAdmin).
+     * @param AdminTemplateService $adminTemplateService Single source of truth for
+     *                                                   user group IDs (REQ-TMPL-013).
+     *                                                   Replaces direct isInGroup calls
+     *                                                   (L5) so virtual/nested group
+     *                                                   resolution stays consistent.
+     * @param string|null         $userId               The active user id.
      */
     public function __construct(
         IRequest $request,
         private readonly MetadataService $metadataService,
         private readonly DashboardMapper $dashboardMapper,
         private readonly IGroupManager $groupManager,
+        private readonly AdminTemplateService $adminTemplateService,
         private readonly ?string $userId,
     ) {
         parent::__construct(
@@ -195,10 +202,13 @@ class DashboardMetadataController extends Controller
 
         $groupId = $dashboard->getGroupId();
         if ($groupId !== null && $this->userId !== null) {
-            return $this->groupManager->isInGroup(
-                userId: $this->userId,
-                group: $groupId
+            // L5: use AdminTemplateService::getUserGroupIdsFor as the single
+            // source of truth (REQ-TMPL-013) instead of IGroupManager::isInGroup
+            // — keeps virtual/nested group resolution consistent across the app.
+            $userGroupIds = $this->adminTemplateService->getUserGroupIdsFor(
+                userId: $this->userId
             );
+            return in_array(needle: $groupId, haystack: $userGroupIds, strict: true);
         }
 
         return false;
@@ -233,10 +243,11 @@ class DashboardMetadataController extends Controller
 
         $groupId = $dashboard->getGroupId();
         if ($groupId !== null && $this->userId !== null) {
-            return $this->groupManager->isInGroup(
-                userId: $this->userId,
-                group: $groupId
+            // L5: same fix — use AdminTemplateService for group membership.
+            $userGroupIds = $this->adminTemplateService->getUserGroupIdsFor(
+                userId: $this->userId
             );
+            return in_array(needle: $groupId, haystack: $userGroupIds, strict: true);
         }
 
         return false;

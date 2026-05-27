@@ -314,7 +314,9 @@ class DashboardShareApiController extends Controller
         }
 
         $trimmed = trim(string: $query);
-        if (strlen(string: $trimmed) < 1) {
+        // M3: raise minimum query length to 2 to limit directory enumeration
+        // from single-character a..z sweeps (consistent with NC share picker).
+        if (strlen(string: $trimmed) < 2) {
             return new DataResponse(data: ['users' => [], 'groups' => []]);
         }
 

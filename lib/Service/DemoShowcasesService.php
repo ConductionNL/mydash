@@ -43,6 +43,8 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\Dashboard\IManager;
 use OCP\IAppConfig;
 use OCP\IDBConnection;
+use OCP\Lock\ILockingProvider;
+use OCP\Lock\LockedException;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Throwable;
@@ -103,6 +105,9 @@ class DemoShowcasesService
      * @param IAppConfig            $appConfig        App config service.
      * @param IManager              $dashboardManager Nextcloud dashboard registry.
      * @param LoggerInterface       $logger           PSR-3 logger.
+     * @param ILockingProvider      $lockingProvider  Advisory lock provider
+     *                                                (M8 — concurrency guard
+     *                                                on installShowcase).
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
@@ -111,6 +116,7 @@ class DemoShowcasesService
         private readonly IAppConfig $appConfig,
         private readonly IManager $dashboardManager,
         private readonly LoggerInterface $logger,
+        private readonly ILockingProvider $lockingProvider,
     ) {
     }//end __construct()
 
@@ -254,18 +260,61 @@ class DemoShowcasesService
             );
         }
 
-        $existingUuid = $this->getInstalledUuid(showcaseId: $showcaseId);
-        if ($existingUuid !== '' && $force === false) {
-            return [
-                'installedDashboardUuid' => $existingUuid,
-                'skippedWidgets'         => [],
-                'alreadyInstalled'       => true,
-            ];
+        // M8: acquire an exclusive advisory lock keyed on the showcase ID
+        // before the existence check to serialise concurrent installs.
+        // Two simultaneous admin requests both pass the existence check
+        // before either inserts without this guard.
+        $lockKey = 'mydash-showcase-install-'.$showcaseId;
+        try {
+            $this->lockingProvider->acquireLock(
+                path: $lockKey,
+                type: ILockingProvider::LOCK_EXCLUSIVE
+            );
+        } catch (LockedException $e) {
+            throw new RuntimeException(
+                message: 'Showcase installation already in progress for '.$showcaseId,
+                code: 0,
+                previous: $e
+            );
         }
 
-        if ($existingUuid !== '' && $force === true) {
-            $this->uninstallShowcase(showcaseId: $showcaseId);
+        try {
+            $existingUuid = $this->getInstalledUuid(showcaseId: $showcaseId);
+            if ($existingUuid !== '' && $force === false) {
+                return [
+                    'installedDashboardUuid' => $existingUuid,
+                    'skippedWidgets'         => [],
+                    'alreadyInstalled'       => true,
+                ];
+            }
+
+            if ($existingUuid !== '' && $force === true) {
+                $this->uninstallShowcase(showcaseId: $showcaseId);
+            }
+
+            return $this->doInstallShowcase(
+                showcaseId: $showcaseId,
+                lang: $lang
+            );
+        } finally {
+            $this->lockingProvider->releaseLock(
+                path: $lockKey,
+                type: ILockingProvider::LOCK_EXCLUSIVE
+            );
         }
+    }//end installShowcase()
+
+    /**
+     * Internal install logic (called while lock is held).
+     *
+     * @param string $showcaseId The showcase ID.
+     * @param string $lang       The source language.
+     *
+     * @return array{installedDashboardUuid: string, skippedWidgets: array<int, string>, alreadyInstalled: bool}
+     */
+    private function doInstallShowcase(string $showcaseId, string $lang): array
+    {
+        $zipPath = $this->getZipPath(showcaseId: $showcaseId);
 
         $payload = $this->loadDashboardPayload(zipPath: $zipPath);
         $widgets = (array) ($payload['widgets'] ?? []);
@@ -320,7 +369,7 @@ class DemoShowcasesService
             'skippedWidgets'         => $skipped,
             'alreadyInstalled'       => false,
         ];
-    }//end installShowcase()
+    }//end doInstallShowcase()
 
     /**
      * Uninstall a previously-installed showcase.
