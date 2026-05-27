@@ -12,6 +12,7 @@
     "dashboard.visible": ["admin"],
     "dashboard.get-active": ["admin"],
     "dashboard.show": ["admin"],
+    "dashboard.create": ["admin"],
     "dashboard.update": ["admin"],
     "dashboard.delete": ["admin"],
     "dashboard.tree": ["admin"],

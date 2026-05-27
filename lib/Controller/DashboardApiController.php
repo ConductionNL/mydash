@@ -132,9 +132,12 @@ class DashboardApiController extends Controller
     #[NoAdminRequired]
     public function list(): JSONResponse
     {
-        if ($this->userSession->getUser() === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard.list');
 
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
@@ -162,9 +165,12 @@ class DashboardApiController extends Controller
     /** @spec openspec/specs/dashboards/spec.md */
     public function visible(): JSONResponse
     {
-        if ($this->userSession->getUser() === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard.visible');
 
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
@@ -194,9 +200,12 @@ class DashboardApiController extends Controller
     #[NoAdminRequired]
     public function getActive(): JSONResponse
     {
-        if ($this->userSession->getUser() === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard.get-active');
 
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
@@ -248,9 +257,12 @@ class DashboardApiController extends Controller
     #[NoAdminRequired]
     public function show(int $id): JSONResponse
     {
-        if ($this->userSession->getUser() === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard.show');
 
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
@@ -315,6 +327,15 @@ class DashboardApiController extends Controller
         ?string $slug=null,
         ?int $sortOrder=null
     ): JSONResponse {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
+        }
+
+        // L3: wire the create action so the matrix entry is enforced —
+        // consistent with all other mutation endpoints (ADR-023).
+        $this->actionAuth->requireAction($user, 'dashboard.create');
+
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }
@@ -573,9 +594,12 @@ class DashboardApiController extends Controller
     /** @spec openspec/specs/dashboards/spec.md */
     public function tree(): JSONResponse
     {
-        if ($this->userSession->getUser() === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard.tree');
 
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
@@ -625,9 +649,12 @@ class DashboardApiController extends Controller
     /** @spec openspec/specs/dashboards/spec.md */
     public function byPath(string $path=''): JSONResponse
     {
-        if ($this->userSession->getUser() === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard.by-path');
 
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
@@ -701,9 +728,12 @@ class DashboardApiController extends Controller
     /** @spec openspec/specs/dashboards/spec.md */
     public function computePath(string $uuid=''): JSONResponse
     {
-        if ($this->userSession->getUser() === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard.compute-path');
 
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
@@ -774,9 +804,12 @@ class DashboardApiController extends Controller
     /** @spec openspec/specs/dashboards/spec.md */
     public function listGroup(string $groupId): JSONResponse
     {
-        if ($this->userSession->getUser() === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard.list-group');
 
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
@@ -861,9 +894,12 @@ class DashboardApiController extends Controller
         string $groupId,
         string $uuid
     ): JSONResponse {
-        if ($this->userSession->getUser() === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard.get-group');
 
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
@@ -1084,9 +1120,12 @@ class DashboardApiController extends Controller
     /** @spec openspec/specs/dashboards/spec.md */
     public function setActiveDashboard(?string $uuid=null): JSONResponse
     {
-        if ($this->userSession->getUser() === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard.set-active-dashboard');
 
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
@@ -1121,9 +1160,12 @@ class DashboardApiController extends Controller
     /** @spec openspec/specs/dashboards/spec.md */
     public function setDefaultDashboard(?string $uuid=null): JSONResponse
     {
-        if ($this->userSession->getUser() === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard.set-default-dashboard');
 
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
@@ -1147,9 +1189,12 @@ class DashboardApiController extends Controller
     /** @spec openspec/specs/dashboards/spec.md */
     public function getDefaultDashboard(): JSONResponse
     {
-        if ($this->userSession->getUser() === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard.get-default-dashboard');
 
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
@@ -1442,9 +1487,12 @@ class DashboardApiController extends Controller
     /** @spec openspec/specs/dashboards/spec.md */
     public function viewEvent(string $uuid): JSONResponse
     {
-        if ($this->userSession->getUser() === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard.view-event');
 
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();

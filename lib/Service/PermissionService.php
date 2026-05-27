@@ -172,9 +172,12 @@ class PermissionService
             return false;
         }
 
-        // Admin templates can only be edited by admins.
+        // L4: admin-template owners retain full metadata-edit rights
+        // (REQ-PERM-011). An admin who owns a template must not be blocked
+        // from renaming it. Non-admin users can never edit admin templates.
         if ($dashboard->getType() === Dashboard::TYPE_ADMIN_TEMPLATE) {
-            return false;
+            return $dashboard->getUserId() === $userId
+                && $this->groupManager->isAdmin(userId: $userId);
         }
 
         // Only owner can rename / change description.
