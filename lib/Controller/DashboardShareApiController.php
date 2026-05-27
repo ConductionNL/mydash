@@ -72,9 +72,10 @@ class DashboardShareApiController extends Controller
      * @param int $id The dashboard ID.
      *
      * @return DataResponse The list of shares.
-     */
+         *
+     * @spec openspec/specs/dashboard-sharing/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function index(int $id): DataResponse
     {
         if ($this->userId === null) {
@@ -116,9 +117,10 @@ class DashboardShareApiController extends Controller
      * @param string|null $permissionLevel The permission level.
      *
      * @return DataResponse The created/updated share.
-     */
+         *
+     * @spec openspec/specs/dashboard-sharing/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function create(
         int $id,
         ?string $shareType=null,
@@ -168,9 +170,10 @@ class DashboardShareApiController extends Controller
      * @param int $shareId The share ID.
      *
      * @return DataResponse Empty 204 on success.
-     */
+         *
+     * @spec openspec/specs/dashboard-sharing/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function destroy(int $shareId): DataResponse
     {
         if ($this->userId === null) {
@@ -206,9 +209,10 @@ class DashboardShareApiController extends Controller
      * @param array|null $shares The new share list.
      *
      * @return DataResponse The new full share list.
-     */
+         *
+     * @spec openspec/specs/dashboard-sharing/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function replace(int $id, ?array $shares=null): DataResponse
     {
         if ($this->userId === null) {
@@ -259,9 +263,10 @@ class DashboardShareApiController extends Controller
      * @param string $shareWith The recipient user/group ID.
      *
      * @return DataResponse The count of deleted rows.
-     */
+         *
+     * @spec openspec/specs/dashboard-sharing/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function revokeForRecipient(
         string $shareType,
         string $shareWith
@@ -295,9 +300,10 @@ class DashboardShareApiController extends Controller
      * @param string $query The search query.
      *
      * @return DataResponse The matching users and groups.
-     */
+         *
+     * @spec openspec/specs/dashboard-sharing/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function searchSharees(string $query=''): DataResponse
     {
         if ($this->userId === null) {

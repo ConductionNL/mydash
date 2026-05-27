@@ -49,8 +49,9 @@ class ConditionalService
      * @param string          $userId The user ID.
      *
      * @return bool Whether the rule matches.
+     *
+     * @spec openspec/specs/conditional-visibility/spec.md
      */
-    /** @spec openspec/specs/conditional-visibility/spec.md */
     public function evaluateRule(
         ConditionalRule $rule,
         string $userId

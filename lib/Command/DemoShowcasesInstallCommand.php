@@ -54,8 +54,9 @@ class DemoShowcasesInstallCommand extends Command
      * Configure CLI options.
      *
      * @return void
+     *
+     * @spec openspec/specs/demo-data-showcases/spec.md
      */
-    /** @spec openspec/specs/demo-data-showcases/spec.md */
     protected function configure(): void
     {
         $this->setName(name: 'mydash:demo-showcases:install')
@@ -87,8 +88,9 @@ class DemoShowcasesInstallCommand extends Command
      * @param OutputInterface $output CLI output.
      *
      * @return int Exit code.
+     *
+     * @spec openspec/specs/demo-data-showcases/spec.md
      */
-    /** @spec openspec/specs/demo-data-showcases/spec.md */
     protected function execute(
         InputInterface $input,
         OutputInterface $output

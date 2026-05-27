@@ -114,8 +114,9 @@ class ResourceService
      *                                     exceed 5 MB.
      * @throws StorageFailureException     When writing to IAppData
      *                                     fails.
+     *
+     * @spec openspec/specs/resource-uploads/spec.md
      */
-    /** @spec openspec/specs/resource-uploads/spec.md */
     public function upload(string $base64DataUrl): array
     {
         $parsed       = $this->parseDataUrl(input: $base64DataUrl);

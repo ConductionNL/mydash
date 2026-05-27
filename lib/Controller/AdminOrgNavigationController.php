@@ -42,6 +42,7 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\AuthorizedAdminSetting;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\IGroupManager;
 use OCP\IRequest;
 use OCP\IUserSession;
 
@@ -88,18 +89,45 @@ class AdminOrgNavigationController extends Controller
      * @param AdminSettingMapper   $settings     Persistence layer for
      *                                           the position scalar.
      * @param IUserSession         $userSession  Current user session.
+     * @param IGroupManager        $groupManager Admin check for write endpoints.
      */
     public function __construct(
         IRequest $request,
         private readonly OrgNavigationService $service,
         private readonly AdminSettingMapper $settings,
         private readonly IUserSession $userSession,
+        private readonly IGroupManager $groupManager,
     ) {
         parent::__construct(
             appName: Application::APP_ID,
             request: $request
         );
     }//end __construct()
+
+    /**
+     * Inline admin guard (returns null when the caller is an NC admin).
+     *
+     * @return JSONResponse|null Non-null = caller must be rejected.
+     */
+    private function assertAdmin(): ?JSONResponse
+    {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new JSONResponse(
+                data: ['error' => 'Not authenticated'],
+                statusCode: Http::STATUS_UNAUTHORIZED
+            );
+        }
+
+        if ($this->groupManager->isAdmin(userId: $user->getUID()) === false) {
+            return new JSONResponse(
+                data: ['error' => 'Admin required'],
+                statusCode: Http::STATUS_FORBIDDEN
+            );
+        }
+
+        return null;
+    }//end assertAdmin()
 
     /**
      * Read the org-navigation tree filtered for the current user.
@@ -110,10 +138,10 @@ class AdminOrgNavigationController extends Controller
      *
      * @return JSONResponse The filtered tree under `tree` plus the
      *                      effective `language`.
-     *
-     */
+         *
+     * @spec openspec/specs/navigation-editor-org/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/navigation-editor-org/spec.md */
     public function getOrgNavigation(string $lang=OrgNavigationService::DEFAULT_LANGUAGE): JSONResponse
     {
         $user = $this->userSession->getUser();
@@ -152,14 +180,18 @@ class AdminOrgNavigationController extends Controller
      * @param string     $lang Language code (defaults to `nl`).
      *
      * @return JSONResponse The persisted tree (unchanged) on success.
-     *
-     */
+         *
+     * @spec openspec/specs/navigation-editor-org/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/navigation-editor-org/spec.md */
     public function updateOrgNavigation(
         ?array $tree=null,
         string $lang=OrgNavigationService::DEFAULT_LANGUAGE
     ): JSONResponse {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
 
         $language = $this->validateLanguage(language: $lang);
         if ($language === null) {
@@ -197,10 +229,10 @@ class AdminOrgNavigationController extends Controller
      * Read the global rail-position setting (REQ-ONAV-004).
      *
      * @return JSONResponse The current effective position.
-     *
-     */
+         *
+     * @spec openspec/specs/navigation-editor-org/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/navigation-editor-org/spec.md */
     public function getPosition(): JSONResponse
     {
         $user = $this->userSession->getUser();
@@ -221,12 +253,16 @@ class AdminOrgNavigationController extends Controller
      * @param string|null $position The desired position.
      *
      * @return JSONResponse The persisted position on success.
-     *
-     */
+         *
+     * @spec openspec/specs/navigation-editor-org/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/navigation-editor-org/spec.md */
     public function updatePosition(?string $position=null): JSONResponse
     {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
 
         if ($position === null
             || in_array(needle: $position, haystack: self::ALLOWED_POSITIONS, strict: true) === false
@@ -290,5 +326,4 @@ class AdminOrgNavigationController extends Controller
 
         return $raw;
     }//end readPosition()
-
 }//end class

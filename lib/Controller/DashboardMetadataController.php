@@ -73,9 +73,10 @@ class DashboardMetadataController extends Controller
      *
      * @return JSONResponse 200 + flat metadata, 404 when missing,
      *                      403 when the caller cannot see the dashboard.
-     */
+         *
+     * @spec openspec/specs/dashboard-metadata-fields/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function getMetadata(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
@@ -112,9 +113,10 @@ class DashboardMetadataController extends Controller
      *
      * @return JSONResponse 200 + updated metadata, 400 on validation
      *                      failure, 404 when missing, 403 otherwise.
-     */
+         *
+     * @spec openspec/specs/dashboard-metadata-fields/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function setMetadata(string $uuid, array $metadata=[]): JSONResponse
     {
         if ($this->userId === null) {

@@ -93,8 +93,9 @@ class PermissionService
      * @param int    $dashboardId The dashboard ID.
      *
      * @return bool True when the dashboard is visible to the user.
+     *
+     * @spec openspec/specs/permissions/spec.md
      */
-    /** @spec openspec/specs/permissions/spec.md */
     public function canViewDashboard(string $userId, int $dashboardId): bool
     {
         return $this->resolveAccessLevel(userId: $userId, dashboardId: $dashboardId) !== null;
@@ -158,8 +159,9 @@ class PermissionService
      * @param int    $dashboardId The dashboard ID.
      *
      * @return bool Whether the user can edit the dashboard metadata.
+     *
+     * @spec openspec/specs/permissions/spec.md
      */
-    /** @spec openspec/specs/permissions/spec.md */
     public function canEditDashboardMetadata(
         string $userId,
         int $dashboardId
@@ -265,8 +267,9 @@ class PermissionService
      * @param int    $placementId The placement ID.
      *
      * @return bool Whether the user can style the widget.
+     *
+     * @spec openspec/specs/permissions/spec.md
      */
-    /** @spec openspec/specs/permissions/spec.md */
     public function canStyleWidget(string $userId, int $placementId): bool
     {
         // REQ-ROLE-008: Viewer role blocks any mutation.
@@ -303,8 +306,9 @@ class PermissionService
      * @param string $userId The user ID.
      *
      * @return bool Whether the user can create dashboards.
+     *
+     * @spec openspec/specs/permissions/spec.md
      */
-    /** @spec openspec/specs/permissions/spec.md */
     public function canCreateDashboard(string $userId): bool
     {
         // REQ-ROLE-008: Viewer role explicitly blocks dashboard creation
@@ -340,8 +344,9 @@ class PermissionService
      * the creation of an additional one.
      *
      * @return bool Whether multiple dashboards are allowed.
+     *
+     * @spec openspec/specs/permissions/spec.md
      */
-    /** @spec openspec/specs/permissions/spec.md */
     public function canHaveMultipleDashboards(): bool
     {
         return (bool) $this->settingMapper->getValue(
@@ -433,8 +438,9 @@ class PermissionService
      * @param Dashboard|null $dashboard   The dashboard entity (optional if $dashboardId given).
      *
      * @return string|null The permission level or null when no access.
+     *
+     * @spec openspec/specs/permissions/spec.md
      */
-    /** @spec openspec/specs/permissions/spec.md */
     public function resolveAccessLevel(
         string $userId,
         ?int $dashboardId=null,
@@ -502,8 +508,9 @@ class PermissionService
      * @return Dashboard The verified dashboard.
      *
      * @throws \Exception If access is denied.
+     *
+     * @spec openspec/specs/permissions/spec.md
      */
-    /** @spec openspec/specs/permissions/spec.md */
     public function verifyDashboardOwnership(
         string $userId,
         int $dashboardId
@@ -526,8 +533,9 @@ class PermissionService
      * @return WidgetPlacement The verified placement.
      *
      * @throws \Exception If access is denied.
+     *
+     * @spec openspec/specs/permissions/spec.md
      */
-    /** @spec openspec/specs/permissions/spec.md */
     public function verifyPlacementOwnership(
         string $userId,
         int $placementId

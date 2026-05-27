@@ -39,6 +39,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\AuthorizedAdminSetting;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\IGroupManager;
 use OCP\IRequest;
 use OCP\IUserSession;
 
@@ -56,18 +57,45 @@ class AdminCleanupController extends Controller
      *                                                   (for unknown-name
      *                                                   error messages).
      * @param IUserSession               $userSession    Current user.
+     * @param IGroupManager              $groupManager   Admin check.
      */
     public function __construct(
         IRequest $request,
         private readonly OrphanedDataCleanupService $cleanupService,
         private readonly CategoryRegistryService $registry,
         private readonly IUserSession $userSession,
+        private readonly IGroupManager $groupManager,
     ) {
         parent::__construct(
             appName: Application::APP_ID,
             request: $request
         );
     }//end __construct()
+
+    /**
+     * Inline admin guard.
+     *
+     * @return JSONResponse|null Non-null = caller must be rejected.
+     */
+    private function assertAdmin(): ?JSONResponse
+    {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new JSONResponse(
+                data: ['error' => 'Not authenticated'],
+                statusCode: Http::STATUS_FORBIDDEN
+            );
+        }
+
+        if ($this->groupManager->isAdmin(userId: $user->getUID()) === false) {
+            return new JSONResponse(
+                data: ['error' => 'Admin required'],
+                statusCode: Http::STATUS_FORBIDDEN
+            );
+        }
+
+        return null;
+    }//end assertAdmin()
 
     /**
      * `GET /api/admin/cleanup/scan` — REQ-CLN-004.
@@ -78,11 +106,17 @@ class AdminCleanupController extends Controller
      * can display "last refreshed" badges.
      *
      * @return JSONResponse The scan result.
-     */
+         *
+     * @spec openspec/specs/orphaned-data-cleanup/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function scan(): JSONResponse
     {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
+
         $cached = $this->cleanupService->getCachedScanResult();
         if ($cached !== null) {
             return new JSONResponse(
@@ -128,11 +162,17 @@ class AdminCleanupController extends Controller
      * @param bool|null              $dryRun     Dry-run flag.
      *
      * @return JSONResponse The purge result.
-     */
+         *
+     * @spec openspec/specs/orphaned-data-cleanup/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function purge(?array $categories=null, ?bool $dryRun=null): JSONResponse
     {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
+
         $names = $this->normaliseCategories(input: ($categories ?? []));
         if ($names === null) {
             return new JSONResponse(
@@ -201,5 +241,4 @@ class AdminCleanupController extends Controller
 
         return $normalised;
     }//end normaliseCategories()
-
 }//end class

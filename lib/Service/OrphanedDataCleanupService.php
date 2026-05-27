@@ -135,8 +135,9 @@ class OrphanedDataCleanupService
      * @param array<int, string> $categoryNames Names to scan, or [].
      *
      * @return CleanupResult The result.
+     *
+     * @spec openspec/specs/orphaned-data-cleanup/spec.md
      */
-    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function scan(array $categoryNames=[]): CleanupResult
     {
         if (count(value: $categoryNames) === 0) {
@@ -206,8 +207,9 @@ class OrphanedDataCleanupService
      *                                          'api', 'job').
      *
      * @return CleanupResult The result.
+     *
+     * @spec openspec/specs/orphaned-data-cleanup/spec.md
      */
-    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function purge(
         array $categoryNames=[],
         bool $dryRun=false,
@@ -295,8 +297,9 @@ class OrphanedDataCleanupService
      * without a memory cache silently fall through to fresh scans.
      *
      * @return CleanupResult|null The cached result or null.
+     *
+     * @spec openspec/specs/orphaned-data-cleanup/spec.md
      */
-    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function getCachedScanResult(): ?CleanupResult
     {
         $payload = $this->cache()->get(key: self::CACHE_KEY_SCAN);
@@ -321,8 +324,9 @@ class OrphanedDataCleanupService
      * @param CleanupResult $result The result to cache.
      *
      * @return void
+     *
+     * @spec openspec/specs/orphaned-data-cleanup/spec.md
      */
-    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function setCachedScanResult(CleanupResult $result): void
     {
         $this->cache()->set(
@@ -339,8 +343,9 @@ class OrphanedDataCleanupService
      * next scan reflects the fresh state (REQ-CLN-010).
      *
      * @return void
+     *
+     * @spec openspec/specs/orphaned-data-cleanup/spec.md
      */
-    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function invalidateCache(): void
     {
         $this->cache()->remove(key: self::CACHE_KEY_SCAN);

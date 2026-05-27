@@ -88,6 +88,11 @@
                 <!-- GuzzleHttp (loaded via composer at runtime) -->
                 <referencedClass name="GuzzleHttp\Client"/>
                 <referencedClass name="GuzzleHttp\Exception\GuzzleException"/>
+                <!-- Doctrine DBAL — IDBConnection::createSchema() return type;
+                     no Psalm stub ships for Doctrine\DBAL\Schema\Schema. The
+                     call site in Version002000Date20260519000000 is wrapped in
+                     try/catch so runtime safety is unaffected. -->
+                <referencedClass name="Doctrine\DBAL\Schema\Schema"/>
             </errorLevel>
         </UndefinedClass>
         <UndefinedMagicMethod errorLevel="suppress"/>

@@ -51,6 +51,11 @@ parameters:
 			path: lib/Controller/DashboardShareApiController.php
 
 		-
+			message: "#^Parameter \\$data of class OCP\\\\AppFramework\\\\Http\\\\DataResponse constructor expects T of OCP\\\\AppFramework\\\\Http\\\\DataResponseType, array\\<array\\> given\\.$#"
+			count: 2
+			path: lib/Controller/DashboardShareApiController.php
+
+		-
 			message: "#^Parameter \\$data of class OCP\\\\AppFramework\\\\Http\\\\DataResponse constructor expects T of OCP\\\\AppFramework\\\\Http\\\\DataResponseType, array\\<string, array\\<int\\<0, max\\>, array\\<string, string\\>\\>\\> given\\.$#"
 			count: 1
 			path: lib/Controller/DashboardShareApiController.php

@@ -65,8 +65,9 @@ class CleanupPurgeCommand extends Command
      * Configure the command name, description and options.
      *
      * @return void
+     *
+     * @spec openspec/specs/orphaned-data-cleanup/spec.md
      */
-    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     protected function configure(): void
     {
         $this->setName(name: 'mydash:cleanup:purge')
@@ -100,8 +101,9 @@ class CleanupPurgeCommand extends Command
      * @param OutputInterface $output The console output.
      *
      * @return int 0 on success, 1 on validation failure.
+     *
+     * @spec openspec/specs/orphaned-data-cleanup/spec.md
      */
-    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     protected function execute(
         InputInterface $input,
         OutputInterface $output

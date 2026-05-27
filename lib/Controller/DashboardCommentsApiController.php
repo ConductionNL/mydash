@@ -87,9 +87,10 @@ class DashboardCommentsApiController extends Controller
      * @param string $uuid The dashboard UUID.
      *
      * @return JSONResponse The list envelope or an error.
-     */
+         *
+     * @spec openspec/specs/dashboard-comments/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function index(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
@@ -144,9 +145,10 @@ class DashboardCommentsApiController extends Controller
      * @param mixed       $parentId Optional parent comment id; coerced to int.
      *
      * @return JSONResponse The new comment envelope or an error.
-     */
+         *
+     * @spec openspec/specs/dashboard-comments/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function create(
         string $uuid,
         ?string $message=null,
@@ -216,9 +218,10 @@ class DashboardCommentsApiController extends Controller
      * @param string|null $message The new message text.
      *
      * @return JSONResponse The updated comment envelope or an error.
-     */
+         *
+     * @spec openspec/specs/dashboard-comments/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function update(
         string $uuid,
         int $id,
@@ -281,9 +284,10 @@ class DashboardCommentsApiController extends Controller
      * @param int    $id   The comment ID.
      *
      * @return JSONResponse Empty success or an error envelope.
-     */
+         *
+     * @spec openspec/specs/dashboard-comments/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function destroy(string $uuid, int $id): JSONResponse
     {
         if ($this->userId === null) {

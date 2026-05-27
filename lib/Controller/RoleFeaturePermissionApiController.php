@@ -42,8 +42,8 @@ class RoleFeaturePermissionApiController extends Controller
     /**
      * Constructor.
      *
-     * @param IRequest                     $request     The HTTP request.
-     * @param RoleFeaturePermissionService $service     Permission service.
+     * @param IRequest                     $request The HTTP request.
+     * @param RoleFeaturePermissionService $service Permission service.
      */
     public function __construct(
         IRequest $request,
@@ -59,9 +59,10 @@ class RoleFeaturePermissionApiController extends Controller
      * GET /api/role-feature-permissions
      *
      * @return JSONResponse The list of permission rows.
-     */
+         *
+     * @spec openspec/specs/admin-roles/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function listPermissions(): JSONResponse
     {
         $rows = $this->service->listPermissions();
@@ -77,9 +78,10 @@ class RoleFeaturePermissionApiController extends Controller
      * Upsert keyed by `groupId`.
      *
      * @return JSONResponse The persisted row.
-     */
+         *
+     * @spec openspec/specs/admin-roles/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function savePermission(): JSONResponse
     {
         try {
@@ -105,9 +107,10 @@ class RoleFeaturePermissionApiController extends Controller
      * @param int $id The row id.
      *
      * @return JSONResponse Empty 204 on success.
-     */
+         *
+     * @spec openspec/specs/admin-roles/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function deletePermission(int $id): JSONResponse
     {
         try {
@@ -125,9 +128,10 @@ class RoleFeaturePermissionApiController extends Controller
      * GET /api/role-layout-defaults
      *
      * @return JSONResponse The list of layout default rows.
-     */
+         *
+     * @spec openspec/specs/admin-roles/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function listLayoutDefaults(): JSONResponse
     {
         $rows = $this->service->listLayoutDefaults();
@@ -140,9 +144,10 @@ class RoleFeaturePermissionApiController extends Controller
      * POST /api/role-layout-defaults
      *
      * @return JSONResponse The persisted row.
-     */
+         *
+     * @spec openspec/specs/admin-roles/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function saveLayoutDefault(): JSONResponse
     {
         try {
@@ -168,9 +173,10 @@ class RoleFeaturePermissionApiController extends Controller
      * @param int $id The row id.
      *
      * @return JSONResponse Empty 204 on success.
-     */
+         *
+     * @spec openspec/specs/admin-roles/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function deleteLayoutDefault(int $id): JSONResponse
     {
         try {
@@ -203,5 +209,4 @@ class RoleFeaturePermissionApiController extends Controller
 
         return $decoded;
     }//end readJsonBody()
-
 }//end class

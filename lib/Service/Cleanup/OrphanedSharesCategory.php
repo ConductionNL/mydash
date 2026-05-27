@@ -105,8 +105,9 @@ class OrphanedSharesCategory implements CleanupCategoryInterface
      * Count orphaned share rows.
      *
      * @return int The orphan count.
+     *
+     * @spec openspec/specs/orphaned-data-cleanup/spec.md
      */
-    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function scan(): int
     {
         return $this->shareMapper->countOrphaned();
@@ -122,8 +123,9 @@ class OrphanedSharesCategory implements CleanupCategoryInterface
      * @param bool $dryRun True for dry-run.
      *
      * @return int The number of rows deleted.
+     *
+     * @spec openspec/specs/orphaned-data-cleanup/spec.md
      */
-    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function purge(bool $dryRun=false): int
     {
         return $this->shareMapper->deleteOrphaned();

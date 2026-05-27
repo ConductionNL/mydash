@@ -84,8 +84,9 @@ class RoleService
      * @param string $userId The Nextcloud user ID.
      *
      * @return string|null The role string, or null when no role applies.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function getEffectiveRole(string $userId): ?string
     {
         if ($this->groupManager->isAdmin(userId: $userId) === true) {
@@ -118,8 +119,9 @@ class RoleService
      * @param string $userId The Nextcloud user ID.
      *
      * @return string|null The source identifier, or null when no role.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function getRoleSource(string $userId): ?string
     {
         if ($this->groupManager->isAdmin(userId: $userId) === true) {
@@ -153,8 +155,9 @@ class RoleService
      * @return void
      *
      * @throws InvalidRoleAssignmentException When the role is unknown.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function validateRole(string $role): void
     {
         if (in_array(
@@ -179,8 +182,9 @@ class RoleService
      * @return void
      *
      * @throws InvalidRoleAssignmentException On any structural failure.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function validateTarget(?string $userId, ?string $groupId): void
     {
         $hasUser  = ($userId !== null && $userId !== '');
@@ -223,8 +227,9 @@ class RoleService
      *
      * @throws InvalidRoleAssignmentException   On structural failures.
      * @throws DuplicateRoleAssignmentException When the (target, role) pair exists.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function assignRole(
         ?string $userId,
         ?string $groupId,
@@ -268,8 +273,9 @@ class RoleService
      * @return void
      *
      * @throws DoesNotExistException When no row matches the given ID.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function removeRole(int $id): void
     {
         $affected = $this->mapper->deleteById(id: $id);
@@ -282,8 +288,9 @@ class RoleService
      * List every role assignment in the system (REQ-ROLE-006 admin listing).
      *
      * @return RoleAssignment[] Every persisted assignment.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function listAssignments(): array
     {
         return $this->mapper->findAll();
@@ -296,8 +303,9 @@ class RoleService
      * @param string $userId The deleted user's UID.
      *
      * @return int The number of rows removed.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function deleteByUserId(string $userId): int
     {
         return $this->mapper->deleteByUserId(userId: $userId);
@@ -310,8 +318,9 @@ class RoleService
      * @param string $groupId The deleted group's GID.
      *
      * @return int The number of rows removed.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function deleteByGroupId(string $groupId): int
     {
         return $this->mapper->deleteByGroupId(groupId: $groupId);
@@ -335,8 +344,9 @@ class RoleService
      * @param string $userId The user ID.
      *
      * @return bool True for editor or admin.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function isEditorOrHigher(string $userId): bool
     {
         $role = $this->getEffectiveRole(userId: $userId);
@@ -367,8 +377,9 @@ class RoleService
      * @param string $userId The user ID.
      *
      * @return bool False when the user has the Viewer role.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function canMutate(string $userId): bool
     {
         return $this->isViewer(userId: $userId) === false;

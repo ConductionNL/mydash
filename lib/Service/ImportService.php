@@ -106,8 +106,9 @@ class ImportService
      *
      * @throws InvalidArgumentException When the archive is invalid or the
      *                                  schema version is unsupported.
+     *
+     * @spec openspec/specs/dashboard-export-import/spec.md
      */
-    /** @spec openspec/specs/dashboard-export-import/spec.md */
     public function import(
         string $zipPath,
         bool $preserveUuids,
@@ -167,8 +168,9 @@ class ImportService
      * @return array<string, mixed> The decoded manifest.
      *
      * @throws InvalidArgumentException When the manifest is missing or invalid.
+     *
+     * @spec openspec/specs/dashboard-export-import/spec.md
      */
-    /** @spec openspec/specs/dashboard-export-import/spec.md */
     public function validateZipStructure(ZipArchive $zip): array
     {
         $raw = $zip->getFromName(name: 'manifest.json');
@@ -216,8 +218,9 @@ class ImportService
      * @param bool                             $preserveUuids Preserve flag.
      *
      * @return array<int, array<string, mixed>> The (possibly remapped) dashboards.
+     *
+     * @spec openspec/specs/dashboard-export-import/spec.md
      */
-    /** @spec openspec/specs/dashboard-export-import/spec.md */
     public function remapUuids(array $dashboards, bool $preserveUuids): array
     {
         if ($preserveUuids === true) {

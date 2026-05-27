@@ -47,8 +47,9 @@ class ResourceUploadRequestParser
      * @throws InvalidDataUrlException       When the body is missing,
      *                                       not JSON, or lacks the
      *                                       `base64` field.
+     *
+     * @spec openspec/specs/resource-uploads/spec.md
      */
-    /** @spec openspec/specs/resource-uploads/spec.md */
     public function extractBase64(IRequest $request, string $rawBody): string
     {
         $contentType = (string) $request->getHeader(name: 'Content-Type');

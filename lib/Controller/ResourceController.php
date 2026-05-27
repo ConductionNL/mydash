@@ -93,9 +93,10 @@ class ResourceController extends Controller
      *                      envelope with `{status, error, message}`.
      *
      * @NoCSRFRequired
-     */
+         *
+     * @spec openspec/specs/resource-uploads/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/resource-uploads/spec.md */
     public function upload(): JSONResponse
     {
         try {
@@ -175,8 +176,9 @@ class ResourceController extends Controller
      * code reads from the standard PHP input stream.
      *
      * @return string The raw request body.
+     *
+     * @spec openspec/specs/resource-uploads/spec.md
      */
-    /** @spec openspec/specs/resource-uploads/spec.md */
     protected function readRequestBody(): string
     {
         return (string) file_get_contents(filename: 'php://input');

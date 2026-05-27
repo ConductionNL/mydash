@@ -117,8 +117,9 @@ class FilesWidgetService
      *                                 longer exists.
      * @throws NoAccessException       When the viewer cannot read the
      *                                 configured folder.
+     *
+     * @spec openspec/specs/files-widget/spec.md
      */
-    /** @spec openspec/specs/files-widget/spec.md */
     public function getContentsForPlacement(
         string $userId,
         array $config,
@@ -181,8 +182,9 @@ class FilesWidgetService
      * @throws FolderNotFoundException When the configured folder is gone.
      * @throws NoAccessException       When upload is not allowed for
      *                                 this placement / viewer combination.
+     *
+     * @spec openspec/specs/files-widget/spec.md
      */
-    /** @spec openspec/specs/files-widget/spec.md */
     public function uploadFiles(
         string $userId,
         array $config,
@@ -247,8 +249,9 @@ class FilesWidgetService
      *
      * @throws FolderNotFoundException When the file is not found.
      * @throws NoAccessException       When delete is not allowed.
+     *
+     * @spec openspec/specs/files-widget/spec.md
      */
-    /** @spec openspec/specs/files-widget/spec.md */
     public function deleteFile(string $userId, array $config, int $fileId): array
     {
         if ((bool) ($config['allowDelete'] ?? false) === false) {
@@ -304,8 +307,9 @@ class FilesWidgetService
      * @param Node $node A file or folder node.
      *
      * @return array<string, mixed>
+     *
+     * @spec openspec/specs/files-widget/spec.md
      */
-    /** @spec openspec/specs/files-widget/spec.md */
     public function buildFileMetadata(Node $node): array
     {
         $isFolder = $node instanceof Folder;
@@ -357,8 +361,9 @@ class FilesWidgetService
      * @throws FolderNotFoundException When neither identifier resolves.
      * @throws NoAccessException       When the resolved folder is
      *                                 unreadable.
+     *
+     * @spec openspec/specs/files-widget/spec.md
      */
-    /** @spec openspec/specs/files-widget/spec.md */
     public function resolveConfiguredFolder(string $userId, array $config): Folder
     {
         try {

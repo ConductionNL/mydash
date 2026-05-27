@@ -27,6 +27,7 @@ namespace Unit\Controller;
 use OCA\MyDash\Controller\DashboardApiController;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Exception\PersonalDashboardsDisabledException;
+use OCA\MyDash\Service\ActionAuthService;
 use OCA\MyDash\Service\AnalyticsService;
 use OCA\MyDash\Service\DashboardService;
 use OCA\MyDash\Service\DashboardTreeService;
@@ -35,6 +36,8 @@ use OCA\MyDash\Service\PermissionService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\IRequest;
+use OCP\IUser;
+use OCP\IUserSession;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -65,6 +68,10 @@ class DashboardApiControllerForkTest extends TestCase
 
     /** @var AnalyticsService&MockObject */
     private $analyticsService;
+    /** @var IUserSession&MockObject */
+    private $userSession;
+    /** @var ActionAuthService&MockObject */
+    private $actionAuth;
 
     /**
      * Set up shared mocks.
@@ -80,6 +87,8 @@ class DashboardApiControllerForkTest extends TestCase
         $this->versionService    = $this->createMock(DashboardVersionService::class);
         $this->analyticsService  = $this->createMock(AnalyticsService::class);
         $this->logger            = $this->createMock(LoggerInterface::class);
+        $this->userSession       = $this->createMock(IUserSession::class);
+        $this->actionAuth        = $this->createMock(ActionAuthService::class);
     }//end setUp()
 
     /**
@@ -91,6 +100,14 @@ class DashboardApiControllerForkTest extends TestCase
      */
     private function makeController(?string $userId): DashboardApiController
     {
+        $user = null;
+        if ($userId !== null) {
+            $user = $this->createMock(IUser::class);
+            $user->method('getUID')->willReturn($userId);
+        }
+
+        $this->userSession->method('getUser')->willReturn($user);
+
         return new DashboardApiController(
             request: $this->request,
             dashboardService: $this->dashboardService,
@@ -99,6 +116,8 @@ class DashboardApiControllerForkTest extends TestCase
             versionService: $this->versionService,
             analyticsService: $this->analyticsService,
             logger: $this->logger,
+            userSession: $this->userSession,
+            actionAuth: $this->actionAuth,
             userId: $userId,
         );
     }//end makeController()

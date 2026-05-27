@@ -88,8 +88,9 @@ class ArchiveParser
      *
      * @throws InvalidArgumentException When the ZIP is missing,
      *                                  unreadable, or has no `index.html`.
+     *
+     * @spec openspec/specs/confluence-html-import/spec.md
      */
-    /** @spec openspec/specs/confluence-html-import/spec.md */
     public function parse(string $zipPath): ParsedArchive
     {
         if (file_exists(filename: $zipPath) === false) {

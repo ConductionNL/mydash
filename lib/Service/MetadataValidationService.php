@@ -48,8 +48,9 @@ class MetadataValidationService
      * @return string The canonical encoded string ready for persistence.
      *
      * @throws InvalidMetadataFieldException When the value is invalid.
+     *
+     * @spec openspec/specs/dashboard-metadata-fields/spec.md
      */
-    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function validateValue(mixed $value, MetadataField $field): string
     {
         if (self::isEmpty(value: $value) === true) {

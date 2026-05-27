@@ -67,8 +67,9 @@ abstract class CommandBase extends Command
      * (REQ-CLI-002), then defer to the child for per-command options.
      *
      * @return void
+     *
+     * @spec openspec/specs/cli-commands/spec.md
      */
-    /** @spec openspec/specs/cli-commands/spec.md */
     final protected function configure(): void
     {
         $this->addOption(
@@ -99,8 +100,9 @@ abstract class CommandBase extends Command
      * {@see configure()}; subclasses MUST NOT re-declare them.
      *
      * @return void
+     *
+     * @spec openspec/specs/cli-commands/spec.md
      */
-    /** @spec openspec/specs/cli-commands/spec.md */
     abstract protected function configureCommand(): void;
 
     /**
@@ -115,8 +117,9 @@ abstract class CommandBase extends Command
      *                                and `--json`).
      *
      * @return int
+     *
+     * @spec openspec/specs/cli-commands/spec.md
      */
-    /** @spec openspec/specs/cli-commands/spec.md */
     abstract protected function handle(
         InputInterface $input,
         OutputInterface $output
@@ -131,8 +134,9 @@ abstract class CommandBase extends Command
      * @param OutputInterface $output CLI output.
      *
      * @return int
+     *
+     * @spec openspec/specs/cli-commands/spec.md
      */
-    /** @spec openspec/specs/cli-commands/spec.md */
     final protected function execute(
         InputInterface $input,
         OutputInterface $output
@@ -216,8 +220,9 @@ abstract class CommandBase extends Command
      * @param string                               $human  Optional human-readable line.
      *
      * @return void
+     *
+     * @spec openspec/specs/cli-commands/spec.md
      */
-    /** @spec openspec/specs/cli-commands/spec.md */
     final protected function emitSuccess(
         InputInterface $input,
         OutputInterface $output,
@@ -251,8 +256,9 @@ abstract class CommandBase extends Command
      * @param array<string,mixed>|null $context  Optional metadata.
      *
      * @return int Echoes back the exit code for caller convenience.
+     *
+     * @spec openspec/specs/cli-commands/spec.md
      */
-    /** @spec openspec/specs/cli-commands/spec.md */
     final protected function emitError(
         InputInterface $input,
         OutputInterface $output,

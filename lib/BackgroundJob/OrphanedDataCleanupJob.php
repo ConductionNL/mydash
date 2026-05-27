@@ -103,8 +103,9 @@ class OrphanedDataCleanupJob extends TimedJob
      * @param mixed $argument Ignored — the job carries no arguments.
      *
      * @return void
+     *
+     * @spec openspec/specs/orphaned-data-cleanup/spec.md
      */
-    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     protected function run($argument): void
     {
         $categories = $this->resolveCategories();

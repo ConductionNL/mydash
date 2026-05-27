@@ -121,8 +121,9 @@ class FileService
      *                                      in the allow-list.
      * @throws StorageFailureException      When the underlying
      *                                      filesystem rejects the write.
+     *
+     * @spec openspec/specs/resource-uploads/spec.md
      */
-    /** @spec openspec/specs/resource-uploads/spec.md */
     public function createFile(
         string $userId,
         string $filename,
@@ -173,8 +174,9 @@ class FileService
      * tokens are silently dropped to keep the allow-list well-formed.
      *
      * @return array<int, string> Normalised allow-list.
+     *
+     * @spec openspec/specs/resource-uploads/spec.md
      */
-    /** @spec openspec/specs/resource-uploads/spec.md */
     public function getAllowedExtensions(): array
     {
         $stored = $this->settingMapper->getValue(
@@ -224,8 +226,9 @@ class FileService
      *                          are kept; everything else is dropped).
      *
      * @return array<int, string> The stored, normalised allow-list.
+     *
+     * @spec openspec/specs/resource-uploads/spec.md
      */
-    /** @spec openspec/specs/resource-uploads/spec.md */
     public function setAllowedExtensions(array $extensions): array
     {
         $normalised = [];

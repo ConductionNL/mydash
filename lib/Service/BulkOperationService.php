@@ -154,8 +154,9 @@ class BulkOperationService
      *
      * @throws InvalidArgumentException When the request exceeds the cap.
      * @throws PermissionDeniedException When any UUID is unauthorised.
+     *
+     * @spec openspec/specs/dashboard-bulk-operations/spec.md
      */
-    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkDelete(
         array $dashboardUuids,
         string $userId,
@@ -272,8 +273,9 @@ class BulkOperationService
      * @throws InvalidArgumentException  When the request exceeds the cap
      *                                   or the parent does not exist.
      * @throws PermissionDeniedException When any UUID is unauthorised.
+     *
+     * @spec openspec/specs/dashboard-bulk-operations/spec.md
      */
-    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkMove(
         array $dashboardUuids,
         ?string $parentUuid,
@@ -401,8 +403,9 @@ class BulkOperationService
      *                                   exceeded, or when `publishAt` is
      *                                   in the past.
      * @throws PermissionDeniedException When any UUID is unauthorised.
+     *
+     * @spec openspec/specs/dashboard-bulk-operations/spec.md
      */
-    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkStatus(
         array $dashboardUuids,
         string $publicationStatus,
@@ -529,8 +532,9 @@ class BulkOperationService
      *
      * @throws InvalidArgumentException  When the request exceeds the cap.
      * @throws PermissionDeniedException When any UUID is unauthorised.
+     *
+     * @spec openspec/specs/dashboard-bulk-operations/spec.md
      */
-    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkReindex(
         array $dashboardUuids,
         string $userId,
@@ -605,8 +609,9 @@ class BulkOperationService
      * is missing, zero, or negative (REQ-BULK-006 fallback scenario).
      *
      * @return int The effective cap.
+     *
+     * @spec openspec/specs/dashboard-bulk-operations/spec.md
      */
-    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function getEffectiveCap(): int
     {
         $value = $this->appConfig->getValueInt(

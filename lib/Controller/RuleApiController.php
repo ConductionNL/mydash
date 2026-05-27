@@ -90,7 +90,7 @@ class RuleApiController extends Controller
             );
         } catch (\Exception $e) {
             return ResponseHelper::error(exception: $e);
-        }
+        }//end try
     }//end getRules()
 
     /**

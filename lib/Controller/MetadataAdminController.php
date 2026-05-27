@@ -35,7 +35,9 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\AuthorizedAdminSetting;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\IGroupManager;
 use OCP\IRequest;
+use OCP\IUserSession;
 
 /**
  * Admin field-definition CRUD controller.
@@ -51,10 +53,14 @@ class MetadataAdminController extends Controller
      *
      * @param IRequest        $request         The HTTP request.
      * @param MetadataService $metadataService The metadata service facade.
+     * @param IGroupManager   $groupManager    Admin checker.
+     * @param IUserSession    $userSession     Current user session.
      */
     public function __construct(
         IRequest $request,
         private readonly MetadataService $metadataService,
+        private readonly IGroupManager $groupManager,
+        private readonly IUserSession $userSession,
     ) {
         parent::__construct(
             appName: Application::APP_ID,
@@ -63,15 +69,45 @@ class MetadataAdminController extends Controller
     }//end __construct()
 
     /**
+     * Inline admin guard.
+     *
+     * @return JSONResponse|null Non-null = caller must be rejected.
+     */
+    private function assertAdmin(): ?JSONResponse
+    {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new JSONResponse(
+                data: ['error' => 'Not authenticated'],
+                statusCode: Http::STATUS_UNAUTHORIZED
+            );
+        }
+
+        if ($this->groupManager->isAdmin(userId: $user->getUID()) === false) {
+            return new JSONResponse(
+                data: ['error' => 'Admin required'],
+                statusCode: Http::STATUS_FORBIDDEN
+            );
+        }
+
+        return null;
+    }//end assertAdmin()
+
+    /**
      * `GET /api/admin/metadata-fields` — list all field definitions
      * (REQ-MDFL-001).
      *
      * @return JSONResponse The fields array + count, or 403.
-     */
+         *
+     * @spec openspec/specs/dashboard-metadata-fields/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function listFields(): JSONResponse
     {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
 
         $fields = $this->metadataService->listFields();
 
@@ -96,9 +132,10 @@ class MetadataAdminController extends Controller
      *
      * @return JSONResponse 201 + field, 400 on validation failure,
      *                      403 for non-admins.
-     */
+         *
+     * @spec openspec/specs/dashboard-metadata-fields/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function createField(
         string $key='',
         string $label='',
@@ -107,6 +144,10 @@ class MetadataAdminController extends Controller
         int $required=0,
         int $sortOrder=0
     ): JSONResponse {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
 
         try {
             $field = $this->metadataService->createFieldDefinition(
@@ -134,11 +175,16 @@ class MetadataAdminController extends Controller
      * @param int $id The field id.
      *
      * @return JSONResponse 200 + field, 404 when missing, 403 for non-admins.
-     */
+         *
+     * @spec openspec/specs/dashboard-metadata-fields/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function getField(int $id): JSONResponse
     {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
 
         try {
             $field = $this->metadataService->getField(id: $id);
@@ -165,9 +211,10 @@ class MetadataAdminController extends Controller
      *
      * @return JSONResponse 200 + field, 400 on validation failure,
      *                      404 when missing, 403 for non-admins.
-     */
+         *
+     * @spec openspec/specs/dashboard-metadata-fields/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function updateField(
         int $id,
         ?string $label=null,
@@ -176,6 +223,10 @@ class MetadataAdminController extends Controller
         ?array $options=null,
         ?string $key=null
     ): JSONResponse {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
 
         $patch = [];
         if ($key !== null) {
@@ -228,11 +279,16 @@ class MetadataAdminController extends Controller
      *
      * @return JSONResponse 200 on success, 409 when soft-deletion blocked,
      *                      404 when missing, 403 for non-admins.
-     */
+         *
+     * @spec openspec/specs/dashboard-metadata-fields/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function deleteField(int $id, bool $cascade=false): JSONResponse
     {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
 
         try {
             $this->metadataService->deleteFieldDefinition(
@@ -275,12 +331,4 @@ class MetadataAdminController extends Controller
             statusCode: Http::STATUS_BAD_REQUEST
         );
     }//end badRequest()
-
-    /**
-     * Reject non-admin callers.
-     *
-     * @return JSONResponse|null `null` when the caller is an admin, or
-     *                           a 403 response that the calling action
-     *                           should return verbatim.
-     */
 }//end class

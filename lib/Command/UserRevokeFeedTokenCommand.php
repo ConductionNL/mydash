@@ -68,8 +68,9 @@ class UserRevokeFeedTokenCommand extends CommandBase
      * Wire command name, description, and per-command options.
      *
      * @return void
+     *
+     * @spec openspec/specs/dashboard-rss-feeds/spec.md
      */
-    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     protected function configureCommand(): void
     {
         $this->setName(name: 'mydash:user:revoke-feed-token')
@@ -101,8 +102,9 @@ class UserRevokeFeedTokenCommand extends CommandBase
      * @param OutputInterface $output CLI output.
      *
      * @return int
+     *
+     * @spec openspec/specs/dashboard-rss-feeds/spec.md
      */
-    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     protected function handle(
         InputInterface $input,
         OutputInterface $output

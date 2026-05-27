@@ -40,6 +40,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\AuthorizedAdminSetting;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\IGroupManager;
 use OCP\IRequest;
 use OCP\IUserSession;
 
@@ -58,17 +59,45 @@ class AdminBulkController extends Controller
      * @param IRequest             $request      The current request.
      * @param BulkOperationService $bulkService  The bulk service.
      * @param IUserSession         $userSession  The user session.
+     * @param IGroupManager        $groupManager NC group manager for inline admin guard.
      */
     public function __construct(
         IRequest $request,
         private readonly BulkOperationService $bulkService,
         private readonly IUserSession $userSession,
+        private readonly IGroupManager $groupManager,
     ) {
         parent::__construct(
             appName: Application::APP_ID,
             request: $request
         );
     }//end __construct()
+
+    /**
+     * Inline admin guard — returns a 401/403 JSONResponse when the caller
+     * is not authenticated or not an NC admin, or null when the guard passes.
+     *
+     * @return JSONResponse|null Non-null means the request must be rejected.
+     */
+    private function assertAdmin(): ?JSONResponse
+    {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new JSONResponse(
+                data: ['error' => 'Not authenticated'],
+                statusCode: Http::STATUS_UNAUTHORIZED
+            );
+        }
+
+        if ($this->groupManager->isAdmin(userId: $user->getUID()) === false) {
+            return new JSONResponse(
+                data: ['error' => 'Admin required'],
+                statusCode: Http::STATUS_FORBIDDEN
+            );
+        }
+
+        return null;
+    }//end assertAdmin()
 
     /**
      * `POST /api/admin/dashboards/bulk-delete` — REQ-BULK-001.
@@ -78,15 +107,20 @@ class AdminBulkController extends Controller
      * @param bool|null $cascade        When true, cascade into children.
      *
      * @return JSONResponse The bulk-delete envelope.
-     *
-     */
+         *
+     * @spec openspec/specs/dashboard-bulk-operations/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkDelete(
         mixed $dashboardUuids=null,
         ?bool $dryRun=null,
         ?bool $cascade=null
     ): JSONResponse {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
+
         $uuids = $this->extractUuids(value: $dashboardUuids);
         if ($uuids === null) {
             return new JSONResponse(
@@ -133,15 +167,20 @@ class AdminBulkController extends Controller
      * @param bool|null   $dryRun         When true, preview only.
      *
      * @return JSONResponse The bulk-move envelope.
-     *
-     */
+         *
+     * @spec openspec/specs/dashboard-bulk-operations/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkMove(
         mixed $dashboardUuids=null,
         ?string $parentUuid=null,
         ?bool $dryRun=null
     ): JSONResponse {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
+
         $uuids = $this->extractUuids(value: $dashboardUuids);
         if ($uuids === null) {
             return new JSONResponse(
@@ -187,16 +226,21 @@ class AdminBulkController extends Controller
      * @param bool|null   $dryRun            When true, preview only.
      *
      * @return JSONResponse The bulk-status envelope.
-     *
-     */
+         *
+     * @spec openspec/specs/dashboard-bulk-operations/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkStatus(
         mixed $dashboardUuids=null,
         ?string $publicationStatus=null,
         ?string $publishAt=null,
         ?bool $dryRun=null
     ): JSONResponse {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
+
         $uuids = $this->extractUuids(value: $dashboardUuids);
         if ($uuids === null) {
             return new JSONResponse(
@@ -248,14 +292,19 @@ class AdminBulkController extends Controller
      * @param bool|null $dryRun         When true, preview only.
      *
      * @return JSONResponse The bulk-reindex envelope.
-     *
-     */
+         *
+     * @spec openspec/specs/dashboard-bulk-operations/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/dashboard-bulk-operations/spec.md */
     public function bulkReindex(
         mixed $dashboardUuids=null,
         ?bool $dryRun=null
     ): JSONResponse {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
+
         $uuids = $this->extractUuids(value: $dashboardUuids);
         if ($uuids === null) {
             return new JSONResponse(
@@ -347,5 +396,4 @@ class AdminBulkController extends Controller
         $lower = strtolower((string) $raw);
         return in_array(needle: $lower, haystack: ['1', 'true', 'yes', 'on'], strict: true);
     }//end resolveBool()
-
 }//end class

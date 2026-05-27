@@ -72,8 +72,9 @@ class PurgeViewsJob extends TimedJob
      * @param mixed $argument Required by the base class; unused.
      *
      * @return void
+     *
+     * @spec openspec/specs/dashboard-view-analytics/spec.md
      */
-    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     protected function run($argument): void
     {
         $cutoff  = $this->analyticsService->getPurgeCutoffDate();

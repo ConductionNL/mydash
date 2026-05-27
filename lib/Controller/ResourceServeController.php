@@ -118,9 +118,10 @@ class ResourceServeController extends Controller
      *
      * @NoAdminRequired
      * @NoCSRFRequired
-     */
+         *
+     * @spec openspec/specs/resource-uploads/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/resource-uploads/spec.md */
     public function getResource(string $filename): StreamResponse|JSONResponse
     {
         if ($this->userSession->getUser() === null) {
@@ -179,9 +180,10 @@ class ResourceServeController extends Controller
      *
      * @NoAdminRequired
      * @NoCSRFRequired
-     */
+         *
+     * @spec openspec/specs/resource-uploads/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/resource-uploads/spec.md */
     public function listResources(): JSONResponse
     {
         if ($this->userSession->getUser() === null) {

@@ -50,8 +50,9 @@ class ParsedArchive
      * Number of parsed pages.
      *
      * @return int The page count.
+     *
+     * @spec openspec/specs/confluence-html-import/spec.md
      */
-    /** @spec openspec/specs/confluence-html-import/spec.md */
     public function pageCount(): int
     {
         return count(value: $this->pages);
@@ -61,8 +62,9 @@ class ParsedArchive
      * Number of attachments + shared images.
      *
      * @return int The asset count.
+     *
+     * @spec openspec/specs/confluence-html-import/spec.md
      */
-    /** @spec openspec/specs/confluence-html-import/spec.md */
     public function attachmentCount(): int
     {
         return (count(value: $this->attachments) + count(value: $this->images));

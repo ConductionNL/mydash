@@ -79,8 +79,9 @@ class RoleFeaturePermissionService
      * List all RoleFeaturePermission rows for the admin UI.
      *
      * @return RoleFeaturePermission[] All rows.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function listPermissions(): array
     {
         return $this->permissionMapper->findAll();
@@ -90,8 +91,9 @@ class RoleFeaturePermissionService
      * List all RoleLayoutDefault rows for the admin UI.
      *
      * @return RoleLayoutDefault[] All rows.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function listLayoutDefaults(): array
     {
         return $this->defaultMapper->findAll();
@@ -103,8 +105,9 @@ class RoleFeaturePermissionService
      * @param array $data The submitted permission data.
      *
      * @return RoleFeaturePermission The persisted row.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function savePermission(array $data): RoleFeaturePermission
     {
         $groupId = (string) ($data['groupId'] ?? '');
@@ -190,8 +193,9 @@ class RoleFeaturePermissionService
      * @return void
      *
      * @throws DoesNotExistException When the row does not exist.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function deletePermission(int $id): void
     {
         $entity = $this->permissionMapper->find(id: $id);
@@ -204,8 +208,9 @@ class RoleFeaturePermissionService
      * @param array $data The submitted layout default data.
      *
      * @return RoleLayoutDefault The persisted row.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function saveLayoutDefault(array $data): RoleLayoutDefault
     {
         $groupId  = (string) ($data['groupId'] ?? '');
@@ -302,8 +307,9 @@ class RoleFeaturePermissionService
      * @return void
      *
      * @throws DoesNotExistException When the row does not exist.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function deleteLayoutDefault(int $id): void
     {
         $entity = $this->defaultMapper->find(id: $id);
@@ -330,8 +336,9 @@ class RoleFeaturePermissionService
      * @param string $userId The user's UID.
      *
      * @return array|null Sorted list of allowed widget IDs, or null.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function getAllowedWidgetIds(string $userId): ?array
     {
         $userGroups = $this->groupIdsForUser(userId: $userId);
@@ -390,6 +397,30 @@ class RoleFeaturePermissionService
     }//end getAllowedWidgetIds()
 
     /**
+     * Check whether a specific widget is allowed for the given user.
+     *
+     * Returns `true` when the role configuration imposes no restriction on
+     * the user (i.e. `getAllowedWidgetIds()` returns `null`), or when the
+     * widget ID is explicitly included in the allowed set.
+     *
+     * @param string $userId   The user's UID.
+     * @param string $widgetId The widget identifier to check.
+     *
+     * @return bool True when the widget is accessible to the user.
+     *
+     * @spec openspec/specs/admin-roles/spec.md
+     */
+    public function isWidgetAllowed(string $userId, string $widgetId): bool
+    {
+        $allowed = $this->getAllowedWidgetIds(userId: $userId);
+        if ($allowed === null) {
+            return true;
+        }
+
+        return in_array(needle: $widgetId, haystack: $allowed, strict: true);
+    }//end isWidgetAllowed()
+
+    /**
      * Seed the default layout for a freshly created dashboard from the
      * RoleLayoutDefault rows attached to the user's primary group.
      *
@@ -403,8 +434,9 @@ class RoleFeaturePermissionService
      * @param Dashboard $dashboard The dashboard to seed (must already exist).
      *
      * @return int The number of placements created (0 when no-op).
+     *
+     * @spec openspec/specs/admin-roles/spec.md
      */
-    /** @spec openspec/specs/admin-roles/spec.md */
     public function seedLayoutFromRoleDefaults(string $userId, Dashboard $dashboard): int
     {
         $existing = $this->placementMapper->findByDashboardId(

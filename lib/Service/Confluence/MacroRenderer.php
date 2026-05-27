@@ -61,8 +61,9 @@ class MacroRenderer
      * @param string $html The raw HTML fragment.
      *
      * @return string The fragment with macros expanded into plain HTML.
+     *
+     * @spec openspec/specs/confluence-html-import/spec.md
      */
-    /** @spec openspec/specs/confluence-html-import/spec.md */
     public function render(string $html): string
     {
         if (trim($html) === '') {

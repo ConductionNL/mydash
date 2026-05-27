@@ -99,8 +99,9 @@ class UniqueViewerDedup
      * @param DateTimeImmutable|null $when Optional reference timestamp.
      *
      * @return string The UTC date in `YYYY-MM-DD` format.
+     *
+     * @spec openspec/specs/dashboard-view-analytics/spec.md
      */
-    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public static function utcDateFor(?DateTimeImmutable $when=null): string
     {
         $reference = ($when ?? new DateTimeImmutable('now'))
@@ -118,8 +119,9 @@ class UniqueViewerDedup
      * @param DateTimeImmutable|null $when Optional reference timestamp.
      *
      * @return int The TTL in seconds.
+     *
+     * @spec openspec/specs/dashboard-view-analytics/spec.md
      */
-    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public static function secondsUntilNextUtcMidnight(
         ?DateTimeImmutable $when=null
     ): int {
@@ -149,8 +151,9 @@ class UniqueViewerDedup
      * @param string $viewBucketDate The UTC date `YYYY-MM-DD`.
      *
      * @return string The salt as a hex string.
+     *
+     * @spec openspec/specs/dashboard-view-analytics/spec.md
      */
-    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function getSaltForDate(string $viewBucketDate): string
     {
         $existingSalt = $this->appConfig->getValueString(
@@ -182,8 +185,9 @@ class UniqueViewerDedup
      * @param string $viewBucketDate The UTC date `YYYY-MM-DD`.
      *
      * @return string The new salt as a hex string.
+     *
+     * @spec openspec/specs/dashboard-view-analytics/spec.md
      */
-    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function rotateSalt(string $viewBucketDate): string
     {
         $newSalt = bin2hex(string: random_bytes(length: 32));
@@ -210,8 +214,9 @@ class UniqueViewerDedup
      * @param string $viewBucketDate The UTC date `YYYY-MM-DD`.
      *
      * @return string The 64-char hex SHA-256 digest.
+     *
+     * @spec openspec/specs/dashboard-view-analytics/spec.md
      */
-    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function hashUserForDate(
         string $userId,
         string $viewBucketDate
@@ -236,8 +241,9 @@ class UniqueViewerDedup
      * @return bool `true` when the user is a new unique viewer for
      *              this dashboard today, `false` when they have
      *              already been counted.
+     *
+     * @spec openspec/specs/dashboard-view-analytics/spec.md
      */
-    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function isNewUniqueViewer(
         string $userId,
         string $viewBucketDate,
@@ -275,8 +281,9 @@ class UniqueViewerDedup
      * @param string $viewerHash    The 64-char hex SHA-256 digest.
      *
      * @return string The cache key.
+     *
+     * @spec openspec/specs/dashboard-view-analytics/spec.md
      */
-    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function buildCacheKey(
         string $dashboardUuid,
         string $viewerHash

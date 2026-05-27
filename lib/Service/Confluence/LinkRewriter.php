@@ -38,8 +38,9 @@ class LinkRewriter
      * @return array{html:string, warnings:array<int,string>}
      *      The rewritten fragment plus any warnings (links whose target
      *      pageId did not appear in the import).
+     *
+     * @spec openspec/specs/confluence-html-import/spec.md
      */
-    /** @spec openspec/specs/confluence-html-import/spec.md */
     public function rewrite(string $html, array $pageIdToUuid): array
     {
         if ($html === '') {

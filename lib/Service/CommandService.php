@@ -101,8 +101,9 @@ class CommandService
      * @param array<string,mixed>|list<mixed>|null $data Command payload.
      *
      * @return array<string,mixed>
+     *
+     * @spec openspec/specs/cli-commands/spec.md
      */
-    /** @spec openspec/specs/cli-commands/spec.md */
     public function envelopeSuccess(array|null $data): array
     {
         return [
@@ -120,8 +121,9 @@ class CommandService
      * @param list<array<string,mixed>>            $errors Per-item errors.
      *
      * @return array<string,mixed>
+     *
+     * @spec openspec/specs/cli-commands/spec.md
      */
-    /** @spec openspec/specs/cli-commands/spec.md */
     public function envelopePartial(array|null $data, array $errors): array
     {
         return [
@@ -141,8 +143,9 @@ class CommandService
      * @param array<string,mixed>|null $context  Optional metadata.
      *
      * @return array<string,mixed>
+     *
+     * @spec openspec/specs/cli-commands/spec.md
      */
-    /** @spec openspec/specs/cli-commands/spec.md */
     public function envelopeError(
         int $exitCode,
         string $code,
@@ -171,8 +174,9 @@ class CommandService
      * @param array<string,mixed> $envelope The envelope to encode.
      *
      * @return string
+     *
+     * @spec openspec/specs/cli-commands/spec.md
      */
-    /** @spec openspec/specs/cli-commands/spec.md */
     public function encodeEnvelope(array $envelope): string
     {
         return (string) json_encode(
@@ -197,8 +201,9 @@ class CommandService
      * @param string|null $byUser     Caller user id or null for `cli`.
      *
      * @return string
+     *
+     * @spec openspec/specs/cli-commands/spec.md
      */
-    /** @spec openspec/specs/cli-commands/spec.md */
     public function formatAuditLine(
         string $command,
         string $args,
@@ -240,8 +245,9 @@ class CommandService
      * @param string|null $byUser     Caller user id.
      *
      * @return void
+     *
+     * @spec openspec/specs/cli-commands/spec.md
      */
-    /** @spec openspec/specs/cli-commands/spec.md */
     public function audit(
         string $command,
         string $args,

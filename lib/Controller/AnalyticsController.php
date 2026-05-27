@@ -77,9 +77,10 @@ class AnalyticsController extends Controller
      * @param int    $limit  Maximum rows.
      *
      * @return JSONResponse The response.
-     */
+         *
+     * @spec openspec/specs/dashboard-view-analytics/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function topDashboards(
         string $period='30d',
         int $limit=10
@@ -112,9 +113,10 @@ class AnalyticsController extends Controller
      * @param string $period The period string.
      *
      * @return JSONResponse The response.
-     */
+         *
+     * @spec openspec/specs/dashboard-view-analytics/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function dashboardDetail(
         string $uuid,
         string $period='30d'
@@ -152,9 +154,10 @@ class AnalyticsController extends Controller
      * @param string $period The period string.
      *
      * @return JSONResponse The response.
-     */
+         *
+     * @spec openspec/specs/dashboard-view-analytics/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function instanceSummary(string $period='30d'): JSONResponse
     {
 
@@ -186,9 +189,10 @@ class AnalyticsController extends Controller
      *
      * @return Response The CSV download response or a JSON error
      *                  envelope.
-     */
+         *
+     * @spec openspec/specs/dashboard-view-analytics/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function exportCsv(string $period='30d'): Response
     {
 
@@ -213,5 +217,4 @@ class AnalyticsController extends Controller
             contentType: 'text/csv'
         );
     }//end exportCsv()
-
 }//end class

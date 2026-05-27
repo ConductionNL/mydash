@@ -112,8 +112,9 @@ class HtmlSanitizer
      * @param string $html The raw HTML fragment.
      *
      * @return string The sanitised HTML.
+     *
+     * @spec openspec/specs/confluence-html-import/spec.md
      */
-    /** @spec openspec/specs/confluence-html-import/spec.md */
     public function sanitize(string $html): string
     {
         $trimmed = trim($html);

@@ -137,8 +137,9 @@ class DemoShowcasesService
      * {@see DemoShowcasesService::setDataDirForTesting()}.
      *
      * @return string Absolute filesystem path.
+     *
+     * @spec openspec/specs/demo-data-showcases/spec.md
      */
-    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function getDataDir(): string
     {
         if ($this->dataDirOverride !== null) {
@@ -155,8 +156,9 @@ class DemoShowcasesService
      * the returned list is stable and predictable for the admin UI.
      *
      * @return array<int, array<string, mixed>> Showcase descriptors.
+     *
+     * @spec openspec/specs/demo-data-showcases/spec.md
      */
-    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function getAvailableShowcases(): array
     {
         $result = [];
@@ -183,8 +185,9 @@ class DemoShowcasesService
      *
      * @return array<string, mixed>|null The descriptor, or `null` when
      *                                   the ZIP is missing/malformed.
+     *
+     * @spec openspec/specs/demo-data-showcases/spec.md
      */
-    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function describeShowcase(string $showcaseId): ?array
     {
         $zipPath = $this->getZipPath(showcaseId: $showcaseId);
@@ -234,8 +237,9 @@ class DemoShowcasesService
      *
      * @throws ShowcaseNotFoundException When the showcase ID is unknown.
      * @throws RuntimeException          On ZIP / persistence failures.
+     *
+     * @spec openspec/specs/demo-data-showcases/spec.md
      */
-    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function installShowcase(
         string $showcaseId,
         string $lang='nl',
@@ -328,8 +332,9 @@ class DemoShowcasesService
      * @param string $showcaseId The showcase ID.
      *
      * @return void
+     *
+     * @spec openspec/specs/demo-data-showcases/spec.md
      */
-    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function uninstallShowcase(string $showcaseId): void
     {
         $existingUuid = $this->getInstalledUuid(showcaseId: $showcaseId);
@@ -360,8 +365,9 @@ class DemoShowcasesService
      * @param string $showcaseId The showcase ID.
      *
      * @return string The UUID, or empty string when not installed.
+     *
+     * @spec openspec/specs/demo-data-showcases/spec.md
      */
-    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function getInstalledUuid(string $showcaseId): string
     {
         return $this->appConfig->getValueString(
@@ -384,8 +390,9 @@ class DemoShowcasesService
      *                                   showcase JSON.
      *
      * @return array{0:array<int,array<string,mixed>>, 1:array<int,string>}
+     *
+     * @spec openspec/specs/demo-data-showcases/spec.md
      */
-    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function partitionWidgets(array $widgets): array
     {
         $registered = [];

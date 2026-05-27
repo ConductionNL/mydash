@@ -62,8 +62,9 @@ class PreferencesController extends Controller
      *
      * @NoAdminRequired
      * @NoCSRFRequired
+     *
+     * @spec openspec/specs/admin-settings/spec.md
      */
-    /** @spec openspec/specs/admin-settings/spec.md */
     public function getPreference(string $key): JSONResponse
     {
         $user = $this->userSession->getUser();
@@ -102,8 +103,9 @@ class PreferencesController extends Controller
      *
      * @NoAdminRequired
      * @NoCSRFRequired
+     *
+     * @spec openspec/specs/admin-settings/spec.md
      */
-    /** @spec openspec/specs/admin-settings/spec.md */
     public function setPreference(string $key, string $value=''): JSONResponse
     {
         $user = $this->userSession->getUser();

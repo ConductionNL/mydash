@@ -126,8 +126,9 @@ class CommentService
      * have comments enabled by design.
      *
      * @return bool True when comments are globally enabled.
+     *
+     * @spec openspec/specs/dashboard-comments/spec.md
      */
-    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function isCommentsEnabledGlobally(): bool
     {
         try {
@@ -166,8 +167,9 @@ class CommentService
      * @param Dashboard $dashboard The dashboard.
      *
      * @return bool True when comments are effectively enabled.
+     *
+     * @spec openspec/specs/dashboard-comments/spec.md
      */
-    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function isEnabledFor(Dashboard $dashboard): bool
     {
         return $dashboard->isCommentsEffectivelyEnabled(
@@ -186,8 +188,9 @@ class CommentService
      *
      * @return array<int, array<string, mixed>> Top-level comments with
      *                                          a nested `replies` array.
+     *
+     * @spec openspec/specs/dashboard-comments/spec.md
      */
-    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function getCommentsForDashboard(string $dashboardUuid): array
     {
         $raw = $this->commentsManager->getForObject(
@@ -260,8 +263,9 @@ class CommentService
      *
      * @throws InvalidCommentException  On empty message or nested-reply violation.
      * @throws CommentNotFoundException When `$parentId` does not resolve.
+     *
+     * @spec openspec/specs/dashboard-comments/spec.md
      */
-    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function createComment(
         string $dashboardUuid,
         string $userId,
@@ -344,8 +348,9 @@ class CommentService
      * @throws CommentForbiddenException When the user is neither author
      *                                   nor admin.
      * @throws InvalidCommentException   When the message is empty.
+     *
+     * @spec openspec/specs/dashboard-comments/spec.md
      */
-    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function updateComment(
         int $commentId,
         string $newMessage,
@@ -396,8 +401,9 @@ class CommentService
      * @throws CommentNotFoundException  When the comment does not exist.
      * @throws CommentForbiddenException When the user is neither author
      *                                   nor admin.
+     *
+     * @spec openspec/specs/dashboard-comments/spec.md
      */
-    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function deleteComment(
         int $commentId,
         string $currentUserId
@@ -439,8 +445,9 @@ class CommentService
      * @param string $dashboardUuid The dashboard UUID.
      *
      * @return void
+     *
+     * @spec openspec/specs/dashboard-comments/spec.md
      */
-    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function deleteAllForDashboard(string $dashboardUuid): void
     {
         $this->commentsManager->deleteCommentsAtObject(
@@ -467,8 +474,9 @@ class CommentService
      *                              recipient knows who mentioned them.
      *
      * @return array<int, array{userId: string, displayName: string}>
+     *
+     * @spec openspec/specs/dashboard-comments/spec.md
      */
-    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function parseAndResolveMentions(
         string $message,
         string $dashboardUuid,
@@ -535,8 +543,9 @@ class CommentService
      * @param IComment $comment The comment to serialise.
      *
      * @return array<string, mixed> The wire-format envelope.
+     *
+     * @spec openspec/specs/dashboard-comments/spec.md
      */
-    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function serialiseComment(IComment $comment): array
     {
         $createdAt = $comment->getCreationDateTime()->format(format: 'c');

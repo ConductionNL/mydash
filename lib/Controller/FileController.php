@@ -83,9 +83,10 @@ class FileController extends Controller
      *                      or `{status, error, message}` on failure.
      *
      * @NoCSRFRequired
-     */
+         *
+     * @spec openspec/specs/resource-uploads/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/resource-uploads/spec.md */
     public function createFile(
         ?string $filename=null,
         ?string $dir='/',

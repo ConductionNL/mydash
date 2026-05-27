@@ -83,8 +83,9 @@ class AdminSettingsController extends Controller
      *
      * @return JSONResponse Either the success payload or HTTP 403 when
      *                      the caller is not an administrator.
+     *
+     * @spec openspec/specs/admin-settings/spec.md
      */
-    /** @spec openspec/specs/admin-settings/spec.md */
     public function listGroups(): JSONResponse
     {
         $forbidden = $this->assertAdmin();
@@ -155,8 +156,9 @@ class AdminSettingsController extends Controller
      *
      * @return JSONResponse HTTP 200 with `{status: 'ok'}` on success,
      *                      400 on validation failure, 403 for non-admins.
+     *
+     * @spec openspec/specs/admin-settings/spec.md
      */
-    /** @spec openspec/specs/admin-settings/spec.md */
     public function updateGroupOrder(mixed $groups=null): JSONResponse
     {
         $forbidden = $this->assertAdmin();
@@ -180,7 +182,12 @@ class AdminSettingsController extends Controller
             );
         }
 
-        return ResponseHelper::success(data: ['status' => 'ok']);
+        return ResponseHelper::success(
+            data: [
+                'status'     => 'ok',
+                'groupOrder' => $this->settingsService->getGroupOrder(),
+            ]
+        );
     }//end updateGroupOrder()
 
     /**
@@ -199,7 +206,10 @@ class AdminSettingsController extends Controller
     {
         $user = $this->userSession->getUser();
         if ($user === null) {
-            return ResponseHelper::forbidden();
+            return new JSONResponse(
+                data: ['error' => 'Not authenticated'],
+                statusCode: Http::STATUS_UNAUTHORIZED
+            );
         }
 
         if ($this->groupManager->isAdmin(userId: $user->getUID()) === false) {

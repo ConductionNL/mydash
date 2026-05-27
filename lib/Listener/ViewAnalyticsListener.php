@@ -54,8 +54,9 @@ class ViewAnalyticsListener implements IEventListener
      * @param Event $event The event.
      *
      * @return void
+     *
+     * @spec openspec/specs/dashboard-view-analytics/spec.md
      */
-    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function handle(Event $event): void
     {
         if (($event instanceof DashboardDeletedEvent) === false) {

@@ -143,8 +143,9 @@ class FeedRefreshService
      * the JSON-decode path.
      *
      * @return string[] The deduplicated, sorted feed URL list.
+     *
+     * @spec openspec/specs/background-job-feed-refresh/spec.md
      */
-    /** @spec openspec/specs/background-job-feed-refresh/spec.md */
     public function discoverFeedUrls(): array
     {
         $rawUrls = [];
@@ -197,8 +198,9 @@ class FeedRefreshService
      *
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      * @SuppressWarnings(PHPMD.NPathComplexity)
+     *
+     * @spec openspec/specs/background-job-feed-refresh/spec.md
      */
-    /** @spec openspec/specs/background-job-feed-refresh/spec.md */
     public function refreshFeed(string $feedUrl): array
     {
         $startedAt = (int) (microtime(as_float: true) * 1000);
@@ -331,8 +333,9 @@ class FeedRefreshService
      *
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      * @SuppressWarnings(PHPMD.NPathComplexity)
+     *
+     * @spec openspec/specs/background-job-feed-refresh/spec.md
      */
-    /** @spec openspec/specs/background-job-feed-refresh/spec.md */
     public function refreshAll(?string $onlyUrl=null): array
     {
         $startedAt = (int) (microtime(as_float: true) * 1000);

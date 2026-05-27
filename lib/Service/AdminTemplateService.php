@@ -111,8 +111,9 @@ class AdminTemplateService
      *
      * @return string The resolved primary group ID, or
      *                {@see Dashboard::DEFAULT_GROUP_ID} when no match is found.
+     *
+     * @spec openspec/specs/admin-templates/spec.md
      */
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function resolvePrimaryGroup(string $userId): string
     {
         $orderedGroups = $this->settingsService->getGroupOrder();
@@ -145,8 +146,9 @@ class AdminTemplateService
      * @return string|null The first matching group ID, or `null` when no
      *                     element of `$orderedGroups` is present in
      *                     `$userGroups`.
+     *
+     * @spec openspec/specs/admin-templates/spec.md
      */
-    /** @spec openspec/specs/admin-templates/spec.md */
     public static function pickFirstMatch(
         array $orderedGroups,
         array $userGroups
@@ -180,8 +182,9 @@ class AdminTemplateService
      *
      * @return string[] The user's group IDs, or `[]` when the user does
      *                  not exist.
+     *
+     * @spec openspec/specs/admin-templates/spec.md
      */
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function getUserGroupIdsFor(string $userId): array
     {
         $user = $this->userManager->get(uid: $userId);
@@ -207,8 +210,9 @@ class AdminTemplateService
      *                        {@see self::resolvePrimaryGroup()}.
      *
      * @return string The display name to surface to the frontend.
+     *
+     * @spec openspec/specs/admin-templates/spec.md
      */
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function resolvePrimaryGroupDisplayName(string $groupId): string
     {
         if ($groupId === Dashboard::DEFAULT_GROUP_ID) {
@@ -243,8 +247,9 @@ class AdminTemplateService
      * @return array The template and its placements.
      *
      * @throws Exception If the dashboard is not an admin template.
+     *
+     * @spec openspec/specs/admin-templates/spec.md
      */
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function getTemplateWithPlacements(int $id): array
     {
         $template = $this->dashboardMapper->find(id: $id);
@@ -464,8 +469,9 @@ class AdminTemplateService
      * @param string      $sortBy   `'name'` (default) or `'updatedAt'`.
      *
      * @return array<int, array<string, mixed>> The gallery entries.
+     *
+     * @spec openspec/specs/admin-templates/spec.md
      */
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function getGallery(
         ?string $category=null,
         string $sortBy='name'
@@ -524,8 +530,9 @@ class AdminTemplateService
      *                               avoid leaking existence).
      * @throws Throwable             On any DB error — the transaction is
      *                               rolled back before rethrowing.
+     *
+     * @spec openspec/specs/admin-templates/spec.md
      */
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function saveAsTemplate(
         string $userId,
         string $dashboardUuid,
@@ -624,8 +631,9 @@ class AdminTemplateService
      *                                     template row.
      * @throws InvalidDataUrlException     Bad data URL prefix.
      * @throws InvalidImageFormatException Disallowed image type.
+     *
+     * @spec openspec/specs/admin-templates/spec.md
      */
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function uploadPreviewImage(
         string $templateUuid,
         string $base64DataUrl

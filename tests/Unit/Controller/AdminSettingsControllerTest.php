@@ -106,7 +106,7 @@ class AdminSettingsControllerTest extends TestCase
         $this->userSession->method('getUser')->willReturn(null);
 
         $response = $this->controller->listGroups();
-        $this->assertSame(Http::STATUS_FORBIDDEN, $response->getStatus());
+        $this->assertSame(Http::STATUS_UNAUTHORIZED, $response->getStatus());
     }
 
     public function testUpdateGroupOrderRejectsNonAdmin(): void
@@ -205,10 +205,15 @@ class AdminSettingsControllerTest extends TestCase
             ->expects($this->once())
             ->method('setGroupOrder')
             ->with(['c', 'b']);
+        $this->settingsService
+            ->method('getGroupOrder')
+            ->willReturn(['c', 'b']);
 
         $response = $this->controller->updateGroupOrder(['c', 'b']);
         $this->assertSame(Http::STATUS_OK, $response->getStatus());
-        $this->assertSame(['status' => 'ok'], $response->getData());
+        $data = $response->getData();
+        $this->assertSame('ok', $data['status']);
+        $this->assertSame(['c', 'b'], $data['groupOrder']);
     }
 
     public function testUpdateGroupOrderEmptyArrayPersisted(): void

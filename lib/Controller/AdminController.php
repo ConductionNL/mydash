@@ -136,6 +136,34 @@ class AdminController extends Controller
     }//end __construct()
 
     /**
+     * Inline admin guard — checks session and group membership.
+     *
+     * Returns a 401/403 JSONResponse when the caller is not authenticated or
+     * not an NC admin, or null when the guard passes.
+     *
+     * @return JSONResponse|null Non-null means the request must be rejected.
+     */
+    private function assertAdmin(): ?JSONResponse
+    {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new JSONResponse(
+                data: ['error' => 'Not authenticated'],
+                statusCode: Http::STATUS_UNAUTHORIZED
+            );
+        }
+
+        if ($this->groupManager->isAdmin(userId: $user->getUID()) === false) {
+            return new JSONResponse(
+                data: ['error' => 'Admin required'],
+                statusCode: Http::STATUS_FORBIDDEN
+            );
+        }
+
+        return null;
+    }//end assertAdmin()
+
+    /**
      * List all admin dashboard templates.
      *
      * @return JSONResponse The list of templates.
@@ -158,9 +186,10 @@ class AdminController extends Controller
      * @param int $id The template ID.
      *
      * @return JSONResponse The template data.
-     */
+         *
+     * @spec openspec/specs/admin-templates/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function getTemplate(int $id): JSONResponse
     {
         try {
@@ -355,12 +384,17 @@ class AdminController extends Controller
      * potentially-sensitive draft footer copy.
      *
      * @return JSONResponse The settings object, or 401/403 on guard failure.
-     *
-     */
+         *
+     * @spec openspec/specs/admin-templates/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function getFooterSettings(): JSONResponse
     {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
+
         return ResponseHelper::success(
             data: $this->footerService->getGlobalSettings()
         );
@@ -386,10 +420,10 @@ class AdminController extends Controller
      *
      * @return JSONResponse Status 200 on success, 400/413 on validation,
      *                      401/403 on guard failure.
-     *
-     */
+         *
+     * @spec openspec/specs/admin-templates/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function updateFooterSettings(
         ?bool $footerEnabled=null,
         mixed $footerHtml=null,
@@ -397,6 +431,10 @@ class AdminController extends Controller
         ?string $footerBackgroundColor=null,
         ?string $footerTextColor=null
     ): JSONResponse {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
 
         // Build the patch from only those args that the caller actually
         // supplied — `array_key_exists` semantics on the body let admins
@@ -446,13 +484,18 @@ class AdminController extends Controller
      * @return StreamResponse|JSONResponse The streamed ZIP, or a JSON error.
      *
      * @NoCSRFRequired
-     */
+         *
+     * @spec openspec/specs/admin-templates/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function export(
         string $scope='site',
         ?string $dashboardUuid=null
     ): StreamResponse|JSONResponse {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
 
         if (in_array(needle: $scope, haystack: ['site', 'dashboard'], strict: true) === false) {
             return new JSONResponse(
@@ -507,11 +550,16 @@ class AdminController extends Controller
      * @return JSONResponse The import summary, or an error response.
      *
      * @NoCSRFRequired
-     */
+         *
+     * @spec openspec/specs/admin-templates/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function import(bool $preserveUuids=false): JSONResponse
     {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
 
         // Multipart uploads bind to $_FILES; PHP only populates this for
         // POST requests, which is what the route declares (REQ-EXIM-004).
@@ -571,10 +619,10 @@ class AdminController extends Controller
      * caller MUST be a Nextcloud admin; non-admins receive HTTP 403.
      *
      * @return JSONResponse The list of role assignments, or 401/403.
-     *
-     */
+         *
+     * @spec openspec/specs/admin-templates/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function listRoles(): JSONResponse
     {
 
@@ -598,10 +646,10 @@ class AdminController extends Controller
      * @param string|null $role    The role name (admin / editor / viewer).
      *
      * @return JSONResponse The created assignment, or an error envelope.
-     *
-     */
+         *
+     * @spec openspec/specs/admin-templates/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function createRole(
         ?string $userId=null,
         ?string $groupId=null,
@@ -649,10 +697,10 @@ class AdminController extends Controller
      * @param int $id The role assignment ID.
      *
      * @return JSONResponse Empty success or error envelope.
-     *
-     */
+         *
+     * @spec openspec/specs/admin-templates/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function deleteRole(int $id): JSONResponse
     {
 
@@ -677,10 +725,10 @@ class AdminController extends Controller
      * Response shape: `{role: string|null, source: string|null}`.
      *
      * @return JSONResponse The role / source envelope, or 401.
-     *
-     */
+         *
+     * @spec openspec/specs/admin-templates/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function getMyRole(): JSONResponse
     {
         $user = $this->userSession->getUser();
@@ -708,12 +756,16 @@ class AdminController extends Controller
      * @param string|null $feedUrl Optional single URL to refresh.
      *
      * @return JSONResponse The aggregate refresh summary.
-     *
-     */
+         *
+     * @spec openspec/specs/admin-templates/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function refreshFeedsNow(?string $feedUrl=null): JSONResponse
     {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
 
         if ($feedUrl !== null && $feedUrl !== '') {
             $scheme = strtolower(
@@ -754,9 +806,10 @@ class AdminController extends Controller
      *                      on success.
      *
      * @NoCSRFRequired
-     */
+         *
+     * @spec openspec/specs/admin-templates/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function uploadTemplatePreviewImage(
         string $uuid,
         string $base64=''
@@ -818,12 +871,16 @@ class AdminController extends Controller
      * `{complete, currentRecommendedStep, stepStatuses}`.
      *
      * @return JSONResponse The wizard state, or 401/403.
-     *
-     */
+         *
+     * @spec openspec/specs/admin-templates/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function getWizardState(): JSONResponse
     {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
 
         return ResponseHelper::success(
             data: $this->setupWizardService->getWizardState()
@@ -837,12 +894,16 @@ class AdminController extends Controller
      * same payload. Admin-only.
      *
      * @return JSONResponse The post-completion wizard state, or 401/403.
-     *
-     */
+         *
+     * @spec openspec/specs/admin-templates/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function completeWizard(): JSONResponse
     {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
 
         return ResponseHelper::success(
             data: $this->setupWizardService->markWizardComplete()
@@ -860,12 +921,16 @@ class AdminController extends Controller
      * @param string|null $storage The chosen backend.
      *
      * @return JSONResponse The post-write wizard state, or 400/401/403.
-     *
-     */
+         *
+     * @spec openspec/specs/admin-templates/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function setWizardStorage(?string $storage=null): JSONResponse
     {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
 
         if ($storage === null || $storage === '') {
             return new JSONResponse(
@@ -896,7 +961,6 @@ class AdminController extends Controller
             data: $this->setupWizardService->getWizardState()
         );
     }//end setWizardStorage()
-
 
     /**
      * Build the update data array from nullable parameters.

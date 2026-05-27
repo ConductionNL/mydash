@@ -60,8 +60,9 @@ class SetupCommand extends Command
      * Configure CLI options.
      *
      * @return void
+     *
+     * @spec openspec/specs/setup-wizard/spec.md
      */
-    /** @spec openspec/specs/setup-wizard/spec.md */
     protected function configure(): void
     {
         $this->setName(name: 'mydash:setup')
@@ -83,8 +84,9 @@ class SetupCommand extends Command
      * @param OutputInterface $output CLI output.
      *
      * @return int Exit code (0 success, 1 error).
+     *
+     * @spec openspec/specs/setup-wizard/spec.md
      */
-    /** @spec openspec/specs/setup-wizard/spec.md */
     protected function execute(
         InputInterface $input,
         OutputInterface $output

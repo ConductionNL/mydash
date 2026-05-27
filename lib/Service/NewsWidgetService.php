@@ -138,8 +138,9 @@ class NewsWidgetService
      *     feedsFailed: int,
      *     failedUrls: array<int, string>
      * }
+     *
+     * @spec openspec/specs/news-widget/spec.md
      */
-    /** @spec openspec/specs/news-widget/spec.md */
     public function getItemsForPlacement(int $placementId, int $limit=10): array
     {
         $clamped = $this->clampLimit(limit: $limit);
@@ -194,8 +195,9 @@ class NewsWidgetService
      *     dateFormat: string,
      *     metadataFilter: array{fieldKey: string, value: string}|null
      * }
+     *
+     * @spec openspec/specs/news-widget/spec.md
      */
-    /** @spec openspec/specs/news-widget/spec.md */
     public function extractNewsConfig(WidgetPlacement $placement): array
     {
         $decoded = $this->decodeStyleConfigBlob(raw: $placement->getStyleConfig());
@@ -396,8 +398,9 @@ class NewsWidgetService
      *     feedsFailed: int,
      *     failedUrls: array<int, string>
      * }
+     *
+     * @spec openspec/specs/news-widget/spec.md
      */
-    /** @spec openspec/specs/news-widget/spec.md */
     public function fetchAndMergeFeeds(array $feedUrls, int $limit=10): array
     {
         if ($feedUrls === []) {
@@ -465,8 +468,9 @@ class NewsWidgetService
      *                            the channel/feed title when present.
      *
      * @return array<int, array<string, mixed>> Parsed items.
+     *
+     * @spec openspec/specs/news-widget/spec.md
      */
-    /** @spec openspec/specs/news-widget/spec.md */
     public function parseRssFeed(string $feedContent, string $sourceUrl, string $sourceTitle): array
     {
         if (trim(string: $feedContent) === '') {
@@ -560,8 +564,9 @@ class NewsWidgetService
      * @param array<int, array<string, mixed>> $items Items to dedupe.
      *
      * @return array<int, array<string, mixed>> Deduped items.
+     *
+     * @spec openspec/specs/news-widget/spec.md
      */
-    /** @spec openspec/specs/news-widget/spec.md */
     public function deduplicateItems(array $items): array
     {
         $seen = [];
@@ -599,8 +604,9 @@ class NewsWidgetService
      * @param array<int, array<string, mixed>> $items Items to sort.
      *
      * @return array<int, array<string, mixed>> Sorted items.
+     *
+     * @spec openspec/specs/news-widget/spec.md
      */
-    /** @spec openspec/specs/news-widget/spec.md */
     public function sortItemsByDate(array $items): array
     {
         $sortable = $items;
@@ -644,8 +650,9 @@ class NewsWidgetService
      * @param string $html Raw summary HTML from a feed item.
      *
      * @return string Sanitised summary HTML.
+     *
+     * @spec openspec/specs/news-widget/spec.md
      */
-    /** @spec openspec/specs/news-widget/spec.md */
     public function sanitiseSummaryHtml(string $html): string
     {
         if ($html === '') {
@@ -707,8 +714,9 @@ class NewsWidgetService
      * @param string $url Candidate feed URL.
      *
      * @return boolean True when the host is allowed.
+     *
+     * @spec openspec/specs/news-widget/spec.md
      */
-    /** @spec openspec/specs/news-widget/spec.md */
     public function checkAllowList(string $url): bool
     {
         $raw = $this->appConfig->getValueString(
@@ -754,8 +762,9 @@ class NewsWidgetService
      * @param array{fieldKey: string, value: string} $metadataFilter The filter to apply.
      *
      * @return boolean True when the filter passes (allow fetch); false otherwise.
+     *
+     * @spec openspec/specs/news-widget/spec.md
      */
-    /** @spec openspec/specs/news-widget/spec.md */
     public function checkMetadataFilter(int $dashboardId, array $metadataFilter): bool
     {
         unset($dashboardId);

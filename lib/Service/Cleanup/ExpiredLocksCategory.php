@@ -101,8 +101,9 @@ class ExpiredLocksCategory implements CleanupCategoryInterface
      * Count stale lock rows across all dashboards.
      *
      * @return int The orphan count.
+     *
+     * @spec openspec/specs/orphaned-data-cleanup/spec.md
      */
-    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function scan(): int
     {
         return $this->lockMapper->countAllExpired();
@@ -119,8 +120,9 @@ class ExpiredLocksCategory implements CleanupCategoryInterface
      * @param bool $dryRun True for dry-run.
      *
      * @return int The number of rows deleted (or that would be).
+     *
+     * @spec openspec/specs/orphaned-data-cleanup/spec.md
      */
-    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function purge(bool $dryRun=false): int
     {
         return $this->lockMapper->deleteAllExpired();

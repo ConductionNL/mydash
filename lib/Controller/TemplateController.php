@@ -84,9 +84,10 @@ class TemplateController extends Controller
      * @param string      $sort     Sort key (`name` or `updatedAt`).
      *
      * @return JSONResponse The gallery list envelope.
-     */
+         *
+     * @spec openspec/specs/admin-templates/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function gallery(
         ?string $category=null,
         string $sort='name'
@@ -131,9 +132,10 @@ class TemplateController extends Controller
      * @param string|null $previewImage Pre-uploaded preview URL.
      *
      * @return JSONResponse The new template envelope.
-     */
+         *
+     * @spec openspec/specs/admin-templates/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/admin-templates/spec.md */
     public function saveAsTemplate(
         string $uuid,
         ?string $name=null,

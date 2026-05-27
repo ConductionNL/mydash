@@ -161,8 +161,9 @@ class AdminSettingsService
      *
      * @return string[] The ordered list of group IDs, or `[]` when missing
      *                  or corrupt.
+     *
+     * @spec openspec/specs/admin-settings/spec.md
      */
-    /** @spec openspec/specs/admin-settings/spec.md */
     public function getGroupOrder(): array
     {
         $raw = $this->settingMapper->getValue(
@@ -210,8 +211,9 @@ class AdminSettingsService
      *
      * @throws InvalidArgumentException When any element is not a
      *                                  non-empty string.
+     *
+     * @spec openspec/specs/admin-settings/spec.md
      */
-    /** @spec openspec/specs/admin-settings/spec.md */
     public function setGroupOrder(array $groupIds): void
     {
         $deduplicated = [];

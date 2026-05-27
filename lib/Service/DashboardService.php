@@ -282,8 +282,9 @@ class DashboardService
      *
      * @return array|null `{dashboard, placements, permissionLevel}` when
      *                    visible; null when the user has no read access.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function getDashboardForUser(
         int $dashboardId,
         string $userId
@@ -326,8 +327,9 @@ class DashboardService
      * @param string $userId The user ID.
      *
      * @return array|null The effective dashboard data or null.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function getEffectiveDashboard(string $userId): ?array
     {
         // Wave3.7 Step 0 — explicit default-dashboard pin wins over
@@ -404,8 +406,9 @@ class DashboardService
      *                                  apply.
      *
      * @return Dashboard The created dashboard.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function createDashboard(
         string $userId,
         string $name,
@@ -498,8 +501,9 @@ class DashboardService
      * @param array  $data        The data to update.
      *
      * @return Dashboard The updated dashboard.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function updateDashboard(
         int $dashboardId,
         string $userId,
@@ -534,8 +538,9 @@ class DashboardService
      * @param bool   $cascade     When true, remove the entire subtree.
      *
      * @return void
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function deleteDashboard(
         int $dashboardId,
         string $userId,
@@ -628,8 +633,9 @@ class DashboardService
      * @param string $userId      The user ID.
      *
      * @return Dashboard The activated dashboard.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function activateDashboard(
         int $dashboardId,
         string $userId
@@ -658,8 +664,9 @@ class DashboardService
      * @param string $groupId The group ID.
      *
      * @return Dashboard[] The group-shared dashboards in the group.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function listGroupDashboards(string $groupId): array
     {
         return $this->dashboardMapper->findByGroup(groupId: $groupId);
@@ -681,8 +688,9 @@ class DashboardService
      *                               exists, or when its `groupId` does
      *                               not match the path parameter, or
      *                               when its type is not group_shared.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function findGroupDashboard(
         string $groupId,
         string $uuid
@@ -721,8 +729,9 @@ class DashboardService
      * @return Dashboard The created group-shared dashboard.
      *
      * @throws Exception When the actor is not an administrator.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function createGroupShared(
         string $actorUserId,
         string $groupId,
@@ -768,8 +777,9 @@ class DashboardService
      *
      * @throws Exception When the actor is not an administrator.
      * @throws DoesNotExistException On 404.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function updateGroupShared(
         string $actorUserId,
         string $groupId,
@@ -817,8 +827,9 @@ class DashboardService
      * @throws Exception When the actor is not admin, or the
      *                   last-in-group guard rejects the delete.
      * @throws DoesNotExistException On 404.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function deleteGroupShared(
         string $actorUserId,
         string $groupId,
@@ -873,8 +884,9 @@ class DashboardService
      * @throws Exception              When the actor is not an admin.
      * @throws DoesNotExistException  When the uuid does not belong to
      *                                the given group.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function setGroupDefault(
         string $actorUserId,
         string $groupId,
@@ -930,8 +942,9 @@ class DashboardService
      *
      * @return array<int, array{dashboard: Dashboard, source: string}>
      *   List of {dashboard, source} pairs.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function getVisibleToUser(string $userId): array
     {
         $userGroupIds = $this->adminTemplateService->getUserGroupIdsFor(
@@ -1079,8 +1092,9 @@ class DashboardService
      * @return array{dashboard: Dashboard, source: string}|null
      *   `{dashboard, source}` where source is `'user'`, `'group'`, or
      *   `'default'`; or `null` when no dashboard exists at all.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function resolveActiveDashboard(
         string $userId,
         ?string $primaryGroupId
@@ -1096,11 +1110,7 @@ class DashboardService
         $visible = $this->getVisibleToUser(userId: $userId);
 
         // Build a UUID-keyed index for O(1) pref lookup.
-        /**
-         * UUID-indexed view of $visible for O(1) lookup.
-         *
-         * @var array<string, array{dashboard: Dashboard, source: string}> $byUuid
-         */
+        // @var array<string, array{dashboard: Dashboard, source: string}> $byUuid.
         $byUuid = [];
         foreach ($visible as $entry) {
             $uuid = (string) $entry['dashboard']->getUuid();
@@ -1235,8 +1245,9 @@ class DashboardService
      * @param string $uuid   The dashboard UUID, or empty string to clear.
      *
      * @return void
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function setActivePreference(string $userId, string $uuid): void
     {
         if ($uuid === '') {
@@ -1274,8 +1285,9 @@ class DashboardService
      * @param string $uuid   The dashboard UUID, or empty string to clear.
      *
      * @return void
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function setDefaultPreference(string $userId, string $uuid): void
     {
         if ($uuid === '') {
@@ -1306,8 +1318,9 @@ class DashboardService
      * @param string $userId The user ID.
      *
      * @return string The pinned dashboard UUID, or '' when unset.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function getDefaultPreference(string $userId): string
     {
         return (string) $this->config->getUserValue(
@@ -1336,8 +1349,9 @@ class DashboardService
      * @throws DoesNotExistException When the UUID does not exist.
      * @throws Exception             When the actor is neither the owner
      *                               nor a Nextcloud administrator.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function publish(string $uuid, string $userId): Dashboard
     {
         $dashboard = $this->dashboardMapper->findByUuid(uuid: $uuid);
@@ -1387,8 +1401,9 @@ class DashboardService
      * @throws DoesNotExistException When the UUID does not exist.
      * @throws Exception             When the actor is neither owner nor
      *                               admin.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function unpublish(string $uuid, string $userId): Dashboard
     {
         $dashboard = $this->dashboardMapper->findByUuid(uuid: $uuid);
@@ -1435,8 +1450,9 @@ class DashboardService
      *                                  unparseable, or in the past.
      * @throws Exception                When the actor is neither owner
      *                                  nor admin.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function schedule(
         string $uuid,
         string $publishAt,
@@ -1471,8 +1487,9 @@ class DashboardService
      * effective state for cleaner audit queries.
      *
      * @return int The number of dashboards materialised.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function materialiseScheduledDashboards(): int
     {
         $dueRows = $this->dashboardMapper->findDueScheduled();
@@ -1555,8 +1572,9 @@ class DashboardService
      *                                             rolled back before
      *                                             rethrowing
      *                                             (REQ-DASH-021).
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function forkAsPersonal(
         string $userId,
         string $sourceUuid,
@@ -1754,8 +1772,9 @@ class DashboardService
      *  setting key constant (`AdminSetting::KEY_ALLOW_USER_DASHBOARDS`).
      *  Renaming to `isAllowUserDashboards()` would break the symmetry the
      *  spec relies on.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function getAllowUserDashboards(): bool
     {
         return (bool) $this->settingMapper->getValue(
@@ -1776,8 +1795,9 @@ class DashboardService
      * @return void
      *
      * @throws PersonalDashboardsDisabledException When the flag is off.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function assertPersonalDashboardsAllowed(): void
     {
         if ($this->getAllowUserDashboards() === false) {
@@ -1928,8 +1948,9 @@ class DashboardService
      * @param int $dashboardId The dashboard ID.
      *
      * @return WidgetPlacement[] The placements ordered by sortOrder.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function findPlacements(int $dashboardId): array
     {
         return $this->placementMapper->findByDashboardId(
@@ -2209,8 +2230,9 @@ class DashboardService
      * @param Dashboard $dashboard The dashboard.
      *
      * @return array|null The effective footer payload, or NULL.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
-    /** @spec openspec/specs/dashboards/spec.md */
     public function resolveFooterForDashboard(Dashboard $dashboard): ?array
     {
         return $this->footerService->resolveFooterForDashboard(dashboard: $dashboard);

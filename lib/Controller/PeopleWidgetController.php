@@ -84,10 +84,11 @@ class PeopleWidgetController extends Controller
      * @param int|null    $offset          Page offset.
      *
      * @return JSONResponse
-     */
+         *
+     * @spec openspec/specs/people-widget/spec.md
+ */
     #[NoAdminRequired]
     #[NoCSRFRequired]
-    /** @spec openspec/specs/people-widget/spec.md */
     public function getUsers(
         ?string $filters=null,
         ?int $excludeDisabled=1,

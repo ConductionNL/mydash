@@ -75,9 +75,10 @@ class DashboardVersionApiController extends Controller
      * @param string $uuid The dashboard UUID.
      *
      * @return JSONResponse The version list envelope.
-     */
+         *
+     * @spec openspec/specs/dashboard-versioning/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/dashboard-versioning/spec.md */
     public function listVersions(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
@@ -112,9 +113,10 @@ class DashboardVersionApiController extends Controller
      * @param integer $versionNumber The version number.
      *
      * @return JSONResponse The full snapshot body.
-     */
+         *
+     * @spec openspec/specs/dashboard-versioning/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/dashboard-versioning/spec.md */
     public function fetchVersion(
         string $uuid,
         int $versionNumber
@@ -165,9 +167,10 @@ class DashboardVersionApiController extends Controller
      * @param string|null $note Optional snapshot note (request body).
      *
      * @return JSONResponse The persisted version row.
-     */
+         *
+     * @spec openspec/specs/dashboard-versioning/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/dashboard-versioning/spec.md */
     public function createVersion(
         string $uuid,
         ?string $note=null
@@ -209,9 +212,10 @@ class DashboardVersionApiController extends Controller
      * @param integer $versionNumber The version number to restore.
      *
      * @return JSONResponse The restored snapshot envelope.
-     */
+         *
+     * @spec openspec/specs/dashboard-versioning/spec.md
+ */
     #[NoAdminRequired]
-    /** @spec openspec/specs/dashboard-versioning/spec.md */
     public function restoreVersion(
         string $uuid,
         int $versionNumber

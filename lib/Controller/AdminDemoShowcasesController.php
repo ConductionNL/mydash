@@ -38,7 +38,9 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\AuthorizedAdminSetting;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\IGroupManager;
 use OCP\IRequest;
+use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -52,14 +54,15 @@ class AdminDemoShowcasesController extends Controller
      *
      * @param IRequest             $request      The HTTP request.
      * @param DemoShowcasesService $showcasesSvc Showcase service.
-     *                                           (admin gate).
-     * @param LoggerInterface      $logger       PSR-3 logger for
-     *                                           ADR-005
-     *                                           redaction.
+     * @param IUserSession         $userSession  Active user session.
+     * @param IGroupManager        $groupManager Admin check.
+     * @param LoggerInterface      $logger       PSR-3 logger.
      */
     public function __construct(
         IRequest $request,
         private readonly DemoShowcasesService $showcasesSvc,
+        private readonly IUserSession $userSession,
+        private readonly IGroupManager $groupManager,
         private readonly LoggerInterface $logger,
     ) {
         parent::__construct(
@@ -69,15 +72,45 @@ class AdminDemoShowcasesController extends Controller
     }//end __construct()
 
     /**
+     * Inline admin guard.
+     *
+     * @return JSONResponse|null Non-null = caller must be rejected.
+     */
+    private function assertAdmin(): ?JSONResponse
+    {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new JSONResponse(
+                data: ['error' => 'Not authenticated'],
+                statusCode: Http::STATUS_UNAUTHORIZED
+            );
+        }
+
+        if ($this->groupManager->isAdmin(userId: $user->getUID()) === false) {
+            return new JSONResponse(
+                data: ['error' => 'Admin required'],
+                statusCode: Http::STATUS_FORBIDDEN
+            );
+        }
+
+        return null;
+    }//end assertAdmin()
+
+    /**
      * List bundled showcases with installation status (REQ-DEMO-002).
      *
      * @return JSONResponse Showcase descriptors, or 401/403.
-     *
-     */
+         *
+     * @spec openspec/specs/demo-data-showcases/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function index(): JSONResponse
     {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
+
         return ResponseHelper::success(
             data: $this->showcasesSvc->getAvailableShowcases()
         );
@@ -98,15 +131,20 @@ class AdminDemoShowcasesController extends Controller
      *                      dashboard if any.
      *
      * @return JSONResponse The install result, or an error.
-     *
-     */
+         *
+     * @spec openspec/specs/demo-data-showcases/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function install(
         string $id,
         string $lang='nl',
         bool $force=false
     ): JSONResponse {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
+
         try {
             $result = $this->showcasesSvc->installShowcase(
                 showcaseId: $id,
@@ -156,12 +194,17 @@ class AdminDemoShowcasesController extends Controller
      * @param string $id The showcase ID (path segment).
      *
      * @return JSONResponse Empty 204, or 401/403.
-     *
-     */
+         *
+     * @spec openspec/specs/demo-data-showcases/spec.md
+ */
     #[AuthorizedAdminSetting(Application::APP_ID)]
-    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function destroy(string $id): JSONResponse
     {
+        $guard = $this->assertAdmin();
+        if ($guard !== null) {
+            return $guard;
+        }
+
         try {
             $this->showcasesSvc->uninstallShowcase(showcaseId: $id);
         } catch (Throwable $e) {
@@ -180,5 +223,4 @@ class AdminDemoShowcasesController extends Controller
 
         return new JSONResponse(data: [], statusCode: Http::STATUS_NO_CONTENT);
     }//end destroy()
-
 }//end class

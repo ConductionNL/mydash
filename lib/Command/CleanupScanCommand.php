@@ -53,8 +53,9 @@ class CleanupScanCommand extends Command
      * Configure the command name + description.
      *
      * @return void
+     *
+     * @spec openspec/specs/orphaned-data-cleanup/spec.md
      */
-    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     protected function configure(): void
     {
         $this->setName(name: 'mydash:cleanup:scan')
@@ -70,8 +71,9 @@ class CleanupScanCommand extends Command
      * @param OutputInterface $output The console output.
      *
      * @return int 0 when no orphans, 1 otherwise.
+     *
+     * @spec openspec/specs/orphaned-data-cleanup/spec.md
      */
-    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     protected function execute(
         InputInterface $input,
         OutputInterface $output

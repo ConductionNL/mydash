@@ -91,8 +91,9 @@ class SetupWizardService
      *
      * @return array{complete: bool, currentRecommendedStep: int, stepStatuses: array<int,string>}
      *               The wizard state payload.
+     *
+     * @spec openspec/specs/setup-wizard/spec.md
      */
-    /** @spec openspec/specs/setup-wizard/spec.md */
     public function getWizardState(): array
     {
         $complete     = $this->isWizardComplete();
@@ -113,8 +114,9 @@ class SetupWizardService
      *
      * @return array{complete: bool, currentRecommendedStep: int, stepStatuses: array<int,string>}
      *               The updated wizard state payload.
+     *
+     * @spec openspec/specs/setup-wizard/spec.md
      */
-    /** @spec openspec/specs/setup-wizard/spec.md */
     public function markWizardComplete(): array
     {
         $this->settingMapper->setSetting(
@@ -141,8 +143,9 @@ class SetupWizardService
      * @param string $value `'database'` or `'groupfolder'`.
      *
      * @return void
+     *
+     * @spec openspec/specs/setup-wizard/spec.md
      */
-    /** @spec openspec/specs/setup-wizard/spec.md */
     public function setContentStorage(string $value): void
     {
         $allowed = [self::STORAGE_DATABASE, self::STORAGE_GROUPFOLDER];
@@ -162,8 +165,9 @@ class SetupWizardService
      * Read the persisted storage backend choice with the safe default.
      *
      * @return string The persisted backend or `'database'` when unset.
+     *
+     * @spec openspec/specs/setup-wizard/spec.md
      */
-    /** @spec openspec/specs/setup-wizard/spec.md */
     public function getContentStorage(): string
     {
         $value = $this->settingMapper->getValue(

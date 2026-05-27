@@ -20,14 +20,8 @@ declare(strict_types=1);
 
 namespace Unit\Controller;
 
-use OCA\MyDash\Controller\AdminController;
+use OCA\MyDash\Controller\AdminSettingsController;
 use OCA\MyDash\Service\AdminSettingsService;
-use OCA\MyDash\Service\AdminTemplateService;
-use OCA\MyDash\Service\ExportService;
-use OCA\MyDash\Service\FeedRefreshService;
-use OCA\MyDash\Service\FooterService;
-use OCA\MyDash\Service\ImportService;
-use OCA\MyDash\Service\RoleService;
 use OCP\AppFramework\Http;
 use OCP\IGroupManager;
 use OCP\IRequest;
@@ -38,44 +32,28 @@ use PHPUnit\Framework\TestCase;
 
 class AdminControllerGroupOrderTest extends TestCase
 {
-    private AdminController $controller;
+    private AdminSettingsController $controller;
     /** @var IRequest&MockObject */
     private $request;
-    /** @var AdminTemplateService&MockObject */
-    private $templateService;
     /** @var AdminSettingsService&MockObject */
     private $settingsService;
     /** @var IGroupManager&MockObject */
     private $groupManager;
     /** @var IUserSession&MockObject */
     private $userSession;
-    /** @var RoleService&MockObject */
-    private $roleService;
-    /** @var FeedRefreshService&MockObject */
-    private $feedRefresh;
 
     protected function setUp(): void
     {
         $this->request         = $this->createMock(IRequest::class);
-        $this->templateService = $this->createMock(AdminTemplateService::class);
         $this->settingsService = $this->createMock(AdminSettingsService::class);
         $this->groupManager    = $this->createMock(IGroupManager::class);
         $this->userSession     = $this->createMock(IUserSession::class);
-        $this->roleService     = $this->createMock(RoleService::class);
-        $this->feedRefresh     = $this->createMock(FeedRefreshService::class);
 
-        $this->controller = new AdminController(
+        $this->controller = new AdminSettingsController(
             request: $this->request,
-            templateService: $this->templateService,
             settingsService: $this->settingsService,
             groupManager: $this->groupManager,
             userSession: $this->userSession,
-            exportService: $this->createMock(ExportService::class),
-            importService: $this->createMock(ImportService::class),
-            roleService: $this->roleService,
-            feedRefresh: $this->feedRefresh,
-            footerService: $this->createMock(FooterService::class),
-            setupWizardService: $this->createMock(\OCA\MyDash\Service\SetupWizardService::class),
         );
     }
 

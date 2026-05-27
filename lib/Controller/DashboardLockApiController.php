@@ -80,10 +80,8 @@ class DashboardLockApiController extends Controller
      * @return JSONResponse 200 with the lock object on success,
      *                      404 when the dashboard UUID is unknown,
      *                      409 with the existing lock on conflict.
-      *
-
+     *
       * @spec openspec/specs/dashboard-locking/spec.md
-
       */
     #[NoAdminRequired]
     public function acquire(string $uuid): JSONResponse
@@ -125,10 +123,8 @@ class DashboardLockApiController extends Controller
      *
      * @return JSONResponse 200 with the refreshed lock; 404 when no
      *                      active lock exists; 403 on owner mismatch.
-      *
-
+     *
       * @spec openspec/specs/dashboard-locking/spec.md
-
       */
     #[NoAdminRequired]
     public function heartbeat(string $uuid): JSONResponse
@@ -174,10 +170,8 @@ class DashboardLockApiController extends Controller
      * @param string $uuid The dashboard UUID.
      *
      * @return JSONResponse 204 on success; 403 on permission mismatch.
-      *
-
+     *
       * @spec openspec/specs/dashboard-locking/spec.md
-
       */
     #[NoAdminRequired]
     public function release(string $uuid): JSONResponse
@@ -217,10 +211,8 @@ class DashboardLockApiController extends Controller
      * @param string $uuid The dashboard UUID.
      *
      * @return JSONResponse 200 with the lock or 404 when none.
-      *
-
+     *
       * @spec openspec/specs/dashboard-locking/spec.md
-
       */
     #[NoAdminRequired]
     public function get(string $uuid): JSONResponse
@@ -254,10 +246,8 @@ class DashboardLockApiController extends Controller
      * @param string $uuid The dashboard UUID.
      *
      * @return JSONResponse 200 on success; 403 when caller is not admin.
-      *
-
+     *
       * @spec openspec/specs/dashboard-locking/spec.md
-
       */
     #[NoAdminRequired]
     public function forceRelease(string $uuid): JSONResponse
