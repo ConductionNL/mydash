@@ -447,6 +447,19 @@ class CalendarWidgetService
             return $cached;
         }
 
+        // M2: re-validate immediately before the HTTP request to close the
+        // DNS-rebinding TOCTOU window — an attacker who flips the DNS record
+        // after the initial validateUrl call is caught here. A full fix would
+        // pin the IP via CURLOPT_RESOLVE, but that requires Guzzle internals.
+        // Double-checking is a practical mitigation that limits the attack
+        // window to the sub-millisecond gap between this check and the
+        // actual TCP connect.
+        if ($this->validateUrl(url: $url) === false) {
+            throw new RuntimeException(
+                message: 'ICS URL failed re-validation (SSRF guard)'
+            );
+        }
+
         $client   = $this->clientService->newClient();
         $response = $client->get(
                 uri: $url,

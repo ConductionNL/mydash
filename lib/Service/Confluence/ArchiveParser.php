@@ -162,12 +162,34 @@ class ArchiveParser
      *     images:array<int,string>
      * }
      */
+    /**
+     * Maximum uncompressed bytes for a single HTML entry (M4 — zip-bomb guard).
+     *
+     * 25 MB per entry; a Confluence page exceeding this is pathological.
+     *
+     * @var int
+     */
+    private const MAX_ENTRY_BYTES = 26_214_400;
+
+    /**
+     * Maximum total uncompressed bytes across all HTML entries (M4).
+     *
+     * 100 MB total cap prevents a multi-entry zip-bomb from exhausting
+     * PHP worker memory.
+     *
+     * @var int
+     */
+    private const MAX_TOTAL_BYTES = 104_857_600;
+
     private function collectEntries(ZipArchive $zip): array
     {
         $indexHtml   = null;
         $htmlFiles   = [];
         $attachments = [];
         $images      = [];
+
+        // M4: track cumulative uncompressed size to abort on zip-bomb.
+        $totalBytes = 0;
 
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $name = (string) $zip->getNameIndex(index: $i);
@@ -184,9 +206,20 @@ class ArchiveParser
 
             $lower = strtolower(string: $name);
             if ($lower === 'index.html') {
+                // M4: per-entry size check before reading.
+                $stat = $zip->statIndex(index: $i);
+                if ($stat !== false && $stat['size'] > self::MAX_ENTRY_BYTES) {
+                    continue;
+                }
+
                 $raw = $zip->getFromIndex(index: $i);
                 if ($raw === false) {
                     $raw = '';
+                }
+
+                $totalBytes += strlen(string: $raw);
+                if ($totalBytes > self::MAX_TOTAL_BYTES) {
+                    break;
                 }
 
                 $indexHtml = $raw;
@@ -199,9 +232,20 @@ class ArchiveParser
                     continue;
                 }
 
+                // M4: per-entry size check before reading.
+                $stat = $zip->statIndex(index: $i);
+                if ($stat !== false && $stat['size'] > self::MAX_ENTRY_BYTES) {
+                    continue;
+                }
+
                 $raw = $zip->getFromIndex(index: $i);
                 if ($raw === false) {
                     $raw = '';
+                }
+
+                $totalBytes += strlen(string: $raw);
+                if ($totalBytes > self::MAX_TOTAL_BYTES) {
+                    break;
                 }
 
                 $htmlFiles[$name] = $raw;

@@ -172,9 +172,12 @@ class PermissionService
             return false;
         }
 
-        // Admin templates can only be edited by admins.
+        // L4: admin-template owners retain full metadata-edit rights
+        // (REQ-PERM-011). An admin who owns a template must not be blocked
+        // from renaming it. Non-admin users can never edit admin templates.
         if ($dashboard->getType() === Dashboard::TYPE_ADMIN_TEMPLATE) {
-            return false;
+            return $dashboard->getUserId() === $userId
+                && $this->groupManager->isAdmin(userId: $userId);
         }
 
         // Only owner can rename / change description.
@@ -259,6 +262,35 @@ class PermissionService
 
         return false;
     }//end canRemoveWidget()
+
+    /**
+     * Check if user can view a widget's data (read-path).
+     *
+     * Data-fetch endpoints (newsItems, calendarEvents) only require view
+     * permission on the underlying dashboard — not write/style permission.
+     * This is distinct from `canStyleWidget` which gates mutations.
+     * M1: fixes 403 for VIEW_ONLY users on data-fetch endpoints.
+     *
+     * @param string $userId      The user ID.
+     * @param int    $placementId The placement ID.
+     *
+     * @return bool Whether the user can view the widget's data.
+     *
+     * @spec openspec/specs/permissions/spec.md
+     */
+    public function canViewPlacement(string $userId, int $placementId): bool
+    {
+        try {
+            $placement = $this->placementMapper->find(id: $placementId);
+        } catch (DoesNotExistException) {
+            return false;
+        }
+
+        return $this->canViewDashboard(
+            userId: $userId,
+            dashboardId: $placement->getDashboardId()
+        );
+    }//end canViewPlacement()
 
     /**
      * Check if user can style a widget.
