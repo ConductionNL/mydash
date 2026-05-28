@@ -12,6 +12,8 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
+ *
+ * @spec openspec/changes/archive/2026-05-24-retrofit-widgets/tasks.md#task-1
  */
 
 declare(strict_types=1);
@@ -39,7 +41,8 @@ class WidgetFormatter
      *
      * @return array The formatted widget data.
      *
-     * @spec widgets:REQ-WDG-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-32
+     * @spec openspec/changes/archive/2026-05-24-retrofit-widgets/tasks.md#task-1
      */
     public function format(IWidget $widget, string $userId): array
     {
@@ -64,6 +67,8 @@ class WidgetFormatter
      * @param IWidget $widget The widget.
      *
      * @return array The base data.
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-widgets/tasks.md#task-1
      */
     private function buildBaseData(IWidget $widget): array
     {
@@ -88,6 +93,8 @@ class WidgetFormatter
      * @param array   $data   The data array (passed by reference).
      *
      * @return void
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-widgets/tasks.md#task-1
      */
     private function applyIconUrl(IWidget $widget, array &$data): void
     {
@@ -103,6 +110,8 @@ class WidgetFormatter
      * @param array   $data   The data array (passed by reference).
      *
      * @return void
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-widgets/tasks.md#task-1
      */
     private function applyApiVersions(
         IWidget $widget,
@@ -125,6 +134,8 @@ class WidgetFormatter
      * @param array   $data   The data array (passed by reference).
      *
      * @return void
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-widgets/tasks.md#task-1
      */
     private function applyButtons(
         IWidget $widget,
@@ -155,6 +166,8 @@ class WidgetFormatter
      * @param array   $data   The data array (passed by reference).
      *
      * @return void
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-widgets/tasks.md#task-1
      */
     private function applyOptions(IWidget $widget, array &$data): void
     {
@@ -171,6 +184,8 @@ class WidgetFormatter
      * @param array   $data   The data array (passed by reference).
      *
      * @return void
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-widgets/tasks.md#task-1
      */
     private function applyReloadInterval(
         IWidget $widget,

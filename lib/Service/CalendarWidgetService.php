@@ -144,6 +144,7 @@ class CalendarWidgetService
      *
      * @return array{events: array<int, array<string, mixed>>, failures: array<int, string>}
      */
+    /** @spec openspec/specs/calendar-widget/spec.md */
     public function getEvents(array $config, string $from, string $to): array
     {
         $internalCalendars = (array) ($config['internalCalendars'] ?? []);
@@ -199,6 +200,7 @@ class CalendarWidgetService
      *
      * @return array{events: array<int, array<string, mixed>>, failures: array<int, string>}
      */
+    /** @spec openspec/specs/calendar-widget/spec.md */
     public function fetchInternalEvents(array $principals, string $from, string $to): array
     {
         $events   = [];
@@ -283,6 +285,7 @@ class CalendarWidgetService
      *
      * @return array{events: array<int, array<string, mixed>>, failures: array<int, string>}
      */
+    /** @spec openspec/specs/calendar-widget/spec.md */
     public function fetchExternalIcsEvents(array $urls, string $from, string $to): array
     {
         $events   = [];
@@ -344,6 +347,7 @@ class CalendarWidgetService
      *
      * @return bool True when the URL passes all checks.
      */
+    /** @spec openspec/specs/calendar-widget/spec.md */
     public function validateUrl(string $url): bool
     {
         $parts = parse_url(url: $url);
@@ -390,6 +394,7 @@ class CalendarWidgetService
      *
      * @return bool True when the host passes the allow-list.
      */
+    /** @spec openspec/specs/calendar-widget/spec.md */
     public function checkAllowList(string $url): bool
     {
         $raw = $this->appConfig->getValueString(
@@ -427,6 +432,7 @@ class CalendarWidgetService
      *
      * @throws \RuntimeException When the response is too large or non-2xx.
      */
+    /** @spec openspec/specs/calendar-widget/spec.md */
     public function fetchIcsBody(string $url): string
     {
         $cacheKey = 'ics_'.md5(string: $url);
@@ -477,6 +483,7 @@ class CalendarWidgetService
      *
      * @return array<int, array<string, mixed>> Normalised event objects.
      */
+    /** @spec openspec/specs/calendar-widget/spec.md */
     public function parseAndExpandIcs(string $body, string $from, string $to): array
     {
         if (class_exists(class: \Sabre\VObject\Reader::class) === false) {
@@ -517,6 +524,7 @@ class CalendarWidgetService
      *
      * @return array<string, mixed>
      */
+    /** @spec openspec/specs/calendar-widget/spec.md */
     public function normalizeVevent(object $vevent): array
     {
         $uid     = (string) ($vevent->UID ?? '');
@@ -616,6 +624,7 @@ class CalendarWidgetService
      *
      * @return array<string, mixed>
      */
+    /** @spec openspec/specs/calendar-widget/spec.md */
     public function normalizeInternalEvent(array $raw): array
     {
         // NC Calendar search results vary across versions; do best-effort mapping.

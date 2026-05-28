@@ -84,6 +84,7 @@ class FeedController extends Controller
      *                      `{error}` 401 when not authenticated.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     public function getToken(): DataResponse
     {
         if ($this->userId === null) {
@@ -108,6 +109,7 @@ class FeedController extends Controller
      *                      `{error}` 401 when not authenticated.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     public function regenerateToken(): DataResponse
     {
         if ($this->userId === null) {
@@ -131,6 +133,7 @@ class FeedController extends Controller
      * @return DataResponse Empty 204 on success; 401 when not authenticated.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     public function revokeToken(): DataResponse
     {
         if ($this->userId === null) {
@@ -165,6 +168,7 @@ class FeedController extends Controller
      */
     #[PublicPage]
     #[NoCSRFRequired]
+    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     public function publicFeed(string $token): DataDisplayResponse
     {
         $resolved = $this->tokenService->resolveToken(token: $token);

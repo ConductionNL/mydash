@@ -76,6 +76,7 @@ class MenuService
      * @return void
      * @throws InvalidArgumentException When depth exceeds 3 or an item is malformed.
      */
+    /** @spec openspec/specs/menu-widget/spec.md */
     public function validateMenuItems(array $items): void
     {
         $this->validateLevel(items: $items, depth: 1);
@@ -95,6 +96,7 @@ class MenuService
      * @return void
      * @throws InvalidArgumentException When a field value is outside its allowed set.
      */
+    /** @spec openspec/specs/menu-widget/spec.md */
     public function validateMenuConfig(array $content): void
     {
         if (isset($content['style']) === true

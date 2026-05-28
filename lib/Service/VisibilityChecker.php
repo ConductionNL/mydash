@@ -46,7 +46,7 @@ class VisibilityChecker
      *
      * @return bool Whether the widget should be visible.
      *
-     * @spec conditional-visibility:REQ-VIS-009
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-13
      */
     public function checkRules(array $rules, string $userId): bool
     {

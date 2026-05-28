@@ -30,6 +30,7 @@ use OCA\MyDash\Exception\LockConflictException;
 use OCA\MyDash\Exception\LockForbiddenException;
 use OCA\MyDash\Exception\LockNotFoundException;
 use OCA\MyDash\Service\DashboardLockService;
+use OCA\MyDash\Service\PermissionService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IGroupManager;
 use OCP\IUser;
@@ -73,6 +74,13 @@ class DashboardLockServiceTest extends TestCase
     private $groupManager;
 
     /**
+     * Permission service mock — guards acquireLock and heartbeat (C3 fix).
+     *
+     * @var PermissionService&MockObject
+     */
+    private $permissionService;
+
+    /**
      * Service under test.
      *
      * @var DashboardLockService
@@ -86,17 +94,26 @@ class DashboardLockServiceTest extends TestCase
      */
     protected function setUp(): void
     {
-        $this->lockMapper      = $this->createMock(originalClassName: DashboardLockMapper::class);
-        $this->dashboardMapper = $this->createMock(originalClassName: DashboardMapper::class);
-        $this->userManager     = $this->createMock(originalClassName: IUserManager::class);
-        $this->groupManager    = $this->createMock(originalClassName: IGroupManager::class);
-        $logger                = $this->createMock(originalClassName: LoggerInterface::class);
+        $this->lockMapper        = $this->createMock(originalClassName: DashboardLockMapper::class);
+        $this->dashboardMapper   = $this->createMock(originalClassName: DashboardMapper::class);
+        $this->userManager       = $this->createMock(originalClassName: IUserManager::class);
+        $this->groupManager      = $this->createMock(originalClassName: IGroupManager::class);
+        $this->permissionService = $this->createMock(originalClassName: PermissionService::class);
+        $logger                  = $this->createMock(originalClassName: LoggerInterface::class);
 
-        // Default: dashboards exist. Tests that need to assert the
+        // Default: dashboards exist with ID=1. Tests that need to assert the
         // missing-dashboard branch override this via willThrow.
+        $defaultDashboard = new Dashboard();
+        $defaultDashboard->setId(1);
         $this->dashboardMapper
             ->method('findByUuid')
-            ->willReturn(new Dashboard());
+            ->willReturn($defaultDashboard);
+
+        // Default: the caller has view access. Tests that assert the
+        // no-access branch override this via willReturn(false).
+        $this->permissionService
+            ->method('canViewDashboard')
+            ->willReturn(true);
 
         $this->service = new DashboardLockService(
             lockMapper: $this->lockMapper,
@@ -104,6 +121,7 @@ class DashboardLockServiceTest extends TestCase
             userManager: $this->userManager,
             groupManager: $this->groupManager,
             logger: $logger,
+            permissionService: $this->permissionService,
         );
     }
 
@@ -416,5 +434,75 @@ class DashboardLockServiceTest extends TestCase
 
         $count = $this->service->cascadeDelete(dashboardUuid: 'd1');
         $this->assertSame(1, $count);
+    }
+
+    // -----------------------------------------------------------------------
+    // C3 fix: callers without view access MUST be rejected before acquiring
+    // or extending a lock (REQ-LOCK-001 + REQ-PERM-001).
+    // -----------------------------------------------------------------------
+
+    /**
+     * Build a service variant where canViewDashboard returns false.
+     *
+     * PHPUnit stubs cannot be overridden after setUp(), so tests that
+     * need a "no access" variant build a fresh service with their own
+     * permission mock.
+     *
+     * @return DashboardLockService
+     */
+    private function makeServiceWithNoViewAccess(): DashboardLockService
+    {
+        $noAccessPermission = $this->createMock(originalClassName: PermissionService::class);
+        $noAccessPermission->method('canViewDashboard')->willReturn(false);
+
+        $defaultDashboard = new Dashboard();
+        $defaultDashboard->setId(1);
+        $dashMapper = $this->createMock(originalClassName: \OCA\MyDash\Db\DashboardMapper::class);
+        $dashMapper->method('findByUuid')->willReturn($defaultDashboard);
+
+        return new DashboardLockService(
+            lockMapper: $this->lockMapper,
+            dashboardMapper: $dashMapper,
+            userManager: $this->userManager,
+            groupManager: $this->groupManager,
+            logger: $this->createMock(originalClassName: \Psr\Log\LoggerInterface::class),
+            permissionService: $noAccessPermission,
+        );
+    }//end makeServiceWithNoViewAccess()
+
+    /**
+     * C3: acquireLock MUST throw LockForbiddenException when the caller
+     * has no view access to the dashboard — prevents DoS via lock squatting.
+     */
+    public function testAcquireThrowsForbiddenWhenCallerLacksViewAccess(): void
+    {
+        $service = $this->makeServiceWithNoViewAccess();
+
+        $this->lockMapper->expects($this->never())->method('insert');
+        $this->lockMapper->expects($this->never())->method('update');
+
+        $this->expectException(LockForbiddenException::class);
+        $service->acquireLock(
+            dashboardUuid: 'd1',
+            userId: 'attacker'
+        );
+    }
+
+    /**
+     * C3: heartbeat MUST throw LockForbiddenException when the caller has
+     * no view access — prevents indefinite lock extension by an attacker.
+     */
+    public function testHeartbeatThrowsForbiddenWhenCallerLacksViewAccess(): void
+    {
+        $service = $this->makeServiceWithNoViewAccess();
+
+        $this->lockMapper->expects($this->never())->method('findActive');
+        $this->lockMapper->expects($this->never())->method('update');
+
+        $this->expectException(LockForbiddenException::class);
+        $service->heartbeat(
+            dashboardUuid: 'd1',
+            userId: 'attacker'
+        );
     }
 }

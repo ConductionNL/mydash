@@ -89,10 +89,11 @@ class DashboardCommentsApiController extends Controller
      * @return JSONResponse The list envelope or an error.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function index(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -145,13 +146,14 @@ class DashboardCommentsApiController extends Controller
      * @return JSONResponse The new comment envelope or an error.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function create(
         string $uuid,
         ?string $message=null,
         $parentId=null
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -216,13 +218,14 @@ class DashboardCommentsApiController extends Controller
      * @return JSONResponse The updated comment envelope or an error.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function update(
         string $uuid,
         int $id,
         ?string $message=null
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -280,10 +283,11 @@ class DashboardCommentsApiController extends Controller
      * @return JSONResponse Empty success or an error envelope.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function destroy(string $uuid, int $id): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {

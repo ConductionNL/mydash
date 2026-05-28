@@ -55,7 +55,7 @@ class TemplateService
      *
      * @return Dashboard|null The applicable template or null.
      *
-     * @spec admin-templates:REQ-TMPL-005
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-7
      */
     public function getApplicableTemplate(string $userId): ?Dashboard
     {
@@ -103,7 +103,7 @@ class TemplateService
      *
      * @return Dashboard The created dashboard.
      *
-     * @spec admin-templates:REQ-TMPL-005
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-7
      */
     public function createDashboardFromTemplate(
         string $userId,

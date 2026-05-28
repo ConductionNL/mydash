@@ -19,6 +19,8 @@
  *
  * SPDX-FileCopyrightText: 2026 MyDash Contributors
  * SPDX-License-Identifier: AGPL-3.0-or-later
+ *
+ * @spec openspec/changes/archive/2026-05-24-retrofit-infrastructure-helpers/tasks.md#task-1
  */
 
 declare(strict_types=1);
@@ -66,6 +68,8 @@ class SlugGenerator
      * @param string $name The dashboard name.
      *
      * @return string The slugified value (may be empty).
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-infrastructure-helpers/tasks.md#task-1
      */
     public static function slugify(string $name): string
     {
@@ -99,6 +103,8 @@ class SlugGenerator
      * @param string $slug The candidate slug.
      *
      * @return bool True when the slug is acceptable.
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-infrastructure-helpers/tasks.md#task-1
      */
     public static function isValid(string $slug): bool
     {

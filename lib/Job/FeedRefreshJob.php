@@ -32,7 +32,7 @@ use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Service\FeedRefreshService;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\TimedJob;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\Lock\ILockingProvider;
 use OCP\Lock\LockedException;
 use Psr\Log\LoggerInterface;
@@ -85,24 +85,24 @@ class FeedRefreshJob extends TimedJob
      * with the parent TimedJob.
      *
      * @param ITimeFactory       $time            The TimedJob clock.
-     * @param IConfig            $config          The Nextcloud config reader.
+     * @param IAppConfig         $appConfig       The app config reader.
      * @param FeedRefreshService $refreshService  The refresh worker.
      * @param ILockingProvider   $lockingProvider The cluster lock provider.
      * @param LoggerInterface    $logger          The diagnostic logger.
      */
     public function __construct(
         ITimeFactory $time,
-        private readonly IConfig $config,
+        private readonly IAppConfig $appConfig,
         private readonly FeedRefreshService $refreshService,
         private readonly ILockingProvider $lockingProvider,
         private readonly LoggerInterface $logger,
     ) {
         parent::__construct(time: $time);
 
-        $configured = (int) $this->config->getAppValue(
+        $configured = $this->appConfig->getValueInt(
             Application::APP_ID,
             self::CONFIG_KEY_INTERVAL,
-            (string) self::DEFAULT_INTERVAL
+            self::DEFAULT_INTERVAL
         );
         if ($configured <= 0) {
             $configured = self::DEFAULT_INTERVAL;

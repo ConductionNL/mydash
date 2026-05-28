@@ -18,6 +18,7 @@ declare(strict_types=1);
 
 namespace OCA\MyDash\Controller;
 
+use InvalidArgumentException;
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Service\ConditionalService;
 use OCA\MyDash\Service\PermissionService;
@@ -59,13 +60,13 @@ class RuleApiController extends Controller
      *
      * @return JSONResponse The conditional rules.
      *
-     * @spec conditional-visibility:REQ-VIS-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-9
      */
     #[NoAdminRequired]
     public function getRules(int $placementId): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -73,12 +74,19 @@ class RuleApiController extends Controller
                 userId: $this->userId,
                 placementId: $placementId
             );
-            $rules = $this->conditionalService->getRules(
+            $rules     = $this->conditionalService->getRules(
                 placementId: $placementId
+            );
+            $isVisible = $this->conditionalService->checkRulesForPlacement(
+                placementId: $placementId,
+                userId: $this->userId
             );
 
             return ResponseHelper::success(
-                data: ResponseHelper::serializeList(entities: $rules)
+                data: [
+                    'rules'     => ResponseHelper::serializeList(entities: $rules),
+                    'isVisible' => $isVisible,
+                ]
             );
         } catch (\Exception $e) {
             return ResponseHelper::error(exception: $e);
@@ -95,7 +103,7 @@ class RuleApiController extends Controller
      *
      * @return JSONResponse The created rule.
      *
-     * @spec conditional-visibility:REQ-VIS-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-8
      */
     #[NoAdminRequired]
     public function addRule(
@@ -105,7 +113,7 @@ class RuleApiController extends Controller
         bool $isInclude=true
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         // Validate body shape explicitly so missing fields return a clean
@@ -113,7 +121,7 @@ class RuleApiController extends Controller
         // hardening on WidgetApiController::addWidget.
         if ($ruleType === null || $ruleType === '') {
             return ResponseHelper::error(
-                exception: new \InvalidArgumentException(
+                exception: new InvalidArgumentException(
                     'Missing required field: ruleType'
                 ),
                 statusCode: Http::STATUS_BAD_REQUEST
@@ -122,7 +130,7 @@ class RuleApiController extends Controller
 
         if ($ruleConfig === null) {
             return ResponseHelper::error(
-                exception: new \InvalidArgumentException(
+                exception: new InvalidArgumentException(
                     'Missing required field: ruleConfig'
                 ),
                 statusCode: Http::STATUS_BAD_REQUEST
@@ -153,6 +161,12 @@ class RuleApiController extends Controller
     /**
      * Update a conditional rule.
      *
+     * C4 fix (REQ-PERM-001): the rule's owning placement is resolved and
+     * `verifyPlacementOwnership` is called before any mutation, mirroring
+     * the guard already present on `addRule`. Without this check any
+     * authenticated user could overwrite rules on other users' placements
+     * by iterating rule IDs.
+     *
      * @param int         $ruleId     The rule ID.
      * @param string|null $ruleType   The rule type.
      * @param array|null  $ruleConfig The rule configuration.
@@ -160,7 +174,7 @@ class RuleApiController extends Controller
      *
      * @return JSONResponse The updated rule.
      *
-     * @spec conditional-visibility:REQ-VIS-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-10
      */
     #[NoAdminRequired]
     public function updateRule(
@@ -170,10 +184,18 @@ class RuleApiController extends Controller
         ?bool $isInclude=null
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
+            // C4 fix: load the rule first to get its placement, then verify
+            // the caller owns that placement before applying any update.
+            $rule = $this->conditionalService->findRule(ruleId: $ruleId);
+            $this->permissionService->verifyPlacementOwnership(
+                userId: $this->userId,
+                placementId: $rule->getWidgetPlacementId()
+            );
+
             $data = $this->buildRuleUpdateData(
                 ruleType: $ruleType,
                 ruleConfig: $ruleConfig,
@@ -196,20 +218,34 @@ class RuleApiController extends Controller
     /**
      * Delete a conditional rule.
      *
+     * C4 fix (REQ-PERM-001): the rule's owning placement is resolved and
+     * `verifyPlacementOwnership` is called before the deletion, mirroring
+     * the guard already present on `addRule`. Without this check any
+     * authenticated user could permanently delete conditional display
+     * logic on other users' widget placements by iterating rule IDs.
+     *
      * @param int $ruleId The rule ID.
      *
      * @return JSONResponse The deletion confirmation.
      *
-     * @spec conditional-visibility:REQ-VIS-004
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-11
      */
     #[NoAdminRequired]
     public function deleteRule(int $ruleId): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
+            // C4 fix: load the rule first to get its placement, then verify
+            // the caller owns that placement before deleting.
+            $rule = $this->conditionalService->findRule(ruleId: $ruleId);
+            $this->permissionService->verifyPlacementOwnership(
+                userId: $this->userId,
+                placementId: $rule->getWidgetPlacementId()
+            );
+
             $this->conditionalService->deleteRule(ruleId: $ruleId);
 
             return ResponseHelper::success(data: ['status' => 'ok']);

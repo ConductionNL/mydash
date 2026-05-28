@@ -32,6 +32,7 @@ use OCA\MyDash\Db\FeedCache;
 use OCA\MyDash\Db\FeedCacheMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCP\Http\Client\IClientService;
+use OCP\IAppConfig;
 use OCP\IConfig;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
@@ -112,13 +113,15 @@ class FeedRefreshService
      * Constructor.
      *
      * @param IClientService        $clientService   The HTTP client factory.
-     * @param IConfig               $config          The Nextcloud config reader.
+     * @param IAppConfig            $appConfig       The app config reader.
+     * @param IConfig               $config          The system config reader.
      * @param FeedCacheMapper       $cacheMapper     The feed-cache mapper.
      * @param WidgetPlacementMapper $placementMapper The widget-placement mapper.
      * @param LoggerInterface       $logger          The diagnostic logger.
      */
     public function __construct(
         private readonly IClientService $clientService,
+        private readonly IAppConfig $appConfig,
         private readonly IConfig $config,
         private readonly FeedCacheMapper $cacheMapper,
         private readonly WidgetPlacementMapper $placementMapper,
@@ -141,6 +144,7 @@ class FeedRefreshService
      *
      * @return string[] The deduplicated, sorted feed URL list.
      */
+    /** @spec openspec/specs/background-job-feed-refresh/spec.md */
     public function discoverFeedUrls(): array
     {
         $rawUrls = [];
@@ -194,6 +198,7 @@ class FeedRefreshService
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      * @SuppressWarnings(PHPMD.NPathComplexity)
      */
+    /** @spec openspec/specs/background-job-feed-refresh/spec.md */
     public function refreshFeed(string $feedUrl): array
     {
         $startedAt = (int) (microtime(as_float: true) * 1000);
@@ -327,6 +332,7 @@ class FeedRefreshService
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      * @SuppressWarnings(PHPMD.NPathComplexity)
      */
+    /** @spec openspec/specs/background-job-feed-refresh/spec.md */
     public function refreshAll(?string $onlyUrl=null): array
     {
         $startedAt = (int) (microtime(as_float: true) * 1000);
@@ -353,7 +359,7 @@ class FeedRefreshService
         // Apply cursor — only relevant for the full-refresh path.
         $startIndex = 0;
         if ($onlyUrl === null) {
-            $cursor = $this->config->getAppValue(
+            $cursor = $this->appConfig->getValueString(
                 Application::APP_ID,
                 self::CONFIG_KEY_CURSOR,
                 ''
@@ -416,7 +422,7 @@ class FeedRefreshService
             $endIndex = ($startIndex + $processed);
             if ($endIndex >= $urlCount) {
                 // Completed the full set — clear cursor.
-                $this->config->deleteAppValue(
+                $this->appConfig->deleteKey(
                     Application::APP_ID,
                     self::CONFIG_KEY_CURSOR
                 );
@@ -424,7 +430,7 @@ class FeedRefreshService
                 // More to do next tick — persist cursor at last URL processed.
                 $lastIndex = ($endIndex - 1);
                 if ($lastIndex >= 0 && $lastIndex < $urlCount) {
-                    $this->config->setAppValue(
+                    $this->appConfig->setValueString(
                         Application::APP_ID,
                         self::CONFIG_KEY_CURSOR,
                         $urls[$lastIndex]
@@ -732,7 +738,7 @@ class FeedRefreshService
      */
     private function buildUserAgent(): string
     {
-        $appVersion  = (string) $this->config->getAppValue(
+        $appVersion  = $this->appConfig->getValueString(
             Application::APP_ID,
             'installed_version',
             '1.0.0'
@@ -763,7 +769,7 @@ class FeedRefreshService
      */
     private function isHostAllowed(string $feedUrl): bool
     {
-        $allowedRaw = (string) $this->config->getAppValue(
+        $allowedRaw = $this->appConfig->getValueString(
             Application::APP_ID,
             self::CONFIG_KEY_ALLOWED_HOSTS,
             ''

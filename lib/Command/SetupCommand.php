@@ -61,6 +61,7 @@ class SetupCommand extends Command
      *
      * @return void
      */
+    /** @spec openspec/specs/setup-wizard/spec.md */
     protected function configure(): void
     {
         $this->setName(name: 'mydash:setup')
@@ -83,6 +84,7 @@ class SetupCommand extends Command
      *
      * @return int Exit code (0 success, 1 error).
      */
+    /** @spec openspec/specs/setup-wizard/spec.md */
     protected function execute(
         InputInterface $input,
         OutputInterface $output

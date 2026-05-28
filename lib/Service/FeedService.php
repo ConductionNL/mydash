@@ -32,7 +32,7 @@ use Exception;
 use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\FeedToken;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IURLGenerator;
 use OCP\IUserManager;
 use OCP\L10N\IFactory;
@@ -94,7 +94,7 @@ class FeedService
      *                                           (REQ-DASH-013 / REQ-FEED-006).
      * @param IUserManager     $userManager      Display-name lookup.
      * @param IURLGenerator    $urlGenerator     Absolute-URL builder.
-     * @param IConfig          $config           App-config reader.
+     * @param IAppConfig       $appConfig        App-config reader.
      * @param IFactory         $l10nFactory      L10N factory for feed labels.
      * @param LoggerInterface  $logger           Diagnostic logger.
      */
@@ -102,7 +102,7 @@ class FeedService
         private readonly DashboardService $dashboardService,
         private readonly IUserManager $userManager,
         private readonly IURLGenerator $urlGenerator,
-        private readonly IConfig $config,
+        private readonly IAppConfig $appConfig,
         private readonly IFactory $l10nFactory,
         private readonly LoggerInterface $logger,
     ) {
@@ -117,6 +117,7 @@ class FeedService
      *
      * @return string The serialised feed XML.
      */
+    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     public function renderFeed(
         FeedToken $token,
         string $format=self::FORMAT_RSS
@@ -156,6 +157,7 @@ class FeedService
      *
      * @return Dashboard[] Accessible dashboards, newest first.
      */
+    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     public function loadAccessibleDashboards(string $userId): array
     {
         $entries = $this->dashboardService->getVisibleToUser(userId: $userId);
@@ -186,6 +188,7 @@ class FeedService
      *
      * @return string The serialised RSS XML.
      */
+    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     public function buildRssFeed(array $dashboards, string $userId): string
     {
         $l10n         = $this->l10nFactory->get(app: Application::APP_ID);
@@ -237,6 +240,7 @@ XML;
      *
      * @return string The serialised Atom XML.
      */
+    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     public function buildAtomFeed(array $dashboards, string $userId): string
     {
         $l10n      = $this->l10nFactory->get(app: Application::APP_ID);
@@ -286,6 +290,7 @@ XML;
      *
      * @return string The display name (or the user ID when unknown).
      */
+    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     public function getOwnerDisplayName(string $userId): string
     {
         $user = $this->userManager->get(uid: $userId);
@@ -310,6 +315,7 @@ XML;
      *
      * @return string The escaped value, or empty string when null.
      */
+    /** @spec openspec/specs/dashboard-rss-feeds/spec.md */
     public static function xmlEscape(?string $value): string
     {
         if ($value === null) {
@@ -333,13 +339,12 @@ XML;
      */
     private function resolveItemCap(): int
     {
-        $raw = $this->config->getAppValue(
+        $cap = $this->appConfig->getValueInt(
             Application::APP_ID,
             self::CONFIG_KEY_ITEM_CAP,
-            (string) self::DEFAULT_ITEM_CAP
+            self::DEFAULT_ITEM_CAP
         );
 
-        $cap = (int) $raw;
         if ($cap < 1) {
             return self::DEFAULT_ITEM_CAP;
         }

@@ -23,21 +23,21 @@ namespace Unit\Service;
 use DateTimeImmutable;
 use DateTimeZone;
 use OCA\MyDash\Service\UniqueViewerDedup;
+use OCP\IAppConfig;
 use OCP\ICache;
 use OCP\ICacheFactory;
-use OCP\IConfig;
 use PHPUnit\Framework\TestCase;
 
 class UniqueViewerDedupTest extends TestCase
 {
-    private IConfig $config;
+    private IAppConfig $appConfig;
     private ICacheFactory $cacheFactory;
     private ICache $cache;
     private UniqueViewerDedup $dedup;
 
     protected function setUp(): void
     {
-        $this->config       = $this->createMock(originalClassName: IConfig::class);
+        $this->appConfig    = $this->createMock(originalClassName: IAppConfig::class);
         $this->cacheFactory = $this->createMock(originalClassName: ICacheFactory::class);
         $this->cache        = $this->createMock(originalClassName: ICache::class);
 
@@ -47,7 +47,7 @@ class UniqueViewerDedupTest extends TestCase
 
         $this->dedup = new UniqueViewerDedup(
             cacheFactory: $this->cacheFactory,
-            config: $this->config,
+            appConfig: $this->appConfig,
         );
     }
 
@@ -94,25 +94,27 @@ class UniqueViewerDedupTest extends TestCase
 
     public function testGetSaltForDateReturnsExistingWhenDateMatches(): void
     {
-        $this->config
-            ->method('getAppValue')
+        $this->appConfig
+            ->method('getValueString')
             ->willReturnMap(
                 valueMap: [
                     [
                         'mydash',
                         UniqueViewerDedup::CONFIG_KEY_SALT,
                         '',
+                        false,
                         'cafef00d',
                     ],
                     [
                         'mydash',
                         UniqueViewerDedup::CONFIG_KEY_SALT_DATE,
                         '',
+                        false,
                         '2026-05-01',
                     ],
                 ]
             );
-        $this->config->expects($this->never())->method('setAppValue');
+        $this->appConfig->expects($this->never())->method('setValueString');
 
         $salt = $this->dedup->getSaltForDate(viewBucketDate: '2026-05-01');
 
@@ -121,29 +123,31 @@ class UniqueViewerDedupTest extends TestCase
 
     public function testGetSaltForDateRotatesWhenDateIsStale(): void
     {
-        $this->config
-            ->method('getAppValue')
+        $this->appConfig
+            ->method('getValueString')
             ->willReturnMap(
                 valueMap: [
                     [
                         'mydash',
                         UniqueViewerDedup::CONFIG_KEY_SALT,
                         '',
+                        false,
                         'oldsalt',
                     ],
                     [
                         'mydash',
                         UniqueViewerDedup::CONFIG_KEY_SALT_DATE,
                         '',
+                        false,
                         '2026-04-30',
                     ],
                 ]
             );
 
         $captured = [];
-        $this->config
+        $this->appConfig
             ->expects($this->exactly(2))
-            ->method('setAppValue')
+            ->method('setValueString')
             ->willReturnCallback(
                 static function (
                     string $app,
@@ -172,7 +176,7 @@ class UniqueViewerDedupTest extends TestCase
 
     public function testIsNewUniqueViewerReturnsTrueOnFirstView(): void
     {
-        $this->config->method('getAppValue')->willReturnCallback(
+        $this->appConfig->method('getValueString')->willReturnCallback(
             static function (string $a, string $k, string $d): string {
                 if ($k === UniqueViewerDedup::CONFIG_KEY_SALT) {
                     return 'fixed-salt-value';
@@ -197,7 +201,7 @@ class UniqueViewerDedupTest extends TestCase
 
     public function testIsNewUniqueViewerReturnsFalseOnRepeat(): void
     {
-        $this->config->method('getAppValue')->willReturnCallback(
+        $this->appConfig->method('getValueString')->willReturnCallback(
             static function (string $a, string $k, string $d): string {
                 if ($k === UniqueViewerDedup::CONFIG_KEY_SALT) {
                     return 'fixed-salt-value';
@@ -211,6 +215,7 @@ class UniqueViewerDedupTest extends TestCase
         $this->cache->method('hasKey')->willReturn(true);
         $this->cache->expects($this->never())->method('set');
 
+
         $result = $this->dedup->isNewUniqueViewer(
             userId: 'alice',
             viewBucketDate: '2026-05-01',
@@ -222,7 +227,7 @@ class UniqueViewerDedupTest extends TestCase
 
     public function testHashUserForDateIsDeterministicWithSameSalt(): void
     {
-        $this->config->method('getAppValue')->willReturnCallback(
+        $this->appConfig->method('getValueString')->willReturnCallback(
             static function (string $a, string $k, string $d): string {
                 if ($k === UniqueViewerDedup::CONFIG_KEY_SALT) {
                     return 'fixed-salt';
@@ -250,9 +255,9 @@ class UniqueViewerDedupTest extends TestCase
     public function testRotateSaltOverwritesPreviousValueWithoutHistory(): void
     {
         $writes = [];
-        $this->config
+        $this->appConfig
             ->expects($this->exactly(2))
-            ->method('setAppValue')
+            ->method('setValueString')
             ->willReturnCallback(
                 static function (string $a, string $k, string $v) use (&$writes): bool {
                     $writes[$k] = $v;

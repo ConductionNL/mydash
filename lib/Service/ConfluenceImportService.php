@@ -125,6 +125,7 @@ class ConfluenceImportService
      *     assetFolder:string
      * }
      */
+    /** @spec openspec/specs/confluence-html-import/spec.md */
     public function dryRun(string $zipPath): array
     {
         $archive   = $this->parser->parse(zipPath: $zipPath);
@@ -156,6 +157,7 @@ class ConfluenceImportService
      *     assetFolder:string
      * }
      */
+    /** @spec openspec/specs/confluence-html-import/spec.md */
     public function import(
         string $zipPath,
         string $currentUserId,

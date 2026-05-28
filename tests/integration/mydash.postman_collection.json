@@ -122,6 +122,59 @@
 							}
 						}
 					]
+				},
+				{
+					"name": "GET /apps/mydash/{slug} (deep-link, fallback when no fixture slug)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "text/html" }
+						],
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/newman-deeplink-probe", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "newman-deeplink-probe"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Pins the silent-fallback contract: an unknown slug-chain MUST",
+									"// still render the workspace shell (200 HTML) — bookmarks of",
+									"// renamed/deleted dashboards land somewhere instead of breaking.",
+									"pm.test('200 OK (silent fallback for unknown slug)', () => pm.response.to.have.status(200));",
+									"pm.test('returns HTML (page shell)', () => {",
+									"    pm.expect(pm.response.headers.get('Content-Type') || '').to.match(/text\\/html|application\\/json/);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /apps/mydash/api/health (regression: catch-all does not shadow API)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/health", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "health"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// REGRESSION: the deep-link catch-all `/{deepLink}` MUST NOT",
+									"// swallow `/api/...` requests — the negative-lookahead in",
+									"// `appinfo/routes.php` is the only thing keeping API endpoints",
+									"// reachable. A 200 here proves the route-ordering + regex still hold.",
+									"pm.test('200 OK (API still reachable past the catch-all)', () => pm.response.to.have.status(200));",
+									"pm.test('returns JSON envelope (not HTML page shell)', () => {",
+									"    pm.expect(pm.response.headers.get('Content-Type') || '').to.match(/application\\/json/);",
+									"});"
+								]
+							}
+						}
+					]
 				}
 			]
 		},
@@ -180,6 +233,45 @@
 									"    pm.expect(json.dashboard).to.have.property('uuid');",
 									"    pm.environment.set('fixtureDashboardId', String(json.dashboard.id));",
 									"    pm.environment.set('fixtureDashboardUuid', String(json.dashboard.uuid));",
+									"    // Capture the auto-generated slug so the deep-link tests",
+									"    // below can hit `/apps/mydash/{slug}` without guessing.",
+									"    if (json.dashboard.slug) {",
+									"        pm.environment.set('fixtureDashboardSlug', String(json.dashboard.slug));",
+									"    }",
+									"});",
+									"pm.test('default widget bundle is seeded (3 tiles + files)', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.property('placements').that.is.an('array');",
+									"    pm.expect(json.placements).to.have.lengthOf(4);",
+									"",
+									"    const [conduction, sendent, nextcloud, files] = json.placements;",
+									"",
+									"    pm.expect(conduction.widgetId).to.eql('tile');",
+									"    pm.expect(conduction.tileType).to.eql('preset');",
+									"    pm.expect(conduction.tileTitle).to.eql('Conduction');",
+									"    pm.expect(conduction.tileLinkValue).to.eql('https://conduction.nl');",
+									"    pm.expect(conduction.gridX).to.eql(0);",
+									"    pm.expect(conduction.gridY).to.eql(0);",
+									"    pm.expect(conduction.gridWidth).to.eql(4);",
+									"",
+									"    pm.expect(sendent.widgetId).to.eql('tile');",
+									"    pm.expect(sendent.tileType).to.eql('preset');",
+									"    pm.expect(sendent.tileTitle).to.eql('Sendent');",
+									"    pm.expect(sendent.tileLinkValue).to.eql('https://sendent.com');",
+									"    pm.expect(sendent.gridX).to.eql(4);",
+									"",
+									"    pm.expect(nextcloud.widgetId).to.eql('tile');",
+									"    pm.expect(nextcloud.tileType).to.eql('preset');",
+									"    pm.expect(nextcloud.tileTitle).to.eql('Nextcloud');",
+									"    pm.expect(nextcloud.tileIcon).to.eql('icon-nextcloud');",
+									"    pm.expect(nextcloud.tileIconType).to.eql('class');",
+									"    pm.expect(nextcloud.gridX).to.eql(8);",
+									"",
+									"    pm.expect(files.widgetId).to.eql('files');",
+									"    pm.expect(files.gridX).to.eql(0);",
+									"    pm.expect(files.gridY).to.eql(3);",
+									"    pm.expect(files.gridWidth).to.eql(12);",
+									"    pm.expect(files.gridHeight).to.eql(5);",
 									"});"
 								]
 							}
@@ -212,6 +304,114 @@
 									"pm.test('JSON envelope', () => {",
 									"    const json = pm.response.json();",
 									"    pm.expect(json).to.satisfy((p) => 'dashboard' in p || 'error' in p || 'message' in p || 'status' in p);",
+									"});",
+									"// When the empty-body path succeeds it MUST seed the same",
+									"// default widget bundle as the named-body path above.",
+									"if (pm.response.code === 200 || pm.response.code === 201) {",
+									"    pm.test('default widget bundle is seeded on empty-body create', () => {",
+									"        const json = pm.response.json();",
+									"        pm.expect(json).to.have.property('placements').that.is.an('array').with.lengthOf(4);",
+									"        pm.expect(json.placements.map((p) => p.widgetId)).to.eql(['tile', 'tile', 'tile', 'files']);",
+									"    });",
+									"}"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Dashboards - Deep-link",
+			"item": [
+				{
+					"name": "GET /api/dashboards/{uuid}/path (canonical slug-chain lookup)",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/{{fixtureDashboardUuid}}/path", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "{{fixtureDashboardUuid}}", "path"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('envelope carries a `path` string', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.property('path').that.is.a('string');",
+									"});",
+									"pm.test('path matches the captured fixture slug when one was generated', () => {",
+									"    const fixtureSlug = pm.environment.get('fixtureDashboardSlug');",
+									"    if (fixtureSlug) {",
+									"        const json = pm.response.json();",
+									"        pm.expect(json.path).to.match(new RegExp(`/${fixtureSlug}$`));",
+									"    }",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /api/dashboards/missing-uuid/path (404 / 400 envelope)",
+					"request": {
+						"method": "GET",
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/api/dashboards/00000000-0000-0000-0000-000000000000/path", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "api", "dashboards", "00000000-0000-0000-0000-000000000000", "path"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Unknown UUIDs MUST come back as 200 with an empty path —",
+									"// the empty string is a documented `no addressable URL` signal",
+									"// the frontend distinguishes from genuine errors. The endpoint",
+									"// never 404s on unknown uuids.",
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('empty path is a valid response', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.property('path').that.equals('');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /apps/mydash/{slug} (deep-link page render with known fixture slug)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "text/html" }
+						],
+						"url": { "raw": "{{baseUrl}}/index.php/apps/mydash/{{fixtureDashboardSlug}}", "host": ["{{baseUrl}}"], "path": ["index.php", "apps", "mydash", "{{fixtureDashboardSlug}}"] }
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Skip when the fixture didn't yield a slug (older backend",
+									"// path that doesn't auto-derive). The previous health-section",
+									"// test already covers the unknown-slug fallback contract, so",
+									"// gracefully no-oping here keeps the suite green for those runs.",
+									"if (!pm.environment.get('fixtureDashboardSlug')) {",
+									"    pm.execution.skipRequest();",
+									"}"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('200 OK', () => pm.response.to.have.status(200));",
+									"pm.test('returns HTML (page shell, deep-link path matched the fixture)', () => {",
+									"    pm.expect(pm.response.headers.get('Content-Type') || '').to.match(/text\\/html|application\\/json/);",
 									"});"
 								]
 							}

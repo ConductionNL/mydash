@@ -19,6 +19,7 @@ declare(strict_types=1);
 namespace OCA\MyDash\Service;
 
 use OCA\MyDash\AppInfo\Application;
+use OCP\IAppConfig;
 use OCP\IConfig;
 use Psr\Log\LoggerInterface;
 
@@ -30,11 +31,13 @@ class MetricsCollector
     /**
      * Constructor
      *
-     * @param IConfig             $config       The config service.
+     * @param IAppConfig          $appConfig    The app config service.
+     * @param IConfig             $config       The system config service.
      * @param MetricsQueryService $queryService The metrics query service.
      * @param LoggerInterface     $logger       Logger for error reporting.
      */
     public function __construct(
+        private readonly IAppConfig $appConfig,
         private readonly IConfig $config,
         private readonly MetricsQueryService $queryService,
         private readonly LoggerInterface $logger,
@@ -46,7 +49,7 @@ class MetricsCollector
      *
      * @return array The lines of Prometheus metrics output.
      *
-     * @spec prometheus-metrics:REQ-PROM-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-25
      */
     public function collectAll(): array
     {
@@ -80,7 +83,7 @@ class MetricsCollector
      */
     private function addInfoMetric(array &$lines): void
     {
-        $appVersion = $this->config->getAppValue(Application::APP_ID, 'installed_version', '0.0.0');
+        $appVersion = $this->appConfig->getValueString(Application::APP_ID, 'installed_version', '0.0.0');
         $phpVersion = PHP_VERSION;
         $ncVersion  = $this->config->getSystemValueString(
             key: 'version',

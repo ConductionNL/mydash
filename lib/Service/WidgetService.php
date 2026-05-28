@@ -63,6 +63,8 @@ class WidgetService
      *
      * @return void
      * @throws \InvalidArgumentException When the content blob is invalid.
+     *
+     * @spec openspec/specs/widgets/spec.md
      */
     public function validateWidgetContent(string $widgetType, array $content): void
     {
@@ -84,7 +86,7 @@ class WidgetService
      *
      * @return array The list of available widgets.
      *
-     * @spec widgets:REQ-WDG-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-32
      */
     public function getAvailableWidgets(): array
     {
@@ -123,7 +125,7 @@ class WidgetService
      *
      * @return array The widget items.
      *
-     * @spec widgets:REQ-WDG-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-33
      */
     public function getWidgetItems(
         string $userId,
@@ -153,6 +155,8 @@ class WidgetService
      *                                registry-driven custom widgets.
      *
      * @return WidgetPlacement The created widget placement.
+     *
+     * @spec openspec/specs/widgets/spec.md
      */
     public function addWidget(
         int $dashboardId,
@@ -163,6 +167,13 @@ class WidgetService
         int $gridHeight=4,
         ?array $content=null
     ): WidgetPlacement {
+        if ($content !== null) {
+            $this->validateWidgetContent(
+                widgetType: $widgetId,
+                content: $content
+            );
+        }
+
         return $this->placementService->addWidget(
             dashboardId: $dashboardId,
             widgetId: $widgetId,
@@ -181,6 +192,8 @@ class WidgetService
      * @param array $tileData    Tile configuration data array.
      *
      * @return WidgetPlacement The created tile placement.
+     *
+     * @spec openspec/specs/widgets/spec.md
      */
     public function addTileFromArray(
         int $dashboardId,
@@ -199,6 +212,8 @@ class WidgetService
      * @param array $data        The data to update.
      *
      * @return WidgetPlacement The updated widget placement.
+     *
+     * @spec openspec/specs/widgets/spec.md
      */
     public function updatePlacement(
         int $placementId,
@@ -216,6 +231,8 @@ class WidgetService
      * @param int $placementId The placement ID.
      *
      * @return void
+     *
+     * @spec openspec/specs/widgets/spec.md
      */
     public function removePlacement(int $placementId): void
     {
@@ -230,6 +247,8 @@ class WidgetService
      * @param int $placementId The placement ID.
      *
      * @return WidgetPlacement The widget placement.
+     *
+     * @spec openspec/specs/widgets/spec.md
      */
     public function getPlacement(int $placementId): WidgetPlacement
     {
@@ -244,6 +263,8 @@ class WidgetService
      * @param int $dashboardId The dashboard ID.
      *
      * @return WidgetPlacement[] The list of placements.
+     *
+     * @spec openspec/specs/widgets/spec.md
      */
     public function getDashboardPlacements(int $dashboardId): array
     {

@@ -9,6 +9,12 @@
  * is committed alongside the rest of the change so it runs once the cohort-
  * wide Playwright bootstrap lands. Do not delete — it is the canonical e2e
  * coverage for REQ-LBL-001, REQ-LBL-005, REQ-LBL-007.
+ *
+ * Gate-19 @e2e traceability:
+ *   @e2e label-widget::html-in-text-appears-as-literal-characters
+ *   @e2e label-widget::script-tag-in-text-appears-as-literal-characters
+ *   @e2e label-widget::form-pre-fills-all-six-fields-when-editing
+ *   @e2e label-widget::registry-exposes-label-as-a-selectable-widget-type
  */
 
 import { test, expect } from '@playwright/test'

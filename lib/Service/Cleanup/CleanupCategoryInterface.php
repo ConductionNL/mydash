@@ -104,6 +104,7 @@ interface CleanupCategoryInterface
      *
      * @return int The orphaned row count (>= 0).
      */
+    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function scan(): int;
 
     /**
@@ -122,5 +123,6 @@ interface CleanupCategoryInterface
      *
      * @return int The number of rows affected (>= 0).
      */
+    /** @spec openspec/specs/orphaned-data-cleanup/spec.md */
     public function purge(bool $dryRun=false): int;
 }//end interface

@@ -113,6 +113,7 @@ class HtmlSanitizer
      *
      * @return string The sanitised HTML.
      */
+    /** @spec openspec/specs/confluence-html-import/spec.md */
     public function sanitize(string $html): string
     {
         $trimmed = trim($html);

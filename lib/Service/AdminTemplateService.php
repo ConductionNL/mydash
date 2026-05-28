@@ -112,6 +112,7 @@ class AdminTemplateService
      * @return string The resolved primary group ID, or
      *                {@see Dashboard::DEFAULT_GROUP_ID} when no match is found.
      */
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function resolvePrimaryGroup(string $userId): string
     {
         $orderedGroups = $this->settingsService->getGroupOrder();
@@ -145,6 +146,7 @@ class AdminTemplateService
      *                     element of `$orderedGroups` is present in
      *                     `$userGroups`.
      */
+    /** @spec openspec/specs/admin-templates/spec.md */
     public static function pickFirstMatch(
         array $orderedGroups,
         array $userGroups
@@ -179,6 +181,7 @@ class AdminTemplateService
      * @return string[] The user's group IDs, or `[]` when the user does
      *                  not exist.
      */
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function getUserGroupIdsFor(string $userId): array
     {
         $user = $this->userManager->get(uid: $userId);
@@ -205,6 +208,7 @@ class AdminTemplateService
      *
      * @return string The display name to surface to the frontend.
      */
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function resolvePrimaryGroupDisplayName(string $groupId): string
     {
         if ($groupId === Dashboard::DEFAULT_GROUP_ID) {
@@ -224,7 +228,7 @@ class AdminTemplateService
      *
      * @return Dashboard[] The list of admin templates.
      *
-     * @spec admin-templates:REQ-TMPL-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-4
      */
     public function listTemplates(): array
     {
@@ -240,6 +244,7 @@ class AdminTemplateService
      *
      * @throws Exception If the dashboard is not an admin template.
      */
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function getTemplateWithPlacements(int $id): array
     {
         $template = $this->dashboardMapper->find(id: $id);
@@ -269,7 +274,7 @@ class AdminTemplateService
      *
      * @return Dashboard The created template.
      *
-     * @spec admin-templates:REQ-TMPL-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-3
      */
     public function createTemplate(
         string $name,
@@ -329,7 +334,7 @@ class AdminTemplateService
      *
      * @throws Exception If the dashboard is not an admin template.
      *
-     * @spec admin-templates:REQ-TMPL-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-5
      */
     public function updateTemplate(int $id, array $data): Dashboard
     {
@@ -360,7 +365,7 @@ class AdminTemplateService
      *
      * @throws Exception If the dashboard is not an admin template.
      *
-     * @spec admin-templates:REQ-TMPL-004
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-6
      */
     public function deleteTemplate(int $id): void
     {
@@ -460,6 +465,7 @@ class AdminTemplateService
      *
      * @return array<int, array<string, mixed>> The gallery entries.
      */
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function getGallery(
         ?string $category=null,
         string $sortBy='name'
@@ -519,6 +525,7 @@ class AdminTemplateService
      * @throws Throwable             On any DB error — the transaction is
      *                               rolled back before rethrowing.
      */
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function saveAsTemplate(
         string $userId,
         string $dashboardUuid,
@@ -618,6 +625,7 @@ class AdminTemplateService
      * @throws InvalidDataUrlException     Bad data URL prefix.
      * @throws InvalidImageFormatException Disallowed image type.
      */
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function uploadPreviewImage(
         string $templateUuid,
         string $base64DataUrl

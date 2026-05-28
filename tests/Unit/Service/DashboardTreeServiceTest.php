@@ -358,4 +358,90 @@ class DashboardTreeServiceTest extends TestCase
         $this->assertCount(1, $tree[0]['children']);
         $this->assertSame('uuid-campaigns', $tree[0]['children'][0]['uuid']);
     }//end testBuildTreeNestsChildren()
+
+    // -----------------------------------------------------------------------
+    // C1 fix: getFilteredTree must limit nodes to the supplied visible set.
+    // -----------------------------------------------------------------------
+
+    /**
+     * C1: getFilteredTree returns only nodes whose UUID is in $visibleUuids.
+     *
+     * @return void
+     */
+    public function testGetFilteredTreeOmitsInvisibleNodes(): void
+    {
+        $marketing = $this->makeDashboard(
+            uuid: 'uuid-marketing',
+            name: 'Marketing',
+            slug: 'marketing'
+        );
+        $campaigns = $this->makeDashboard(
+            uuid: 'uuid-campaigns',
+            name: 'Campaigns',
+            slug: 'campaigns',
+            parentUuid: 'uuid-marketing'
+        );
+        $privateAdmin = $this->makeDashboard(
+            uuid: 'uuid-private',
+            name: 'Admin Private',
+            slug: 'admin-private'
+        );
+
+        $this->dashboardMapper->method('findByParent')
+            ->willReturnCallback(
+                static function (?string $parentUuid) use ($marketing, $privateAdmin, $campaigns) {
+                    if ($parentUuid === null) {
+                        return [$marketing, $privateAdmin];
+                    }
+
+                    if ($parentUuid === 'uuid-marketing') {
+                        return [$campaigns];
+                    }
+
+                    return [];
+                }
+            );
+
+        // Caller can see marketing and campaigns but NOT the admin-private dashboard.
+        $visibleUuids = [
+            'uuid-marketing' => true,
+            'uuid-campaigns' => true,
+        ];
+
+        $tree = $this->service->getFilteredTree(visibleUuids: $visibleUuids);
+
+        $this->assertCount(1, $tree, 'Only marketing is visible at root; private is excluded');
+        $this->assertSame('uuid-marketing', $tree[0]['uuid']);
+        $this->assertCount(1, $tree[0]['children']);
+        $this->assertSame('uuid-campaigns', $tree[0]['children'][0]['uuid']);
+    }//end testGetFilteredTreeOmitsInvisibleNodes()
+
+    /**
+     * C1: getFilteredTree with empty visibleUuids returns an empty tree.
+     *
+     * @return void
+     */
+    public function testGetFilteredTreeWithEmptyUuidsReturnsEmpty(): void
+    {
+        $marketing = $this->makeDashboard(
+            uuid: 'uuid-marketing',
+            name: 'Marketing',
+            slug: 'marketing'
+        );
+
+        $this->dashboardMapper->method('findByParent')
+            ->willReturnCallback(
+                static function (?string $parentUuid) use ($marketing) {
+                    if ($parentUuid === null) {
+                        return [$marketing];
+                    }
+
+                    return [];
+                }
+            );
+
+        $tree = $this->service->getFilteredTree(visibleUuids: []);
+
+        $this->assertSame([], $tree, 'Empty visibility set must yield empty tree');
+    }//end testGetFilteredTreeWithEmptyUuidsReturnsEmpty()
 }//end class

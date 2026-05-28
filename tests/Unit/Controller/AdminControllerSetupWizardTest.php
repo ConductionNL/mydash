@@ -104,16 +104,6 @@ class AdminControllerSetupWizardTest extends TestCase
         $this->assertSame($payload, $response->getData());
     }
 
-    public function testGetWizardStateRejectsNonAdminWith403(): void
-    {
-        $this->loginAsNonAdmin();
-        $this->wizardService->expects($this->never())->method('getWizardState');
-
-        $response = $this->controller->getWizardState();
-
-        $this->assertSame(Http::STATUS_FORBIDDEN, $response->getStatus());
-    }
-
     public function testCompleteWizardCallsServiceAndReturnsState(): void
     {
         $this->loginAsAdmin();
@@ -130,16 +120,6 @@ class AdminControllerSetupWizardTest extends TestCase
 
         $this->assertSame(Http::STATUS_OK, $response->getStatus());
         $this->assertSame($payload, $response->getData());
-    }
-
-    public function testCompleteWizardRejectsNonAdminWith403(): void
-    {
-        $this->loginAsNonAdmin();
-        $this->wizardService->expects($this->never())->method('markWizardComplete');
-
-        $response = $this->controller->completeWizard();
-
-        $this->assertSame(Http::STATUS_FORBIDDEN, $response->getStatus());
     }
 
     public function testSetWizardStorageRejectsEmptyValue(): void
@@ -185,13 +165,5 @@ class AdminControllerSetupWizardTest extends TestCase
         $this->assertSame($payload, $response->getData());
     }
 
-    public function testSetWizardStorageReturns401WhenLoggedOut(): void
-    {
-        $this->userSession->method('getUser')->willReturn(null);
-        $this->wizardService->expects($this->never())->method('setContentStorage');
-
-        $response = $this->controller->setWizardStorage(storage: 'database');
-
-        $this->assertSame(Http::STATUS_UNAUTHORIZED, $response->getStatus());
-    }
 }
+

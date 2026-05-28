@@ -102,6 +102,7 @@ class CommandService
      *
      * @return array<string,mixed>
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     public function envelopeSuccess(array|null $data): array
     {
         return [
@@ -120,6 +121,7 @@ class CommandService
      *
      * @return array<string,mixed>
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     public function envelopePartial(array|null $data, array $errors): array
     {
         return [
@@ -140,6 +142,7 @@ class CommandService
      *
      * @return array<string,mixed>
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     public function envelopeError(
         int $exitCode,
         string $code,
@@ -169,6 +172,7 @@ class CommandService
      *
      * @return string
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     public function encodeEnvelope(array $envelope): string
     {
         return (string) json_encode(
@@ -194,6 +198,7 @@ class CommandService
      *
      * @return string
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     public function formatAuditLine(
         string $command,
         string $args,
@@ -236,6 +241,7 @@ class CommandService
      *
      * @return void
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     public function audit(
         string $command,
         string $args,

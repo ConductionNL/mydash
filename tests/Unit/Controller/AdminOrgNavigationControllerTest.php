@@ -25,7 +25,6 @@ use OCA\MyDash\Controller\AdminOrgNavigationController;
 use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Service\OrgNavigationService;
 use OCP\AppFramework\Http;
-use OCP\IGroupManager;
 use OCP\IRequest;
 use OCP\IUser;
 use OCP\IUserSession;
@@ -44,9 +43,6 @@ class AdminOrgNavigationControllerTest extends TestCase
     /** @var AdminSettingMapper&MockObject */
     private $settings;
 
-    /** @var IGroupManager&MockObject */
-    private $groupManager;
-
     /** @var IUserSession&MockObject */
     private $userSession;
 
@@ -55,31 +51,26 @@ class AdminOrgNavigationControllerTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->request      = $this->createMock(IRequest::class);
-        $this->service      = $this->createMock(OrgNavigationService::class);
-        $this->settings     = $this->createMock(AdminSettingMapper::class);
-        $this->groupManager = $this->createMock(IGroupManager::class);
-        $this->userSession  = $this->createMock(IUserSession::class);
+        $this->request     = $this->createMock(IRequest::class);
+        $this->service     = $this->createMock(OrgNavigationService::class);
+        $this->settings    = $this->createMock(AdminSettingMapper::class);
+        $this->userSession = $this->createMock(IUserSession::class);
 
         $this->controller = new AdminOrgNavigationController(
             request: $this->request,
             service: $this->service,
             settings: $this->settings,
-            groupManager: $this->groupManager,
             userSession: $this->userSession,
         );
 
     }//end setUp()
 
 
-    private function loginAs(string $uid, bool $admin): void
+    private function loginAs(string $uid, bool $admin=false): void
     {
         $user = $this->createMock(IUser::class);
         $user->method('getUID')->willReturn($uid);
         $this->userSession->method('getUser')->willReturn($user);
-        $this->groupManager->method('isAdmin')
-            ->with($uid)
-            ->willReturn($admin);
 
     }//end loginAs()
 
@@ -122,18 +113,6 @@ class AdminOrgNavigationControllerTest extends TestCase
         $this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
 
     }//end testGetRejectsUnsupportedLanguage()
-
-
-    public function testUpdateReturns403ForNonAdmin(): void
-    {
-        $this->loginAs('bob', false);
-
-        $this->service->expects($this->never())->method('setTree');
-
-        $response = $this->controller->updateOrgNavigation(tree: []);
-        $this->assertSame(Http::STATUS_FORBIDDEN, $response->getStatus());
-
-    }//end testUpdateReturns403ForNonAdmin()
 
 
     public function testUpdateReturns400WhenTreeMissing(): void
@@ -222,16 +201,5 @@ class AdminOrgNavigationControllerTest extends TestCase
     }//end testUpdatePositionPersistsAccepted()
 
 
-    public function testUpdatePositionRejectsNonAdmin(): void
-    {
-        $this->loginAs('bob', false);
-
-        $this->settings->expects($this->never())->method('setSetting');
-
-        $response = $this->controller->updatePosition(position: 'left');
-        $this->assertSame(Http::STATUS_FORBIDDEN, $response->getStatus());
-
-    }//end testUpdatePositionRejectsNonAdmin()
-
-
 }//end class
+

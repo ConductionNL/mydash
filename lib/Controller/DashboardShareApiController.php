@@ -74,6 +74,7 @@ class DashboardShareApiController extends Controller
      * @return DataResponse The list of shares.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function index(int $id): DataResponse
     {
         if ($this->userId === null) {
@@ -117,6 +118,7 @@ class DashboardShareApiController extends Controller
      * @return DataResponse The created/updated share.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function create(
         int $id,
         ?string $shareType=null,
@@ -168,6 +170,7 @@ class DashboardShareApiController extends Controller
      * @return DataResponse Empty 204 on success.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function destroy(int $shareId): DataResponse
     {
         if ($this->userId === null) {
@@ -205,6 +208,7 @@ class DashboardShareApiController extends Controller
      * @return DataResponse The new full share list.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function replace(int $id, ?array $shares=null): DataResponse
     {
         if ($this->userId === null) {
@@ -257,6 +261,7 @@ class DashboardShareApiController extends Controller
      * @return DataResponse The count of deleted rows.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function revokeForRecipient(
         string $shareType,
         string $shareWith
@@ -292,6 +297,7 @@ class DashboardShareApiController extends Controller
      * @return DataResponse The matching users and groups.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function searchSharees(string $query=''): DataResponse
     {
         if ($this->userId === null) {

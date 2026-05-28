@@ -83,6 +83,7 @@ class ResourceServeService
      *
      * @return ISimpleFile|null The file, or null if absent / unreadable.
      */
+    /** @spec openspec/specs/resource-uploads/spec.md */
     public function findFile(string $filename): ?ISimpleFile
     {
         try {
@@ -107,6 +108,7 @@ class ResourceServeService
      *
      * @return array<int, ISimpleFile> The file entries.
      */
+    /** @spec openspec/specs/resource-uploads/spec.md */
     public function listFiles(): array
     {
         try {
@@ -140,6 +142,7 @@ class ResourceServeService
      *
      * @return string The MIME type to send.
      */
+    /** @spec openspec/specs/resource-uploads/spec.md */
     public function contentTypeForFilename(string $filename): string
     {
         $position = strrpos(haystack: $filename, needle: '.');
@@ -158,6 +161,7 @@ class ResourceServeService
      *
      * @return string The ISO-8601 timestamp.
      */
+    /** @spec openspec/specs/resource-uploads/spec.md */
     public function formatTimestamp(int $epoch): string
     {
         $dateTime = (new DateTimeImmutable(datetime: '@'.$epoch))

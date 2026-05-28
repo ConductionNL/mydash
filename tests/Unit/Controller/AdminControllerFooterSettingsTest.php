@@ -91,15 +91,6 @@ class AdminControllerFooterSettingsTest extends TestCase
         $this->groupManager->method('isAdmin')->with('alice')->willReturn(false);
     }
 
-    public function testGetFooterSettingsRejectsNonAdmin(): void
-    {
-        $this->loginAsNonAdmin();
-        $this->footerService->expects($this->never())->method('getGlobalSettings');
-
-        $response = $this->controller->getFooterSettings();
-        $this->assertSame(Http::STATUS_FORBIDDEN, $response->getStatus());
-    }
-
     public function testGetFooterSettingsReturnsServicePayload(): void
     {
         $this->loginAsAdmin();
@@ -117,15 +108,6 @@ class AdminControllerFooterSettingsTest extends TestCase
 
         $this->assertSame(Http::STATUS_OK, $response->getStatus());
         $this->assertSame($payload, $response->getData());
-    }
-
-    public function testUpdateFooterSettingsRejectsNonAdmin(): void
-    {
-        $this->loginAsNonAdmin();
-        $this->footerService->expects($this->never())->method('updateGlobalSettings');
-
-        $response = $this->controller->updateFooterSettings(footerEnabled: true);
-        $this->assertSame(Http::STATUS_FORBIDDEN, $response->getStatus());
     }
 
     public function testUpdateFooterSettingsForwardsPatch(): void

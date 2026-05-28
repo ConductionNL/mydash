@@ -180,17 +180,15 @@ class RoleFeaturePermissionServiceTest extends TestCase
         $this->assertSame(expected: ['recommendations'], actual: $result);
     }//end testFallbackToDefaultGroupWhenNoGroupOrderMatch()
 
-    public function testIsWidgetAllowedTrueWhenUnconfigured(): void
+    public function testGetAllowedWidgetIdsNullWhenUnconfigured(): void
     {
         $this->withUserGroups(userId: 'alice', groupIds: []);
         $this->permMapper->method('findByGroupId')
             ->will($this->throwException(exception: new DoesNotExistException(msg: 'no row')));
 
-        $this->assertTrue(condition: $this->service->isWidgetAllowed(
-            userId: 'alice',
-            widgetId: 'whatever'
-        ));
-    }//end testIsWidgetAllowedTrueWhenUnconfigured()
+        // null means no restriction (all widgets allowed) when unconfigured.
+        $this->assertNull(actual: $this->service->getAllowedWidgetIds(userId: 'alice'));
+    }//end testGetAllowedWidgetIdsNullWhenUnconfigured()
 
     public function testSeedLayoutNoOpWhenDashboardHasPlacements(): void
     {

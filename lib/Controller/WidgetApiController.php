@@ -19,7 +19,9 @@ declare(strict_types=1);
 namespace OCA\MyDash\Controller;
 
 use DateTimeImmutable;
+use InvalidArgumentException;
 use OCA\MyDash\AppInfo\Application;
+use OCA\MyDash\Service\ActionAuthService;
 use OCA\MyDash\Service\CalendarWidgetService;
 use OCA\MyDash\Service\NewsWidgetService;
 use OCA\MyDash\Service\PermissionService;
@@ -32,6 +34,7 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
+use OCP\IUserSession;
 use Throwable;
 
 /**
@@ -55,6 +58,9 @@ class WidgetApiController extends Controller
      * @param CalendarWidgetService        $calendarWidgetService  The calendar widget service (REQ-CAL-003).
      * @param WidgetPlacementService       $widgetPlacementService Placement-payload validators (REQ-CONT-006).
      * @param RoleFeaturePermissionService $roleFeaturePerm        Role-feature filter (REQ-RFP-001..010).
+     * @param IUserSession                 $userSession            User session, used to resolve the
+     *                                                             authenticated IUser for ADR-023 action checks.
+     * @param ActionAuthService            $actionAuth             The ADR-023 action authorization service.
      * @param string|null                  $userId                 The user ID.
      */
     public function __construct(
@@ -65,6 +71,8 @@ class WidgetApiController extends Controller
         private readonly CalendarWidgetService $calendarWidgetService,
         private readonly WidgetPlacementService $widgetPlacementService,
         private readonly RoleFeaturePermissionService $roleFeaturePerm,
+        private readonly IUserSession $userSession,
+        private readonly ActionAuthService $actionAuth,
         private readonly ?string $userId,
     ) {
         parent::__construct(
@@ -79,11 +87,15 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse The list of available widgets.
      *
-     * @spec widgets:REQ-WDG-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-32
      */
     #[NoAdminRequired]
     public function listAvailable(): JSONResponse
     {
+        if ($this->userSession->getUser() === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
+        }
+
         $widgets = $this->widgetService->getAvailableWidgets();
 
         if ($this->userId === null) {
@@ -124,7 +136,7 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse The widget items.
      *
-     * @spec widgets:REQ-WDG-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-33
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -132,6 +144,10 @@ class WidgetApiController extends Controller
         array $widgets=[],
         int $limit=7
     ): JSONResponse {
+        if ($this->userSession->getUser() === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
+        }
+
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }
@@ -157,7 +173,7 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse The created widget placement.
      *
-     * @spec widgets:REQ-WDG-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-34
      */
     #[NoAdminRequired]
     public function addWidget(
@@ -168,6 +184,13 @@ class WidgetApiController extends Controller
         int $gridWidth=4,
         int $gridHeight=4
     ): JSONResponse {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
+        }
+
+        $this->actionAuth->requireAction($user, 'widget.add-widget');
+
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }
@@ -179,7 +202,7 @@ class WidgetApiController extends Controller
         // without the field and used to crash the dispatcher.
         if ($widgetId === null || $widgetId === '') {
             return ResponseHelper::error(
-                exception: new \InvalidArgumentException(
+                exception: new InvalidArgumentException(
                     'Missing required field: widgetId'
                 ),
                 statusCode: Http::STATUS_BAD_REQUEST
@@ -218,7 +241,10 @@ class WidgetApiController extends Controller
         // Tolerant of legacy callers that send only `widgetId` and grid
         // coords with no content blob: $contentParam stays null and
         // PlacementService leaves the column NULL.
-        $contentToPersist = (is_array($contentParam) === true) ? $contentParam : null;
+        $contentToPersist = null;
+        if (is_array($contentParam) === true) {
+            $contentToPersist = $contentParam;
+        }
 
         try {
             $placement = $this->widgetService->addWidget(
@@ -247,7 +273,7 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse
      *
-     * @spec container-widget:REQ-CONT-006
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-15
      */
     private function containerDepthExceededResponse(): JSONResponse
     {
@@ -267,10 +293,19 @@ class WidgetApiController extends Controller
      * @param int $dashboardId Dashboard ID.
      *
      * @return JSONResponse The created tile placement.
-     */
+     *
+      * @spec openspec/specs/widgets/spec.md
+      */
     #[NoAdminRequired]
     public function addTile(int $dashboardId): JSONResponse
     {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
+        }
+
+        $this->actionAuth->requireAction($user, 'widget.add-tile');
+
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }
@@ -307,11 +342,18 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse The updated widget placement.
      *
-     * @spec widgets:REQ-WDG-004
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-35
      */
     #[NoAdminRequired]
     public function updatePlacement(int $placementId): JSONResponse
     {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
+        }
+
+        $this->actionAuth->requireAction($user, 'widget.update-placement');
+
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }
@@ -365,11 +407,18 @@ class WidgetApiController extends Controller
      *
      * @return JSONResponse The removal confirmation.
      *
-     * @spec widgets:REQ-WDG-005
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-36
      */
     #[NoAdminRequired]
     public function removePlacement(int $placementId): JSONResponse
     {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
+        }
+
+        $this->actionAuth->requireAction($user, 'widget.remove-placement');
+
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }
@@ -408,11 +457,17 @@ class WidgetApiController extends Controller
      *                                  rejected when outside [1, 50]).
      *
      * @return JSONResponse
+     *
+     * @spec openspec/specs/widgets/spec.md
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function newsItems(int $placementId, ?int $limit=10): JSONResponse
     {
+        if ($this->userSession->getUser() === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
+        }
+
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }
@@ -460,6 +515,8 @@ class WidgetApiController extends Controller
      * @param string $to          ISO 8601 end.
      *
      * @return JSONResponse The aggregated events payload.
+     *
+     * @spec openspec/specs/widgets/spec.md
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -468,6 +525,10 @@ class WidgetApiController extends Controller
         string $from='',
         string $to=''
     ): JSONResponse {
+        if ($this->userSession->getUser() === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], \OCP\AppFramework\Http::STATUS_UNAUTHORIZED);
+        }
+
         if ($this->userId === null) {
             return ResponseHelper::unauthorized();
         }

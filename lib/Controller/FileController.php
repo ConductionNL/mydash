@@ -85,6 +85,7 @@ class FileController extends Controller
      * @NoCSRFRequired
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/resource-uploads/spec.md */
     public function createFile(
         ?string $filename=null,
         ?string $dir='/',

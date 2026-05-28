@@ -124,9 +124,10 @@ class Version002000Date20260519000000 extends SimpleMigrationStep
         // Retrieve ObjectService via the DI container. If OpenRegister is not
         // installed / enabled on this instance, skip silently.
         try {
-            /**
+            /*
              * @var \OCA\OpenRegister\Service\ObjectService $objectService
              */
+
             $objectService = $this->container->get('OCA\OpenRegister\Service\ObjectService');
         } catch (\Throwable $e) {
             $output->info('MyDash migration: OpenRegister not available — skipping dashboard copy.');
@@ -135,9 +136,10 @@ class Version002000Date20260519000000 extends SimpleMigrationStep
 
         // Retrieve the DB connection to query the legacy tables.
         try {
-            /**
+            /*
              * @var \OCP\IDBConnection $db
              */
+
             $db = $this->container->get(\OCP\IDBConnection::class);
         } catch (\Throwable $e) {
             $output->info('MyDash migration: could not get DB connection — skipping dashboard copy.');

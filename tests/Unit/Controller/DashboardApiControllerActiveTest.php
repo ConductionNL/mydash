@@ -21,6 +21,7 @@ declare(strict_types=1);
 namespace Unit\Controller;
 
 use OCA\MyDash\Controller\DashboardApiController;
+use OCA\MyDash\Service\ActionAuthService;
 use OCA\MyDash\Service\AnalyticsService;
 use OCA\MyDash\Service\DashboardService;
 use OCA\MyDash\Service\DashboardTreeService;
@@ -28,6 +29,8 @@ use OCA\MyDash\Service\DashboardVersionService;
 use OCA\MyDash\Service\PermissionService;
 use OCP\AppFramework\Http;
 use OCP\IRequest;
+use OCP\IUser;
+use OCP\IUserSession;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -51,6 +54,10 @@ class DashboardApiControllerActiveTest extends TestCase
     private $logger;
     /** @var AnalyticsService&MockObject */
     private $analyticsService;
+    /** @var IUserSession&MockObject */
+    private $userSession;
+    /** @var ActionAuthService&MockObject */
+    private $actionAuth;
 
     protected function setUp(): void
     {
@@ -61,6 +68,13 @@ class DashboardApiControllerActiveTest extends TestCase
         $this->versionService    = $this->createMock(DashboardVersionService::class);
         $this->analyticsService  = $this->createMock(AnalyticsService::class);
         $this->logger            = $this->createMock(LoggerInterface::class);
+        $this->userSession       = $this->createMock(IUserSession::class);
+        $this->actionAuth        = $this->createMock(ActionAuthService::class);
+
+        // Default: return a non-null user (authenticated). Tests that need to
+        // assert the anonymous branch configure userSession->getUser()->willReturn(null).
+        $mockUser = $this->createMock(IUser::class);
+        $this->userSession->method('getUser')->willReturn($mockUser);
     }//end setUp()
 
     /**
@@ -76,6 +90,8 @@ class DashboardApiControllerActiveTest extends TestCase
             versionService: $this->versionService,
             analyticsService: $this->analyticsService,
             logger: $this->logger,
+            userSession: $this->userSession,
+            actionAuth: $this->actionAuth,
             userId: $userId,
         );
     }//end makeController()

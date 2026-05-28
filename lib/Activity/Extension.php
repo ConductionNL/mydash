@@ -209,10 +209,9 @@ class Extension implements IProvider
             haystack: self::ALL_EVENTS,
             strict: true
         );
+        $file  = 'activity/mydash.svg';
         if ($known === true) {
             $file = 'activity/'.$eventType.'.svg';
-        } else {
-            $file = 'activity/mydash.svg';
         }
 
         return $this->urlGenerator->getAbsoluteURL(
@@ -303,10 +302,9 @@ class Extension implements IProvider
     private function resolveSubjectTemplate(string $type, bool $isSelf): string
     {
         $templates = $this->getSubjectTemplates();
+        $variant   = 'other';
         if ($isSelf === true) {
             $variant = 'self';
-        } else {
-            $variant = 'other';
         }
 
         return ($templates[$type][$variant] ?? '');

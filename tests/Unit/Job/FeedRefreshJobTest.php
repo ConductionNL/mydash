@@ -24,7 +24,7 @@ namespace Unit\Job;
 use OCA\MyDash\Job\FeedRefreshJob;
 use OCA\MyDash\Service\FeedRefreshService;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\Lock\ILockingProvider;
 use OCP\Lock\LockedException;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -41,8 +41,8 @@ class FeedRefreshJobTest extends TestCase
     /** @var ITimeFactory&MockObject */
     private $time;
 
-    /** @var IConfig&MockObject */
-    private $config;
+    /** @var IAppConfig&MockObject */
+    private $appConfig;
 
     /** @var FeedRefreshService&MockObject */
     private $refreshService;
@@ -64,7 +64,7 @@ class FeedRefreshJobTest extends TestCase
         parent::setUp();
 
         $this->time            = $this->createMock(ITimeFactory::class);
-        $this->config          = $this->createMock(IConfig::class);
+        $this->appConfig       = $this->createMock(IAppConfig::class);
         $this->refreshService  = $this->createMock(FeedRefreshService::class);
         $this->lockingProvider = $this->createMock(ILockingProvider::class);
         $this->logger          = $this->createMock(LoggerInterface::class);
@@ -78,10 +78,10 @@ class FeedRefreshJobTest extends TestCase
      */
     public function testConstructorClampsBelowMinimum(): void
     {
-        $this->config->method('getAppValue')
-            ->willReturnCallback(static function (string $app, string $key, string $default): string {
+        $this->appConfig->method('getValueInt')
+            ->willReturnCallback(static function (string $app, string $key, int $default): int {
                 if ($key === FeedRefreshJob::CONFIG_KEY_INTERVAL) {
-                    return '60';
+                    return 60;
                 }
                 return $default;
             });
@@ -100,10 +100,10 @@ class FeedRefreshJobTest extends TestCase
      */
     public function testConstructorClampsAboveMaximum(): void
     {
-        $this->config->method('getAppValue')
-            ->willReturnCallback(static function (string $app, string $key, string $default): string {
+        $this->appConfig->method('getValueInt')
+            ->willReturnCallback(static function (string $app, string $key, int $default): int {
                 if ($key === FeedRefreshJob::CONFIG_KEY_INTERVAL) {
-                    return '172800';
+                    return 172800;
                 }
                 return $default;
             });
@@ -122,8 +122,8 @@ class FeedRefreshJobTest extends TestCase
      */
     public function testConstructorAppliesDefaultWhenUnset(): void
     {
-        $this->config->method('getAppValue')
-            ->willReturnCallback(static function (string $app, string $key, string $default): string {
+        $this->appConfig->method('getValueInt')
+            ->willReturnCallback(static function (string $app, string $key, int $default): int {
                 return $default;
             });
 
@@ -143,8 +143,8 @@ class FeedRefreshJobTest extends TestCase
      */
     public function testRunAcquiresAndReleasesLockOnException(): void
     {
-        $this->config->method('getAppValue')
-            ->willReturnCallback(static function (string $app, string $key, string $default): string {
+        $this->appConfig->method('getValueInt')
+            ->willReturnCallback(static function (string $app, string $key, int $default): int {
                 return $default;
             });
 
@@ -174,8 +174,8 @@ class FeedRefreshJobTest extends TestCase
      */
     public function testRunSkipsWhenLockHeld(): void
     {
-        $this->config->method('getAppValue')
-            ->willReturnCallback(static function (string $app, string $key, string $default): string {
+        $this->appConfig->method('getValueInt')
+            ->willReturnCallback(static function (string $app, string $key, int $default): int {
                 return $default;
             });
 
@@ -199,8 +199,8 @@ class FeedRefreshJobTest extends TestCase
      */
     public function testRunHappyPathReleasesLock(): void
     {
-        $this->config->method('getAppValue')
-            ->willReturnCallback(static function (string $app, string $key, string $default): string {
+        $this->appConfig->method('getValueInt')
+            ->willReturnCallback(static function (string $app, string $key, int $default): int {
                 return $default;
             });
 
@@ -229,7 +229,7 @@ class FeedRefreshJobTest extends TestCase
     {
         return new FeedRefreshJob(
             time: $this->time,
-            config: $this->config,
+            appConfig: $this->appConfig,
             refreshService: $this->refreshService,
             lockingProvider: $this->lockingProvider,
             logger: $this->logger,

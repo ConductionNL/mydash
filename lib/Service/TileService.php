@@ -41,7 +41,7 @@ class TileService
      *
      * @return Tile[] Array of tiles.
      *
-     * @spec tiles:REQ-TILE-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-29
      */
     public function getUserTiles(string $userId): array
     {
@@ -72,7 +72,7 @@ class TileService
      *                 callers and migration tooling only and MUST NOT be
      *                 invoked by new code paths.
      *
-     * @spec tiles:REQ-TILE-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-28
      */
     public function createTile(
         string $userId,
@@ -118,7 +118,7 @@ class TileService
      *                 widget-placement update endpoint; the reusable
      *                 tile-entity table is read-only going forward.
      *
-     * @spec tiles:REQ-TILE-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-30
      */
     public function updateTile(int $id, string $userId, array $data): Tile
     {
@@ -181,7 +181,7 @@ class TileService
      *                 migration tooling that needs to clear out legacy
      *                 rows server-side.
      *
-     * @spec tiles:REQ-TILE-004
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-31
      */
     public function deleteTile(int $id, string $userId): void
     {

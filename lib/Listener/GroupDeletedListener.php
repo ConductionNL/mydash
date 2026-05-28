@@ -74,6 +74,7 @@ class GroupDeletedListener implements IEventListener
      *
      * @return void
      */
+    /** @spec openspec/specs/dashboard-cascade-events/spec.md */
     public function handle(Event $event): void
     {
         if (($event instanceof GroupDeletedEvent) === false) {

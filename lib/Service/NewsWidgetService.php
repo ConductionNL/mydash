@@ -139,6 +139,7 @@ class NewsWidgetService
      *     failedUrls: array<int, string>
      * }
      */
+    /** @spec openspec/specs/news-widget/spec.md */
     public function getItemsForPlacement(int $placementId, int $limit=10): array
     {
         $clamped = $this->clampLimit(limit: $limit);
@@ -194,6 +195,7 @@ class NewsWidgetService
      *     metadataFilter: array{fieldKey: string, value: string}|null
      * }
      */
+    /** @spec openspec/specs/news-widget/spec.md */
     public function extractNewsConfig(WidgetPlacement $placement): array
     {
         $decoded = $this->decodeStyleConfigBlob(raw: $placement->getStyleConfig());
@@ -395,6 +397,7 @@ class NewsWidgetService
      *     failedUrls: array<int, string>
      * }
      */
+    /** @spec openspec/specs/news-widget/spec.md */
     public function fetchAndMergeFeeds(array $feedUrls, int $limit=10): array
     {
         if ($feedUrls === []) {
@@ -463,6 +466,7 @@ class NewsWidgetService
      *
      * @return array<int, array<string, mixed>> Parsed items.
      */
+    /** @spec openspec/specs/news-widget/spec.md */
     public function parseRssFeed(string $feedContent, string $sourceUrl, string $sourceTitle): array
     {
         if (trim(string: $feedContent) === '') {
@@ -557,6 +561,7 @@ class NewsWidgetService
      *
      * @return array<int, array<string, mixed>> Deduped items.
      */
+    /** @spec openspec/specs/news-widget/spec.md */
     public function deduplicateItems(array $items): array
     {
         $seen = [];
@@ -595,6 +600,7 @@ class NewsWidgetService
      *
      * @return array<int, array<string, mixed>> Sorted items.
      */
+    /** @spec openspec/specs/news-widget/spec.md */
     public function sortItemsByDate(array $items): array
     {
         $sortable = $items;
@@ -639,6 +645,7 @@ class NewsWidgetService
      *
      * @return string Sanitised summary HTML.
      */
+    /** @spec openspec/specs/news-widget/spec.md */
     public function sanitiseSummaryHtml(string $html): string
     {
         if ($html === '') {
@@ -701,6 +708,7 @@ class NewsWidgetService
      *
      * @return boolean True when the host is allowed.
      */
+    /** @spec openspec/specs/news-widget/spec.md */
     public function checkAllowList(string $url): bool
     {
         $raw = $this->appConfig->getValueString(
@@ -747,6 +755,7 @@ class NewsWidgetService
      *
      * @return boolean True when the filter passes (allow fetch); false otherwise.
      */
+    /** @spec openspec/specs/news-widget/spec.md */
     public function checkMetadataFilter(int $dashboardId, array $metadataFilter): bool
     {
         unset($dashboardId);

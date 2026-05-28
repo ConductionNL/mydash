@@ -32,6 +32,8 @@ use OCP\AppFramework\Http\StreamResponse;
 // the controller docblock for the rationale.
 use OCP\Files\SimpleFS\ISimpleFile;
 use OCP\IRequest;
+use OCP\IUser;
+use OCP\IUserSession;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -53,16 +55,26 @@ class ResourceServeControllerTest extends TestCase
     /** @var LoggerInterface&MockObject */
     private $logger;
 
+    /** @var IUserSession&MockObject */
+    private $userSession;
+
     protected function setUp(): void
     {
-        $this->request = $this->createMock(IRequest::class);
-        $this->serve   = $this->createMock(ResourceServeService::class);
-        $this->logger  = $this->createMock(LoggerInterface::class);
+        $this->request     = $this->createMock(IRequest::class);
+        $this->serve       = $this->createMock(ResourceServeService::class);
+        $this->logger      = $this->createMock(LoggerInterface::class);
+        $this->userSession = $this->createMock(IUserSession::class);
+
+        // Default: logged-in user (tests that need anonymous can override).
+        $mockUser = $this->createMock(IUser::class);
+        $mockUser->method('getUID')->willReturn('alice');
+        $this->userSession->method('getUser')->willReturn($mockUser);
 
         $this->controller = new ResourceServeController(
             request: $this->request,
             serve: $this->serve,
             logger: $this->logger,
+            userSession: $this->userSession,
         );
     }
 

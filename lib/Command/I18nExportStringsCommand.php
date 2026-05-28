@@ -69,6 +69,7 @@ class I18nExportStringsCommand extends CommandBase
      *
      * @return void
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     protected function configureCommand(): void
     {
         $this->setName(name: 'mydash:i18n:export-strings')
@@ -96,6 +97,7 @@ class I18nExportStringsCommand extends CommandBase
      *
      * @return int
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     protected function handle(
         InputInterface $input,
         OutputInterface $output

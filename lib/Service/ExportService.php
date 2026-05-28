@@ -106,6 +106,7 @@ class ExportService
      *
      * @throws DoesNotExistException When the dashboard cannot be found.
      */
+    /** @spec openspec/specs/dashboard-export-import/spec.md */
     public function exportDashboard(
         string $dashboardUuid,
         string $currentUserId
@@ -133,6 +134,7 @@ class ExportService
      *
      * @return StreamResponse The streaming ZIP response.
      */
+    /** @spec openspec/specs/dashboard-export-import/spec.md */
     public function exportSite(string $currentUserId): StreamResponse
     {
         $dashboards = $this->collectAllDashboards();
@@ -158,6 +160,7 @@ class ExportService
      *
      * @return array<string, mixed> The manifest data.
      */
+    /** @spec openspec/specs/dashboard-export-import/spec.md */
     public function buildManifest(
         string $scope,
         int $dashboardCount,
@@ -186,6 +189,7 @@ class ExportService
      *
      * @return array<string, mixed> The serialized dashboard payload.
      */
+    /** @spec openspec/specs/dashboard-export-import/spec.md */
     public function serializeDashboard(Dashboard $dashboard): array
     {
         $widgets = [];

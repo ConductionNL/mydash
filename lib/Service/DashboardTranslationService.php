@@ -107,6 +107,7 @@ class DashboardTranslationService
      *
      * @return DashboardTranslation[] The variants.
      */
+    /** @spec openspec/specs/dashboard-language-content/spec.md */
     public function listVariants(string $dashboardUuid): array
     {
         return $this->translationMapper->findByDashboardUuid(
@@ -121,6 +122,7 @@ class DashboardTranslationService
      *
      * @return string[] The language codes.
      */
+    /** @spec openspec/specs/dashboard-language-content/spec.md */
     public function listAvailableLanguages(string $dashboardUuid): array
     {
         $variants  = $this->listVariants(dashboardUuid: $dashboardUuid);
@@ -150,6 +152,7 @@ class DashboardTranslationService
      * @return array{translation: DashboardTranslation, isFallback: bool}|null
      *   The matched variant or null when no variants exist.
      */
+    /** @spec openspec/specs/dashboard-language-content/spec.md */
     public function resolveForLocale(
         string $dashboardUuid,
         string $preferredLanguage
@@ -203,6 +206,7 @@ class DashboardTranslationService
      *
      * @return DashboardTranslation The seeded primary translation.
      */
+    /** @spec openspec/specs/dashboard-language-content/spec.md */
     public function seedPrimaryFor(Dashboard $dashboard): DashboardTranslation
     {
         $uuid = (string) $dashboard->getUuid();
@@ -261,6 +265,7 @@ class DashboardTranslationService
      * @throws Exception                When a row already exists for
      *                                  the same `(uuid, language)` pair.
      */
+    /** @spec openspec/specs/dashboard-language-content/spec.md */
     public function createVariant(
         string $dashboardUuid,
         string $languageCode,
@@ -333,6 +338,7 @@ class DashboardTranslationService
      * @throws DoesNotExistException When no variant exists for the
      *                               (uuid, language) pair.
      */
+    /** @spec openspec/specs/dashboard-language-content/spec.md */
     public function updateVariant(
         string $dashboardUuid,
         string $languageCode,
@@ -374,6 +380,7 @@ class DashboardTranslationService
      * @throws DoesNotExistException When the variant does not exist.
      * @throws Exception             When the guard rejects the delete.
      */
+    /** @spec openspec/specs/dashboard-language-content/spec.md */
     public function deleteVariant(
         string $dashboardUuid,
         string $languageCode
@@ -411,6 +418,7 @@ class DashboardTranslationService
      *
      * @throws DoesNotExistException When the variant does not exist.
      */
+    /** @spec openspec/specs/dashboard-language-content/spec.md */
     public function promoteVariantToPrimary(
         string $dashboardUuid,
         string $languageCode
@@ -454,6 +462,7 @@ class DashboardTranslationService
      *
      * @return int The number of rows deleted.
      */
+    /** @spec openspec/specs/dashboard-language-content/spec.md */
     public function deleteAllForDashboard(string $dashboardUuid): int
     {
         return $this->translationMapper->deleteByDashboardUuid(
@@ -472,6 +481,7 @@ class DashboardTranslationService
      *
      * @return DashboardTranslation An in-memory variant (NOT persisted).
      */
+    /** @spec openspec/specs/dashboard-language-content/spec.md */
     public function materialiseLegacyVariant(
         Dashboard $dashboard
     ): DashboardTranslation {

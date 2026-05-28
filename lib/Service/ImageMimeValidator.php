@@ -70,6 +70,7 @@ class ImageMimeValidator
      * @throws MimeMismatchException When the detected MIME differs from
      *                               the declared type.
      */
+    /** @spec openspec/specs/resource-uploads/spec.md */
     public function validate(string $declaredType, string $bytes): void
     {
         // SVG validation is the sanitiser's job, not this validator's.

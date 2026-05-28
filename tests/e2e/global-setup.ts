@@ -98,7 +98,7 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
 	// success. Wait for the global header that only renders on
 	// authenticated pages — the URL-based wait races with the in-flight
 	// click navigation and is unreliable on slower test rigs.
-	await page.waitForSelector('#header, header.header', { timeout: 20_000 })
+	await page.waitForSelector('#header, header.header', { timeout: 45_000 })
 	// Catch wrong-credentials early so the failure message is clear.
 	const currentUrl = page.url()
 	if (/\/login(\?|$|\/)/.test(currentUrl)) {

@@ -52,6 +52,7 @@ class DemoShowcasesListCommand extends Command
      *
      * @return void
      */
+    /** @spec openspec/specs/demo-data-showcases/spec.md */
     protected function configure(): void
     {
         $this->setName(name: 'mydash:demo-showcases:list')
@@ -72,6 +73,7 @@ class DemoShowcasesListCommand extends Command
      *
      * @return int Exit code.
      */
+    /** @spec openspec/specs/demo-data-showcases/spec.md */
     protected function execute(
         InputInterface $input,
         OutputInterface $output

@@ -77,10 +77,11 @@ class DashboardVersionApiController extends Controller
      * @return JSONResponse The version list envelope.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-versioning/spec.md */
     public function listVersions(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -113,12 +114,13 @@ class DashboardVersionApiController extends Controller
      * @return JSONResponse The full snapshot body.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-versioning/spec.md */
     public function fetchVersion(
         string $uuid,
         int $versionNumber
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -165,12 +167,13 @@ class DashboardVersionApiController extends Controller
      * @return JSONResponse The persisted version row.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-versioning/spec.md */
     public function createVersion(
         string $uuid,
         ?string $note=null
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {
@@ -208,12 +211,13 @@ class DashboardVersionApiController extends Controller
      * @return JSONResponse The restored snapshot envelope.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-versioning/spec.md */
     public function restoreVersion(
         string $uuid,
         int $versionNumber
     ): JSONResponse {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         try {

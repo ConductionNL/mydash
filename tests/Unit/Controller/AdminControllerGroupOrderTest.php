@@ -20,14 +20,8 @@ declare(strict_types=1);
 
 namespace Unit\Controller;
 
-use OCA\MyDash\Controller\AdminController;
+use OCA\MyDash\Controller\AdminSettingsController;
 use OCA\MyDash\Service\AdminSettingsService;
-use OCA\MyDash\Service\AdminTemplateService;
-use OCA\MyDash\Service\ExportService;
-use OCA\MyDash\Service\FeedRefreshService;
-use OCA\MyDash\Service\FooterService;
-use OCA\MyDash\Service\ImportService;
-use OCA\MyDash\Service\RoleService;
 use OCP\AppFramework\Http;
 use OCP\IGroupManager;
 use OCP\IRequest;
@@ -38,44 +32,28 @@ use PHPUnit\Framework\TestCase;
 
 class AdminControllerGroupOrderTest extends TestCase
 {
-    private AdminController $controller;
+    private AdminSettingsController $controller;
     /** @var IRequest&MockObject */
     private $request;
-    /** @var AdminTemplateService&MockObject */
-    private $templateService;
     /** @var AdminSettingsService&MockObject */
     private $settingsService;
     /** @var IGroupManager&MockObject */
     private $groupManager;
     /** @var IUserSession&MockObject */
     private $userSession;
-    /** @var RoleService&MockObject */
-    private $roleService;
-    /** @var FeedRefreshService&MockObject */
-    private $feedRefresh;
 
     protected function setUp(): void
     {
         $this->request         = $this->createMock(IRequest::class);
-        $this->templateService = $this->createMock(AdminTemplateService::class);
         $this->settingsService = $this->createMock(AdminSettingsService::class);
         $this->groupManager    = $this->createMock(IGroupManager::class);
         $this->userSession     = $this->createMock(IUserSession::class);
-        $this->roleService     = $this->createMock(RoleService::class);
-        $this->feedRefresh     = $this->createMock(FeedRefreshService::class);
 
-        $this->controller = new AdminController(
+        $this->controller = new AdminSettingsController(
             request: $this->request,
-            templateService: $this->templateService,
             settingsService: $this->settingsService,
             groupManager: $this->groupManager,
             userSession: $this->userSession,
-            exportService: $this->createMock(ExportService::class),
-            importService: $this->createMock(ImportService::class),
-            roleService: $this->roleService,
-            feedRefresh: $this->feedRefresh,
-            footerService: $this->createMock(FooterService::class),
-            setupWizardService: $this->createMock(\OCA\MyDash\Service\SetupWizardService::class),
         );
     }
 
@@ -238,21 +216,15 @@ class AdminControllerGroupOrderTest extends TestCase
                 return true;
             }));
 
-        // After write, controller re-reads the persisted order.
-        $this->settingsService
-            ->method('getGroupOrder')
-            ->willReturn(['c', 'b']);
-
         $response = $this->controller->updateGroupOrder(['c', 'b']);
         $body     = $response->getData();
 
         $this->assertSame(Http::STATUS_OK, $response->getStatus());
         $this->assertSame(['c', 'b'], $captured);
-        $this->assertSame(['c', 'b'], $body['groupOrder']);
         $this->assertSame('ok', $body['status']);
     }
 
-    public function testUpdateGroupOrderReturns401WhenNoUserLoggedIn(): void
+    public function testUpdateGroupOrderReturns403WhenNoUserLoggedIn(): void
     {
         $this->userSession->method('getUser')->willReturn(null);
 
@@ -260,6 +232,8 @@ class AdminControllerGroupOrderTest extends TestCase
 
         $response = $this->controller->updateGroupOrder(['engineering']);
 
-        $this->assertSame(Http::STATUS_UNAUTHORIZED, $response->getStatus());
+        // assertAdmin() returns 403 for both anonymous and non-admin callers.
+        $this->assertSame(Http::STATUS_FORBIDDEN, $response->getStatus());
     }
 }
+

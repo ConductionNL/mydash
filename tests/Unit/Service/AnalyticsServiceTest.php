@@ -28,6 +28,7 @@ use OCA\MyDash\Db\DashboardViewMapper;
 use OCA\MyDash\Service\AnalyticsService;
 use OCA\MyDash\Service\UniqueViewerDedup;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IAppConfig;
 use OCP\IConfig;
 use PHPUnit\Framework\TestCase;
 
@@ -36,6 +37,7 @@ class AnalyticsServiceTest extends TestCase
     private DashboardViewMapper $viewMapper;
     private DashboardMapper $dashboardMapper;
     private UniqueViewerDedup $dedup;
+    private IAppConfig $appConfig;
     private IConfig $config;
     private AnalyticsService $service;
 
@@ -50,6 +52,9 @@ class AnalyticsServiceTest extends TestCase
         $this->dedup           = $this->createMock(
             originalClassName: UniqueViewerDedup::class
         );
+        $this->appConfig       = $this->createMock(
+            originalClassName: IAppConfig::class
+        );
         $this->config          = $this->createMock(
             originalClassName: IConfig::class
         );
@@ -58,20 +63,21 @@ class AnalyticsServiceTest extends TestCase
             viewMapper: $this->viewMapper,
             dashboardMapper: $this->dashboardMapper,
             dedup: $this->dedup,
+            appConfig: $this->appConfig,
             config: $this->config,
         );
     }
 
     public function testIsGloballyEnabledDefaultsTrue(): void
     {
-        $this->config->method('getAppValue')->willReturn('true');
+        $this->appConfig->method('getValueBool')->willReturn(true);
 
         $this->assertTrue($this->service->isGloballyEnabled());
     }
 
     public function testIsGloballyEnabledFalseWhenSetFalse(): void
     {
-        $this->config->method('getAppValue')->willReturn('false');
+        $this->appConfig->method('getValueBool')->willReturn(false);
 
         $this->assertFalse($this->service->isGloballyEnabled());
     }
@@ -85,7 +91,7 @@ class AnalyticsServiceTest extends TestCase
 
     public function testGetRetentionDaysClampsBelowMinimum(): void
     {
-        $this->config->method('getAppValue')->willReturn('10');
+        $this->appConfig->method('getValueInt')->willReturn(10);
 
         $this->assertSame(
             AnalyticsService::MIN_RETENTION_DAYS,
@@ -95,7 +101,7 @@ class AnalyticsServiceTest extends TestCase
 
     public function testGetRetentionDaysClampsAboveMaximum(): void
     {
-        $this->config->method('getAppValue')->willReturn('99999');
+        $this->appConfig->method('getValueInt')->willReturn(99999);
 
         $this->assertSame(
             AnalyticsService::MAX_RETENTION_DAYS,
@@ -105,19 +111,19 @@ class AnalyticsServiceTest extends TestCase
 
     public function testGetRetentionDaysReturnsValueInRange(): void
     {
-        $this->config->method('getAppValue')->willReturn('100');
+        $this->appConfig->method('getValueInt')->willReturn(100);
 
         $this->assertSame(100, $this->service->getRetentionDays());
     }
 
     public function testSetRetentionDaysClampsAndPersists(): void
     {
-        $this->config->expects($this->once())
-            ->method('setAppValue')
+        $this->appConfig->expects($this->once())
+            ->method('setValueInt')
             ->with(
                 $this->equalTo('mydash'),
                 $this->equalTo(AnalyticsService::CONFIG_KEY_RETENTION_DAYS),
-                $this->equalTo('30')
+                $this->equalTo(30)
             );
 
         $clamped = $this->service->setRetentionDays(days: 5);
@@ -146,7 +152,7 @@ class AnalyticsServiceTest extends TestCase
         $this->dashboardMapper
             ->method('findByUuid')
             ->willReturn(value: new Dashboard());
-        $this->config->method('getAppValue')->willReturn('false');
+        $this->appConfig->method('getValueBool')->willReturn(false);
         $this->viewMapper->expects($this->never())->method('upsertView');
 
         $result = $this->service->recordViewEvent(
@@ -162,7 +168,7 @@ class AnalyticsServiceTest extends TestCase
         $this->dashboardMapper
             ->method('findByUuid')
             ->willReturn(value: new Dashboard());
-        $this->config->method('getAppValue')->willReturn('true');
+        $this->appConfig->method('getValueBool')->willReturn(true);
         $this->config->method('getUserValue')->willReturn('true');
         $this->viewMapper->expects($this->never())->method('upsertView');
 
@@ -179,7 +185,7 @@ class AnalyticsServiceTest extends TestCase
         $this->dashboardMapper
             ->method('findByUuid')
             ->willReturn(value: new Dashboard());
-        $this->config->method('getAppValue')->willReturn('true');
+        $this->appConfig->method('getValueBool')->willReturn(true);
         $this->config->method('getUserValue')->willReturn('false');
         $this->dedup->method('isNewUniqueViewer')->willReturn(true);
 
@@ -205,7 +211,7 @@ class AnalyticsServiceTest extends TestCase
         $this->dashboardMapper
             ->method('findByUuid')
             ->willReturn(value: new Dashboard());
-        $this->config->method('getAppValue')->willReturn('true');
+        $this->appConfig->method('getValueBool')->willReturn(true);
         $this->config->method('getUserValue')->willReturn('false');
         $this->dedup->method('isNewUniqueViewer')->willReturn(false);
 

@@ -106,26 +106,6 @@ class AdminControllerExportImportTest extends TestCase
         $this->groupManager->method('isAdmin')->with('alice')->willReturn(true);
     }
 
-    public function testExportNonAdminForbidden(): void
-    {
-        $this->loginAsNonAdmin();
-
-        $response = $this->controller->export(scope: 'site');
-
-        $this->assertInstanceOf(expected: JSONResponse::class, actual: $response);
-        $this->assertSame(expected: Http::STATUS_FORBIDDEN, actual: $response->getStatus());
-    }
-
-    public function testImportNonAdminForbidden(): void
-    {
-        $this->loginAsNonAdmin();
-
-        $response = $this->controller->import();
-
-        $this->assertInstanceOf(expected: JSONResponse::class, actual: $response);
-        $this->assertSame(expected: Http::STATUS_FORBIDDEN, actual: $response->getStatus());
-    }
-
     public function testExportRejectsUnknownScope(): void
     {
         $this->loginAsAdmin();

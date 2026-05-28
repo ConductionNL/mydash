@@ -75,10 +75,11 @@ class DashboardMetadataController extends Controller
      *                      403 when the caller cannot see the dashboard.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function getMetadata(string $uuid): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         $dashboard = $this->loadDashboard(uuid: $uuid);
@@ -113,10 +114,11 @@ class DashboardMetadataController extends Controller
      *                      failure, 404 when missing, 403 otherwise.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/dashboard-metadata-fields/spec.md */
     public function setMetadata(string $uuid, array $metadata=[]): JSONResponse
     {
         if ($this->userId === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         $dashboard = $this->loadDashboard(uuid: $uuid);

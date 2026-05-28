@@ -126,6 +126,7 @@ class OrgNavigationService
      *
      * @return array<int, array<string, mixed>> The persisted tree.
      */
+    /** @spec openspec/specs/navigation-editor-org/spec.md */
     public function getTree(string $language=self::DEFAULT_LANGUAGE): array
     {
         $lang = $this->normaliseLanguage(language: $language);
@@ -159,6 +160,7 @@ class OrgNavigationService
      * @throws InvalidArgumentException When validation fails (the
      *                                  controller maps to HTTP 400).
      */
+    /** @spec openspec/specs/navigation-editor-org/spec.md */
     public function setTree(array $tree, string $language=self::DEFAULT_LANGUAGE): void
     {
         $lang = $this->normaliseLanguage(language: $language);
@@ -201,6 +203,7 @@ class OrgNavigationService
      *
      * @return array<int, array<string, mixed>> The filtered tree.
      */
+    /** @spec openspec/specs/navigation-editor-org/spec.md */
     public function filterTreeByUserGroups(array $tree, string $userId): array
     {
         if ($tree === []) {
@@ -222,6 +225,7 @@ class OrgNavigationService
      * @throws InvalidArgumentException With a stable message on the
      *                                  first violation discovered.
      */
+    /** @spec openspec/specs/navigation-editor-org/spec.md */
     public function validateTree(array $tree): void
     {
         $seenIds = [];
@@ -243,6 +247,7 @@ class OrgNavigationService
      *                                  `javascript:`, `data:`, or
      *                                  `vbscript:` (any case).
      */
+    /** @spec openspec/specs/navigation-editor-org/spec.md */
     public function sanitiseUrl(string $url): string
     {
         $lower = strtolower(string: ltrim(string: $url));

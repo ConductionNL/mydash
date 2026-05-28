@@ -29,6 +29,7 @@ use OCA\MyDash\AppInfo\Application;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Service\AdminTemplateService;
 use OCA\MyDash\Service\DashboardService;
+use OCA\MyDash\Service\DashboardTreeService;
 use OCA\MyDash\Service\InitialState\Page;
 use OCA\MyDash\Service\InitialStateBuilder;
 use OCA\MyDash\Service\RoleFeaturePermissionService;
@@ -42,6 +43,8 @@ use OCP\Dashboard\IManager;
 use OCP\IRequest;
 use OCP\IUserSession;
 use OCP\Util;
+use Psr\Log\LoggerInterface;
+use Throwable;
 
 /**
  * Workspace page controller — wires the typed initial-state contract.
@@ -71,6 +74,15 @@ class PageController extends Controller
      * @param RoleFeaturePermissionService $roleFeaturePerm      Per-user widget
      *                                                           allow-list source
      *                                                           (REQ-RFP-009..010).
+     * @param DashboardTreeService         $treeService          Slug-chain
+     *                                                           resolver used by the
+     *                                                           deep-link route.
+     * @param LoggerInterface              $logger               Used to record
+     *                                                           silent fallback
+     *                                                           when a deep-link
+     *                                                           path doesn't
+     *                                                           resolve to a
+     *                                                           visible dashboard.
      */
     public function __construct(
         IRequest $request,
@@ -81,9 +93,32 @@ class PageController extends Controller
         private readonly DashboardService $dashboardService,
         private readonly AdminTemplateService $adminTemplateService,
         private readonly RoleFeaturePermissionService $roleFeaturePerm,
+        private readonly DashboardTreeService $treeService,
+        private readonly LoggerInterface $logger,
     ) {
         parent::__construct(appName: Application::APP_ID, request: $request);
     }//end __construct()
+
+    /**
+     * Deep-link entry point — `/apps/mydash/{deepLink}`.
+     *
+     * Symfony binds the captured slug-chain into `$deepLink`. Delegating
+     * to {@see self::index()} keeps the workspace render path single-
+     * sourced; the optional path argument merely overrides the active
+     * dashboard before initial-state assembly.
+     *
+     * @param string $deepLink Slug-chain captured from the URL (may
+     *                         contain `/` separators).
+     *
+     * @return TemplateResponse The workspace template response.
+     */
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
+    /** @spec openspec/specs/runtime-shell/spec.md */
+    public function deepLink(string $deepLink=''): TemplateResponse
+    {
+        return $this->index(deepLink: $deepLink);
+    }//end deepLink()
 
     /**
      * Render the workspace page.
@@ -94,11 +129,23 @@ class PageController extends Controller
      * {@see \OCA\MyDash\Exception\MissingInitialStateException} so the page
      * never renders with a partial payload.
      *
+     * Deep-link path: when `$deepLink` resolves through the tree service
+     * to a dashboard the user can read, that dashboard is used as the
+     * active one (overriding the resolver's seven-step fallback). When
+     * the path doesn't resolve (renamed, deleted, never existed, or not
+     * visible to the caller), the controller logs a warning and falls
+     * back silently — bookmarks of stale slug chains still land on
+     * something instead of 404'ing.
+     *
+     * @param string $deepLink Optional slug-chain selecting the active
+     *                         dashboard. Empty string ⇒ default resolver.
+     *
      * @return TemplateResponse The template response.
      */
     #[NoAdminRequired]
     #[NoCSRFRequired]
-    public function index(): TemplateResponse
+    /** @spec openspec/specs/runtime-shell/spec.md */
+    public function index(string $deepLink=''): TemplateResponse
     {
         Util::addScript(application: Application::APP_ID, file: 'mydash-main');
         Util::addStyle(application: Application::APP_ID, file: 'mydash');
@@ -165,15 +212,50 @@ class PageController extends Controller
 
         $active = null;
         if ($userId !== '') {
-            $active = $this->dashboardService->resolveActiveDashboard(
-                userId: $userId,
-                primaryGroupId: $primaryGroupId
-            );
-        }
+            // Deep-link override: when the URL carries a slug-chain we
+            // try to land the user on that dashboard before consulting
+            // the seven-step resolver. Failures (path doesn't resolve,
+            // not visible, throws) are swallowed so a stale bookmark
+            // still opens *something* instead of breaking.
+            if ($deepLink !== '') {
+                try {
+                    $resolved = $this->treeService->resolvePath(path: $deepLink);
+                    if ($resolved !== null) {
+                        $active = $this->dashboardService->getDashboardForUser(
+                            dashboardId: $resolved->getId(),
+                            userId: $userId
+                        );
+                    }
+                } catch (Throwable $t) {
+                    $this->logger->warning(
+                        message: 'mydash: deep-link resolution failed for path "{path}": {message}',
+                        context: [
+                            'path'    => $deepLink,
+                            'message' => $t->getMessage(),
+                        ]
+                    );
+                }
+
+                if ($active === null) {
+                    $this->logger->info(
+                        message: 'mydash: deep-link path "{path}" not visible — falling back to default resolver',
+                        context: ['path' => $deepLink]
+                    );
+                }
+            }//end if
+
+            if ($active === null) {
+                $active = $this->dashboardService->resolveActiveDashboard(
+                    userId: $userId,
+                    primaryGroupId: $primaryGroupId
+                );
+            }
+        }//end if
 
         $activeDashboardId = '';
         $dashboardSource   = Dashboard::SOURCE_GROUP;
         $layout            = [];
+        $deepLinkPath      = '';
         if ($active !== null) {
             $activeDashboard   = $active['dashboard'];
             $activeDashboardId = (string) $activeDashboard->getUuid();
@@ -187,7 +269,24 @@ class PageController extends Controller
                 },
                 array: $placements
             );
-        }
+            // Canonical slug-chain for whatever dashboard ended up active —
+            // the frontend reads this to keep the URL in sync (e.g. after
+            // a parent rename, a stale bookmarked path is normalised
+            // in-place via `history.replaceState`).
+            try {
+                $deepLinkPath = $this->treeService->computePath(
+                    uuid: (string) $activeDashboard->getUuid()
+                );
+            } catch (Throwable $t) {
+                $this->logger->warning(
+                    message: 'mydash: failed to compute path for active dashboard {uuid}: {message}',
+                    context: [
+                        'uuid'    => (string) $activeDashboard->getUuid(),
+                        'message' => $t->getMessage(),
+                    ]
+                );
+            }
+        }//end if
 
         $allowUserDashboards = $this->dashboardService->getAllowUserDashboards();
 
@@ -219,6 +318,7 @@ class PageController extends Controller
 
         $builder
             ->setAllowedWidgets($allowedWidgets)
+            ->setDeepLinkPath($deepLinkPath)
             ->apply();
 
         // REQ-SHELL-001: pass the chrome slot ids so Nextcloud treats

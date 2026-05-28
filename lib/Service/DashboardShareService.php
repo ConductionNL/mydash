@@ -83,6 +83,7 @@ class DashboardShareService
      *
      * @throws Exception When the user is not the dashboard owner.
      */
+    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function listShares(int $dashboardId, string $userId): array
     {
         $this->assertOwner(dashboardId: $dashboardId, userId: $userId);
@@ -103,6 +104,7 @@ class DashboardShareService
      *
      * @throws Exception When the caller is not the owner or input is invalid.
      */
+    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function addShare(
         int $dashboardId,
         string $shareType,
@@ -149,6 +151,7 @@ class DashboardShareService
      *
      * @throws Exception When the share does not exist or caller is not owner.
      */
+    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function removeShare(int $shareId, string $callerId): void
     {
         $share     = $this->shareMapper->find(id: $shareId);
@@ -179,6 +182,7 @@ class DashboardShareService
      * @throws Exception    When the caller is not the owner or input is invalid.
      * @throws Throwable    On DB error (rolls back).
      */
+    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function replaceShares(
         int $dashboardId,
         array $shares,
@@ -263,6 +267,7 @@ class DashboardShareService
      *
      * @throws InvalidArgumentException When shareType is invalid.
      */
+    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function revokeAllForRecipient(
         string $shareType,
         string $shareWith,
@@ -299,6 +304,7 @@ class DashboardShareService
      *
      * @return array<int,string> Map of dashboardId => permission level.
      */
+    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function resolveSharedDashboards(string $userId, array $groupIds): array
     {
         $shares = $this->shareMapper->findForRecipient(
@@ -332,6 +338,7 @@ class DashboardShareService
      *
      * @return void
      */
+    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function transferOwnership(int $dashboardId, string $newUserId): void
     {
         $dashboard = $this->dashboardMapper->find(id: $dashboardId);
@@ -363,6 +370,7 @@ class DashboardShareService
      *
      * @return void
      */
+    /** @spec openspec/specs/dashboard-sharing/spec.md */
     public function notifyOwnershipTransferred(
         string $newOwnerId,
         int $dashboardId,

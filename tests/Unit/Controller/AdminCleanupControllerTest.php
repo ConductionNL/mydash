@@ -3,10 +3,13 @@
 /**
  * AdminCleanupController Test
  *
- * Covers the admin guard (REQ-CLN-004 / REQ-CLN-005 "Non-admin user
- * is denied access"), the unknown-category 400 path on the purge
- * endpoint, the cache-hit envelope on the scan endpoint, and the
- * happy-path purge response shape.
+ * Covers the unknown-category 400 path on the purge endpoint, the
+ * cache-hit envelope on the scan endpoint, and the happy-path purge
+ * response shape.
+ *
+ * Admin-session guard is enforced via the `#[AuthorizedAdminSetting]`
+ * Nextcloud middleware attribute — not tested here (middleware is the
+ * Nextcloud stack's responsibility).
  *
  * @category  Test
  * @package   OCA\MyDash\Tests\Unit\Controller
@@ -27,9 +30,7 @@ use OCA\MyDash\Db\CleanupResult;
 use OCA\MyDash\Service\Cleanup\CategoryRegistryService;
 use OCA\MyDash\Service\OrphanedDataCleanupService;
 use OCP\AppFramework\Http;
-use OCP\IGroupManager;
 use OCP\IRequest;
-use OCP\IUser;
 use OCP\IUserSession;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -54,13 +55,6 @@ class AdminCleanupControllerTest extends TestCase
     private $registry;
 
     /**
-     * Group manager mock (admin checks).
-     *
-     * @var IGroupManager&MockObject
-     */
-    private $groupManager;
-
-    /**
      * User session mock.
      *
      * @var IUserSession&MockObject
@@ -83,7 +77,6 @@ class AdminCleanupControllerTest extends TestCase
     {
         $this->cleanupService = $this->createMock(originalClassName: OrphanedDataCleanupService::class);
         $this->registry       = $this->createMock(originalClassName: CategoryRegistryService::class);
-        $this->groupManager   = $this->createMock(originalClassName: IGroupManager::class);
         $this->userSession    = $this->createMock(originalClassName: IUserSession::class);
         $this->request        = $this->createMock(originalClassName: IRequest::class);
     }
@@ -99,64 +92,7 @@ class AdminCleanupControllerTest extends TestCase
             request: $this->request,
             cleanupService: $this->cleanupService,
             registry: $this->registry,
-            groupManager: $this->groupManager,
             userSession: $this->userSession,
-        );
-    }
-
-    /**
-     * Stub the user session to return a logged-in user with the
-     * supplied admin flag.
-     *
-     * @param string|null $userId    Logged-in user id, null = no user.
-     * @param bool        $isAdmin   Admin status.
-     *
-     * @return void
-     */
-    private function stubSession(?string $userId, bool $isAdmin=false): void
-    {
-        if ($userId === null) {
-            $this->userSession->method('getUser')->willReturn(null);
-            return;
-        }
-
-        $user = $this->createMock(originalClassName: IUser::class);
-        $user->method('getUID')->willReturn($userId);
-        $this->userSession->method('getUser')->willReturn($user);
-        $this->groupManager->method('isAdmin')->willReturn($isAdmin);
-    }
-
-    /**
-     * `scan` MUST return 403 when no user is logged in.
-     *
-     * @return void
-     */
-    public function testScanReturns403WhenNotLoggedIn(): void
-    {
-        $this->stubSession(userId: null);
-
-        $response = $this->makeController()->scan();
-
-        $this->assertSame(
-            expected: Http::STATUS_FORBIDDEN,
-            actual: $response->getStatus()
-        );
-    }
-
-    /**
-     * `scan` MUST return 403 when the user is not an admin.
-     *
-     * @return void
-     */
-    public function testScanReturns403WhenNotAdmin(): void
-    {
-        $this->stubSession(userId: 'bob', isAdmin: false);
-
-        $response = $this->makeController()->scan();
-
-        $this->assertSame(
-            expected: Http::STATUS_FORBIDDEN,
-            actual: $response->getStatus()
         );
     }
 
@@ -168,8 +104,6 @@ class AdminCleanupControllerTest extends TestCase
      */
     public function testScanReturnsCachedEnvelopeWhenCacheHit(): void
     {
-        $this->stubSession(userId: 'admin', isAdmin: true);
-
         $cached = CleanupResult::fromCounts(
             byCategory: ['expired_locks' => 2],
             durationMs: 1,
@@ -193,8 +127,6 @@ class AdminCleanupControllerTest extends TestCase
      */
     public function testPurgeReturns400OnUnknownCategory(): void
     {
-        $this->stubSession(userId: 'admin', isAdmin: true);
-
         $this->registry->method('getCategoryNames')->willReturn(
             ['expired_locks', 'expired_share_tokens']
         );
@@ -222,7 +154,6 @@ class AdminCleanupControllerTest extends TestCase
      */
     public function testPurgeReturnsPurgedByCategoryEnvelope(): void
     {
-        $this->stubSession(userId: 'admin', isAdmin: true);
         $this->registry->method('getCategoryNames')->willReturn(['expired_locks']);
 
         $this->cleanupService->expects($this->once())

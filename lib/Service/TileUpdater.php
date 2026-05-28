@@ -33,6 +33,7 @@ class TileUpdater
      *
      * @return void
      */
+    /** @spec openspec/specs/tiles/spec.md */
     public function applyTileConfig(
         WidgetPlacement $placement,
         array $tileData
@@ -69,6 +70,7 @@ class TileUpdater
      *
      * @return void
      */
+    /** @spec openspec/specs/tiles/spec.md */
     public function applyTileUpdates(
         WidgetPlacement $placement,
         array $data

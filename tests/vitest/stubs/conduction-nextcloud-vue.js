@@ -28,6 +28,7 @@ export const NcAppContent = stub('NcAppContent')
 export const NcContent = stub('NcContent')
 export const NcDashboardWidget = stub('NcDashboardWidget')
 export const NcCheckboxRadioSwitch = stub('NcCheckboxRadioSwitch')
+export const NcLoadingIcon = stub('NcLoadingIcon')
 
 export default {
 	NcModal,
@@ -40,4 +41,5 @@ export default {
 	NcContent,
 	NcDashboardWidget,
 	NcCheckboxRadioSwitch,
+	NcLoadingIcon,
 }

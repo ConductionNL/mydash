@@ -27,6 +27,7 @@ declare(strict_types=1);
 namespace OCA\MyDash\Service;
 
 use DateTime;
+use InvalidArgumentException;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\RoleFeaturePermission;
 use OCA\MyDash\Db\RoleFeaturePermissionMapper;
@@ -79,6 +80,7 @@ class RoleFeaturePermissionService
      *
      * @return RoleFeaturePermission[] All rows.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function listPermissions(): array
     {
         return $this->permissionMapper->findAll();
@@ -89,6 +91,7 @@ class RoleFeaturePermissionService
      *
      * @return RoleLayoutDefault[] All rows.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function listLayoutDefaults(): array
     {
         return $this->defaultMapper->findAll();
@@ -101,11 +104,12 @@ class RoleFeaturePermissionService
      *
      * @return RoleFeaturePermission The persisted row.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function savePermission(array $data): RoleFeaturePermission
     {
         $groupId = (string) ($data['groupId'] ?? '');
         if ($groupId === '') {
-            throw new \InvalidArgumentException(message: 'groupId is required');
+            throw new InvalidArgumentException(message: 'groupId is required');
         }
 
         try {
@@ -187,6 +191,7 @@ class RoleFeaturePermissionService
      *
      * @throws DoesNotExistException When the row does not exist.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function deletePermission(int $id): void
     {
         $entity = $this->permissionMapper->find(id: $id);
@@ -200,12 +205,13 @@ class RoleFeaturePermissionService
      *
      * @return RoleLayoutDefault The persisted row.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function saveLayoutDefault(array $data): RoleLayoutDefault
     {
         $groupId  = (string) ($data['groupId'] ?? '');
         $widgetId = (string) ($data['widgetId'] ?? '');
         if ($groupId === '' || $widgetId === '') {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 message: 'groupId and widgetId are required'
             );
         }
@@ -297,6 +303,7 @@ class RoleFeaturePermissionService
      *
      * @throws DoesNotExistException When the row does not exist.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function deleteLayoutDefault(int $id): void
     {
         $entity = $this->defaultMapper->find(id: $id);
@@ -324,6 +331,7 @@ class RoleFeaturePermissionService
      *
      * @return array|null Sorted list of allowed widget IDs, or null.
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function getAllowedWidgetIds(string $userId): ?array
     {
         $userGroups = $this->groupIdsForUser(userId: $userId);
@@ -382,25 +390,6 @@ class RoleFeaturePermissionService
     }//end getAllowedWidgetIds()
 
     /**
-     * Convenience: is a single widget allowed for a user?
-     *
-     * @param string $userId   The user's UID.
-     * @param string $widgetId The widget id to check.
-     *
-     * @return bool True when the widget is allowed (or no restriction is configured).
-     */
-    public function isWidgetAllowed(string $userId, string $widgetId): bool
-    {
-        $allowed = $this->getAllowedWidgetIds(userId: $userId);
-        if ($allowed === null) {
-            // No restriction configured — backwards-compatible.
-            return true;
-        }
-
-        return in_array(needle: $widgetId, haystack: $allowed, strict: true);
-    }//end isWidgetAllowed()
-
-    /**
      * Seed the default layout for a freshly created dashboard from the
      * RoleLayoutDefault rows attached to the user's primary group.
      *
@@ -415,6 +404,7 @@ class RoleFeaturePermissionService
      *
      * @return int The number of placements created (0 when no-op).
      */
+    /** @spec openspec/specs/admin-roles/spec.md */
     public function seedLayoutFromRoleDefaults(string $userId, Dashboard $dashboard): int
     {
         $existing = $this->placementMapper->findByDashboardId(

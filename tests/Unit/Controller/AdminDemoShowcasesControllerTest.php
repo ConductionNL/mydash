@@ -4,8 +4,10 @@
  * AdminDemoShowcasesControllerTest
  *
  * Controller-level tests for the demo-showcases admin endpoints.
- * Verifies the admin gate, 404 mapping, install/uninstall semantics,
- * and idempotent reinstall response status (REQ-DEMO-002..006).
+ * Verifies 404 mapping, install/uninstall semantics, and idempotent
+ * reinstall response status (REQ-DEMO-002..006). Admin gating is
+ * enforced via the `#[AuthorizedAdminSetting]` Nextcloud middleware
+ * attribute.
  *
  * @category  Test
  * @package   OCA\MyDash\Tests\Unit\Controller
@@ -25,11 +27,7 @@ use OCA\MyDash\Controller\AdminDemoShowcasesController;
 use OCA\MyDash\Exception\ShowcaseNotFoundException;
 use OCA\MyDash\Service\DemoShowcasesService;
 use OCP\AppFramework\Http;
-use OCP\AppFramework\Http\JSONResponse;
-use OCP\IGroupManager;
 use OCP\IRequest;
-use OCP\IUser;
-use OCP\IUserSession;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -42,63 +40,22 @@ class AdminDemoShowcasesControllerTest extends TestCase
     /** @var DemoShowcasesService&MockObject */
     private $service;
 
-    /** @var IGroupManager&MockObject */
-    private $groupManager;
-
-    /** @var IUserSession&MockObject */
-    private $userSession;
-
     private AdminDemoShowcasesController $controller;
 
     protected function setUp(): void
     {
-        $this->request      = $this->createMock(originalClassName: IRequest::class);
-        $this->service      = $this->createMock(originalClassName: DemoShowcasesService::class);
-        $this->groupManager = $this->createMock(originalClassName: IGroupManager::class);
-        $this->userSession  = $this->createMock(originalClassName: IUserSession::class);
+        $this->request  = $this->createMock(originalClassName: IRequest::class);
+        $this->service  = $this->createMock(originalClassName: DemoShowcasesService::class);
 
         $this->controller = new AdminDemoShowcasesController(
             request: $this->request,
             showcasesSvc: $this->service,
-            groupManager: $this->groupManager,
-            userSession: $this->userSession,
             logger: new NullLogger(),
         );
     }
 
-    private function loginAsAdmin(): void
-    {
-        $user = $this->createMock(originalClassName: IUser::class);
-        $user->method('getUID')->willReturn('alice');
-        $this->userSession->method('getUser')->willReturn($user);
-        $this->groupManager->method('isAdmin')->with('alice')->willReturn(true);
-    }
-
-    private function loginAsNonAdmin(): void
-    {
-        $user = $this->createMock(originalClassName: IUser::class);
-        $user->method('getUID')->willReturn('bob');
-        $this->userSession->method('getUser')->willReturn($user);
-        $this->groupManager->method('isAdmin')->with('bob')->willReturn(false);
-    }
-
-    public function testIndexUnauthorisedWhenNotLoggedIn(): void
-    {
-        $this->userSession->method('getUser')->willReturn(null);
-        $response = $this->controller->index();
-        $this->assertSame(expected: Http::STATUS_UNAUTHORIZED, actual: $response->getStatus());
-    }
-
-    public function testIndexForbiddenForNonAdmin(): void
-    {
-        $this->loginAsNonAdmin();
-        $response = $this->controller->index();
-        $this->assertSame(expected: Http::STATUS_FORBIDDEN, actual: $response->getStatus());
-    }
-
     public function testIndexReturnsShowcaseList(): void
     {
-        $this->loginAsAdmin();
         $this->service->method('getAvailableShowcases')->willReturn([
             ['id' => 'de-bron', 'name' => 'De Bron', 'language' => 'nl', 'isInstalled' => false],
         ]);
@@ -109,7 +66,6 @@ class AdminDemoShowcasesControllerTest extends TestCase
 
     public function testInstallReturns201OnFreshInstall(): void
     {
-        $this->loginAsAdmin();
         $this->service->method('installShowcase')->willReturn([
             'installedDashboardUuid' => 'fresh-uuid',
             'skippedWidgets'         => [],
@@ -123,7 +79,6 @@ class AdminDemoShowcasesControllerTest extends TestCase
 
     public function testInstallReturns200WhenAlreadyInstalled(): void
     {
-        $this->loginAsAdmin();
         $this->service->method('installShowcase')->willReturn([
             'installedDashboardUuid' => 'existing-uuid',
             'skippedWidgets'         => [],
@@ -137,7 +92,6 @@ class AdminDemoShowcasesControllerTest extends TestCase
 
     public function testInstallReturns404ForUnknownShowcase(): void
     {
-        $this->loginAsAdmin();
         $this->service->method('installShowcase')->willThrowException(
             exception: new ShowcaseNotFoundException(message: 'gone')
         );
@@ -145,16 +99,8 @@ class AdminDemoShowcasesControllerTest extends TestCase
         $this->assertSame(expected: Http::STATUS_NOT_FOUND, actual: $response->getStatus());
     }
 
-    public function testInstallForbiddenForNonAdmin(): void
-    {
-        $this->loginAsNonAdmin();
-        $response = $this->controller->install(id: 'de-bron');
-        $this->assertSame(expected: Http::STATUS_FORBIDDEN, actual: $response->getStatus());
-    }
-
     public function testInstallSurfacesSkippedWidgets(): void
     {
-        $this->loginAsAdmin();
         $this->service->method('installShowcase')->willReturn([
             'installedDashboardUuid' => 'uuid',
             'skippedWidgets'         => ['unknown-1', 'unknown-2'],
@@ -166,7 +112,6 @@ class AdminDemoShowcasesControllerTest extends TestCase
 
     public function testDestroyReturns204(): void
     {
-        $this->loginAsAdmin();
         $this->service->expects($this->once())->method('uninstallShowcase')->with(showcaseId: 'de-bron');
         $response = $this->controller->destroy(id: 'de-bron');
         $this->assertSame(expected: Http::STATUS_NO_CONTENT, actual: $response->getStatus());
@@ -174,18 +119,10 @@ class AdminDemoShowcasesControllerTest extends TestCase
 
     public function testDestroyIdempotent(): void
     {
-        $this->loginAsAdmin();
         $this->service->expects($this->exactly(2))->method('uninstallShowcase');
-        $first = $this->controller->destroy(id: 'de-bron');
+        $first  = $this->controller->destroy(id: 'de-bron');
         $second = $this->controller->destroy(id: 'de-bron');
         $this->assertSame(expected: Http::STATUS_NO_CONTENT, actual: $first->getStatus());
         $this->assertSame(expected: Http::STATUS_NO_CONTENT, actual: $second->getStatus());
-    }
-
-    public function testDestroyForbiddenForNonAdmin(): void
-    {
-        $this->loginAsNonAdmin();
-        $response = $this->controller->destroy(id: 'de-bron');
-        $this->assertSame(expected: Http::STATUS_FORBIDDEN, actual: $response->getStatus());
     }
 }

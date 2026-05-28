@@ -41,7 +41,7 @@ use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCA\MyDash\Exception\ShowcaseNotFoundException;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\Dashboard\IManager;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IDBConnection;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
@@ -100,7 +100,7 @@ class DemoShowcasesService
      * @param DashboardMapper       $dashboardMapper  Dashboard data mapper.
      * @param WidgetPlacementMapper $placementMapper  Widget placement mapper.
      * @param IDBConnection         $db               Database connection.
-     * @param IConfig               $config           App / user config service.
+     * @param IAppConfig            $appConfig        App config service.
      * @param IManager              $dashboardManager Nextcloud dashboard registry.
      * @param LoggerInterface       $logger           PSR-3 logger.
      */
@@ -108,7 +108,7 @@ class DemoShowcasesService
         private readonly DashboardMapper $dashboardMapper,
         private readonly WidgetPlacementMapper $placementMapper,
         private readonly IDBConnection $db,
-        private readonly IConfig $config,
+        private readonly IAppConfig $appConfig,
         private readonly IManager $dashboardManager,
         private readonly LoggerInterface $logger,
     ) {
@@ -138,6 +138,7 @@ class DemoShowcasesService
      *
      * @return string Absolute filesystem path.
      */
+    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function getDataDir(): string
     {
         if ($this->dataDirOverride !== null) {
@@ -155,6 +156,7 @@ class DemoShowcasesService
      *
      * @return array<int, array<string, mixed>> Showcase descriptors.
      */
+    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function getAvailableShowcases(): array
     {
         $result = [];
@@ -182,6 +184,7 @@ class DemoShowcasesService
      * @return array<string, mixed>|null The descriptor, or `null` when
      *                                   the ZIP is missing/malformed.
      */
+    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function describeShowcase(string $showcaseId): ?array
     {
         $zipPath = $this->getZipPath(showcaseId: $showcaseId);
@@ -232,6 +235,7 @@ class DemoShowcasesService
      * @throws ShowcaseNotFoundException When the showcase ID is unknown.
      * @throws RuntimeException          On ZIP / persistence failures.
      */
+    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function installShowcase(
         string $showcaseId,
         string $lang='nl',
@@ -325,6 +329,7 @@ class DemoShowcasesService
      *
      * @return void
      */
+    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function uninstallShowcase(string $showcaseId): void
     {
         $existingUuid = $this->getInstalledUuid(showcaseId: $showcaseId);
@@ -356,9 +361,10 @@ class DemoShowcasesService
      *
      * @return string The UUID, or empty string when not installed.
      */
+    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function getInstalledUuid(string $showcaseId): string
     {
-        return (string) $this->config->getAppValue(
+        return $this->appConfig->getValueString(
             Application::APP_ID,
             self::CONFIG_PREFIX.$showcaseId,
             ''
@@ -379,6 +385,7 @@ class DemoShowcasesService
      *
      * @return array{0:array<int,array<string,mixed>>, 1:array<int,string>}
      */
+    /** @spec openspec/specs/demo-data-showcases/spec.md */
     public function partitionWidgets(array $widgets): array
     {
         $registered = [];
@@ -671,7 +678,7 @@ class DemoShowcasesService
      */
     private function markInstalled(string $showcaseId, string $dashboardUuid): void
     {
-        $this->config->setAppValue(
+        $this->appConfig->setValueString(
             Application::APP_ID,
             self::CONFIG_PREFIX.$showcaseId,
             $dashboardUuid
@@ -687,7 +694,7 @@ class DemoShowcasesService
      */
     private function clearInstalledMarker(string $showcaseId): void
     {
-        $this->config->deleteAppValue(
+        $this->appConfig->deleteKey(
             Application::APP_ID,
             self::CONFIG_PREFIX.$showcaseId
         );

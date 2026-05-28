@@ -68,6 +68,7 @@ abstract class CommandBase extends Command
      *
      * @return void
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     final protected function configure(): void
     {
         $this->addOption(
@@ -99,6 +100,7 @@ abstract class CommandBase extends Command
      *
      * @return void
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     abstract protected function configureCommand(): void;
 
     /**
@@ -114,6 +116,7 @@ abstract class CommandBase extends Command
      *
      * @return int
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     abstract protected function handle(
         InputInterface $input,
         OutputInterface $output
@@ -129,6 +132,7 @@ abstract class CommandBase extends Command
      *
      * @return int
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     final protected function execute(
         InputInterface $input,
         OutputInterface $output
@@ -147,7 +151,9 @@ abstract class CommandBase extends Command
             );
             if ($this->isJson(input: $input) === true) {
                 $output->writeln(messages: $this->commandService->encodeEnvelope(envelope: $envelope));
-            } else {
+            }
+
+            if ($this->isJson(input: $input) === false) {
                 $this->writeError(output: $output, message: '<error>'.$e->getMessage().'</error>');
             }
         } finally {
@@ -211,6 +217,7 @@ abstract class CommandBase extends Command
      *
      * @return void
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     final protected function emitSuccess(
         InputInterface $input,
         OutputInterface $output,
@@ -245,6 +252,7 @@ abstract class CommandBase extends Command
      *
      * @return int Echoes back the exit code for caller convenience.
      */
+    /** @spec openspec/specs/cli-commands/spec.md */
     final protected function emitError(
         InputInterface $input,
         OutputInterface $output,
@@ -264,9 +272,11 @@ abstract class CommandBase extends Command
                     )
                 )
             );
-        } else {
-            $this->writeError(output: $output, message: '<error>'.$message.'</error>');
+
+            return $exitCode;
         }
+
+        $this->writeError(output: $output, message: '<error>'.$message.'</error>');
 
         return $exitCode;
     }//end emitError()

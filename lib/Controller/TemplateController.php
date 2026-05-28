@@ -86,10 +86,15 @@ class TemplateController extends Controller
      * @return JSONResponse The gallery list envelope.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function gallery(
         ?string $category=null,
         string $sort='name'
     ): JSONResponse {
+        if ($this->userSession->getUser() === null) {
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
+        }
+
         $templates = $this->templateService->getGallery(
             category: $category,
             sortBy: $sort
@@ -128,6 +133,7 @@ class TemplateController extends Controller
      * @return JSONResponse The new template envelope.
      */
     #[NoAdminRequired]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function saveAsTemplate(
         string $uuid,
         ?string $name=null,

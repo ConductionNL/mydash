@@ -80,7 +80,7 @@ class DashboardFactory
      *                                  is violated, or when an explicit
      *                                  slug fails the grammar check.
      *
-     * @spec dashboards:REQ-DASH-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-16
      */
     public function create(
         ?string $userId,

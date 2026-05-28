@@ -9,6 +9,16 @@
  * is committed alongside the rest of the change so it runs once the cohort-
  * wide Playwright bootstrap lands. Do not delete — it is the canonical e2e
  * coverage for REQ-IMG-002, REQ-IMG-003, REQ-IMG-005.
+ *
+ * Gate-19 @e2e traceability:
+ *   @e2e image-widget::upload-populates-url-and-preview
+ *   @e2e image-widget::click-opens-link-in-new-tab
+ *   @e2e image-widget::direct-url-string-is-also-accepted
+ *   @e2e image-widget::empty-url-fails-validation
+ *   @e2e image-widget::all-allowed-fit-values-selectable
+ *   @e2e image-widget::upload-error-surfaces-to-user
+ *   @e2e image-widget::no-link-no-click-no-pointer
+ *   @e2e image-widget::pointer-cursor-only-with-link
  */
 
 import { test, expect } from '@playwright/test'

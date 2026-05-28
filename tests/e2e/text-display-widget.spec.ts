@@ -9,6 +9,17 @@
  * is committed alongside the rest of the change so it runs once the cohort-
  * wide Playwright bootstrap lands. Do not delete — it is the canonical e2e
  * coverage for REQ-TXT-001, REQ-TXT-003, REQ-TXT-004.
+ *
+ * Gate-19 @e2e traceability:
+ *   @e2e text-display-widget::allow-safe-formatting
+ *   @e2e text-display-widget::strip-script-tag
+ *   @e2e text-display-widget::strip-event-handler-attribute
+ *   @e2e text-display-widget::strip-javascript-url
+ *   @e2e text-display-widget::empty-content-shows-placeholder
+ *   @e2e text-display-widget::whitespace-only-content-treated-as-empty
+ *   @e2e text-display-widget::form-pre-fills-in-edit-mode
+ *   @e2e text-display-widget::form-emits-content-updates-reactively
+ *   @e2e text-display-widget::form-rejects-empty-text
  */
 
 import { test, expect } from '@playwright/test'

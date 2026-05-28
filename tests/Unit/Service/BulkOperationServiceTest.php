@@ -33,7 +33,7 @@ use OCA\MyDash\Service\DashboardTreeService;
 use OCA\MyDash\Service\PermissionDeniedException;
 use OCA\MyDash\Service\PermissionService;
 use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IGroupManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -76,9 +76,9 @@ class BulkOperationServiceTest extends TestCase
     private $groupManager;
 
     /**
-     * @var IConfig&MockObject
+     * @var IAppConfig&MockObject
      */
-    private $config;
+    private $appConfig;
 
     /**
      * @var LoggerInterface&MockObject
@@ -95,11 +95,11 @@ class BulkOperationServiceTest extends TestCase
         $this->treeService       = $this->createMock(DashboardTreeService::class);
         $this->activityPublisher = $this->createMock(ActivityPublisher::class);
         $this->groupManager      = $this->createMock(IGroupManager::class);
-        $this->config            = $this->createMock(IConfig::class);
+        $this->appConfig         = $this->createMock(IAppConfig::class);
         $this->logger            = $this->createMock(LoggerInterface::class);
 
         $this->groupManager->method('isAdmin')->willReturn(true);
-        $this->config->method('getAppValue')->willReturn('500');
+        $this->appConfig->method('getValueInt')->willReturn(500);
         $this->permissionService->method('resolveAccessLevel')
             ->willReturn(Dashboard::PERMISSION_FULL);
 
@@ -110,7 +110,7 @@ class BulkOperationServiceTest extends TestCase
             treeService: $this->treeService,
             activityPublisher: $this->activityPublisher,
             groupManager: $this->groupManager,
-            config: $this->config,
+            appConfig: $this->appConfig,
             logger: $this->logger,
         );
     }//end setUp()
@@ -258,7 +258,7 @@ class BulkOperationServiceTest extends TestCase
             treeService: $this->treeService,
             activityPublisher: $this->activityPublisher,
             groupManager: $this->groupManager,
-            config: $this->config,
+            appConfig: $this->appConfig,
             logger: $this->logger,
         );
 
@@ -290,7 +290,7 @@ class BulkOperationServiceTest extends TestCase
             treeService: $this->treeService,
             activityPublisher: $this->activityPublisher,
             groupManager: $groupManager,
-            config: $this->config,
+            appConfig: $this->appConfig,
             logger: $this->logger,
         );
 
@@ -548,8 +548,8 @@ class BulkOperationServiceTest extends TestCase
 
     public function testEffectiveCapFallsBackOnInvalidConfig(): void
     {
-        $config = $this->createMock(IConfig::class);
-        $config->method('getAppValue')->willReturn('0');
+        $appConfig = $this->createMock(IAppConfig::class);
+        $appConfig->method('getValueInt')->willReturn(0);
 
         $service = new BulkOperationService(
             dashboardMapper: $this->dashboardMapper,
@@ -558,7 +558,7 @@ class BulkOperationServiceTest extends TestCase
             treeService: $this->treeService,
             activityPublisher: $this->activityPublisher,
             groupManager: $this->groupManager,
-            config: $config,
+            appConfig: $appConfig,
             logger: $this->logger,
         );
 

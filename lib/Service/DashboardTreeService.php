@@ -123,6 +123,7 @@ class DashboardTreeService
      *                                  cycle, or the resulting depth
      *                                  exceeds the cap.
      */
+    /** @spec openspec/specs/dashboard-switcher/spec.md */
     public function validateParent(
         ?string $movingUuid,
         ?string $newParentUuid
@@ -177,6 +178,7 @@ class DashboardTreeService
      *
      * @throws InvalidArgumentException When the slug is already in use.
      */
+    /** @spec openspec/specs/dashboard-switcher/spec.md */
     public function validateSlugUnique(
         ?string $parentUuid,
         string $slug,
@@ -213,6 +215,7 @@ class DashboardTreeService
      *
      * @return string The leading-slash path.
      */
+    /** @spec openspec/specs/dashboard-switcher/spec.md */
     public function computePath(string $uuid): string
     {
         $breadcrumbs = $this->computeBreadcrumbs(uuid: $uuid);
@@ -243,6 +246,7 @@ class DashboardTreeService
      *
      * @return array<int, array{uuid: ?string, name: ?string, slug: ?string}>
      */
+    /** @spec openspec/specs/dashboard-switcher/spec.md */
     public function computeBreadcrumbs(string $uuid): array
     {
         try {
@@ -282,6 +286,7 @@ class DashboardTreeService
      *
      * @return Dashboard|null The dashboard at the path, or NULL on miss.
      */
+    /** @spec openspec/specs/dashboard-switcher/spec.md */
     public function resolvePath(string $path): ?Dashboard
     {
         $segments = $this->splitPath(path: $path);
@@ -325,6 +330,7 @@ class DashboardTreeService
      *
      * @return array<int, array{uuid: ?string, name: ?string, slug: ?string, sortOrder: int, children: array}>
      */
+    /** @spec openspec/specs/dashboard-switcher/spec.md */
     public function buildTree(
         ?string $parentUuid,
         int $depth=0
@@ -364,11 +370,90 @@ class DashboardTreeService
      * Build the full tree of root-level dashboards.
      *
      * @return array<int, array{uuid: ?string, name: ?string, slug: ?string, sortOrder: int, children: array}>
+     *
+     * @deprecated Use getFilteredTree() for user-facing endpoints to avoid
+     *             cross-user enumeration (C1 fix, REQ-PERM-001). Kept for
+     *             admin-only internal usage.
      */
     public function getFullTree(): array
     {
         return $this->buildTree(parentUuid: null);
     }//end getFullTree()
+
+    /**
+     * Build a nested tree limited to the caller's visible dashboards.
+     *
+     * C1 fix (REQ-DASH-026 + REQ-PERM-001): every node is included ONLY
+     * when its UUID appears in `$visibleUuids`. Nodes the caller cannot
+     * see are omitted; their children are also omitted (a hidden parent
+     * means the full sub-tree is inaccessible).
+     *
+     * @param array<string, bool> $visibleUuids Map of UUID ⇒ true for dashboards
+     *                                          the caller may see (from
+     *                                          DashboardService::getVisibleToUser).
+     *
+     * @return array<int, array{uuid: ?string, name: ?string, slug: ?string, sortOrder: int, children: array}>
+     */
+    /** @spec openspec/specs/dashboards/spec.md */
+    public function getFilteredTree(array $visibleUuids): array
+    {
+        return $this->buildFilteredTree(
+            parentUuid: null,
+            visibleUuids: $visibleUuids
+        );
+    }//end getFilteredTree()
+
+    /**
+     * Internal recursive helper for getFilteredTree().
+     *
+     * @param string|null         $parentUuid   The parent UUID (null for roots).
+     * @param array<string, bool> $visibleUuids Allowed UUID map.
+     * @param int                 $depth        Recursion depth guard.
+     *
+     * @return array<int, array{uuid: ?string, name: ?string, slug: ?string, sortOrder: int, children: array}>
+     */
+    private function buildFilteredTree(
+        ?string $parentUuid,
+        array $visibleUuids,
+        int $depth=0
+    ): array {
+        if ($depth >= Dashboard::MAX_DEPTH) {
+            return [];
+        }
+
+        $nodes    = [];
+        $children = $this->dashboardMapper->findByParent(
+            parentUuid: $parentUuid
+        );
+
+        foreach ($children as $child) {
+            $childUuid = $child->getUuid();
+
+            // Skip nodes the caller cannot see.
+            if ($childUuid === null
+                || $childUuid === ''
+                || isset($visibleUuids[$childUuid]) === false
+            ) {
+                continue;
+            }
+
+            $childTree = $this->buildFilteredTree(
+                parentUuid: $childUuid,
+                visibleUuids: $visibleUuids,
+                depth: ($depth + 1)
+            );
+
+            $nodes[] = [
+                'uuid'      => $childUuid,
+                'name'      => $child->getName(),
+                'slug'      => $child->getSlug(),
+                'sortOrder' => (int) $child->getSortOrder(),
+                'children'  => $childTree,
+            ];
+        }
+
+        return $nodes;
+    }//end buildFilteredTree()
 
     /**
      * Cascade-delete a dashboard subtree (REQ-DASH-030).
@@ -383,6 +468,7 @@ class DashboardTreeService
      *
      * @return int The total number of dashboards removed (root + descendants).
      */
+    /** @spec openspec/specs/dashboard-switcher/spec.md */
     public function deleteSubtree(Dashboard $dashboard): int
     {
         $rootUuid = (string) $dashboard->getUuid();

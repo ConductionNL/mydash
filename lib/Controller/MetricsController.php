@@ -21,6 +21,7 @@ namespace OCA\MyDash\Controller;
 use OCA\MyDash\AppInfo\Application;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\TextPlainResponse;
+use OCP\IAppConfig;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\IRequest;
@@ -34,13 +35,15 @@ class MetricsController extends Controller
     /**
      * Constructor
      *
-     * @param IRequest        $request The request.
-     * @param IConfig         $config  The config service.
-     * @param IDBConnection   $db      The database connection.
-     * @param LoggerInterface $logger  Logger for error reporting.
+     * @param IRequest        $request   The request.
+     * @param IAppConfig      $appConfig The app config service.
+     * @param IConfig         $config    The system config service.
+     * @param IDBConnection   $db        The database connection.
+     * @param LoggerInterface $logger    Logger for error reporting.
      */
     public function __construct(
         IRequest $request,
+        private readonly IAppConfig $appConfig,
         private readonly IConfig $config,
         private readonly IDBConnection $db,
         private readonly LoggerInterface $logger,
@@ -58,13 +61,13 @@ class MetricsController extends Controller
      *
      * @NoCSRFRequired
      *
-     * @spec prometheus-metrics:REQ-PROM-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-25
      */
     public function index(): TextPlainResponse
     {
         $lines = [];
 
-        $appVersion = $this->config->getAppValue(Application::APP_ID, 'installed_version', '0.0.0');
+        $appVersion = $this->appConfig->getValueString(Application::APP_ID, 'installed_version', '0.0.0');
         $phpVersion = PHP_VERSION;
         $ncVersion  = $this->config->getSystemValueString('version', '0.0.0');
 

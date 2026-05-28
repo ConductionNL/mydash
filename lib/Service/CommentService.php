@@ -127,6 +127,7 @@ class CommentService
      *
      * @return bool True when comments are globally enabled.
      */
+    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function isCommentsEnabledGlobally(): bool
     {
         try {
@@ -166,6 +167,7 @@ class CommentService
      *
      * @return bool True when comments are effectively enabled.
      */
+    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function isEnabledFor(Dashboard $dashboard): bool
     {
         return $dashboard->isCommentsEffectivelyEnabled(
@@ -185,6 +187,7 @@ class CommentService
      * @return array<int, array<string, mixed>> Top-level comments with
      *                                          a nested `replies` array.
      */
+    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function getCommentsForDashboard(string $dashboardUuid): array
     {
         $raw = $this->commentsManager->getForObject(
@@ -258,6 +261,7 @@ class CommentService
      * @throws InvalidCommentException  On empty message or nested-reply violation.
      * @throws CommentNotFoundException When `$parentId` does not resolve.
      */
+    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function createComment(
         string $dashboardUuid,
         string $userId,
@@ -341,6 +345,7 @@ class CommentService
      *                                   nor admin.
      * @throws InvalidCommentException   When the message is empty.
      */
+    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function updateComment(
         int $commentId,
         string $newMessage,
@@ -392,6 +397,7 @@ class CommentService
      * @throws CommentForbiddenException When the user is neither author
      *                                   nor admin.
      */
+    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function deleteComment(
         int $commentId,
         string $currentUserId
@@ -434,6 +440,7 @@ class CommentService
      *
      * @return void
      */
+    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function deleteAllForDashboard(string $dashboardUuid): void
     {
         $this->commentsManager->deleteCommentsAtObject(
@@ -461,6 +468,7 @@ class CommentService
      *
      * @return array<int, array{userId: string, displayName: string}>
      */
+    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function parseAndResolveMentions(
         string $message,
         string $dashboardUuid,
@@ -528,6 +536,7 @@ class CommentService
      *
      * @return array<string, mixed> The wire-format envelope.
      */
+    /** @spec openspec/specs/dashboard-comments/spec.md */
     public function serialiseComment(IComment $comment): array
     {
         $createdAt = $comment->getCreationDateTime()->format(format: 'c');

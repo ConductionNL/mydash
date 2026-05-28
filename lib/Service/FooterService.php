@@ -156,6 +156,7 @@ class FooterService
      *                              `footerBackgroundColor`,
      *                              `footerTextColor`).
      */
+    /** @spec openspec/specs/footer-customization/spec.md */
     public function getGlobalSettings(): array
     {
         $enabled = (bool) $this->settingMapper->getValue(
@@ -231,6 +232,7 @@ class FooterService
      *                                  controller maps the message to
      *                                  HTTP 400 / 413 as appropriate.
      */
+    /** @spec openspec/specs/footer-customization/spec.md */
     public function updateGlobalSettings(array $patch): void
     {
         if (array_key_exists(key: 'footerEnabled', array: $patch) === true) {
@@ -334,6 +336,7 @@ class FooterService
      *
      * @throws InvalidArgumentException When the input exceeds 8 KB.
      */
+    /** @spec openspec/specs/footer-customization/spec.md */
     public function sanitiseHtml(string $html): string
     {
         if (strlen(string: $html) > self::MAX_HTML_BYTES) {
@@ -463,6 +466,7 @@ class FooterService
      *
      * @throws InvalidArgumentException On schema mismatch.
      */
+    /** @spec openspec/specs/footer-customization/spec.md */
     public function validateStructuredConfig(array $config): void
     {
         foreach (array_keys(array: $config) as $key) {
@@ -527,6 +531,7 @@ class FooterService
      *                                    by `mode`, `html`, `config`,
      *                                    `backgroundColor`, `textColor`.
      */
+    /** @spec openspec/specs/footer-customization/spec.md */
     public function resolveFooterForDashboard(Dashboard $dashboard): ?array
     {
         $rawMode = $dashboard->getDashboardFooterMode();

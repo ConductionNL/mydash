@@ -17,6 +17,14 @@
  * is committed alongside the rest of the change so it runs once the cohort-
  * wide Playwright bootstrap lands. Do not delete — it is the canonical e2e
  * coverage for REQ-GRID-007 / REQ-GRID-012 / REQ-GRID-013.
+ *
+ * Gate-19 @e2e traceability:
+ *   @e2e grid-layout::12-columns-on-wide-desktop
+ *   @e2e grid-layout::reflow-at-1100-px
+ *   @e2e grid-layout::single-column-on-mobile
+ *   @e2e grid-layout::below-smallest-breakpoint
+ *   @e2e grid-layout::grid-fills-container-width
+ *   @e2e grid-layout::minimum-grid-height
  */
 
 import { test, expect } from '@playwright/test'

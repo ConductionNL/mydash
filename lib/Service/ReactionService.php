@@ -111,6 +111,7 @@ class ReactionService
      *
      * @return bool True when reactions are effectively enabled.
      */
+    /** @spec openspec/specs/dashboard-reactions/spec.md */
     public function isReactionsEnabled(Dashboard $dashboard): bool
     {
         $perDash = $dashboard->getReactionsEnabled();
@@ -130,6 +131,7 @@ class ReactionService
      *
      * @return bool True when the global default is on.
      */
+    /** @spec openspec/specs/dashboard-reactions/spec.md */
     public function isReactionsEnabledByDefault(): bool
     {
         return $this->appConfig->getValueBool(
@@ -145,6 +147,7 @@ class ReactionService
      *
      * @return array<int, string> The allowed emoji list.
      */
+    /** @spec openspec/specs/dashboard-reactions/spec.md */
     public function getAllowedEmojis(): array
     {
         $raw = $this->appConfig->getValueString(
@@ -185,6 +188,7 @@ class ReactionService
      * @throws InvalidArgumentException When the emoji is empty or not
      *                                  whitelisted.
      */
+    /** @spec openspec/specs/dashboard-reactions/spec.md */
     public function validateEmoji(string $emoji): void
     {
         if ($emoji === '') {
@@ -243,6 +247,7 @@ class ReactionService
      * @throws ReactionsDisabledException When reactions are off.
      * @throws InvalidArgumentException  When the emoji is not whitelisted.
      */
+    /** @spec openspec/specs/dashboard-reactions/spec.md */
     public function addReaction(
         string $dashboardUuid,
         string $userId,
@@ -293,6 +298,7 @@ class ReactionService
      * @throws DoesNotExistException     When the dashboard is missing.
      * @throws PermissionDeniedException When the user cannot VIEW.
      */
+    /** @spec openspec/specs/dashboard-reactions/spec.md */
     public function removeReaction(
         string $dashboardUuid,
         string $userId,
@@ -325,6 +331,7 @@ class ReactionService
      * @throws DoesNotExistException     When the dashboard is missing.
      * @throws PermissionDeniedException When the user cannot VIEW.
      */
+    /** @spec openspec/specs/dashboard-reactions/spec.md */
     public function getReactionsSummary(
         string $dashboardUuid,
         string $userId
@@ -396,6 +403,7 @@ class ReactionService
      * @throws DoesNotExistException     When the dashboard is missing.
      * @throws PermissionDeniedException When the user cannot VIEW.
      */
+    /** @spec openspec/specs/dashboard-reactions/spec.md */
     public function getReactorsByEmoji(
         string $dashboardUuid,
         string $emoji,
@@ -459,6 +467,7 @@ class ReactionService
      *
      * @return int The number of rows deleted.
      */
+    /** @spec openspec/specs/dashboard-reactions/spec.md */
     public function deleteReactionsByDashboard(string $dashboardUuid): int
     {
         return $this->reactionMapper->deleteByDashboardUuid(

@@ -36,6 +36,8 @@ use OCA\MyDash\Service\SetupWizardService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\AuthorizedAdminSetting;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Http\StreamResponse;
 use OCP\IGroupManager;
@@ -138,8 +140,9 @@ class AdminController extends Controller
      *
      * @return JSONResponse The list of templates.
      *
-     * @spec admin-templates:REQ-TMPL-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-4
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     public function listTemplates(): JSONResponse
     {
         $templates = $this->templateService->listTemplates();
@@ -156,6 +159,8 @@ class AdminController extends Controller
      *
      * @return JSONResponse The template data.
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function getTemplate(int $id): JSONResponse
     {
         try {
@@ -191,8 +196,9 @@ class AdminController extends Controller
      *
      * @return JSONResponse The created template.
      *
-     * @spec admin-templates:REQ-TMPL-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-3
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     public function createTemplate(
         string $name,
         ?string $description=null,
@@ -231,8 +237,9 @@ class AdminController extends Controller
      *
      * @return JSONResponse The updated template.
      *
-     * @spec admin-templates:REQ-TMPL-003
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-5
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     public function updateTemplate(
         int $id,
         ?string $name=null,
@@ -272,8 +279,9 @@ class AdminController extends Controller
      *
      * @return JSONResponse The deletion confirmation.
      *
-     * @spec admin-templates:REQ-TMPL-004
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-6
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     public function deleteTemplate(int $id): JSONResponse
     {
         try {
@@ -290,8 +298,9 @@ class AdminController extends Controller
      *
      * @return JSONResponse The admin settings.
      *
-     * @spec admin-settings:REQ-ASET-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-1
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     public function getSettings(): JSONResponse
     {
         return ResponseHelper::success(
@@ -312,8 +321,9 @@ class AdminController extends Controller
      *
      * @return JSONResponse The update confirmation.
      *
-     * @spec admin-settings:REQ-ASET-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-2
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
     public function updateSettings(
         ?string $defaultPermLevel=null,
         ?bool $allowUserDash=null,
@@ -346,15 +356,11 @@ class AdminController extends Controller
      *
      * @return JSONResponse The settings object, or 401/403 on guard failure.
      *
-     * @NoAdminRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function getFooterSettings(): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
         return ResponseHelper::success(
             data: $this->footerService->getGlobalSettings()
         );
@@ -381,8 +387,9 @@ class AdminController extends Controller
      * @return JSONResponse Status 200 on success, 400/413 on validation,
      *                      401/403 on guard failure.
      *
-     * @NoAdminRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function updateFooterSettings(
         ?bool $footerEnabled=null,
         mixed $footerHtml=null,
@@ -390,10 +397,6 @@ class AdminController extends Controller
         ?string $footerBackgroundColor=null,
         ?string $footerTextColor=null
     ): JSONResponse {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
 
         // Build the patch from only those args that the caller actually
         // supplied — `array_key_exists` semantics on the body let admins
@@ -413,10 +416,9 @@ class AdminController extends Controller
                 haystack: $e->getMessage(),
                 needle: '8 KB limit'
             );
+            $status     = Http::STATUS_BAD_REQUEST;
             if ($isOversize === true) {
                 $status = Http::STATUS_REQUEST_ENTITY_TOO_LARGE;
-            } else {
-                $status = Http::STATUS_BAD_REQUEST;
             }
 
             return new JSONResponse(
@@ -427,134 +429,6 @@ class AdminController extends Controller
 
         return ResponseHelper::success(data: ['status' => 'ok']);
     }//end updateFooterSettings()
-
-    /**
-     * List all Nextcloud groups partitioned for the admin UI (REQ-ASET-013).
-     *
-     * Returns `{active, inactive, allKnown}`:
-     * - `active`  — the persisted `group_order` list, in admin-chosen order.
-     *               Stale IDs (no longer in Nextcloud) are preserved so the
-     *               admin can see and remove them.
-     * - `inactive` — every Nextcloud group ID NOT in `active`, sorted by
-     *                display name (case-insensitive).
-     * - `allKnown` — full descriptor list `{id, displayName}` for every group
-     *                currently known to Nextcloud, so the UI can render
-     *                display names without a second round-trip. Stale IDs are
-     *                NOT included here (no display name available).
-     *
-     * Admin-only (REQ-ASET-014): non-admins receive HTTP 403.
-     *
-     * @return JSONResponse The grouped descriptor payload, or 403.
-     *
-     * @NoAdminRequired
-     */
-    public function listGroups(): JSONResponse
-    {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
-        $allKnown    = [];
-        $allKnownIds = [];
-        foreach ($this->groupManager->search(search: '') as $group) {
-            $id         = $group->getGID();
-            $allKnown[] = [
-                'id'          => $id,
-                'displayName' => $group->getDisplayName(),
-            ];
-            $allKnownIds[$id] = $group->getDisplayName();
-        }
-
-        // Stable sort `allKnown` by displayName (case-insensitive).
-        usort(
-            array: $allKnown,
-            callback: static function (array $a, array $b): int {
-                return strcasecmp(
-                    string1: $a['displayName'],
-                    string2: $b['displayName']
-                );
-            }
-        );
-
-        $active     = $this->settingsService->getGroupOrder();
-        $activeKeys = array_flip($active);
-
-        $inactive = [];
-        foreach (array_keys($allKnownIds) as $id) {
-            if (isset($activeKeys[$id]) === false) {
-                $inactive[] = $id;
-            }
-        }
-
-        // Sort `inactive` by displayName (case-insensitive) per REQ-ASET-013.
-        usort(
-            array: $inactive,
-            callback: static function (string $a, string $b) use ($allKnownIds): int {
-                return strcasecmp(
-                    string1: $allKnownIds[$a] ?? $a,
-                    string2: $allKnownIds[$b] ?? $b
-                );
-            }
-        );
-
-        return ResponseHelper::success(
-            data: [
-                'active'   => $active,
-                'inactive' => $inactive,
-                'allKnown' => $allKnown,
-            ]
-        );
-    }//end listGroups()
-
-    /**
-     * Replace the persisted group priority order wholesale (REQ-ASET-014).
-     *
-     * Accepts a JSON body `{groups: string[]}`:
-     * - 403 if the caller is not a Nextcloud admin (no side effects).
-     * - 400 if `groups` is missing or contains a non-string element (no
-     *   side effects on the persisted setting).
-     * - Duplicates are deduplicated (first occurrence wins, order preserved).
-     * - Unknown IDs are tolerated (per REQ-ASET-014 "Unknown IDs accepted").
-     * - 200 with `{status: 'ok', groupOrder: string[]}` on success.
-     *
-     * @param mixed $groups The new ordered list (validated to `string[]`).
-     *
-     * @return JSONResponse The status response.
-     *
-     * @NoAdminRequired
-     */
-    public function updateGroupOrder(mixed $groups=null): JSONResponse
-    {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
-
-        if (is_array($groups) === false) {
-            return new JSONResponse(
-                data: ['error' => 'Field "groups" must be an array of strings.'],
-                statusCode: Http::STATUS_BAD_REQUEST
-            );
-        }
-
-        try {
-            $this->settingsService->setGroupOrder(groupIds: $groups);
-        } catch (InvalidArgumentException) {
-            // ADR-005: do not leak raw exception messages.
-            return new JSONResponse(
-                data: ['error' => 'Invalid groups payload'],
-                statusCode: Http::STATUS_BAD_REQUEST
-            );
-        }
-
-        return ResponseHelper::success(
-            data: [
-                'status'     => 'ok',
-                'groupOrder' => $this->settingsService->getGroupOrder(),
-            ]
-        );
-    }//end updateGroupOrder()
 
     /**
      * Export a single dashboard or the entire site as a ZIP archive.
@@ -571,17 +445,14 @@ class AdminController extends Controller
      *
      * @return StreamResponse|JSONResponse The streamed ZIP, or a JSON error.
      *
-     * @NoAdminRequired
      * @NoCSRFRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function export(
         string $scope='site',
         ?string $dashboardUuid=null
     ): StreamResponse|JSONResponse {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
 
         if (in_array(needle: $scope, haystack: ['site', 'dashboard'], strict: true) === false) {
             return new JSONResponse(
@@ -635,15 +506,12 @@ class AdminController extends Controller
      *
      * @return JSONResponse The import summary, or an error response.
      *
-     * @NoAdminRequired
      * @NoCSRFRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function import(bool $preserveUuids=false): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
 
         // Multipart uploads bind to $_FILES; PHP only populates this for
         // POST requests, which is what the route declares (REQ-EXIM-004).
@@ -704,14 +572,11 @@ class AdminController extends Controller
      *
      * @return JSONResponse The list of role assignments, or 401/403.
      *
-     * @NoAdminRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function listRoles(): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
 
         $assignments = $this->roleService->listAssignments();
 
@@ -734,17 +599,14 @@ class AdminController extends Controller
      *
      * @return JSONResponse The created assignment, or an error envelope.
      *
-     * @NoAdminRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function createRole(
         ?string $userId=null,
         ?string $groupId=null,
         ?string $role=null
     ): JSONResponse {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
 
         $assignedBy = (string) $this->userSession->getUser()->getUID();
 
@@ -788,14 +650,11 @@ class AdminController extends Controller
      *
      * @return JSONResponse Empty success or error envelope.
      *
-     * @NoAdminRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function deleteRole(int $id): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
 
         try {
             $this->roleService->removeRole(id: $id);
@@ -819,13 +678,14 @@ class AdminController extends Controller
      *
      * @return JSONResponse The role / source envelope, or 401.
      *
-     * @NoAdminRequired
      */
+    #[NoAdminRequired]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function getMyRole(): JSONResponse
     {
         $user = $this->userSession->getUser();
         if ($user === null) {
-            return ResponseHelper::unauthorized();
+            return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
 
         $userId = (string) $user->getUID();
@@ -849,14 +709,11 @@ class AdminController extends Controller
      *
      * @return JSONResponse The aggregate refresh summary.
      *
-     * @NoAdminRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function refreshFeedsNow(?string $feedUrl=null): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
 
         if ($feedUrl !== null && $feedUrl !== '') {
             $scheme = strtolower(
@@ -896,17 +753,14 @@ class AdminController extends Controller
      * @return JSONResponse `{status: 'success', previewImage: '...'}`
      *                      on success.
      *
-     * @NoAdminRequired
      * @NoCSRFRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function uploadTemplatePreviewImage(
         string $uuid,
         string $base64=''
     ): JSONResponse {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
 
         if ($base64 === '') {
             return new JSONResponse(
@@ -965,14 +819,11 @@ class AdminController extends Controller
      *
      * @return JSONResponse The wizard state, or 401/403.
      *
-     * @NoAdminRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function getWizardState(): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
 
         return ResponseHelper::success(
             data: $this->setupWizardService->getWizardState()
@@ -987,14 +838,11 @@ class AdminController extends Controller
      *
      * @return JSONResponse The post-completion wizard state, or 401/403.
      *
-     * @NoAdminRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function completeWizard(): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
 
         return ResponseHelper::success(
             data: $this->setupWizardService->markWizardComplete()
@@ -1013,14 +861,11 @@ class AdminController extends Controller
      *
      * @return JSONResponse The post-write wizard state, or 400/401/403.
      *
-     * @NoAdminRequired
      */
+    #[AuthorizedAdminSetting(Application::APP_ID)]
+    /** @spec openspec/specs/admin-templates/spec.md */
     public function setWizardStorage(?string $storage=null): JSONResponse
     {
-        $guard = $this->requireAdmin();
-        if ($guard !== null) {
-            return $guard;
-        }
 
         if ($storage === null || $storage === '') {
             return new JSONResponse(
@@ -1052,31 +897,6 @@ class AdminController extends Controller
         );
     }//end setWizardStorage()
 
-    /**
-     * Verify the current session belongs to a Nextcloud admin.
-     *
-     * Returns `null` when the caller is an admin (proceed). Returns a 401
-     * JSONResponse when no user is logged in, and a 403 JSONResponse when
-     * the user is not an admin. REQ-ASET-014.
-     *
-     * @return JSONResponse|null The error response when the guard fails;
-     *                           `null` when the caller is an admin.
-     */
-    private function requireAdmin(): ?JSONResponse
-    {
-        $user = $this->userSession->getUser();
-        if ($user === null) {
-            return ResponseHelper::unauthorized();
-        }
-
-        if ($this->groupManager->isAdmin(userId: $user->getUID()) === false) {
-            return ResponseHelper::forbidden(
-                message: 'Administrator privileges required.'
-            );
-        }
-
-        return null;
-    }//end requireAdmin()
 
     /**
      * Build the update data array from nullable parameters.

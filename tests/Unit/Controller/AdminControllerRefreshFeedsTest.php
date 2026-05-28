@@ -137,27 +137,6 @@ class AdminControllerRefreshFeedsTest extends TestCase
     }//end testAdminSingleUrlRefreshDelegates()
 
     /**
-     * Non-admin caller receives HTTP 403; no fetch is attempted.
-     *
-     * @return void
-     */
-    public function testNonAdminReceivesForbidden(): void
-    {
-        $user = $this->createMock(IUser::class);
-        $user->method('getUID')->willReturn('alice');
-        $this->userSession->method('getUser')->willReturn($user);
-        $this->groupManager->method('isAdmin')->with('alice')->willReturn(false);
-
-        $this->feedRefresh->expects($this->never())->method('refreshAll');
-
-        $response = $this->controller->refreshFeedsNow();
-        $this->assertSame(
-            expected: Http::STATUS_FORBIDDEN,
-            actual: $response->getStatus()
-        );
-    }//end testNonAdminReceivesForbidden()
-
-    /**
      * Invalid (non-HTTP/HTTPS) scheme returns 400; no fetch is
      * attempted (REQ-FRJ-010 "Invalid feedUrl scheme rejected").
      *

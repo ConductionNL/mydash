@@ -39,6 +39,7 @@ use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\DashboardView;
 use OCA\MyDash\Db\DashboardViewMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IAppConfig;
 use OCP\IConfig;
 
 /**
@@ -102,14 +103,14 @@ class AnalyticsService
      *                                             name lookups.
      * @param UniqueViewerDedup   $dedup           Unique-viewer dedup
      *                                             service.
-     * @param IConfig             $config          Nextcloud config
-     *                                             service for
-     *                                             admin/user settings.
+     * @param IAppConfig          $appConfig       App config for admin settings.
+     * @param IConfig             $config          Nextcloud config for user values.
      */
     public function __construct(
         private readonly DashboardViewMapper $viewMapper,
         private readonly DashboardMapper $dashboardMapper,
         private readonly UniqueViewerDedup $dedup,
+        private readonly IAppConfig $appConfig,
         private readonly IConfig $config,
     ) {
     }//end __construct()
@@ -120,15 +121,14 @@ class AnalyticsService
      *
      * @return bool `true` when analytics is globally enabled.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function isGloballyEnabled(): bool
     {
-        $value = $this->config->getAppValue(
+        return $this->appConfig->getValueBool(
             'mydash',
             self::CONFIG_KEY_ENABLED,
-            'true'
+            true
         );
-
-        return ($value === 'true' || $value === '1');
     }//end isGloballyEnabled()
 
     /**
@@ -139,6 +139,7 @@ class AnalyticsService
      *
      * @return bool `true` when the user has opted out.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function isUserOptedOut(string $userId): bool
     {
         $value = $this->config->getUserValue(
@@ -158,15 +159,14 @@ class AnalyticsService
      *
      * @return int The effective retention window.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function getRetentionDays(): int
     {
-        $value = $this->config->getAppValue(
+        $days = $this->appConfig->getValueInt(
             'mydash',
             self::CONFIG_KEY_RETENTION_DAYS,
-            (string) self::DEFAULT_RETENTION_DAYS
+            self::DEFAULT_RETENTION_DAYS
         );
-
-        $days = (int) $value;
         if ($days < self::MIN_RETENTION_DAYS) {
             return self::MIN_RETENTION_DAYS;
         }
@@ -187,6 +187,7 @@ class AnalyticsService
      *
      * @return int The clamped value that was stored.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function setRetentionDays(int $days): int
     {
         $clamped = $days;
@@ -198,10 +199,10 @@ class AnalyticsService
             $clamped = self::MAX_RETENTION_DAYS;
         }
 
-        $this->config->setAppValue(
+        $this->appConfig->setValueInt(
             'mydash',
             self::CONFIG_KEY_RETENTION_DAYS,
-            (string) $clamped
+            $clamped
         );
 
         return $clamped;
@@ -215,17 +216,13 @@ class AnalyticsService
      *
      * @return void
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function setGlobalEnabled(bool $enabled): void
     {
-        $value = 'false';
-        if ($enabled === true) {
-            $value = 'true';
-        }
-
-        $this->config->setAppValue(
+        $this->appConfig->setValueBool(
             'mydash',
             self::CONFIG_KEY_ENABLED,
-            $value
+            $enabled
         );
     }//end setGlobalEnabled()
 
@@ -247,6 +244,7 @@ class AnalyticsService
      * @return bool `true` when an event was recorded, `false` when
      *              the call was short-circuited.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function recordViewEvent(
         string $dashboardUuid,
         string $userId
@@ -299,6 +297,7 @@ class AnalyticsService
      *   viewCount: int, uniqueViewerCount: int}>
      *   Top-N dashboards sorted by `viewCount` descending.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function getTopDashboards(string $period, int $limit): array
     {
         [$startDate, $endDate] = self::periodToDateRange(period: $period);
@@ -349,6 +348,7 @@ class AnalyticsService
      *                                   not one of `7d`, `30d`,
      *                                   `90d`.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function getDashboardDetail(
         string $dashboardUuid,
         string $period
@@ -389,6 +389,7 @@ class AnalyticsService
      *     viewCount: int, uniqueViewerCount: int}>}
      *   The summary payload.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function getInstanceSummary(string $period): array
     {
         [$startDate, $endDate] = self::periodToDateRange(period: $period);
@@ -418,6 +419,7 @@ class AnalyticsService
      *
      * @return string The CSV body (CRLF line endings).
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function generateCsvExport(string $period): string
     {
         [$startDate, $endDate] = self::periodToDateRange(period: $period);
@@ -476,6 +478,7 @@ class AnalyticsService
      * @return string The filename in the form
      *                `dashboard-analytics-YYYY-MM-DD.csv`.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function csvExportFilename(): string
     {
         $today = (new DateTimeImmutable('now'))
@@ -499,6 +502,7 @@ class AnalyticsService
      *
      * @throws InvalidArgumentException When the period is unknown.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public static function periodToDateRange(string $period): array
     {
         $days = match ($period) {
@@ -531,6 +535,7 @@ class AnalyticsService
      *
      * @return string The cutoff date in `YYYY-MM-DD` format.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public function getPurgeCutoffDate(): string
     {
         $today  = (new DateTimeImmutable('now'))
@@ -576,6 +581,7 @@ class AnalyticsService
      *                the entity carries no UUID — never expected on
      *                a persisted row).
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public static function dashboardUuidOf(Dashboard $dashboard): string
     {
         $uuid = $dashboard->getUuid();
@@ -594,6 +600,7 @@ class AnalyticsService
      *
      * @return array The serialised payload.
      */
+    /** @spec openspec/specs/dashboard-view-analytics/spec.md */
     public static function viewToArray(DashboardView $view): array
     {
         return $view->jsonSerialize();

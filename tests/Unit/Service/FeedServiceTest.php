@@ -25,7 +25,7 @@ use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\FeedToken;
 use OCA\MyDash\Service\DashboardService;
 use OCA\MyDash\Service\FeedService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IURLGenerator;
 use OCP\IUser;
@@ -50,8 +50,8 @@ class FeedServiceTest extends TestCase
     /** @var IURLGenerator&MockObject */
     private $urlGenerator;
 
-    /** @var IConfig&MockObject */
-    private $config;
+    /** @var IAppConfig&MockObject */
+    private $appConfig;
 
     /** @var IFactory&MockObject */
     private $l10nFactory;
@@ -74,7 +74,7 @@ class FeedServiceTest extends TestCase
         $this->dashboardService = $this->createMock(DashboardService::class);
         $this->userManager      = $this->createMock(IUserManager::class);
         $this->urlGenerator     = $this->createMock(IURLGenerator::class);
-        $this->config           = $this->createMock(IConfig::class);
+        $this->appConfig        = $this->createMock(IAppConfig::class);
         $this->l10nFactory      = $this->createMock(IFactory::class);
         $this->logger           = $this->createMock(LoggerInterface::class);
 
@@ -96,7 +96,7 @@ class FeedServiceTest extends TestCase
             dashboardService: $this->dashboardService,
             userManager: $this->userManager,
             urlGenerator: $this->urlGenerator,
-            config: $this->config,
+            appConfig: $this->appConfig,
             l10nFactory: $this->l10nFactory,
             logger: $this->logger,
         );
@@ -182,9 +182,9 @@ class FeedServiceTest extends TestCase
         }
 
         $this->dashboardService->method('getVisibleToUser')->willReturn($entries);
-        $this->config->method('getAppValue')
-            ->with('mydash', FeedService::CONFIG_KEY_ITEM_CAP, '50')
-            ->willReturn('3');
+        $this->appConfig->method('getValueInt')
+            ->with('mydash', FeedService::CONFIG_KEY_ITEM_CAP, 50)
+            ->willReturn(3);
         $this->stubUserManager(displayName: 'Owner Name');
 
         $token = $this->buildToken(userId: 'owner');
@@ -223,7 +223,7 @@ class FeedServiceTest extends TestCase
         ];
 
         $this->dashboardService->method('getVisibleToUser')->willReturn($entries);
-        $this->config->method('getAppValue')->willReturn('50');
+        $this->appConfig->method('getValueInt')->willReturn(50);
         $this->stubUserManager(displayName: 'Iris');
 
         $xml = $this->service->renderFeed(
@@ -259,7 +259,7 @@ class FeedServiceTest extends TestCase
         ];
 
         $this->dashboardService->method('getVisibleToUser')->willReturn($entries);
-        $this->config->method('getAppValue')->willReturn('50');
+        $this->appConfig->method('getValueInt')->willReturn(50);
         $this->stubUserManager(displayName: 'Owner');
 
         $xml = $this->service->renderFeed(
@@ -280,7 +280,7 @@ class FeedServiceTest extends TestCase
     public function testRenderFeedProducesRssRoot(): void
     {
         $this->dashboardService->method('getVisibleToUser')->willReturn([]);
-        $this->config->method('getAppValue')->willReturn('50');
+        $this->appConfig->method('getValueInt')->willReturn(50);
         $this->stubUserManager(displayName: 'Owner');
 
         $xml = $this->service->renderFeed(
@@ -310,7 +310,7 @@ class FeedServiceTest extends TestCase
     public function testRenderFeedReturnsAtomWhenRequested(): void
     {
         $this->dashboardService->method('getVisibleToUser')->willReturn([]);
-        $this->config->method('getAppValue')->willReturn('50');
+        $this->appConfig->method('getValueInt')->willReturn(50);
         $this->stubUserManager(displayName: 'Owner');
 
         $xml = $this->service->renderFeed(

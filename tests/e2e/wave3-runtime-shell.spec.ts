@@ -22,13 +22,25 @@
  *     buttons removed, Conduction logo visible alongside Sendent.
  *   - PR #114 — no second DashboardSwitcherSidebar mount in the runtime
  *     shell (Views.vue owns the only one).
+ *
+ * Gate-19 @e2e traceability:
+ *   @e2e runtime-shell::mount-point-present
+ *   @e2e runtime-shell::toggle-button-matches-account-button-styling
+ *   @e2e runtime-shell::no-active-dashboard-select-control
+ *   @e2e runtime-shell::active-dashboard-name-visible
+ *   @e2e runtime-shell::empty-label-on-empty-state
+ *   @e2e dashboard-switcher::footer-renders-both-brand-logos-with-safe-target-attributes
+ *   @e2e dashboard-switcher::footer-documentation-link-uses-the-same-url-as-the-gear-menu-link-did
+ *   @e2e dashboard-switcher::footer-stays-visible-while-list-scrolls
+ *   @e2e dashboard-switcher::click-a-personal-dashboard
+ *   @e2e dashboard-switcher::click-a-default-group-dashboard
  */
 
 import { test, expect } from '@playwright/test'
 
 test.describe('wave3 runtime-shell + sidebar UX', () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto('/apps/mydash/')
+		await page.goto('/index.php/apps/mydash')
 		// Wait for the floating sidebar toggle — its presence indicates
 		// the Vue app has hydrated past initial bootstrap.
 		await page.waitForSelector('.mydash-sidebar-toggle', { timeout: 15_000 })

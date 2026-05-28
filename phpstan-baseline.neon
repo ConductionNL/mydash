@@ -1,81 +1,141 @@
 parameters:
 	ignoreErrors:
 		-
-			message: "#^Parameter \\#1 \\$createdAt of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setCreatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
-			count: 1
-			path: lib/Service/AdminTemplateService.php
-
-		-
-			message: "#^Parameter \\#1 \\$isDefault of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setIsDefault\\(\\) expects int, bool given\\.$#"
-			count: 1
-			path: lib/Service/AdminTemplateService.php
-
-		-
-			message: "#^Parameter \\#1 \\$updatedAt of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setUpdatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
 			count: 2
-			path: lib/Service/AdminTemplateService.php
+			path: lib/Controller/ActionMatrixController.php
 
 		-
-			message: "#^Strict comparison using \\=\\=\\= between int and false will always evaluate to false\\.$#"
-			count: 1
-			path: lib/Service/ConditionalService.php
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 4
+			path: lib/Controller/AdminBulkController.php
 
 		-
-			message: "#^Parameter \\#1 \\$isActive of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setIsActive\\(\\) expects int, true given\\.$#"
-			count: 1
-			path: lib/Service/DashboardResolver.php
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 2
+			path: lib/Controller/AdminCleanupController.php
 
 		-
-			message: "#^Property OCA\\\\MyDash\\\\Service\\\\DashboardResolver\\:\\:\\$settingMapper is never read, only written\\.$#"
-			count: 1
-			path: lib/Service/DashboardResolver.php
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 19
+			path: lib/Controller/AdminController.php
 
 		-
-			message: "#^Unreachable statement \\- code above always terminates\\.$#"
+			message: "#^Property OCA\\\\MyDash\\\\Controller\\\\AdminController\\:\\:\\$groupManager is never read, only written\\.$#"
 			count: 1
-			path: lib/Service/DashboardResolver.php
+			path: lib/Controller/AdminController.php
 
 		-
-			message: "#^Method OCA\\\\MyDash\\\\Service\\\\DashboardService\\:\\:createDefaultPlacements\\(\\) has invalid return type OCA\\\\MyDash\\\\Service\\\\WidgetPlacement\\.$#"
-			count: 1
-			path: lib/Service/DashboardService.php
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 3
+			path: lib/Controller/AdminDemoShowcasesController.php
 
 		-
-			message: "#^Method OCA\\\\MyDash\\\\Service\\\\DashboardService\\:\\:createDefaultPlacements\\(\\) should return array\\<OCA\\\\MyDash\\\\Service\\\\WidgetPlacement\\> but returns array\\<int, OCA\\\\MyDash\\\\Db\\\\WidgetPlacement\\>\\.$#"
-			count: 1
-			path: lib/Service/DashboardService.php
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 2
+			path: lib/Controller/AdminOrgNavigationController.php
 
 		-
-			message: "#^Parameter \\#1 \\$isActive of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setIsActive\\(\\) expects int, true given\\.$#"
-			count: 1
-			path: lib/Service/DashboardService.php
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 4
+			path: lib/Controller/AnalyticsController.php
 
 		-
-			message: "#^Strict comparison using \\=\\=\\= between int and false will always evaluate to false\\.$#"
-			count: 1
-			path: lib/Service/PermissionService.php
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 2
+			path: lib/Controller/ConfluenceImportController.php
 
 		-
-			message: "#^Parameter \\#1 \\$createdAt of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setCreatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
-			count: 1
-			path: lib/Service/TemplateService.php
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 5
+			path: lib/Controller/MetadataAdminController.php
 
 		-
-			message: "#^Parameter \\#1 \\$createdAt of method OCA\\\\MyDash\\\\Db\\\\WidgetPlacement\\:\\:setCreatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
 			count: 1
-			path: lib/Service/TemplateService.php
+			path: lib/Controller/ResourceController.php
 
 		-
-			message: "#^Parameter \\#1 \\$isActive of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setIsActive\\(\\) expects int, true given\\.$#"
+			message: "#^Property OCA\\\\MyDash\\\\Controller\\\\ResourceController\\:\\:\\$l10n is never read, only written\\.$#"
 			count: 1
-			path: lib/Service/TemplateService.php
+			path: lib/Controller/ResourceController.php
 
 		-
-			message: "#^Parameter \\#1 \\$updatedAt of method OCA\\\\MyDash\\\\Db\\\\Dashboard\\:\\:setUpdatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
-			count: 1
-			path: lib/Service/TemplateService.php
+			message: "#^Parameter \\#1 \\$settings of attribute class OCP\\\\AppFramework\\\\Http\\\\Attribute\\\\AuthorizedAdminSetting constructor expects class\\-string\\<OCP\\\\Settings\\\\IDelegatedSettings\\>, string given\\.$#"
+			count: 6
+			path: lib/Controller/RoleFeaturePermissionApiController.php
 
 		-
-			message: "#^Parameter \\#1 \\$updatedAt of method OCA\\\\MyDash\\\\Db\\\\WidgetPlacement\\:\\:setUpdatedAt\\(\\) expects string\\|null, DateTime given\\.$#"
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
 			count: 1
-			path: lib/Service/TemplateService.php
+			path: lib/Listener/CommentsListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/GroupDeletedListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/LocksListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/MetadataValuesListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/PublicSharesListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/ReactionsListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/TranslationsListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/TreeListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/UserDeletedListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/VersionsListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/ViewAnalyticsListener.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 1
+			path: lib/Listener/WidgetPlacementsListener.php
+
+		-
+			message: "#^Call to method hasTable\\(\\) on an unknown class Doctrine\\\\DBAL\\\\Schema\\\\Schema\\.$#"
+			count: 1
+			path: lib/Migration/Version002000Date20260519000000.php
+
+		-
+			message: "#^Result of \\|\\| is always false\\.$#"
+			count: 1
+			path: lib/Service/ActionAuthService.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between true and false will always evaluate to false\\.$#"
+			count: 2
+			path: lib/Service/ActionAuthService.php

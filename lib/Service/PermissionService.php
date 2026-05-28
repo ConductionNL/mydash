@@ -94,6 +94,7 @@ class PermissionService
      *
      * @return bool True when the dashboard is visible to the user.
      */
+    /** @spec openspec/specs/permissions/spec.md */
     public function canViewDashboard(string $userId, int $dashboardId): bool
     {
         return $this->resolveAccessLevel(userId: $userId, dashboardId: $dashboardId) !== null;
@@ -107,7 +108,7 @@ class PermissionService
      *
      * @return bool Whether the user can edit the dashboard.
      *
-     * @spec permissions:REQ-PERM-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-22
      */
     public function canEditDashboard(string $userId, int $dashboardId): bool
     {
@@ -158,6 +159,7 @@ class PermissionService
      *
      * @return bool Whether the user can edit the dashboard metadata.
      */
+    /** @spec openspec/specs/permissions/spec.md */
     public function canEditDashboardMetadata(
         string $userId,
         int $dashboardId
@@ -185,7 +187,7 @@ class PermissionService
      *
      * @return bool Whether the user can add widgets.
      *
-     * @spec permissions:REQ-PERM-002
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-23
      */
     public function canAddWidget(string $userId, int $dashboardId): bool
     {
@@ -218,7 +220,7 @@ class PermissionService
      *
      * @return bool Whether the user can remove the widget.
      *
-     * @spec permissions:REQ-PERM-001
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-22
      */
     public function canRemoveWidget(string $userId, int $placementId): bool
     {
@@ -264,6 +266,7 @@ class PermissionService
      *
      * @return bool Whether the user can style the widget.
      */
+    /** @spec openspec/specs/permissions/spec.md */
     public function canStyleWidget(string $userId, int $placementId): bool
     {
         // REQ-ROLE-008: Viewer role blocks any mutation.
@@ -301,6 +304,7 @@ class PermissionService
      *
      * @return bool Whether the user can create dashboards.
      */
+    /** @spec openspec/specs/permissions/spec.md */
     public function canCreateDashboard(string $userId): bool
     {
         // REQ-ROLE-008: Viewer role explicitly blocks dashboard creation
@@ -327,15 +331,20 @@ class PermissionService
     }//end canCreateDashboard()
 
     /**
-     * Check if user can have multiple dashboards.
+     * Check if multiple dashboards are allowed (global admin setting).
      *
-     * @param string $userId The user ID.
+     * This is a global configuration flag, not per-user — the admin setting
+     * `allow_multiple_dashboards` either permits or blocks all users from
+     * owning more than one dashboard. Call-sites already hold the user's
+     * dashboard list; they only need this flag to decide whether to allow
+     * the creation of an additional one.
      *
-     * @return bool Whether the user can have multiple dashboards.
+     * @return bool Whether multiple dashboards are allowed.
      */
-    public function canHaveMultipleDashboards(string $userId): bool
+    /** @spec openspec/specs/permissions/spec.md */
+    public function canHaveMultipleDashboards(): bool
     {
-        return $this->settingMapper->getValue(
+        return (bool) $this->settingMapper->getValue(
             key: AdminSetting::KEY_ALLOW_MULTIPLE_DASHBOARDS,
             default: true
         );
@@ -359,7 +368,7 @@ class PermissionService
      *
      * @return string The effective permission level.
      *
-     * @spec permissions:REQ-PERM-008
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-24
      */
     public function getEffectivePermissionLevel(
         Dashboard $dashboard,
@@ -425,6 +434,7 @@ class PermissionService
      *
      * @return string|null The permission level or null when no access.
      */
+    /** @spec openspec/specs/permissions/spec.md */
     public function resolveAccessLevel(
         string $userId,
         ?int $dashboardId=null,
@@ -493,6 +503,7 @@ class PermissionService
      *
      * @throws \Exception If access is denied.
      */
+    /** @spec openspec/specs/permissions/spec.md */
     public function verifyDashboardOwnership(
         string $userId,
         int $dashboardId
@@ -516,6 +527,7 @@ class PermissionService
      *
      * @throws \Exception If access is denied.
      */
+    /** @spec openspec/specs/permissions/spec.md */
     public function verifyPlacementOwnership(
         string $userId,
         int $placementId

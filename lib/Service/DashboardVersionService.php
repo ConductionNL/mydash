@@ -179,6 +179,7 @@ class DashboardVersionService
      *                               when an automatic snapshot was
      *                               suppressed by the debounce window.
      */
+    /** @spec openspec/specs/dashboard-versioning/spec.md */
     public function captureSnapshot(
         Dashboard $dashboard,
         ?string $snapshotJson,
@@ -262,6 +263,7 @@ class DashboardVersionService
      *
      * @throws Exception When the actor is neither owner nor admin.
      */
+    /** @spec openspec/specs/dashboard-versioning/spec.md */
     public function listVersions(
         Dashboard $dashboard,
         string $requestingUser
@@ -308,6 +310,7 @@ class DashboardVersionService
      * @throws Exception             When the actor is neither owner nor admin.
      * @throws DoesNotExistException When the version does not exist.
      */
+    /** @spec openspec/specs/dashboard-versioning/spec.md */
     public function fetchSnapshot(
         Dashboard $dashboard,
         int $versionNumber,
@@ -344,6 +347,7 @@ class DashboardVersionService
      *                   the groupfolder backend is selected (currently
      *                   unsupported).
      */
+    /** @spec openspec/specs/dashboard-versioning/spec.md */
     public function createExplicitSnapshot(
         Dashboard $dashboard,
         string $requestingUser,
@@ -401,6 +405,7 @@ class DashboardVersionService
      * @throws Exception             When the actor is neither owner nor admin.
      * @throws DoesNotExistException When the version does not exist.
      */
+    /** @spec openspec/specs/dashboard-versioning/spec.md */
     public function restoreVersion(
         Dashboard $dashboard,
         int $versionNumber,
@@ -478,6 +483,7 @@ class DashboardVersionService
      *
      * @return integer The number of rows deleted.
      */
+    /** @spec openspec/specs/dashboard-versioning/spec.md */
     public function deleteVersionsForDashboard(string $dashboardUuid): int
     {
         return $this->versionMapper->deleteByDashboardUuid(
@@ -495,6 +501,7 @@ class DashboardVersionService
      *
      * @return boolean Whether the dashboard's content lives in a groupfolder.
      */
+    /** @spec openspec/specs/dashboard-versioning/spec.md */
     public function isGroupfolderBacked(Dashboard $dashboard): bool
     {
         // The groupfolder-storage-backend change introduces a
