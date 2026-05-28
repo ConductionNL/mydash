@@ -37,6 +37,7 @@ namespace OCA\MyDash\Service;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use OCA\MyDash\AppInfo\Application;
 use OCP\Calendar\IManager;
 use OCP\Http\Client\IClientService;
 use OCP\IAppConfig;
@@ -113,17 +114,19 @@ class CalendarWidgetService
     /**
      * Constructor.
      *
-     * @param IAppConfig      $appConfig     The app config reader.
-     * @param ICacheFactory   $cacheFactory  Distributed cache factory.
-     * @param IClientService  $clientService HTTP client factory.
-     * @param LoggerInterface $logger        Logger.
-     * @param IManager|null   $calendarMgr   NC Calendar manager (optional).
+     * @param IAppConfig         $appConfig     The app config reader.
+     * @param ICacheFactory      $cacheFactory  Distributed cache factory.
+     * @param IClientService     $clientService HTTP client factory.
+     * @param LoggerInterface    $logger        Logger.
+     * @param UrlSafetyValidator $urlValidator  Shared SSRF / allow-list guard.
+     * @param IManager|null      $calendarMgr   NC Calendar manager (optional).
      */
     public function __construct(
         private readonly IAppConfig $appConfig,
         ICacheFactory $cacheFactory,
         private readonly IClientService $clientService,
         private readonly LoggerInterface $logger,
+        private readonly UrlSafetyValidator $urlValidator,
         private readonly ?IManager $calendarMgr=null,
     ) {
         $this->cache = $cacheFactory->createDistributed(prefix: self::CACHE_NAMESPACE);
@@ -343,8 +346,8 @@ class CalendarWidgetService
     /**
      * Validate an external ICS URL.
      *
-     * Accepts only HTTPS URLs whose hostname resolves to a public IP
-     * (no private/reserved ranges). Returns false on any deviation.
+     * Delegates to {@see UrlSafetyValidator::isSafe()}: accepts only HTTPS
+     * URLs whose hostname resolves exclusively to public IPs.
      *
      * @param string $url The URL to validate.
      *
@@ -354,45 +357,15 @@ class CalendarWidgetService
      */
     public function validateUrl(string $url): bool
     {
-        $parts = parse_url(url: $url);
-        if (is_array(value: $parts) === false) {
-            return false;
-        }
-
-        if (($parts['scheme'] ?? '') !== 'https') {
-            return false;
-        }
-
-        $host = (string) ($parts['host'] ?? '');
-        if ($host === '') {
-            return false;
-        }
-
-        // Resolve and reject any private/reserved IPs (SSRF guard).
-        $ips = gethostbynamel(hostname: $host);
-        if ($ips === false || $ips === []) {
-            return false;
-        }
-
-        foreach ($ips as $ip) {
-            $publicIp = filter_var(
-                value: $ip,
-                filter: FILTER_VALIDATE_IP,
-                options: (FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)
-            );
-            if ($publicIp === false) {
-                return false;
-            }
-        }
-
-        return true;
+        return $this->urlValidator->isSafe(url: $url);
     }//end validateUrl()
 
     /**
      * Check whether a URL's host appears in the admin allow-list.
      *
-     * Empty/missing allow-list means all hosts are allowed. Comparison
-     * is case-insensitive and exact (no wildcard subdomain expansion).
+     * Delegates to {@see UrlSafetyValidator::checkAllowList()}. Empty /
+     * missing allow-list means all hosts are allowed. Comparison is
+     * case-insensitive and exact (no wildcard subdomain expansion).
      *
      * @param string $url The URL to check.
      *
@@ -402,30 +375,11 @@ class CalendarWidgetService
      */
     public function checkAllowList(string $url): bool
     {
-        $raw = $this->appConfig->getValueString(
-            app: 'mydash',
-            key: self::CONFIG_KEY_ALLOWED_HOSTS,
-            default: ''
+        return $this->urlValidator->checkAllowList(
+            url: $url,
+            appId: Application::APP_ID,
+            configKey: self::CONFIG_KEY_ALLOWED_HOSTS
         );
-
-        if ($raw === '') {
-            return true;
-        }
-
-        $decoded = json_decode(json: $raw, associative: true);
-        if (is_array(value: $decoded) === false || $decoded === []) {
-            return true;
-        }
-
-        $host = (string) parse_url(url: $url, component: PHP_URL_HOST);
-        if ($host === '') {
-            return false;
-        }
-
-        $needle    = strtolower(string: $host);
-        $allowList = array_map(callback: 'strtolower', array: array_map(callback: 'strval', array: $decoded));
-
-        return in_array(needle: $needle, haystack: $allowList, strict: true);
     }//end checkAllowList()
 
     /**
@@ -462,12 +416,15 @@ class CalendarWidgetService
 
         $client   = $this->clientService->newClient();
         $response = $client->get(
-                uri: $url,
-                options: [
-                    'timeout'         => self::FETCH_TIMEOUT_SECONDS,
-                    'connect_timeout' => self::FETCH_TIMEOUT_SECONDS,
-                ]
-                );
+            uri: $url,
+            options: [
+                'timeout'         => self::FETCH_TIMEOUT_SECONDS,
+                'connect_timeout' => self::FETCH_TIMEOUT_SECONDS,
+                // H2: disable redirect-following so an attacker cannot
+                // chain a public URL to an internal redirect target.
+                'allow_redirects' => false,
+            ]
+        );
 
         $body = (string) $response->getBody();
         if (strlen(string: $body) > self::MAX_RESPONSE_SIZE_BYTES) {

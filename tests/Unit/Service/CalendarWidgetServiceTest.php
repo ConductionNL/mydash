@@ -23,6 +23,7 @@ declare(strict_types=1);
 namespace Unit\Service;
 
 use OCA\MyDash\Service\CalendarWidgetService;
+use OCA\MyDash\Service\UrlSafetyValidator;
 use OCP\Http\Client\IClient;
 use OCP\Http\Client\IClientService;
 use OCP\Http\Client\IResponse;
@@ -50,6 +51,9 @@ class CalendarWidgetServiceTest extends TestCase
     /** @var LoggerInterface&MockObject */
     private $logger;
 
+    /** @var UrlSafetyValidator&MockObject */
+    private $urlValidator;
+
     private CalendarWidgetService $service;
 
     protected function setUp(): void
@@ -59,6 +63,10 @@ class CalendarWidgetServiceTest extends TestCase
         $this->cache         = $this->createMock(ICache::class);
         $this->clientService = $this->createMock(IClientService::class);
         $this->logger        = $this->createMock(LoggerInterface::class);
+        // Default: all URLs safe — individual tests override as needed.
+        $this->urlValidator  = $this->createMock(UrlSafetyValidator::class);
+        $this->urlValidator->method('isSafe')->willReturn(true);
+        $this->urlValidator->method('checkAllowList')->willReturn(true);
 
         $this->cacheFactory->method('createDistributed')->willReturn($this->cache);
 
@@ -67,18 +75,39 @@ class CalendarWidgetServiceTest extends TestCase
             cacheFactory: $this->cacheFactory,
             clientService: $this->clientService,
             logger: $this->logger,
+            urlValidator: $this->urlValidator,
+            calendarMgr: null,
+        );
+    }
+
+    /**
+     * Create a CalendarWidgetService with a real UrlSafetyValidator
+     * (used by tests that exercise the real SSRF/allow-list logic).
+     */
+    private function makeServiceWithRealValidator(): CalendarWidgetService
+    {
+        $realValidator = new UrlSafetyValidator(appConfig: $this->appConfig);
+        return new CalendarWidgetService(
+            appConfig: $this->appConfig,
+            cacheFactory: $this->cacheFactory,
+            clientService: $this->clientService,
+            logger: $this->logger,
+            urlValidator: $realValidator,
             calendarMgr: null,
         );
     }
 
     public function testRejectsHttpUrl(): void
     {
-        $this->assertFalse($this->service->validateUrl('http://example.test/cal.ics'));
+        // Use real validator — validates scheme.
+        $svc = $this->makeServiceWithRealValidator();
+        $this->assertFalse($svc->validateUrl('http://example.test/cal.ics'));
     }
 
     public function testRejectsMalformedUrl(): void
     {
-        $this->assertFalse($this->service->validateUrl('not a url'));
+        $svc = $this->makeServiceWithRealValidator();
+        $this->assertFalse($svc->validateUrl('not a url'));
     }
 
     public function testAllowListEmptyAllowsAll(): void
@@ -86,7 +115,8 @@ class CalendarWidgetServiceTest extends TestCase
         $this->appConfig->method('getValueString')
             ->with('mydash', CalendarWidgetService::CONFIG_KEY_ALLOWED_HOSTS, '')
             ->willReturn('');
-        $this->assertTrue($this->service->checkAllowList('https://anything.test/cal.ics'));
+        $svc = $this->makeServiceWithRealValidator();
+        $this->assertTrue($svc->checkAllowList('https://anything.test/cal.ics'));
     }
 
     public function testAllowListMatchesHostCaseInsensitive(): void
@@ -94,7 +124,8 @@ class CalendarWidgetServiceTest extends TestCase
         $this->appConfig->method('getValueString')
             ->with('mydash', CalendarWidgetService::CONFIG_KEY_ALLOWED_HOSTS, '')
             ->willReturn(json_encode(['Calendar.Example.COM']));
-        $this->assertTrue($this->service->checkAllowList('https://calendar.example.com/cal.ics'));
+        $svc = $this->makeServiceWithRealValidator();
+        $this->assertTrue($svc->checkAllowList('https://calendar.example.com/cal.ics'));
     }
 
     public function testAllowListRejectsNonMatchingHost(): void
@@ -102,7 +133,8 @@ class CalendarWidgetServiceTest extends TestCase
         $this->appConfig->method('getValueString')
             ->with('mydash', CalendarWidgetService::CONFIG_KEY_ALLOWED_HOSTS, '')
             ->willReturn(json_encode(['calendar.example.com']));
-        $this->assertFalse($this->service->checkAllowList('https://untrusted.test/cal.ics'));
+        $svc = $this->makeServiceWithRealValidator();
+        $this->assertFalse($svc->checkAllowList('https://untrusted.test/cal.ics'));
     }
 
     public function testAllowListNoSubdomainExpansion(): void
@@ -110,7 +142,8 @@ class CalendarWidgetServiceTest extends TestCase
         $this->appConfig->method('getValueString')
             ->with('mydash', CalendarWidgetService::CONFIG_KEY_ALLOWED_HOSTS, '')
             ->willReturn(json_encode(['example.com']));
-        $this->assertFalse($this->service->checkAllowList('https://sub.example.com/cal.ics'));
+        $svc = $this->makeServiceWithRealValidator();
+        $this->assertFalse($svc->checkAllowList('https://sub.example.com/cal.ics'));
     }
 
     public function testFetchIcsBodyServesFromCache(): void
@@ -192,10 +225,11 @@ class CalendarWidgetServiceTest extends TestCase
 
     public function testFetchExternalIcsEventsSkipsRejectedUrls(): void
     {
-        // No allow-list configured.
+        // No allow-list configured. Use real validator so non-HTTPS URLs
+        // are correctly rejected by isSafe().
         $this->appConfig->method('getValueString')->willReturn('');
 
-        $result = $this->service->fetchExternalIcsEvents(
+        $result = $this->makeServiceWithRealValidator()->fetchExternalIcsEvents(
             urls: ['ftp://nope.test/x.ics', 'http://no-tls.test/y.ics'],
             from: '2026-05-01T00:00:00Z',
             to: '2026-05-31T23:59:59Z'
@@ -236,13 +270,14 @@ class CalendarWidgetServiceTest extends TestCase
     public function testGetEventsAggregatesAndReportsFailures(): void
     {
         // Empty allow-list, no internal manager — only external path.
+        // Use real validator so http:// is correctly rejected.
         $this->appConfig->method('getValueString')->willReturn('');
         $this->appConfig->method('getValueInt')->willReturn(1800);
 
         $this->cache->method('get')->willReturn(null);
 
         // Bad URL is rejected by validateUrl; no fetch occurs.
-        $result = $this->service->getEvents(
+        $result = $this->makeServiceWithRealValidator()->getEvents(
             config: [
                 'internalCalendars' => [],
                 'externalIcsUrls'   => ['http://invalid.test/x.ics'],

@@ -175,6 +175,16 @@ class Application extends App implements IBootstrap
      */
     public function boot(IBootContext $context): void
     {
+        // C2: block all external XML entity resolution at the process level.
+        // LIBXML_NOENT in simplexml_load_string / DOMDocument::loadXML does
+        // NOT disable entity substitution — it enables it. The only reliable
+        // defence is to install a null entity loader here at boot time. This
+        // is safe because Nextcloud itself does not rely on external XML
+        // entities in its own code.
+        if (function_exists('libxml_set_external_entity_loader') === true) {
+            libxml_set_external_entity_loader(static fn (): null => null);
+        }
+
         // App initialization after all apps are registered.
         \OCP\Util::addStyle(application: self::APP_ID, file: 'mydash');
 

@@ -543,14 +543,14 @@ class FeedRefreshService
     {
         $previous = libxml_use_internal_errors(use_errors: true);
         try {
-            // L1: explicit safe libxml flags — LIBXML_NOENT disables entity
-            // substitution, LIBXML_NONET prevents network access during parse
-            // (external DTD / entity fetch). Defence-in-depth against entity
-            // expansion on older libxml builds.
+            // C2: LIBXML_NOENT removed — it resolves (not disables) entities,
+            // enabling XXE. LIBXML_NONET blocks external DTD/entity fetches.
+            // L1: LIBXML_NOCDATA removed — it folds CDATA sections into text
+            // nodes, which can mask sanitisation logic on downstream callers.
             $xml = simplexml_load_string(
                 data: $body,
                 class_name: 'SimpleXMLElement',
-                options: (LIBXML_NOCDATA | LIBXML_NONET | LIBXML_NOENT)
+                options: LIBXML_NONET
             );
             if ($xml === false) {
                 $errors = libxml_get_errors();

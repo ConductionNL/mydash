@@ -25,6 +25,7 @@ namespace Unit\Service;
 use OCA\MyDash\Db\WidgetPlacement;
 use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCA\MyDash\Service\NewsWidgetService;
+use OCA\MyDash\Service\UrlSafetyValidator;
 use OCP\Http\Client\IClientService;
 use OCP\IAppConfig;
 use OCP\ICache;
@@ -60,12 +61,15 @@ class NewsWidgetServiceTest extends TestCase
         $this->cacheFactory->method('createDistributed')->willReturn($cache);
         $this->logger = $this->createMock(originalClassName: LoggerInterface::class);
 
+        $urlValidator = new UrlSafetyValidator(appConfig: $this->appConfig);
+
         $this->service = new NewsWidgetService(
             placementMapper: $this->placementMapper,
             clientService: $this->clientService,
             appConfig: $this->appConfig,
             cacheFactory: $this->cacheFactory,
-            logger: $this->logger
+            logger: $this->logger,
+            urlValidator: $urlValidator
         );
     }//end setUp()
 
@@ -352,4 +356,42 @@ class NewsWidgetServiceTest extends TestCase
         $this->assertSame(0, $response['feedsFailed']);
         $this->assertSame([], $response['failedUrls']);
     }//end testFetchAndMergeFeedsWithEmptyListReturnsEmptyResponse()
+
+    /**
+     * C1 SSRF: http:// URLs MUST be rejected before any allow-list check.
+     * The UrlSafetyValidator rejects non-HTTPS, so fetchAndMergeFeeds must
+     * count the URL as failed without attempting a network request.
+     */
+    public function testFetchAndMergeFeedsRejectsHttpUrls(): void
+    {
+        // No HTTP client interaction expected — SSRF guard fires first.
+        $this->clientService->expects($this->never())->method('newClient');
+
+        $response = $this->service->fetchAndMergeFeeds(
+            feedUrls: ['http://attacker.internal/feed.rss'],
+            limit: 10
+        );
+
+        $this->assertSame([], $response['items']);
+        $this->assertSame(1, $response['feedsFailed']);
+    }//end testFetchAndMergeFeedsRejectsHttpUrls()
+
+    /**
+     * C1 SSRF: extractFeedUrls MUST drop http:// entries (HTTPS-only).
+     */
+    public function testExtractNewsConfigDropsHttpFeedUrls(): void
+    {
+        $placement = new WidgetPlacement();
+        $placement->setStyleConfig(json_encode([
+            'feedUrls' => [
+                'https://valid.example.com/feed',
+                'http://insecure.example.com/feed',
+                'ftp://nope.example.com/feed',
+            ],
+        ]));
+
+        $config = $this->service->extractNewsConfig(placement: $placement);
+
+        $this->assertSame(['https://valid.example.com/feed'], $config['feedUrls']);
+    }//end testExtractNewsConfigDropsHttpFeedUrls()
 }//end class
