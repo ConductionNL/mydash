@@ -551,6 +551,10 @@ export default {
 	width: 100%;
 }
 
+.menu-widget__mega-group-title {
+	font-weight: 600;
+}
+
 .menu-widget__bar-button:hover,
 .menu-widget__dropdown-item:hover,
 .menu-widget__mega-group-title:hover,
@@ -623,10 +627,6 @@ export default {
 	background: var(--color-main-background);
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius);
-}
-
-.menu-widget__mega-group-title {
-	font-weight: 600;
 }
 
 .menu-widget__mega-leaves {

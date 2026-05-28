@@ -691,10 +691,6 @@ export default {
 	background: var(--color-primary-element-light, #e6f0fa);
 }
 
-.dashboard-switcher-sidebar__item.active .dashboard-switcher-sidebar__icon {
-	color: var(--color-primary, #0082c9);
-}
-
 .dashboard-switcher-sidebar__icon {
 	flex: 0 0 auto;
 	display: inline-flex;
@@ -702,6 +698,10 @@ export default {
 	justify-content: center;
 	width: 20px;
 	height: 20px;
+}
+
+.dashboard-switcher-sidebar__item.active .dashboard-switcher-sidebar__icon {
+	color: var(--color-primary, #0082c9);
 }
 
 .dashboard-switcher-sidebar__default-marker {
@@ -732,15 +732,15 @@ export default {
 	justify-content: center;
 }
 
-.dashboard-switcher-sidebar__item--personal:hover .dashboard-switcher-sidebar__delete,
-.dashboard-switcher-sidebar__item--personal:focus-within .dashboard-switcher-sidebar__delete {
-	display: inline-flex;
-}
-
 .dashboard-switcher-sidebar__delete:hover,
 .dashboard-switcher-sidebar__delete:focus {
 	background: var(--color-background-darker, #ececec);
 	color: var(--color-error, #c0392b);
+}
+
+.dashboard-switcher-sidebar__item--personal:hover .dashboard-switcher-sidebar__delete,
+.dashboard-switcher-sidebar__item--personal:focus-within .dashboard-switcher-sidebar__delete {
+	display: inline-flex;
 }
 
 .dashboard-switcher-sidebar__add-dashboard-card {

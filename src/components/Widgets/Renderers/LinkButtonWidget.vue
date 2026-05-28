@@ -638,14 +638,14 @@ export default {
 	transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.link-button-widget__button:hover:not(:disabled) {
-	transform: translateY(-2px);
-	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
 .link-button-widget__button:disabled {
 	opacity: 0.6;
 	cursor: not-allowed;
+}
+
+.link-button-widget__button:hover:not(:disabled) {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .link-button-widget__icon {
@@ -706,14 +706,14 @@ export default {
 	width: auto;
 }
 
-.link-button-widget__list-item:hover:not(:disabled) {
-	transform: translateY(-2px);
-	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
 .link-button-widget__list-item:disabled {
 	opacity: 0.6;
 	cursor: not-allowed;
+}
+
+.link-button-widget__list-item:hover:not(:disabled) {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .link-button-widget__list-icon {

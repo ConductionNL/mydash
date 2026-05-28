@@ -36,16 +36,19 @@ if (file_exists(__DIR__ . '/../../../lib/base.php')) {
     // vendor/nextcloud/ocp so unit tests that mock OCP interfaces
     // (e.g. IInitialState) can still run. These are signature-only
     // stubs and are sufficient for PHPUnit's createMock().
+    // Doctrine DBAL placeholders MUST be loaded before the OCP PSR-4
+    // loader is registered. IQueryBuilder.php contains class constants
+    // that reference Doctrine\DBAL\ParameterType directly
+    // (e.g. `PARAM_NULL = ParameterType::NULL`). PHP evaluates these
+    // constant expressions as soon as the interface file is parsed —
+    // before any mock creation code runs. Loading the stubs first
+    // ensures the placeholder classes are in the class table before
+    // the autoloader first touches IQueryBuilder.php.
+    require_once __DIR__ . '/Stubs/DoctrineStubs.php';
+
     $ocpLoader = new \Composer\Autoload\ClassLoader();
     $ocpLoader->addPsr4('OCP\\', __DIR__ . '/../vendor/nextcloud/ocp/OCP/');
     $ocpLoader->register();
-
-    // The OCP IDBConnection / IQueryBuilder stubs reference Doctrine
-    // DBAL classes that are not in our composer.json (Nextcloud
-    // provides them at runtime). Load minimal placeholder classes so
-    // PHPUnit's automatic mock generator can introspect IDBConnection
-    // for the REQ-DASH-015 tests.
-    require_once __DIR__ . '/Stubs/DoctrineStubs.php';
 }
 
 // Register Test\ namespace for NC test classes.

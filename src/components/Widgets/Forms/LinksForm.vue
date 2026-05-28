@@ -525,10 +525,6 @@ export default {
 	flex-wrap: wrap;
 }
 
-.links-form__link-row--invalid .links-form__input {
-	border-color: var(--color-error);
-}
-
 .links-form__input {
 	flex: 1;
 	min-width: 80px;
@@ -538,6 +534,10 @@ export default {
 	background-color: var(--color-main-background);
 	color: var(--color-main-text);
 	font-size: 13px;
+}
+
+.links-form__link-row--invalid .links-form__input {
+	border-color: var(--color-error);
 }
 
 .links-form__input--narrow {

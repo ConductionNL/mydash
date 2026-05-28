@@ -217,6 +217,18 @@ class WidgetApiController extends Controller
             return ResponseHelper::forbidden();
         }
 
+        // REQ-RFP-001 / REQ-RFP-003: a user may only add a widget that their
+        // role-feature-permission profile permits. `isWidgetAllowed` returns
+        // `true` when no restriction is configured (null allowed set), so
+        // unconfigured deployments are unaffected.
+        if ($this->roleFeaturePerm->isWidgetAllowed(
+            userId: $this->userId,
+            widgetId: $widgetId
+        ) === false
+        ) {
+            return ResponseHelper::forbidden();
+        }
+
         // REQ-CONT-006: reject deeply-nested container payloads BEFORE
         // touching the placement mapper so no rows are inserted on a
         // depth violation. Tolerant of non-container payloads (no-op

@@ -455,6 +455,10 @@ export default {
 	display: block;
 }
 
+.quicklinks-widget--edit-mode .quicklinks-widget__link {
+	cursor: not-allowed;
+}
+
 /* Hover effects */
 .quicklinks-widget--hover-lift .quicklinks-widget__link:hover {
 	transform: translateY(-3px);
@@ -476,10 +480,6 @@ export default {
 
 .quicklinks-widget--hover-none .quicklinks-widget__link:hover {
 	cursor: pointer;
-}
-
-.quicklinks-widget--edit-mode .quicklinks-widget__link {
-	cursor: not-allowed;
 }
 
 .quicklinks-widget__empty {
