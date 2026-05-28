@@ -288,6 +288,16 @@ class DashboardLockService
                     message: 'Only the lock owner or an admin can release this lock'
                 );
             }
+
+            // L2: audit log when an admin overrides another user's lock.
+            $this->logger->info(
+                message: sprintf(
+                    'mydash.dashboard_lock.admin_override_release admin=%s dashboard=%s previous_owner=%s',
+                    $userId,
+                    $dashboardUuid,
+                    (string) $existing->getUserId(),
+                )
+            );
         }
 
         $this->lockMapper->delete(entity: $existing);

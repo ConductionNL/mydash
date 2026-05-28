@@ -381,4 +381,47 @@ class AnalyticsServiceTest extends TestCase
             string: $name
         );
     }
+
+    /**
+     * M1: CSV injection — dashboard names starting with formula trigger
+     * characters (=, +, -, @, tab, CR) MUST be prefixed with a
+     * single-quote so spreadsheet apps treat them as text.
+     */
+    public function testCsvExportPrefixesFormulaTriggerCharacters(): void
+    {
+        $formulaNames = [
+            '=SUM(A1)',
+            '+profit',
+            '-loss',
+            '@domain',
+        ];
+
+        foreach ($formulaNames as $name) {
+            $row = new \OCA\MyDash\Db\DashboardView();
+            $row->setDashboardUuid('uuid-formula');
+            $row->setViewBucket('2026-05-01');
+            $row->setViewCount(1);
+            $row->setUniqueViewerCount(1);
+            $this->viewMapper->method('findAllInRange')->willReturn([$row]);
+
+            $dashboard = new \OCA\MyDash\Db\Dashboard();
+            $dashboard->setName($name);
+            $this->dashboardMapper->method('findByUuid')->willReturn($dashboard);
+
+            $csv = $this->service->generateCsvExport(period: '7d');
+
+            // The cell must NOT contain the raw trigger character directly
+            // after the opening double-quote.
+            $trigger = $name[0];
+            $this->assertStringNotContainsString(
+                needle: '"'.$trigger,
+                haystack: $csv,
+                message: "Formula trigger '{$trigger}' must be prefixed with single-quote in CSV"
+            );
+            // Reset mock state.
+            $this->viewMapper = $this->createMock(\OCA\MyDash\Db\DashboardViewMapper::class);
+            $this->dashboardMapper = $this->createMock(\OCA\MyDash\Db\DashboardMapper::class);
+            $this->setUp();
+        }
+    }
 }

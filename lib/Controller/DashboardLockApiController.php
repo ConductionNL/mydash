@@ -35,10 +35,12 @@ declare(strict_types=1);
 namespace OCA\MyDash\Controller;
 
 use OCA\MyDash\AppInfo\Application;
+use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Exception\LockConflictException;
 use OCA\MyDash\Exception\LockForbiddenException;
 use OCA\MyDash\Exception\LockNotFoundException;
 use OCA\MyDash\Service\DashboardLockService;
+use OCA\MyDash\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -54,13 +56,17 @@ class DashboardLockApiController extends Controller
     /**
      * Constructor
      *
-     * @param IRequest             $request     The HTTP request.
-     * @param DashboardLockService $lockService The lock service.
-     * @param string|null          $userId      The calling user ID.
+     * @param IRequest             $request           The HTTP request.
+     * @param DashboardLockService $lockService       The lock service.
+     * @param PermissionService    $permissionService Dashboard permission resolver.
+     * @param DashboardMapper      $dashboardMapper   UUID → id lookup.
+     * @param string|null          $userId            The calling user ID.
      */
     public function __construct(
         IRequest $request,
         private readonly DashboardLockService $lockService,
+        private readonly PermissionService $permissionService,
+        private readonly DashboardMapper $dashboardMapper,
         private readonly ?string $userId,
     ) {
         parent::__construct(
@@ -116,11 +122,14 @@ class DashboardLockApiController extends Controller
                 statusCode: Http::STATUS_FORBIDDEN
             );
         } catch (LockConflictException $e) {
+            // M2: strip userId from conflict response — callers need the
+            // displayName to show "X is editing" but should not receive
+            // the internal user identifier of a third party.
             return new JSONResponse(
                 data: [
                     'error' => $e->getMessage(),
                     'code'  => LockConflictException::ERROR_CODE,
-                    'lock'  => $e->getExistingLock()->jsonSerialize(),
+                    'lock'  => $e->getExistingLock()->jsonSerializeConflict(),
                 ],
                 statusCode: Http::STATUS_CONFLICT
             );
@@ -236,6 +245,30 @@ class DashboardLockApiController extends Controller
     {
         if ($this->userId === null) {
             return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
+        }
+
+        // H1: guard against identity leak — any authed user could enumerate
+        // lock holders for arbitrary UUIDs; return 404 on no-view-access
+        // (same shape as "no lock") to avoid leaking dashboard existence.
+        try {
+            $dashboard = $this->dashboardMapper->findByUuid(uuid: $uuid);
+        } catch (DoesNotExistException) {
+            return new JSONResponse(
+                data: ['error' => 'Lock not found', 'code' => LockNotFoundException::ERROR_CODE],
+                statusCode: Http::STATUS_NOT_FOUND
+            );
+        }
+
+        if ($this->permissionService->canViewDashboard(
+            userId: $this->userId,
+            dashboardId: (int) $dashboard->getId()
+        ) === false
+        ) {
+            // Return 404 not 403 to avoid leaking dashboard existence.
+            return new JSONResponse(
+                data: ['error' => 'Lock not found', 'code' => LockNotFoundException::ERROR_CODE],
+                statusCode: Http::STATUS_NOT_FOUND
+            );
         }
 
         $lock = $this->lockService->getLockState(dashboardUuid: $uuid);

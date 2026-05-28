@@ -483,10 +483,9 @@ class AdminController extends Controller
      *
      * @return StreamResponse|JSONResponse The streamed ZIP, or a JSON error.
      *
-     * @NoCSRFRequired
-         *
      * @spec openspec/specs/admin-templates/spec.md
- */
+     */
+    // H4 sweep: @NoCSRFRequired removed — POST endpoint must carry CSRF protection.
     #[AuthorizedAdminSetting(Application::APP_ID)]
     public function export(
         string $scope='site',
@@ -549,10 +548,9 @@ class AdminController extends Controller
      *
      * @return JSONResponse The import summary, or an error response.
      *
-     * @NoCSRFRequired
-         *
      * @spec openspec/specs/admin-templates/spec.md
- */
+     */
+    // H4 sweep: @NoCSRFRequired removed — POST endpoint must carry CSRF protection.
     #[AuthorizedAdminSetting(Application::APP_ID)]
     public function import(bool $preserveUuids=false): JSONResponse
     {
@@ -805,10 +803,9 @@ class AdminController extends Controller
      * @return JSONResponse `{status: 'success', previewImage: '...'}`
      *                      on success.
      *
-     * @NoCSRFRequired
-         *
      * @spec openspec/specs/admin-templates/spec.md
- */
+     */
+    // H4 sweep: @NoCSRFRequired removed — POST endpoint must carry CSRF protection.
     #[AuthorizedAdminSetting(Application::APP_ID)]
     public function uploadTemplatePreviewImage(
         string $uuid,

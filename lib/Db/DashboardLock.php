@@ -185,4 +185,27 @@ class DashboardLock extends Entity implements JsonSerializable
             'lockTimeoutSec' => self::LOCK_TIMEOUT_SECONDS,
         ];
     }//end jsonSerialize()
+
+    /**
+     * Serialize to JSON for conflict responses (M2: strip userId so a
+     * third party cannot harvest user IDs from 409 responses).
+     *
+     * The opaque lock `id` is retained so the frontend can present a
+     * stable reference without exposing the internal user identifier.
+     *
+     * @return array The serialized lock without the userId field.
+     */
+    public function jsonSerializeConflict(): array
+    {
+        return [
+            'id'             => $this->getId(),
+            'dashboardUuid'  => $this->dashboardUuid,
+            'displayName'    => $this->displayName,
+            'acquiredAt'     => $this->createdAt,
+            'lastHeartbeat'  => $this->updatedAt,
+            'expiresAt'      => $this->impliedExpiresAt(),
+            'expiresIn'      => $this->expiresIn(),
+            'lockTimeoutSec' => self::LOCK_TIMEOUT_SECONDS,
+        ];
+    }//end jsonSerializeConflict()
 }//end class

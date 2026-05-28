@@ -572,6 +572,15 @@ class AnalyticsService
     {
         $escaped = array_map(
             callback: static function (string $cell): string {
+                // M1: CSV injection — prefix cells that start with a formula
+                // trigger character so spreadsheet apps do not evaluate them
+                // as formulas (OWASP CSV injection guidance: prefix with a
+                // single-quote to force text interpretation).
+                $formula = ['=', '+', '-', '@', "\t", "\r"];
+                if ($cell !== '' && in_array(needle: $cell[0], haystack: $formula, strict: true) === true) {
+                    $cell = "'".$cell;
+                }
+
                 return '"'.str_replace(
                     search: '"',
                     replace: '""',

@@ -108,8 +108,8 @@ class TileApiController extends Controller
      *
      * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-28
      */
+    // H4 sweep: NoCSRFRequired removed from POST endpoint (deprecated/410 but still a write verb).
     #[NoAdminRequired]
-    #[NoCSRFRequired]
     public function create(): JSONResponse
     {
         if ($this->userId === null) {
@@ -132,8 +132,8 @@ class TileApiController extends Controller
      *
      * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-30
      */
+    // H4 sweep: NoCSRFRequired removed from PUT endpoint (deprecated/410 but still a write verb).
     #[NoAdminRequired]
-    #[NoCSRFRequired]
     public function update(): JSONResponse
     {
         if ($this->userId === null) {

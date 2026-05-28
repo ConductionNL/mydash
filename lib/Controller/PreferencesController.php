@@ -28,7 +28,6 @@ use OCA\MyDash\AppInfo\Application;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
-use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IConfig;
 use OCP\IRequest;
@@ -74,9 +73,9 @@ class PreferencesController extends Controller
      *
      * @spec openspec/specs/admin-settings/spec.md
      */
-    // M7: PHP 8 attribute form — forward-compatible with NC 30+ strict mode.
+    // H4: NoCSRFRequired removed — GET reads benefit from CSRF protection
+    // because NC enforces the token on all non-public requests.
     #[NoAdminRequired]
-    #[NoCSRFRequired]
     public function getPreference(string $key): JSONResponse
     {
         $user = $this->userSession->getUser();
@@ -115,9 +114,9 @@ class PreferencesController extends Controller
      *
      * @spec openspec/specs/admin-settings/spec.md
      */
-    // M7: PHP 8 attribute form — forward-compatible with NC 30+ strict mode.
+    // H4: NoCSRFRequired removed — state-mutating endpoint MUST carry CSRF
+    // protection (policy: @NoCSRFRequired is OR-only, per ADR-022).
     #[NoAdminRequired]
-    #[NoCSRFRequired]
     public function setPreference(string $key, string $value=''): JSONResponse
     {
         $user = $this->userSession->getUser();
