@@ -312,4 +312,75 @@ class FilesWidgetServiceTest extends TestCase
             fileId: 1
         );
     }
+
+    /**
+     * M3: MAX_UPLOAD_BYTES constant is 50 MiB (50 * 1024 * 1024).
+     */
+    public function testMaxUploadBytesIs50Mib(): void
+    {
+        $this->assertSame(52428800, FilesWidgetService::MAX_UPLOAD_BYTES);
+    }//end testMaxUploadBytesIs50Mib()
+
+    /**
+     * M3: upload entries with UPLOAD_ERR_* flags produce an upload_failed
+     * error and do not attempt to write a file.
+     */
+    public function testUploadReturnsErrorForFailedUploadEntries(): void
+    {
+        $this->configuredFolder->method('isReadable')->willReturn(true);
+        $this->configuredFolder->method('isUpdateable')->willReturn(true);
+        $this->userFolder->method('getById')->willReturn([$this->configuredFolder]);
+
+        $result = $this->service->uploadFiles(
+            userId: 'alice',
+            config: ['fileId' => 99, 'allowUpload' => true],
+            currentSubPath: null,
+            uploadedFiles: [
+                [
+                    'name'     => 'bad.txt',
+                    'tmp_name' => '/tmp/doesnotexist',
+                    'error'    => UPLOAD_ERR_PARTIAL,
+                    'size'     => 100,
+                ],
+            ]
+        );
+
+        $this->assertCount(0, $result['uploaded']);
+        $this->assertCount(1, $result['errors']);
+        $this->assertSame('upload_failed', $result['errors'][0]['error']);
+        $this->assertSame('bad.txt', $result['errors'][0]['name']);
+    }//end testUploadReturnsErrorForFailedUploadEntries()
+
+    /**
+     * M3: when a file comes through with UPLOAD_ERR_OK but the path is
+     * not a genuine PHP upload (is_uploaded_file returns false), the
+     * entry must be rejected with upload_failed.
+     *
+     * In a unit-test environment every file path fails is_uploaded_file,
+     * so this covers the security invariant.
+     */
+    public function testUploadRejectsNonUploadedFilePaths(): void
+    {
+        $this->configuredFolder->method('isReadable')->willReturn(true);
+        $this->configuredFolder->method('isUpdateable')->willReturn(true);
+        $this->userFolder->method('getById')->willReturn([$this->configuredFolder]);
+
+        $result = $this->service->uploadFiles(
+            userId: 'alice',
+            config: ['fileId' => 99, 'allowUpload' => true],
+            currentSubPath: null,
+            uploadedFiles: [
+                [
+                    'name'     => 'crafted.txt',
+                    'tmp_name' => '/etc/passwd',
+                    'error'    => UPLOAD_ERR_OK,
+                    'size'     => 100,
+                ],
+            ]
+        );
+
+        $this->assertCount(0, $result['uploaded']);
+        $this->assertCount(1, $result['errors']);
+        $this->assertSame('upload_failed', $result['errors'][0]['error']);
+    }//end testUploadRejectsNonUploadedFilePaths()
 }

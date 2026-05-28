@@ -28,6 +28,7 @@ namespace OCA\MyDash\Controller;
 
 use InvalidArgumentException;
 use OCA\MyDash\AppInfo\Application;
+use OCA\MyDash\Service\ActionAuthService;
 use OCA\MyDash\Service\PermissionDeniedException;
 use OCA\MyDash\Service\ReactionService;
 use OCA\MyDash\Service\ReactionsDisabledException;
@@ -37,6 +38,7 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
+use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -46,20 +48,31 @@ use Throwable;
  * Permission gating is runtime (calls into PermissionService through
  * ReactionService) so every method carries `#[NoAdminRequired]` —
  * non-admins can react if and only if they can VIEW the dashboard.
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects) Reaction controller spans
+ *                                                  the reaction service,
+ *                                                  action-auth service,
+ *                                                  user session, logger,
+ *                                                  and four exception types
+ *                                                  across four routes.
  */
 class DashboardReactionApiController extends Controller
 {
     /**
      * Constructor
      *
-     * @param IRequest        $request         The request.
-     * @param ReactionService $reactionService The reaction service.
-     * @param LoggerInterface $logger          PSR logger.
-     * @param string|null     $userId          The acting user ID.
+     * @param IRequest          $request         The request.
+     * @param ReactionService   $reactionService The reaction service.
+     * @param ActionAuthService $actionAuth      ADR-023 action authorization.
+     * @param IUserSession      $userSession     The current user session.
+     * @param LoggerInterface   $logger          PSR logger.
+     * @param string|null       $userId          The acting user ID.
      */
     public function __construct(
         IRequest $request,
         private readonly ReactionService $reactionService,
+        private readonly ActionAuthService $actionAuth,
+        private readonly IUserSession $userSession,
         private readonly LoggerInterface $logger,
         private readonly ?string $userId,
     ) {
@@ -76,15 +89,18 @@ class DashboardReactionApiController extends Controller
      * @param string $uuid The dashboard UUID.
      *
      * @return JSONResponse The summary.
-         *
+     *
      * @spec openspec/specs/dashboard-reactions/spec.md
- */
+     */
     #[NoAdminRequired]
     public function getReactions(string $uuid): JSONResponse
     {
-        if ($this->userId === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard-reaction.get-reactions');
 
         try {
             $summary = $this->reactionService->getReactionsSummary(
@@ -121,15 +137,18 @@ class DashboardReactionApiController extends Controller
      * @param string $emoji The emoji to add (request body field).
      *
      * @return JSONResponse The updated summary.
-         *
+     *
      * @spec openspec/specs/dashboard-reactions/spec.md
- */
+     */
     #[NoAdminRequired]
     public function addReaction(string $uuid, string $emoji=''): JSONResponse
     {
-        if ($this->userId === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard-reaction.add-reaction');
 
         try {
             $summary = $this->reactionService->addReaction(
@@ -173,15 +192,18 @@ class DashboardReactionApiController extends Controller
      * @param string $emoji The emoji to remove.
      *
      * @return JSONResponse Empty 204 response.
-         *
+     *
      * @spec openspec/specs/dashboard-reactions/spec.md
- */
+     */
     #[NoAdminRequired]
     public function removeReaction(string $uuid, string $emoji): JSONResponse
     {
-        if ($this->userId === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard-reaction.remove-reaction');
 
         try {
             $this->reactionService->removeReaction(
@@ -225,18 +247,21 @@ class DashboardReactionApiController extends Controller
      * @param string|null $cursor Optional opaque cursor (offset).
      *
      * @return JSONResponse The reactors page.
-         *
+     *
      * @spec openspec/specs/dashboard-reactions/spec.md
- */
+     */
     #[NoAdminRequired]
     public function getReactorsByEmoji(
         string $uuid,
         string $emoji,
         ?string $cursor=null
     ): JSONResponse {
-        if ($this->userId === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard-reaction.get-reactors-by-emoji');
 
         try {
             $page = $this->reactionService->getReactorsByEmoji(

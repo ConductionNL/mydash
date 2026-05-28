@@ -29,6 +29,8 @@
     "dashboard.schedule": ["admin"],
     "dashboard.view-event": ["admin"],
     "dashboard-comments.index": ["admin"],
+    "dashboard-comments.create": ["admin"],
+    "dashboard-comments.update": ["admin"],
     "dashboard-comments.destroy": ["admin"],
     "dashboard-lock.acquire": ["admin"],
     "dashboard-lock.get": ["admin"],

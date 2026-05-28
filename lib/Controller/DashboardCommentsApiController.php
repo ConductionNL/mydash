@@ -31,6 +31,7 @@ use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Exception\CommentForbiddenException;
 use OCA\MyDash\Exception\CommentNotFoundException;
 use OCA\MyDash\Exception\InvalidCommentException;
+use OCA\MyDash\Service\ActionAuthService;
 use OCA\MyDash\Service\CommentService;
 use OCA\MyDash\Service\PermissionService;
 use OCP\AppFramework\Controller;
@@ -38,7 +39,9 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\AppFramework\OCS\OCSForbiddenException;
 use OCP\IRequest;
+use OCP\IUserSession;
 
 /**
  * Controller for `/api/dashboards/{uuid}/comments` (REQ-CMNT-001..009).
@@ -47,10 +50,11 @@ use OCP\IRequest;
  *                                                  legitimately spans the
  *                                                  comment service,
  *                                                  permission service,
- *                                                  dashboard mapper and
- *                                                  three exception types
- *                                                  — splitting would
- *                                                  fragment a four-route
+ *                                                  dashboard mapper,
+ *                                                  three exception types,
+ *                                                  and the ADR-023 action
+ *                                                  auth service — splitting
+ *                                                  would fragment a four-route
  *                                                  surface.
  */
 class DashboardCommentsApiController extends Controller
@@ -62,6 +66,8 @@ class DashboardCommentsApiController extends Controller
      * @param CommentService    $commentService    Comment business logic.
      * @param PermissionService $permissionService Dashboard permission resolver.
      * @param DashboardMapper   $dashboardMapper   Used to resolve UUIDs to ids.
+     * @param ActionAuthService $actionAuth        ADR-023 action authorization.
+     * @param IUserSession      $userSession       The current user session.
      * @param string|null       $userId            The acting user (null when
      *                                             unauthenticated).
      */
@@ -70,6 +76,8 @@ class DashboardCommentsApiController extends Controller
         private readonly CommentService $commentService,
         private readonly PermissionService $permissionService,
         private readonly DashboardMapper $dashboardMapper,
+        private readonly ActionAuthService $actionAuth,
+        private readonly IUserSession $userSession,
         private readonly ?string $userId,
     ) {
         parent::__construct(
@@ -87,15 +95,18 @@ class DashboardCommentsApiController extends Controller
      * @param string $uuid The dashboard UUID.
      *
      * @return JSONResponse The list envelope or an error.
-         *
+     *
      * @spec openspec/specs/dashboard-comments/spec.md
- */
+     */
     #[NoAdminRequired]
     public function index(string $uuid): JSONResponse
     {
-        if ($this->userId === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard-comments.index');
 
         try {
             $dashboard = $this->dashboardMapper->findByUuid(uuid: $uuid);
@@ -145,18 +156,21 @@ class DashboardCommentsApiController extends Controller
      * @param mixed       $parentId Optional parent comment id; coerced to int.
      *
      * @return JSONResponse The new comment envelope or an error.
-         *
+     *
      * @spec openspec/specs/dashboard-comments/spec.md
- */
+     */
     #[NoAdminRequired]
     public function create(
         string $uuid,
         ?string $message=null,
         $parentId=null
     ): JSONResponse {
-        if ($this->userId === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard-comments.create');
 
         try {
             $dashboard = $this->dashboardMapper->findByUuid(uuid: $uuid);
@@ -218,18 +232,21 @@ class DashboardCommentsApiController extends Controller
      * @param string|null $message The new message text.
      *
      * @return JSONResponse The updated comment envelope or an error.
-         *
+     *
      * @spec openspec/specs/dashboard-comments/spec.md
- */
+     */
     #[NoAdminRequired]
     public function update(
         string $uuid,
         int $id,
         ?string $message=null
     ): JSONResponse {
-        if ($this->userId === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard-comments.update');
 
         try {
             $dashboard = $this->dashboardMapper->findByUuid(uuid: $uuid);
@@ -284,15 +301,18 @@ class DashboardCommentsApiController extends Controller
      * @param int    $id   The comment ID.
      *
      * @return JSONResponse Empty success or an error envelope.
-         *
+     *
      * @spec openspec/specs/dashboard-comments/spec.md
- */
+     */
     #[NoAdminRequired]
     public function destroy(string $uuid, int $id): JSONResponse
     {
-        if ($this->userId === null) {
+        $user = $this->userSession->getUser();
+        if ($user === null) {
             return new JSONResponse(['error' => 'Not authenticated'], Http::STATUS_UNAUTHORIZED);
         }
+
+        $this->actionAuth->requireAction($user, 'dashboard-comments.destroy');
 
         try {
             $dashboard = $this->dashboardMapper->findByUuid(uuid: $uuid);

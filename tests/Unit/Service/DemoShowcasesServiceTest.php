@@ -33,6 +33,7 @@ use OCP\Dashboard\IManager;
 use OCP\Dashboard\IWidget;
 use OCP\IAppConfig;
 use OCP\IDBConnection;
+use OCP\Lock\ILockingProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -58,6 +59,9 @@ class DemoShowcasesServiceTest extends TestCase
     /** @var IManager&MockObject */
     private $dashboardManager;
 
+    /** @var ILockingProvider&MockObject */
+    private $lockingProvider;
+
     private DemoShowcasesService $service;
 
     private string $fixtureDir;
@@ -71,6 +75,7 @@ class DemoShowcasesServiceTest extends TestCase
         $this->db               = $this->createMock(originalClassName: IDBConnection::class);
         $this->appConfig        = $this->createMock(originalClassName: IAppConfig::class);
         $this->dashboardManager = $this->createMock(originalClassName: IManager::class);
+        $this->lockingProvider  = $this->createMock(originalClassName: ILockingProvider::class);
 
         $this->service = new DemoShowcasesService(
             dashboardMapper: $this->dashboardMapper,
@@ -79,6 +84,7 @@ class DemoShowcasesServiceTest extends TestCase
             appConfig: $this->appConfig,
             dashboardManager: $this->dashboardManager,
             logger: new NullLogger(),
+            lockingProvider: $this->lockingProvider,
         );
 
         $this->fixtureDir = sys_get_temp_dir().'/mydash-showcase-fixture-'.uniqid();

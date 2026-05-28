@@ -27,6 +27,7 @@ use OCA\MyDash\Db\FeedCacheMapper;
 use OCA\MyDash\Db\WidgetPlacement;
 use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCA\MyDash\Service\FeedRefreshService;
+use OCA\MyDash\Service\UrlSafetyValidator;
 use OCP\Http\Client\IClient;
 use OCP\Http\Client\IClientService;
 use OCP\Http\Client\IResponse;
@@ -64,6 +65,9 @@ class FeedRefreshServiceTest extends TestCase
     /** @var LoggerInterface&MockObject */
     private $logger;
 
+    /** @var UrlSafetyValidator&MockObject */
+    private $urlValidator;
+
     private FeedRefreshService $service;
 
     /**
@@ -82,8 +86,11 @@ class FeedRefreshServiceTest extends TestCase
         $this->cacheMapper     = $this->createMock(FeedCacheMapper::class);
         $this->placementMapper = $this->createMock(WidgetPlacementMapper::class);
         $this->logger          = $this->createMock(LoggerInterface::class);
+        $this->urlValidator    = $this->createMock(UrlSafetyValidator::class);
 
         $this->clientService->method('newClient')->willReturn($this->client);
+        // Default: all URLs pass the SSRF guard in unit tests.
+        $this->urlValidator->method('isSafe')->willReturn(true);
 
         $this->service = new FeedRefreshService(
             clientService: $this->clientService,
@@ -92,6 +99,7 @@ class FeedRefreshServiceTest extends TestCase
             cacheMapper: $this->cacheMapper,
             placementMapper: $this->placementMapper,
             logger: $this->logger,
+            urlValidator: $this->urlValidator,
         );
     }//end setUp()
 

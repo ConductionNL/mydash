@@ -36,6 +36,8 @@ declare(strict_types=1);
 
 namespace OCA\MyDash\Service;
 
+use OCA\MyDash\Exception\FileTooLargeException;
+use OCA\MyDash\Exception\FileTypeNotAllowedException;
 use OCA\MyDash\Exception\FolderNotFoundException;
 use OCA\MyDash\Exception\NoAccessException;
 use OCP\Constants;
@@ -74,6 +76,16 @@ class FilesWidgetService
      * @var integer
      */
     public const MAX_LIMIT = 200;
+
+    /**
+     * Maximum allowed upload size per file in bytes (50 MB).
+     *
+     * Rejects individual files larger than this before they reach
+     * Nextcloud's storage layer (M3 DoS / resource-exhaustion guard).
+     *
+     * @var integer
+     */
+    public const MAX_UPLOAD_BYTES = 52428800;
 
     /**
      * Constructor.
@@ -202,12 +214,19 @@ class FilesWidgetService
             throw new NoAccessException();
         }
 
+        // M3: normalise the placement's MIME type filter so we can gate
+        // uploads against it (same filter already enforced on reads).
+        $mimeFilter = $this->normaliseMimeFilter(
+            filter: ($config['mimeTypeFilter'] ?? [])
+        );
+
         $uploaded = [];
         $errors   = [];
         foreach ($uploadedFiles as $entry) {
             $name  = (string) $entry['name'];
             $tmp   = (string) $entry['tmp_name'];
             $error = (int) $entry['error'];
+            $size  = (int) $entry['size'];
 
             if ($name === '' || $error !== UPLOAD_ERR_OK || $tmp === '') {
                 $errors[] = [
@@ -217,17 +236,65 @@ class FilesWidgetService
                 continue;
             }
 
+            // M3: assert the temp file came through a real PHP upload to
+            // prevent local-file-inclusion via a crafted tmp_name.
+            if (is_uploaded_file(filename: $tmp) === false) {
+                $errors[] = [
+                    'name'  => $name,
+                    'error' => 'upload_failed',
+                ];
+                continue;
+            }
+
+            // M3: reject files that exceed the hard size cap.
+            if ($size > self::MAX_UPLOAD_BYTES) {
+                $errors[] = [
+                    'name'  => $name,
+                    'error' => 'file_too_large',
+                ];
+                continue;
+            }
+
+            // M3: honour the placement MIME type filter on writes so
+            // uploads cannot bypass a restrict-to-images-only config.
+            if ($mimeFilter !== []) {
+                $detectedMime = $this->detectMimeType(path: $tmp);
+                if ($this->mimeMatchesFilter(mime: $detectedMime, filter: $mimeFilter) === false) {
+                    $errors[] = [
+                        'name'  => $name,
+                        'error' => 'file_type_not_allowed',
+                    ];
+                    continue;
+                }
+            }
+
             $safeName = $this->resolveAvailableName(folder: $target, desired: $name);
             try {
-                $contents   = (string) @file_get_contents(filename: $tmp);
-                $file       = $target->newFile(path: $safeName, content: $contents);
+                // M3: stream-write to avoid loading the entire file into
+                // memory before handing it to Nextcloud's storage layer.
+                $handle = @fopen(filename: $tmp, mode: 'rb');
+                if ($handle === false) {
+                    throw new \RuntimeException('Cannot open temporary file');
+                }
+
+                $file      = $target->newFile(path: $safeName);
+                $outHandle = $file->fopen(mode: 'w');
+                if ($outHandle === false) {
+                    fclose($handle);
+                    throw new \RuntimeException('Cannot open destination file');
+                }
+
+                stream_copy_to_stream(from: $handle, to: $outHandle);
+                fclose($handle);
+                fclose($outHandle);
+
                 $uploaded[] = $this->buildFileMetadata(node: $file);
             } catch (Throwable $e) {
                 $errors[] = [
                     'name'  => $name,
                     'error' => 'storage_failed',
                 ];
-            }
+            }//end try
         }//end foreach
 
         return [
@@ -548,6 +615,65 @@ class FilesWidgetService
 
         return false;
     }//end matchesMimeFilter()
+
+    /**
+     * Detect the MIME type of a local file path using PHP's finfo
+     * extension (falling back to 'application/octet-stream').
+     *
+     * Used by uploadFiles to enforce the placement's mimeTypeFilter
+     * on writes (M3).
+     *
+     * @param string $path Absolute path to the local file.
+     *
+     * @return string The detected MIME type (lowercase).
+     */
+    private function detectMimeType(string $path): string
+    {
+        if (function_exists('finfo_open') === true) {
+            $finfo = finfo_open(flags: FILEINFO_MIME_TYPE);
+            if ($finfo !== false) {
+                $mime = finfo_file(finfo: $finfo, filename: $path);
+                finfo_close(finfo: $finfo);
+                if (is_string(value: $mime) === true && $mime !== '') {
+                    return strtolower(string: $mime);
+                }
+            }
+        }
+
+        return 'application/octet-stream';
+    }//end detectMimeType()
+
+    /**
+     * Test a raw MIME type string against a normalised filter list.
+     *
+     * Accepts both exact matches (`image/png`) and wildcard prefixes
+     * (`image/*`) — mirrors the read-path `matchesMimeFilter` but
+     * operates on a raw string rather than a Node.
+     *
+     * @param string       $mime   The detected MIME type.
+     * @param list<string> $filter Normalised filter list.
+     *
+     * @return boolean True when the MIME passes the filter.
+     */
+    private function mimeMatchesFilter(string $mime, array $filter): bool
+    {
+        if (count($filter) === 0) {
+            return true;
+        }
+
+        foreach ($filter as $pattern) {
+            if (str_ends_with(haystack: $pattern, needle: '/*') === true) {
+                $prefix = substr(string: $pattern, offset: 0, length: -1);
+                if (str_starts_with(haystack: $mime, needle: $prefix) === true) {
+                    return true;
+                }
+            } else if ($pattern === $mime) {
+                return true;
+            }
+        }
+
+        return false;
+    }//end mimeMatchesFilter()
 
     /**
      * Sort an item list according to the placement config.

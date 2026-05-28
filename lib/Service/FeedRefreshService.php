@@ -118,6 +118,7 @@ class FeedRefreshService
      * @param FeedCacheMapper       $cacheMapper     The feed-cache mapper.
      * @param WidgetPlacementMapper $placementMapper The widget-placement mapper.
      * @param LoggerInterface       $logger          The diagnostic logger.
+     * @param UrlSafetyValidator    $urlValidator    SSRF guard (H3).
      */
     public function __construct(
         private readonly IClientService $clientService,
@@ -126,6 +127,7 @@ class FeedRefreshService
         private readonly FeedCacheMapper $cacheMapper,
         private readonly WidgetPlacementMapper $placementMapper,
         private readonly LoggerInterface $logger,
+        private readonly UrlSafetyValidator $urlValidator,
     ) {
     }//end __construct()
 
@@ -227,8 +229,8 @@ class FeedRefreshService
         }
 
         // H3: SSRF guard — reject URLs that resolve to private/reserved IP
-        // ranges and enforce HTTPS-only. Mirrors CalendarWidgetService::validateUrl.
-        if ($this->isPrivateIpGuarded(feedUrl: $feedUrl) === false) {
+        // ranges and enforce HTTPS-only. Delegates to UrlSafetyValidator.
+        if ($this->urlValidator->isSafe(url: $feedUrl) === false) {
             $row->setLastFailureReason('SSRF guard: private/reserved IP or non-HTTPS URL rejected');
             $row->setLastFetchedAt($now);
             $this->cacheMapper->update(entity: $row);
@@ -565,7 +567,7 @@ class FeedRefreshService
         } finally {
             libxml_clear_errors();
             libxml_use_internal_errors(use_errors: $previous);
-        }
+        }//end try
 
         $sourceTitle = $this->extractFeedTitle(xml: $xml, feedUrl: $feedUrl);
         $items       = [];
@@ -794,61 +796,6 @@ class FeedRefreshService
      *
      * @return bool True if the host is allowed.
      */
-    /**
-     * Guard a feed URL against private/reserved IP ranges (H3 — SSRF fix).
-     *
-     * Mirrors the logic in CalendarWidgetService::validateUrl: resolves the
-     * hostname via gethostbynamel() and rejects any IP that falls in a
-     * private/reserved range. Also enforces HTTPS-only for feed sources as
-     * an additional defence-in-depth measure.
-     *
-     * Note: this performs a DNS resolution at allow-list time. The HTTP
-     * client will later re-resolve the hostname (TOCTOU), but for feed
-     * refresh the background-job context means the attack window is narrow
-     * and this guard is already a significant improvement over no check.
-     *
-     * @param string $feedUrl The feed URL to validate.
-     *
-     * @return bool True when the URL passes the private-IP guard.
-     */
-    private function isPrivateIpGuarded(string $feedUrl): bool
-    {
-        $parts = parse_url(url: $feedUrl);
-        if (is_array(value: $parts) === false) {
-            return false;
-        }
-
-        // Enforce HTTPS-only for feed sources (H3 defence-in-depth).
-        $scheme = strtolower(string: (string) ($parts['scheme'] ?? ''));
-        if ($scheme !== 'https') {
-            return false;
-        }
-
-        $host = (string) ($parts['host'] ?? '');
-        if ($host === '') {
-            return false;
-        }
-
-        // Resolve and reject private/reserved IPs — mirrors CalendarWidgetService.
-        $ips = gethostbynamel(hostname: $host);
-        if ($ips === false || $ips === []) {
-            return false;
-        }
-
-        foreach ($ips as $ip) {
-            $publicIp = filter_var(
-                value: $ip,
-                filter: FILTER_VALIDATE_IP,
-                options: (FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)
-            );
-            if ($publicIp === false) {
-                return false;
-            }
-        }
-
-        return true;
-    }//end isPrivateIpGuarded()
-
     private function isHostAllowed(string $feedUrl): bool
     {
         $allowedRaw = $this->appConfig->getValueString(
