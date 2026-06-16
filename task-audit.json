@@ -1,0 +1,111 @@
+{
+  "spec": "openspec/changes/allow-personal-dashboards-flag",
+  "verified": [
+    {
+      "task": "1.1",
+      "file": "lib/Service/DashboardService.php",
+      "ok": true,
+      "note": "assertPersonalDashboardsAllowed() at line 1757, getAllowUserDashboards() at line 1736"
+    },
+    {
+      "task": "1.2",
+      "file": "lib/Exception/PersonalDashboardsDisabledException.php",
+      "ok": true,
+      "note": "errorCode='personal_dashboards_disabled', httpStatus=403"
+    },
+    {
+      "task": "1.3",
+      "file": "lib/Controller/DashboardApiController.php",
+      "ok": true,
+      "note": "create() calls assertPersonalDashboardsAllowed() at line 299 (duplicate removed); fork() catches PersonalDashboardsDisabledException at line 1100"
+    },
+    {
+      "task": "1.4",
+      "file": "lib/Controller/DashboardApiController.php",
+      "ok": true,
+      "note": "update(), delete(), visible() do not call assertPersonalDashboardsAllowed()"
+    },
+    {
+      "task": "1.5",
+      "file": "lib/Controller/PageController.php",
+      "ok": true,
+      "note": "getAllowUserDashboards() result passed to InitialStateBuilder.setAllowUserDashboards() at line 289-306"
+    },
+    {
+      "task": "1.6",
+      "file": "lib/Settings/MyDashAdmin.php",
+      "ok": true,
+      "note": "allowUserDashboards surfaced in admin page initial state at line 122-131; AdminSettingsService also exposes it"
+    },
+    {
+      "task": "2.1",
+      "file": "src/components/Workspace/DashboardSwitcherSidebar.vue",
+      "ok": true,
+      "note": "v-if='allowUserDashboards' on '+ New Dashboard' button at line 243"
+    },
+    {
+      "task": "2.2",
+      "file": "src/components/DashboardConfigMenu.vue",
+      "ok": true,
+      "note": "Added 'Fork as personal...' button gated by v-if='allowUserDashboards && !isActiveOwner && activeDashboardId'"
+    },
+    {
+      "task": "2.3",
+      "file": "src/stores/dashboard.js",
+      "ok": true,
+      "note": "showError() on personal_dashboards_disabled 403 in createDashboard() and forkDashboard()"
+    },
+    {
+      "task": "2.4",
+      "file": "src/components/admin/AdminSettings.vue",
+      "ok": true,
+      "note": "Helper text 'Disabling this only blocks creating new personal dashboards. Existing personal dashboards remain visible and editable.' at line 72"
+    },
+    {
+      "task": "3.1",
+      "file": "tests/Unit/Service/DashboardServiceAllowFlagTest.php",
+      "ok": true,
+      "note": "testExceptionEnvelopeShape() verifies error code, HTTP 403, and message"
+    },
+    {
+      "task": "3.2",
+      "file": "tests/Unit/Service/DashboardServiceAllowFlagTest.php",
+      "ok": true,
+      "note": "testExistingDashboardsRemainReadableWhenFlagOff() and testExistingDashboardsRemainEditableWhenFlagOff()"
+    },
+    {
+      "task": "3.3",
+      "file": "tests/Unit/Service/DashboardServiceAllowFlagTest.php",
+      "ok": true,
+      "note": "testTogglingFlagDoesNotMutateData() asserts no insert/update/delete calls"
+    },
+    {
+      "task": "4.1",
+      "file": "composer.json",
+      "ok": true,
+      "note": "composer check:strict exits 0"
+    },
+    {
+      "task": "4.3",
+      "file": "l10n/en.json",
+      "ok": true,
+      "note": "Translation entries in en.json, nl.json, en.js, nl.js"
+    }
+  ],
+  "stubs": [],
+  "missing_routes": [],
+  "open_tasks": [
+    {
+      "task": "3.4",
+      "note": "Playwright tests require browser; deferred to integration testing phase"
+    },
+    {
+      "task": "3.5",
+      "note": "Playwright tests require browser; deferred to integration testing phase"
+    },
+    {
+      "task": "4.2",
+      "note": "OpenAPI spec not present in repo; no existing openapi.json to update"
+    }
+  ]
+}

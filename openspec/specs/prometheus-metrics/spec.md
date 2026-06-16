@@ -12,6 +12,9 @@ Expose application metrics in Prometheus text exposition format at `GET /api/met
 
 Metrics are collected at request time from database queries and system information. No persistent metrics storage is used -- all values are computed on-demand.
 
+
+@e2e exclude pure backend — all scenarios are PHP/service/API/data-layer; no UI surface
+
 ### Metrics Architecture
 - **MetricsController**: Handles HTTP request, formats output as Prometheus text exposition
 - **MetricsCollector**: Orchestrates metric collection, delegates to MetricsQueryService
@@ -20,7 +23,7 @@ Metrics are collected at request time from database queries and system informati
 
 ## Requirements
 
-### REQ-PROM-001: Metrics Endpoint
+### Requirement: Metrics Endpoint (REQ-PROM-001)
 
 The system MUST expose a Prometheus-compatible metrics endpoint accessible to admin users.
 
@@ -49,7 +52,7 @@ The system MUST expose a Prometheus-compatible metrics endpoint accessible to ad
 - THEN the body MUST end with a newline character (Prometheus exposition format requirement)
 - AND each metric MUST be on its own line separated by `\n`
 
-### REQ-PROM-002: Application Info Metric
+### Requirement: Application Info Metric (REQ-PROM-002)
 
 The system MUST expose an info metric with version labels.
 
@@ -76,7 +79,7 @@ The system MUST expose an info metric with version labels.
 - WHEN the info metric is collected
 - THEN the version MUST default to "0.0.0"
 
-### REQ-PROM-003: Application Up Metric
+### Requirement: Application Up Metric (REQ-PROM-003)
 
 The system MUST expose an up metric indicating application health.
 
@@ -96,7 +99,7 @@ The system MUST expose an up metric indicating application health.
 - THEN `mydash_up` MUST be 1 (if the endpoint can respond, the app is up)
 - NOTE: The current implementation always returns 1. A degraded state (0) would only occur if the endpoint itself cannot respond.
 
-### REQ-PROM-004: Dashboard Count Metrics
+### Requirement: Dashboard Count Metrics (REQ-PROM-004)
 
 The system MUST expose dashboard count metrics grouped by type.
 
@@ -132,7 +135,7 @@ The system MUST expose dashboard count metrics grouped by type.
   ```
 - AND the error MUST NOT cause the entire metrics response to fail
 
-### REQ-PROM-005: Widget Placement Count Metric
+### Requirement: Widget Placement Count Metric (REQ-PROM-005)
 
 The system MUST expose the total number of widget placements.
 
@@ -152,7 +155,7 @@ The system MUST expose the total number of widget placements.
 - THEN the system MUST return 0 for the widget count
 - AND log a warning
 
-### REQ-PROM-006: Tile Count Metric
+### Requirement: Tile Count Metric (REQ-PROM-006)
 
 The system MUST expose the total number of tile definitions.
 
@@ -172,7 +175,7 @@ The system MUST expose the total number of tile definitions.
 - THEN the system MUST return 0 for the tile count
 - AND log a warning
 
-### REQ-PROM-007: Health Check Endpoint
+### Requirement: Health Check Endpoint (REQ-PROM-007)
 
 The system MUST expose a health check endpoint for monitoring and container orchestration.
 
@@ -215,7 +218,7 @@ The system MUST expose a health check endpoint for monitoring and container orch
 - AND if the query succeeds, the database check MUST be "ok"
 - AND if the query throws an exception, the database check MUST be "error"
 
-### REQ-PROM-008: Metrics Collection Architecture
+### Requirement: Metrics Collection Architecture (REQ-PROM-008)
 
 The metrics collection MUST follow a clean architecture with separate concerns.
 
@@ -239,7 +242,7 @@ The metrics collection MUST follow a clean architecture with separate concerns.
 - AND tile metrics MUST show the actual count
 - AND the overall response MUST still be returned (partial failure is acceptable)
 
-### REQ-PROM-009: Active Users Metric
+### Requirement: Active Users Metric (REQ-PROM-009)
 
 The system SHALL expose the number of active users (users with at least one dashboard).
 
@@ -254,7 +257,7 @@ The system SHALL expose the number of active users (users with at least one dash
   ```
 - NOTE: This metric is NOT currently implemented.
 
-### REQ-PROM-010: Metrics Endpoint Performance
+### Requirement: Metrics Endpoint Performance (REQ-PROM-010)
 
 The metrics endpoint MUST respond quickly to avoid blocking Prometheus scrape intervals.
 

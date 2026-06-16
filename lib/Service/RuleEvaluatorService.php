@@ -20,8 +20,6 @@ namespace OCA\MyDash\Service;
 
 use DateTime;
 use OCA\MyDash\Db\ConditionalRule;
-use OCP\IGroupManager;
-use OCP\IUserManager;
 
 /**
  * Service for evaluating conditional rules against user context.
@@ -31,13 +29,14 @@ class RuleEvaluatorService
     /**
      * Constructor
      *
-     * @param IGroupManager         $groupManager The group manager interface.
-     * @param IUserManager          $userManager  The user manager interface.
-     * @param UserAttributeResolver $attrResolver The attribute resolver.
+     * @param AdminTemplateService  $adminTemplateService Routing resolver — single
+     *                                                    source of truth for
+     *                                                    `IGroupManager::getUserGroupIds`
+     *                                                    (REQ-TMPL-013).
+     * @param UserAttributeResolver $attrResolver         The attribute resolver.
      */
     public function __construct(
-        private readonly IGroupManager $groupManager,
-        private readonly IUserManager $userManager,
+        private readonly AdminTemplateService $adminTemplateService,
         private readonly UserAttributeResolver $attrResolver,
     ) {
     }//end __construct()
@@ -45,10 +44,17 @@ class RuleEvaluatorService
     /**
      * Evaluate a single rule.
      *
+     * Dispatcher for all rule types — group (REQ-VIS-005), time
+     * (REQ-VIS-006), date (REQ-VIS-007) and attribute (REQ-VIS-008) rules
+     * are all evaluated through private helpers below. Public surface is
+     * tagged against the dispatch Requirement (REQ-VIS-010).
+     *
      * @param ConditionalRule $rule   The rule to evaluate.
      * @param string          $userId The user ID.
      *
      * @return bool Whether the rule matches.
+     *
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-14
      */
     public function evaluateRule(
         ConditionalRule $rule,
@@ -93,12 +99,14 @@ class RuleEvaluatorService
             return false;
         }
 
-        $user = $this->userManager->get(uid: $userId);
-        if ($user === null) {
+        // Group memberships are read through the routing resolver so the
+        // single-source-of-truth invariant (REQ-TMPL-013) holds.
+        $userGroups = $this->adminTemplateService->getUserGroupIdsFor(
+            userId: $userId
+        );
+        if ($userGroups === []) {
             return false;
         }
-
-        $userGroups = $this->groupManager->getUserGroupIds(user: $user);
 
         return empty(array_intersect($userGroups, $targetGroups)) === false;
     }//end evaluateGroupRule()

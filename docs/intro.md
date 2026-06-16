@@ -1,5 +1,6 @@
 ---
 sidebar_position: 1
+description: Get started with MyDash, customizable dashboards for Nextcloud. Compose KPI widgets and live charts on top of your OpenRegister data.
 ---
 
 # MyDash

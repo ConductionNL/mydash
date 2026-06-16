@@ -12,6 +12,9 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
+ *
+ * @spec openspec/changes/archive/2026-05-24-retrofit-widgets/tasks.md#task-2
+ * @spec openspec/changes/archive/2026-05-24-retrofit-widgets/tasks.md#task-3
  */
 
 declare(strict_types=1);
@@ -36,6 +39,9 @@ class WidgetItemLoader
      * @param int    $limit     Maximum items per widget.
      *
      * @return array The widget items keyed by widget ID.
+     *
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-33
+     * @spec openspec/changes/archive/2026-05-24-retrofit-widgets/tasks.md#task-2
      */
     public function loadItems(
         array $widgets,
@@ -68,6 +74,8 @@ class WidgetItemLoader
      * @param int     $limit  Maximum items.
      *
      * @return array The widget items data.
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-widgets/tasks.md#task-2
      */
     private function loadSingleWidget(
         IWidget $widget,
@@ -105,6 +113,8 @@ class WidgetItemLoader
      * @param int          $limit  Maximum items.
      *
      * @return array The serialized items data.
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-widgets/tasks.md#task-3
      */
     private function loadV2Items(
         IAPIWidgetV2 $widget,
@@ -136,6 +146,8 @@ class WidgetItemLoader
      * @param int        $limit  Maximum items.
      *
      * @return array The serialized items data.
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-widgets/tasks.md#task-3
      */
     private function loadV1Items(
         IAPIWidget $widget,

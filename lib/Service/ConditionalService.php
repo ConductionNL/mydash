@@ -43,36 +43,6 @@ class ConditionalService
     }//end __construct()
 
     /**
-     * Check if a widget placement should be visible for a user.
-     *
-     * @param WidgetPlacement $placement The widget placement.
-     * @param string          $userId    The user ID.
-     *
-     * @return bool Whether the widget is visible.
-     */
-    public function isWidgetVisible(
-        WidgetPlacement $placement,
-        string $userId
-    ): bool {
-        if ($placement->getIsVisible() === false) {
-            return false;
-        }
-
-        $rules = $this->ruleMapper->findByPlacementId(
-            placementId: $placement->getId()
-        );
-
-        if (empty($rules) === true) {
-            return true;
-        }
-
-        return $this->visibilityChecker->checkRules(
-            rules: $rules,
-            userId: $userId
-        );
-    }//end isWidgetVisible()
-
-    /**
      * Evaluate a single rule.
      *
      * @param ConditionalRule $rule   The rule to evaluate.
@@ -80,6 +50,7 @@ class ConditionalService
      *
      * @return bool Whether the rule matches.
      */
+    /** @spec openspec/specs/conditional-visibility/spec.md */
     public function evaluateRule(
         ConditionalRule $rule,
         string $userId
@@ -91,11 +62,44 @@ class ConditionalService
     }//end evaluateRule()
 
     /**
+     * Check whether all rules for a placement allow visibility for a user.
+     *
+     * Fetches the rules for the placement and delegates to
+     * {@see VisibilityChecker::checkRules()} for include/exclude
+     * aggregation logic (REQ-VIS-003). Returns `true` when no rules
+     * are configured (no restriction = visible).
+     *
+     * @param int    $placementId The widget placement ID.
+     * @param string $userId      The acting user's UID.
+     *
+     * @return bool `true` when the placement is visible for the user.
+     *
+     * @spec openspec/specs/conditional-visibility/spec.md
+     */
+    public function checkRulesForPlacement(int $placementId, string $userId): bool
+    {
+        $rules = $this->ruleMapper->findByPlacementId(
+            placementId: $placementId
+        );
+
+        if (empty($rules) === true) {
+            return true;
+        }
+
+        return $this->visibilityChecker->checkRules(
+            rules: $rules,
+            userId: $userId
+        );
+    }//end checkRulesForPlacement()
+
+    /**
      * Get rules for a placement.
      *
      * @param int $placementId The placement ID.
      *
      * @return ConditionalRule[] The list of rules.
+     *
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-9
      */
     public function getRules(int $placementId): array
     {
@@ -103,6 +107,27 @@ class ConditionalService
             placementId: $placementId
         );
     }//end getRules()
+
+    /**
+     * Fetch a single rule by its primary key.
+     *
+     * Used by the controller before calling updateRule/deleteRule so that
+     * ownership of the associated placement can be verified first
+     * (C4 fix: REQ-PERM-001).
+     *
+     * @param int $ruleId The rule primary key.
+     *
+     * @return ConditionalRule The found rule.
+     *
+     * @throws \OCP\AppFramework\Db\DoesNotExistException When the rule does
+     *                                                     not exist.
+     *
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-10
+     */
+    public function findRule(int $ruleId): ConditionalRule
+    {
+        return $this->ruleMapper->find(id: $ruleId);
+    }//end findRule()
 
     /**
      * Add a rule to a placement.
@@ -113,6 +138,8 @@ class ConditionalService
      * @param bool   $isInclude   Whether this is an include rule.
      *
      * @return ConditionalRule The created rule.
+     *
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-8
      */
     public function addRule(
         int $placementId,
@@ -139,6 +166,8 @@ class ConditionalService
      * @param array $data   The data to update.
      *
      * @return ConditionalRule The updated rule.
+     *
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-10
      */
     public function updateRule(int $ruleId, array $data): ConditionalRule
     {
@@ -165,6 +194,8 @@ class ConditionalService
      * @param int $ruleId The rule ID.
      *
      * @return void
+     *
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-11
      */
     public function deleteRule(int $ruleId): void
     {

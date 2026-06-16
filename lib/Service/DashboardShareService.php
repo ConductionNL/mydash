@@ -82,6 +82,8 @@ class DashboardShareService
      * @return DashboardShare[] The shares.
      *
      * @throws Exception When the user is not the dashboard owner.
+     *
+     * @spec openspec/specs/dashboard-sharing/spec.md
      */
     public function listShares(int $dashboardId, string $userId): array
     {
@@ -102,6 +104,8 @@ class DashboardShareService
      * @return DashboardShare The persisted share.
      *
      * @throws Exception When the caller is not the owner or input is invalid.
+     *
+     * @spec openspec/specs/dashboard-sharing/spec.md
      */
     public function addShare(
         int $dashboardId,
@@ -148,6 +152,8 @@ class DashboardShareService
      * @return void
      *
      * @throws Exception When the share does not exist or caller is not owner.
+     *
+     * @spec openspec/specs/dashboard-sharing/spec.md
      */
     public function removeShare(int $shareId, string $callerId): void
     {
@@ -178,6 +184,8 @@ class DashboardShareService
      *
      * @throws Exception    When the caller is not the owner or input is invalid.
      * @throws Throwable    On DB error (rolls back).
+     *
+     * @spec openspec/specs/dashboard-sharing/spec.md
      */
     public function replaceShares(
         int $dashboardId,
@@ -262,6 +270,8 @@ class DashboardShareService
      * @return int The number of share rows deleted.
      *
      * @throws InvalidArgumentException When shareType is invalid.
+     *
+     * @spec openspec/specs/dashboard-sharing/spec.md
      */
     public function revokeAllForRecipient(
         string $shareType,
@@ -287,6 +297,42 @@ class DashboardShareService
     }//end revokeAllForRecipient()
 
     /**
+     * Resolve every share that grants the given user access to a dashboard,
+     * keyed by dashboard id. When the user is reached via multiple shares
+     * (e.g. direct + group), the most permissive level wins.
+     *
+     * Used by PermissionService to compute effective access on dashboards
+     * the user does not own. REQ-SHARE-002, REQ-SHARE-004.
+     *
+     * @param string   $userId   The recipient user id.
+     * @param string[] $groupIds The recipient's group ids.
+     *
+     * @return array<int,string> Map of dashboardId => permission level.
+     *
+     * @spec openspec/specs/dashboard-sharing/spec.md
+     */
+    public function resolveSharedDashboards(string $userId, array $groupIds): array
+    {
+        $shares = $this->shareMapper->findForRecipient(
+            userId: $userId,
+            groupIds: $groupIds
+        );
+
+        $result = [];
+        foreach ($shares as $share) {
+            $dashboardId  = (int) $share->getDashboardId();
+            $currentLevel = (string) $share->getPermissionLevel();
+            $currentRank  = (self::LEVEL_ORDER[$currentLevel] ?? 0);
+            $existingRank = (self::LEVEL_ORDER[$result[$dashboardId] ?? ''] ?? -1);
+            if ($currentRank > $existingRank) {
+                $result[$dashboardId] = $currentLevel;
+            }
+        }
+
+        return $result;
+    }//end resolveSharedDashboards()
+
+    /**
      * Transfer dashboard ownership to a new user.
      *
      * Updates the dashboard's user_id, removes the share row that
@@ -297,6 +343,8 @@ class DashboardShareService
      * @param string $newUserId   The new owner's user ID.
      *
      * @return void
+     *
+     * @spec openspec/specs/dashboard-sharing/spec.md
      */
     public function transferOwnership(int $dashboardId, string $newUserId): void
     {
@@ -328,6 +376,8 @@ class DashboardShareService
      * @param string $dashboardName The dashboard name.
      *
      * @return void
+     *
+     * @spec openspec/specs/dashboard-sharing/spec.md
      */
     public function notifyOwnershipTransferred(
         string $newOwnerId,
@@ -340,7 +390,7 @@ class DashboardShareService
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
             ->setUser($newOwnerId)
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
-            ->setDateTime(new \DateTime())
+            ->setDateTime(new DateTime())
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
             ->setObject('dashboard', (string) $dashboardId)
             // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
@@ -447,7 +497,7 @@ class DashboardShareService
                 // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
                 ->setUser($recipientId)
                 // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
-                ->setDateTime(new \DateTime())
+                ->setDateTime(new DateTime())
                 // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters
                 ->setObject('dashboard', (string) $share->getDashboardId())
                 // phpcs:ignore CustomSniffs.Functions.NamedParameters.RequireNamedParameters

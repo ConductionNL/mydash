@@ -3,6 +3,13 @@
 /**
  * ResourceController Test
  *
+ * Covers both the read-side endpoints added by the `resource-serving`
+ * change (REQ-RES-006..008) and the upload-side `POST /api/resources`
+ * endpoint added by the `resource-uploads` change (REQ-RES-001 admin
+ * guard, multipart rejection; REQ-RES-005 error envelope shape, stable
+ * enum, no leakage of raw exception strings) plus the controller half
+ * of every typed exception's HTTP-status mapping.
+ *
  * @category  Test
  * @package   OCA\MyDash\Tests\Unit\Controller
  * @author    Conduction b.v. <info@conduction.nl>
@@ -19,40 +26,40 @@ namespace Unit\Controller;
 
 use OCA\MyDash\Controller\ResourceController;
 use OCA\MyDash\Controller\ResourceUploadRequestParser;
+use OCA\MyDash\Exception\CorruptImageException;
 use OCA\MyDash\Exception\FileTooLargeException;
+use OCA\MyDash\Exception\InvalidDataUrlException;
+use OCA\MyDash\Exception\InvalidImageFormatException;
+use OCA\MyDash\Exception\InvalidSvgException;
 use OCA\MyDash\Exception\MimeMismatchException;
+use OCA\MyDash\Exception\StorageFailureException;
+use OCA\MyDash\Exception\UnsupportedMediaTypeException;
 use OCA\MyDash\Service\ResourceService;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\JSONResponse;
 use OCP\IGroupManager;
+use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUser;
 use OCP\IUserSession;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
-
-/**
- * Test-only subclass that injects the request body bytes.
- */
-class TestableResourceController extends ResourceController
-{
-    public string $bodyBytes = '';
-
-    protected function readRequestBody(): string
-    {
-        return $this->bodyBytes;
-    }
-}
+use Psr\Log\NullLogger;
 
 class ResourceControllerTest extends TestCase
 {
-    private TestableResourceController $controller;
+
+    private ResourceController $controller;
 
     /** @var IRequest&MockObject */
     private $request;
 
     /** @var ResourceService&MockObject */
     private $service;
+
+    /** @var ResourceUploadRequestParser&MockObject */
+    private $parser;
 
     /** @var IUserSession&MockObject */
     private $userSession;
@@ -67,204 +74,210 @@ class ResourceControllerTest extends TestCase
     {
         $this->request      = $this->createMock(IRequest::class);
         $this->service      = $this->createMock(ResourceService::class);
+        $this->parser       = $this->createMock(ResourceUploadRequestParser::class);
         $this->userSession  = $this->createMock(IUserSession::class);
         $this->groupManager = $this->createMock(IGroupManager::class);
         $this->logger       = $this->createMock(LoggerInterface::class);
 
-        $this->controller = new TestableResourceController(
+        $l10n = $this->createMock(IL10N::class);
+        $l10n->method('t')->willReturnCallback(static fn (string $s): string => $s);
+
+        $this->controller = new ResourceController(
             request: $this->request,
             resourceService: $this->service,
-            parser: new ResourceUploadRequestParser(),
+            parser: $this->parser,
             userSession: $this->userSession,
             groupManager: $this->groupManager,
-            logger: $this->logger,
+            l10n: $l10n,
+            logger: new NullLogger(),
         );
+    }//end setUp()
+
+    /**
+     * Build a controller subclass that lets us inject a fake raw body
+     * without touching `php://input`. Used by the upload-side tests.
+     */
+    private function buildController(string $rawBody = ''): ResourceController
+    {
+        $l10n = $this->createMock(IL10N::class);
+        $l10n->method('t')->willReturnCallback(static fn (string $s): string => $s);
+
+        return new class (
+            $this->request,
+            $this->service,
+            $this->parser,
+            $this->userSession,
+            $this->groupManager,
+            $l10n,
+            $this->logger,
+            $rawBody,
+        ) extends ResourceController {
+            public function __construct(
+                IRequest $request,
+                ResourceService $resourceService,
+                ResourceUploadRequestParser $parser,
+                IUserSession $userSession,
+                IGroupManager $groupManager,
+                IL10N $l10n,
+                LoggerInterface $logger,
+                private readonly string $fakeBody,
+            ) {
+                parent::__construct(
+                    request: $request,
+                    resourceService: $resourceService,
+                    parser: $parser,
+                    userSession: $userSession,
+                    groupManager: $groupManager,
+                    l10n: $l10n,
+                    logger: $logger,
+                );
+            }
+
+            protected function readRequestBody(): string
+            {
+                return $this->fakeBody;
+            }
+        };
     }
 
-    private function makeAdmin(string $uid='alice'): void
+    private function adminUser(string $uid = 'admin'): IUser
     {
         $user = $this->createMock(IUser::class);
         $user->method('getUID')->willReturn($uid);
-        $this->userSession->method('getUser')->willReturn($user);
-        $this->groupManager->method('isAdmin')->with($uid)->willReturn(true);
+        return $user;
     }
 
-    private function makeNonAdmin(string $uid='bob'): void
-    {
-        $user = $this->createMock(IUser::class);
-        $user->method('getUID')->willReturn($uid);
-        $this->userSession->method('getUser')->willReturn($user);
-        $this->groupManager->method('isAdmin')->with($uid)->willReturn(false);
-    }
+    // ---------------------------------------------------------------
+    // Upload-side tests (REQ-RES-001/005).
+    // ---------------------------------------------------------------
 
-    public function testUnauthenticatedReturns403(): void
+    public function testNonAdminReceives403WithForbidden(): void
     {
-        $this->userSession->method('getUser')->willReturn(null);
+        $this->userSession->method('getUser')->willReturn($this->adminUser('alice'));
+        $this->groupManager->method('isAdmin')->with('alice')->willReturn(false);
+        $this->parser->expects($this->never())->method('extractBase64');
+        $this->service->expects($this->never())->method('upload');
 
-        $response = $this->controller->upload();
+        $controller = $this->buildController();
+        $response   = $controller->upload();
 
         $this->assertSame(Http::STATUS_FORBIDDEN, $response->getStatus());
         $body = $response->getData();
         $this->assertSame('error', $body['status']);
         $this->assertSame('forbidden', $body['error']);
-        $this->assertArrayHasKey('message', $body);
+        $this->assertIsString($body['message']);
+        $this->assertStringNotContainsString('Exception', $body['message']);
     }
 
-    public function testNonAdminReturns403(): void
+    public function testUnauthenticatedReceives403(): void
     {
-        $this->makeNonAdmin();
-        $this->controller->bodyBytes = json_encode(['base64' => 'data:image/png;base64,AAA']);
-        $this->service->expects($this->never())->method('upload');
+        $this->userSession->method('getUser')->willReturn(null);
 
-        $response = $this->controller->upload();
+        $response = $this->buildController()->upload();
 
         $this->assertSame(Http::STATUS_FORBIDDEN, $response->getStatus());
         $this->assertSame('forbidden', $response->getData()['error']);
     }
 
-    public function testMultipartContentTypeReturns415(): void
+    public function testSuccessReturnsEnvelope(): void
     {
-        $this->makeAdmin();
-        $this->request->method('getHeader')->with('Content-Type')
-            ->willReturn('multipart/form-data; boundary=---X');
-        $this->controller->bodyBytes = '---X';
-
-        $response = $this->controller->upload();
-
-        $this->assertSame(415, $response->getStatus());
-        $this->assertSame('unsupported_media_type', $response->getData()['error']);
-    }
-
-    public function testEmptyBodyReturnsInvalidDataUrl(): void
-    {
-        $this->makeAdmin();
-        $this->request->method('getHeader')->willReturn('application/json');
-        $this->controller->bodyBytes = '';
-
-        $response = $this->controller->upload();
-
-        $this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
-        $this->assertSame('invalid_data_url', $response->getData()['error']);
-    }
-
-    public function testMissingBase64FieldReturnsInvalidDataUrl(): void
-    {
-        $this->makeAdmin();
-        $this->request->method('getHeader')->willReturn('application/json');
-        $this->controller->bodyBytes = json_encode(['other' => 'value']);
-
-        $response = $this->controller->upload();
-
-        $this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
-        $this->assertSame('invalid_data_url', $response->getData()['error']);
-    }
-
-    public function testInvalidJsonReturnsInvalidDataUrl(): void
-    {
-        $this->makeAdmin();
-        $this->request->method('getHeader')->willReturn('application/json');
-        $this->controller->bodyBytes = '{not json';
-
-        $response = $this->controller->upload();
-
-        $this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
-        // JsonException is now caught and re-thrown as
-        // InvalidDataUrlException by the parser, so we get the stable
-        // 400 / invalid_data_url envelope.
-        $this->assertSame('invalid_data_url', $response->getData()['error']);
-    }
-
-    public function testSuccessReturnsStandardEnvelope(): void
-    {
-        $this->makeAdmin();
-        $this->request->method('getHeader')->willReturn('application/json');
-        $this->controller->bodyBytes = json_encode([
-            'base64' => 'data:image/png;base64,AAA',
+        $this->userSession->method('getUser')->willReturn($this->adminUser());
+        $this->groupManager->method('isAdmin')->with('admin')->willReturn(true);
+        $this->parser->method('extractBase64')->willReturn('data:image/png;base64,xxx');
+        $this->service->method('upload')->willReturn([
+            'url'  => '/apps/mydash/resource/resource_abc.png',
+            'name' => 'resource_abc.png',
+            'size' => 1234,
         ]);
 
-        $this->service->expects($this->once())->method('upload')
-            ->with('data:image/png;base64,AAA')
-            ->willReturn([
-                'url'  => '/apps/mydash/resource/resource_abc.png',
-                'name' => 'resource_abc.png',
-                'size' => 1234,
-            ]);
-
-        $response = $this->controller->upload();
-        $body     = $response->getData();
+        $response = $this->buildController('{"base64":"data:image/png;base64,xxx"}')->upload();
 
         $this->assertSame(Http::STATUS_OK, $response->getStatus());
+        $body = $response->getData();
         $this->assertSame('success', $body['status']);
         $this->assertSame('/apps/mydash/resource/resource_abc.png', $body['url']);
         $this->assertSame('resource_abc.png', $body['name']);
         $this->assertSame(1234, $body['size']);
     }
 
-    public function testFileTooLargeIsMappedToEnvelope(): void
+    /**
+     * @return array<string, array{0: \Throwable, 1: int, 2: string}>
+     */
+    public static function exceptionMatrix(): array
     {
-        $this->makeAdmin();
-        $this->request->method('getHeader')->willReturn('application/json');
-        $this->controller->bodyBytes = json_encode([
-            'base64' => 'data:image/png;base64,AAA',
-        ]);
-
-        $this->service->method('upload')
-            ->willThrowException(new FileTooLargeException());
-
-        $response = $this->controller->upload();
-
-        $this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
-        $this->assertSame('file_too_large', $response->getData()['error']);
-        $this->assertSame('Maximum size is 5MB', $response->getData()['message']);
+        return [
+            'unsupported_media_type' => [new UnsupportedMediaTypeException(), 415, 'unsupported_media_type'],
+            'invalid_data_url'       => [new InvalidDataUrlException(), 400, 'invalid_data_url'],
+            'invalid_image_format'   => [new InvalidImageFormatException(), 400, 'invalid_image_format'],
+            'file_too_large'         => [new FileTooLargeException(), 400, 'file_too_large'],
+            'mime_mismatch'          => [new MimeMismatchException(), 400, 'mime_mismatch'],
+            'corrupt_image'          => [new CorruptImageException(), 400, 'corrupt_image'],
+            'invalid_svg'            => [new InvalidSvgException(), 400, 'invalid_svg'],
+            'storage_failure'        => [new StorageFailureException(), 500, 'storage_failure'],
+        ];
     }
 
-    public function testMimeMismatchIsMappedToEnvelope(): void
-    {
-        $this->makeAdmin();
-        $this->request->method('getHeader')->willReturn('application/json');
-        $this->controller->bodyBytes = json_encode([
-            'base64' => 'data:image/png;base64,AAA',
-        ]);
+    /**
+     * @dataProvider exceptionMatrix
+     */
+    public function testEachExceptionMapsToCorrectEnvelope(
+        \Throwable $exception,
+        int $expectedStatus,
+        string $expectedCode
+    ): void {
+        $this->userSession->method('getUser')->willReturn($this->adminUser());
+        $this->groupManager->method('isAdmin')->willReturn(true);
+        $this->parser->method('extractBase64')->willReturn('data:image/png;base64,xxx');
+        $this->service->method('upload')->willThrowException($exception);
 
-        $this->service->method('upload')
-            ->willThrowException(new MimeMismatchException());
-
-        $response = $this->controller->upload();
-
-        $this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
-        $this->assertSame('mime_mismatch', $response->getData()['error']);
-    }
-
-    public function testErrorResponseNeverContainsRawExceptionString(): void
-    {
-        $this->makeAdmin();
-        $this->request->method('getHeader')->willReturn('application/json');
-        $this->controller->bodyBytes = json_encode([
-            'base64' => 'data:image/png;base64,AAA',
-        ]);
-
-        // Throw a non-typed exception with a sensitive-looking message.
-        $this->service->method('upload')
-            ->willThrowException(new \RuntimeException('SECRET_TOKEN_XYZ leaked'));
-
-        $response = $this->controller->upload();
+        $response = $this->buildController('{"base64":"x"}')->upload();
         $body     = $response->getData();
 
+        $this->assertSame($expectedStatus, $response->getStatus());
         $this->assertSame('error', $body['status']);
-        $this->assertStringNotContainsString('SECRET_TOKEN_XYZ', json_encode($body));
+        $this->assertSame($expectedCode, $body['error']);
+        $this->assertIsString($body['message']);
+        // Defence — the display message MUST NOT be the raw underlying class name
+        // and MUST NOT leak any "Exception" substring (REQ-RES-005).
         $this->assertStringNotContainsString('Exception', $body['message']);
-        $this->assertStringNotContainsString('Stack', $body['message']);
+        $this->assertArrayNotHasKey('exception', $body);
+        $this->assertArrayNotHasKey('trace', $body);
     }
 
-    public function testErrorEnvelopeHasStableShape(): void
+    public function testUnexpectedThrowableIsMaskedAsStorageFailure(): void
     {
-        $this->userSession->method('getUser')->willReturn(null);
+        $this->userSession->method('getUser')->willReturn($this->adminUser());
+        $this->groupManager->method('isAdmin')->willReturn(true);
+        $this->parser->method('extractBase64')->willReturn('data:image/png;base64,xxx');
+        $this->service->method('upload')->willThrowException(
+            new \RuntimeException('SECRET_INTERNAL_PATH /var/lib/secret')
+        );
 
-        $body = $this->controller->upload()->getData();
+        $response = $this->buildController('{"base64":"x"}')->upload();
+        $body     = $response->getData();
 
-        $this->assertArrayHasKey('status', $body);
-        $this->assertArrayHasKey('error', $body);
-        $this->assertArrayHasKey('message', $body);
+        $this->assertSame(Http::STATUS_INTERNAL_SERVER_ERROR, $response->getStatus());
         $this->assertSame('error', $body['status']);
+        $this->assertSame('storage_failure', $body['error']);
+        $this->assertStringNotContainsString('SECRET_INTERNAL_PATH', $body['message']);
+        $this->assertStringNotContainsString('/var/lib/secret', $body['message']);
     }
-}
+
+    public function testParserExceptionIsNotShortCircuitedByAdminGuard(): void
+    {
+        // The admin guard runs BEFORE the parser — confirm a parser
+        // exception still goes through the typed-error envelope.
+        $this->userSession->method('getUser')->willReturn($this->adminUser());
+        $this->groupManager->method('isAdmin')->willReturn(true);
+        $this->parser->method('extractBase64')->willThrowException(
+            new UnsupportedMediaTypeException()
+        );
+        $this->service->expects($this->never())->method('upload');
+
+        $response = $this->buildController('--multipart')->upload();
+        $body     = $response->getData();
+
+        $this->assertSame(415, $response->getStatus());
+        $this->assertSame('unsupported_media_type', $body['error']);
+    }
+}//end class

@@ -32,6 +32,8 @@ class PlacementUpdater
      * @param array           $data      The update data.
      *
      * @return void
+     *
+     * @spec openspec/specs/widgets/spec.md
      */
     public function applyGridUpdates(
         WidgetPlacement $placement,
@@ -63,6 +65,8 @@ class PlacementUpdater
      * @param array           $data      The update data.
      *
      * @return void
+     *
+     * @spec openspec/specs/widgets/spec.md
      */
     public function applyDisplayUpdates(
         WidgetPlacement $placement,
@@ -91,6 +95,12 @@ class PlacementUpdater
         if (isset($data['styleConfig']) === true) {
             $placement->setStyleConfigArray(
                 $data['styleConfig']
+            );
+        }
+
+        if (isset($data['content']) === true && is_array($data['content']) === true) {
+            $placement->setContentArray(
+                $data['content']
             );
         }
     }//end applyDisplayUpdates()

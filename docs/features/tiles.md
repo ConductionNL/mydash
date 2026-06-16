@@ -22,4 +22,4 @@ Custom tiles are user-created shortcut cards that provide quick access to Nextcl
 
 ## Screenshot
 
-![Dashboard with Tiles](../screenshots/mydash-dashboard-overview.png)
+![Dashboard with Tiles](/screenshots/mydash-dashboard-overview.png)

@@ -1,0 +1,65 @@
+publiccodeYmlVersion: "0.4"
+
+name: MyDash
+url: "https://github.com/ConductionNL/mydash"
+softwareVersion: "1.0.5"
+releaseDate: "2026-05-26"
+developmentStatus: beta
+softwareType: "standalone/other"
+
+platforms:
+  - nextcloud
+
+categories:
+  - data-visualization
+  - business-intelligence
+
+description:
+  en:
+    shortDescription: >
+      Business intelligence dashboard and data visualisation for Nextcloud.
+    longDescription: >
+      MyDash is a business intelligence and dashboard application for Nextcloud.
+      It enables organisations to create and manage customisable dashboards with
+      charts, graphs, and KPI widgets. Data is sourced via GraphQL from Open Register
+      and other connected data sources. MyDash is designed for operational reporting
+      and monitoring in both government and commercial organisations.
+    features:
+      - Customisable dashboards with charts and KPI widgets
+      - GraphQL data integration
+      - Operational reporting and monitoring
+      - Real-time data visualisation
+
+  nl:
+    shortDescription: >
+      Business intelligence-dashboard en datavisualisatie voor Nextcloud.
+    longDescription: >
+      MyDash is een business intelligence- en dashboardtoepassing voor Nextcloud.
+      Het stelt organisaties in staat aanpasbare dashboards te maken en te beheren
+      met grafieken, diagrammen en KPI-widgets. Gegevens worden via GraphQL
+      opgehaald uit Open Register en andere gekoppelde databronnen. MyDash is
+      ontworpen voor operationele rapportage en monitoring in zowel overheids- als
+      commerciële organisaties.
+    features:
+      - Aanpasbare dashboards met grafieken en KPI-widgets
+      - GraphQL-data-integratie
+      - Operationele rapportage en monitoring
+      - Realtime datavisualisatie
+
+legal:
+  license: EUPL-1.2
+  mainCopyrightOwner: "Conduction B.V."
+  repoOwner: "Conduction B.V."
+
+maintenance:
+  type: community
+  contacts:
+    - name: Conduction B.V.
+      email: info@conduction.nl
+      affiliation: Conduction B.V.
+
+localisation:
+  localisationReady: true
+  availableLanguages:
+    - nl
+    - en

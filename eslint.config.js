@@ -41,7 +41,15 @@ module.exports = defineConfig([{
 		'no-debugger': 'off',
 	},
 }, {
-	files: ['src/**/*.test.js', 'src/**/*.spec.js', 'src/__tests__/**/*.js'],
+	// Test files may import devDependencies (vitest, @vue/test-utils, etc.)
+	// without violating `n/no-unpublished-import`.
+	files: [
+		'src/**/__tests__/**/*.{js,ts}',
+		'src/**/*.test.js',
+		'src/**/*.spec.js',
+		'src/__tests__/**/*.js',
+		'tests/**/*.{js,ts}',
+	],
 	rules: {
 		'n/no-unpublished-import': 'off',
 	},

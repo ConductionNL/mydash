@@ -46,8 +46,8 @@ Ideaal voor organisaties die consistente, samengestelde dashboards willen voor h
 
 Vrij en open source onder de EUPL-1.2-licentie.
     ]]></description>
-	<version>1.0.3-unstable.4</version>
-	<licence>EUPL-1.2</licence>
+	<version>1.0.5-unstable.3</version>
+	<licence>agpl</licence>
 	<author mail="info@conduction.nl" homepage="https://www.conduction.nl/">Conduction</author>
 	<namespace>MyDash</namespace>
 	<documentation>
@@ -67,14 +67,61 @@ Vrij en open source onder de EUPL-1.2-licentie.
 	<screenshot>https://raw.githubusercontent.com/ConductionNL/mydash/main/img/screenshot.png</screenshot>
 
 	<dependencies>
-		<php min-version="8.1"/>
-		<nextcloud min-version="28" max-version="34"/>
+		<php min-version="8.3"/>
+		<nextcloud min-version="29" max-version="34"/>
+		<app>openregister</app>
 	</dependencies>
+
+	<!-- Surface dashboards, widget content, and metadata in NC unified search. REQ-SRCH-001. -->
+	<types>
+		<search/>
+	</types>
+
+	<background-jobs>
+		<job>OCA\MyDash\BackgroundJob\OrphanedDataCleanupJob</job>
+	</background-jobs>
+
+	<repair-steps>
+		<!-- ADR-023: seed the action-authorization matrix (default admin-only). -->
+		<install>
+			<step>OCA\MyDash\Repair\InitializeActions</step>
+		</install>
+		<post-migration>
+			<step>OCA\MyDash\Repair\InitializeActions</step>
+			<!-- C4: purge orphaned cascade rows from deleted dashboards (REQ-CSC-003). -->
+			<step>OCA\MyDash\Repair\PurgeOrphanedCascadeData</step>
+		</post-migration>
+	</repair-steps>
 
 	<settings>
 		<admin>OCA\MyDash\Settings\MyDashAdmin</admin>
 		<admin-section>OCA\MyDash\Settings\MyDashAdminSection</admin-section>
 	</settings>
+
+	<commands>
+		<!-- REQ-EXIM-010: dashboard export / import via `php occ`. -->
+		<command>OCA\MyDash\Command\ExportCommand</command>
+		<command>OCA\MyDash\Command\ImportCommand</command>
+		<!-- REQ-CFLI-011: Confluence HTML export importer via `php occ`. -->
+		<command>OCA\MyDash\Command\ImportConfluenceCommand</command>
+		<!-- REQ-CLI-001..011: shared `mydash:` CLI suite (cli-commands). -->
+		<command>OCA\MyDash\Command\DashboardListCommand</command>
+		<command>OCA\MyDash\Command\DashboardShowCommand</command>
+		<command>OCA\MyDash\Command\DashboardDeleteCommand</command>
+		<command>OCA\MyDash\Command\DashboardDebugShareCommand</command>
+		<command>OCA\MyDash\Command\UserRevokeFeedTokenCommand</command>
+		<command>OCA\MyDash\Command\I18nExportStringsCommand</command>
+		<command>OCA\MyDash\Command\I18nMigrateLanguageStructureCommand</command>
+		<command>OCA\MyDash\Command\I18nCopyNavigationCommand</command>
+		<!-- REQ-OCLN-001..009: orphaned-data cleanup CLI. -->
+		<command>OCA\MyDash\Command\CleanupScanCommand</command>
+		<command>OCA\MyDash\Command\CleanupPurgeCommand</command>
+		<!-- REQ-DEMO-009: bundled demo showcase install / list. -->
+		<command>OCA\MyDash\Command\DemoShowcasesInstallCommand</command>
+		<command>OCA\MyDash\Command\DemoShowcasesListCommand</command>
+		<!-- REQ-WIZ-010: setup wizard via `php occ mydash:setup`. -->
+		<command>OCA\MyDash\Command\SetupCommand</command>
+	</commands>
 
 	<navigations>
 		<navigation>
@@ -84,4 +131,11 @@ Vrij en open source onder de EUPL-1.2-licentie.
 			<order>-5</order>
 		</navigation>
 	</navigations>
+
+	<activity>
+		<!-- REQ-ACT-001: register the MyDash Activity provider that
+		     surfaces the 13-event catalogue defined in
+		     OCA\MyDash\Activity\Extension. -->
+		<provider>OCA\MyDash\Activity\Extension</provider>
+	</activity>
 </info>

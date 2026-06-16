@@ -18,8 +18,6 @@ declare(strict_types=1);
 
 namespace OCA\MyDash\Service;
 
-use OCA\MyDash\Db\AdminSetting;
-use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
@@ -35,13 +33,11 @@ class DashboardResolver
      *
      * @param DashboardMapper       $dashboardMapper Dashboard mapper.
      * @param WidgetPlacementMapper $placementMapper Widget placement mapper.
-     * @param AdminSettingMapper    $settingMapper   Admin setting mapper.
      * @param TemplateService       $templateService Template service.
      */
     public function __construct(
         private readonly DashboardMapper $dashboardMapper,
         private readonly WidgetPlacementMapper $placementMapper,
-        private readonly AdminSettingMapper $settingMapper,
         private readonly TemplateService $templateService,
     ) {
     }//end __construct()
@@ -52,6 +48,8 @@ class DashboardResolver
      * @param string $userId The user ID.
      *
      * @return array|null The dashboard result or null.
+     *
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-18
      */
     public function tryGetActiveDashboard(string $userId): ?array
     {
@@ -78,6 +76,8 @@ class DashboardResolver
      * @param string $userId The user ID.
      *
      * @return array|null The dashboard result or null.
+     *
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-18
      */
     public function tryActivateExistingDashboard(string $userId): ?array
     {
@@ -93,7 +93,7 @@ class DashboardResolver
             $dashboard->getId(),
             userId: $userId
         );
-        $dashboard->setIsActive(true);
+        $dashboard->setIsActive(1);
 
         $placements = $this->placementMapper->findByDashboardId(
             dashboardId: $dashboard->getId()
@@ -113,6 +113,8 @@ class DashboardResolver
      * @param string    $userId              The user ID.
      *
      * @return array The dashboard result.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
     public function handleTemplateResult(
         Dashboard $template,
@@ -151,6 +153,8 @@ class DashboardResolver
      * @param array     $placements The placements.
      *
      * @return array The result array.
+     *
+     * @spec openspec/specs/dashboards/spec.md
      */
     public function buildResult(
         Dashboard $dashboard,
@@ -170,9 +174,17 @@ class DashboardResolver
     /**
      * Get the effective permission level for a dashboard.
      *
+     * Delegating thin wrapper — the authoritative implementation lives in
+     * {@see \OCA\MyDash\Service\PermissionService::getEffectivePermissionLevel()}.
+     * This copy resolves the template chain inline for the resolver's
+     * `buildResult()` path; it MUST stay behaviourally equivalent to the
+     * canonical implementation.
+     *
      * @param Dashboard $dashboard The dashboard.
      *
      * @return string The effective permission level.
+     *
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-24
      */
     public function getEffectivePermissionLevel(
         Dashboard $dashboard
@@ -188,14 +200,6 @@ class DashboardResolver
             }
         }
 
-        $level = $dashboard->getPermissionLevel();
-        if ($level !== null) {
-            return $level;
-        }
-
-        return $this->settingMapper->getValue(
-            key: AdminSetting::KEY_DEFAULT_PERMISSION_LEVEL,
-            default: Dashboard::PERMISSION_FULL
-        );
+        return $dashboard->getPermissionLevel();
     }//end getEffectivePermissionLevel()
 }//end class

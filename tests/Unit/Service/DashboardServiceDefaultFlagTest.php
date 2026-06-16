@@ -26,6 +26,7 @@ use OCA\MyDash\Db\AdminSettingMapper;
 use OCA\MyDash\Db\Dashboard;
 use OCA\MyDash\Db\DashboardMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
+use OCA\MyDash\Service\AdminTemplateService;
 use OCA\MyDash\Service\DashboardFactory;
 use OCA\MyDash\Service\DashboardResolver;
 use OCA\MyDash\Service\DashboardService;
@@ -33,9 +34,8 @@ use OCA\MyDash\Service\TemplateService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IConfig;
 use OCP\IDBConnection;
-use OCP\IL10N;
 use OCP\IGroupManager;
-use OCP\IUserManager;
+use OCP\L10N\IFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -60,14 +60,14 @@ class DashboardServiceDefaultFlagTest extends TestCase
     private $dashResolver;
     /** @var IGroupManager&MockObject */
     private $groupManager;
-    /** @var IUserManager&MockObject */
-    private $userManager;
+    /** @var AdminTemplateService&MockObject */
+    private $adminTemplateService;
     /** @var IDBConnection&MockObject */
     private $db;
     /** @var IConfig&MockObject */
     private $config;
-    /** @var IL10N&MockObject */
-    private $l10n;
+    /** @var IFactory&MockObject */
+    private $l10nFactory;
     /** @var LoggerInterface&MockObject */
     private $logger;
 
@@ -81,12 +81,12 @@ class DashboardServiceDefaultFlagTest extends TestCase
         $this->templateService  = $this->createMock(TemplateService::class);
         $this->dashboardFactory = $this->createMock(DashboardFactory::class);
         $this->dashResolver     = $this->createMock(DashboardResolver::class);
-        $this->groupManager     = $this->createMock(IGroupManager::class);
-        $this->userManager      = $this->createMock(IUserManager::class);
-        $this->db               = $this->createMock(IDBConnection::class);
-        $this->config           = $this->createMock(IConfig::class);
-        $this->l10n             = $this->createMock(IL10N::class);
-        $this->logger           = $this->createMock(LoggerInterface::class);
+        $this->groupManager         = $this->createMock(IGroupManager::class);
+        $this->adminTemplateService = $this->createMock(AdminTemplateService::class);
+        $this->db                   = $this->createMock(IDBConnection::class);
+        $this->config               = $this->createMock(IConfig::class);
+        $this->l10nFactory          = $this->createMock(IFactory::class);
+        $this->logger               = $this->createMock(LoggerInterface::class);
 
         $this->service = new DashboardService(
             dashboardMapper: $this->dashboardMapper,
@@ -95,12 +95,14 @@ class DashboardServiceDefaultFlagTest extends TestCase
             templateService: $this->templateService,
             dashboardFactory: $this->dashboardFactory,
             dashResolver: $this->dashResolver,
+            treeService: $this->createMock(\OCA\MyDash\Service\DashboardTreeService::class),
             groupManager: $this->groupManager,
-            userManager: $this->userManager,
+            adminTemplateService: $this->adminTemplateService,
             db: $this->db,
             config: $this->config,
-            l10n: $this->l10n,
+            l10nFactory: $this->l10nFactory,
             logger: $this->logger,
+            footerService: $this->createMock(\OCA\MyDash\Service\FooterService::class),
         );
     }//end setUp()
 

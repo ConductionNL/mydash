@@ -28,7 +28,9 @@ use OCA\MyDash\Db\DashboardShare;
 use OCA\MyDash\Service\DashboardShareService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
+use OCP\IGroupManager;
 use OCP\IRequest;
+use OCP\IUserManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -45,6 +47,10 @@ class DashboardShareApiControllerFollowupsTest extends TestCase
     private $shareService;
     /** @var IRequest&MockObject */
     private $request;
+    /** @var IUserManager&MockObject */
+    private $userManager;
+    /** @var IGroupManager&MockObject */
+    private $groupManager;
 
     /**
      * Set up fresh mocks for each test.
@@ -56,6 +62,8 @@ class DashboardShareApiControllerFollowupsTest extends TestCase
         parent::setUp();
         $this->shareService = $this->createMock(DashboardShareService::class);
         $this->request      = $this->createMock(IRequest::class);
+        $this->userManager  = $this->createMock(IUserManager::class);
+        $this->groupManager = $this->createMock(IGroupManager::class);
     }//end setUp()
 
     /**
@@ -71,6 +79,8 @@ class DashboardShareApiControllerFollowupsTest extends TestCase
         return new DashboardShareApiController(
             request: $this->request,
             shareService: $this->shareService,
+            userManager: $this->userManager,
+            groupManager: $this->groupManager,
             userId: $userId,
         );
     }//end makeController()

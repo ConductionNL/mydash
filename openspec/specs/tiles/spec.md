@@ -35,73 +35,44 @@ This means tile placements store a COPY of the tile configuration at creation ti
 
 ## Requirements
 
-### REQ-TILE-001: Create Custom Tile
+### Requirement: REQ-TILE-001 Reusable tile entity model \u2014 DEPRECATED
 
-Users MUST be able to create reusable custom tile definitions.
+@e2e exclude tile entity DEPRECATED — write endpoints return 410; checked by Newman, not UI
 
-#### Scenario: Create a tile linking to a Nextcloud app
-- GIVEN a logged-in user "alice"
-- WHEN she sends POST /api/tiles with body:
-  ```json
-  {
-    "title": "My Files",
-    "icon": "icon-folder",
-    "iconType": "class",
-    "backgroundColor": "#3b82f6",
-    "textColor": "#ffffff",
-    "linkType": "app",
-    "linkValue": "/apps/files"
-  }
-  ```
-- THEN the system MUST create a tile with an auto-increment integer ID (no UUID)
-- AND `userId` MUST be set to "alice"
-- AND the response MUST return HTTP 201 with the full tile object
+The reusable tile entity model (rows in `oc_mydash_tiles`, accessed via `TileService::createTile / updateTile / deleteTile` and `POST/PUT/DELETE /api/tiles[/{id}]`) MUST be treated as deprecated as of the `unified-add-widget-flow` change. The unified add-widget flow (REQ-WDG-022) introduces `tile` as a registry-driven widget type that stores its data inline on each placement, removing the need for a separate reusable-entity table; existing rows MUST remain readable for backwards compatibility.
 
-#### Scenario: Create a tile linking to an external URL
-- GIVEN a logged-in user "alice"
-- WHEN she sends POST /api/tiles with body:
-  ```json
-  {
-    "title": "Company Wiki",
-    "icon": "https://wiki.example.com/favicon.ico",
-    "iconType": "url",
-    "backgroundColor": "#10b981",
-    "textColor": "#ffffff",
-    "linkType": "url",
-    "linkValue": "https://wiki.example.com"
-  }
-  ```
-- THEN the system MUST create the tile with `linkType: "url"`
-- AND the icon MUST be stored as a URL reference
+The following behaviour MUST hold during the deprecation window:
 
-#### Scenario: Create a tile with an emoji icon
-- GIVEN a logged-in user "alice"
-- WHEN she sends POST /api/tiles with body:
-  ```json
-  {"title": "Calendar", "icon": "\ud83d\udcc5", "iconType": "emoji", "linkType": "app", "linkValue": "/apps/calendar"}
-  ```
-- THEN the system MUST store the emoji character as the icon value
-- AND the frontend MUST render the emoji directly as the tile icon
+1. `POST /api/tiles`, `PUT /api/tiles/{id}`, and `DELETE /api/tiles/{id}` MUST return HTTP 410 Gone with envelope `{status: 'gone', message: '<localised>', replacement: 'POST /api/dashboards/{uuid}/widgets with type:tile'}`.
+2. `GET /api/tiles` and `GET /api/tiles/{id}` MUST continue to return existing rows for backwards compatibility (read-only \u2014 admin tooling, migration scripts).
+3. The `oc_mydash_tiles` table MUST remain in the schema. No destructive migration. A future `tile-table-removal` change MAY drop it after at least one full release of read-deprecation.
+4. Existing tile placements (rows in `oc_mydash_widget_placements` with the legacy inline `tileTitle`/`tileIcon`/`tileIconType`/`tileBackgroundColor`/`tileTextColor`/`tileLinkType`/`tileLinkValue` fields) MUST continue to render. The new `TileWidget` renderer MUST handle the legacy field shape AND the new `placement.content.{title, icon, ...}` shape.
 
-#### Scenario: Create a tile with SVG path icon
-- GIVEN a logged-in user "alice"
-- WHEN she sends POST /api/tiles with `iconType: "svg"` and `icon: "M12 2L2 7v10l10 5 10-5V7z"`
-- THEN the system MUST store the SVG path data as the icon value
-- AND the frontend MUST render the path inside an SVG element
+#### Scenario: Write endpoints return 410 Gone
 
-#### Scenario: Create a tile with missing required fields
-- GIVEN a logged-in user
-- WHEN they send POST /api/tiles with body `{"title": "Incomplete"}`
-- THEN the system MUST create the tile with default values: `iconType: 'class'`, `backgroundColor: '#0082c9'`, `textColor: '#ffffff'`, `linkType: 'url'`, `linkValue: '#'`
-- NOTE: The current implementation does NOT validate required fields. All fields have defaults.
+- **GIVEN** an admin user authenticated to mydash
+- **WHEN** they `POST /api/tiles` with any payload
+- **THEN** the response MUST be HTTP 410 Gone
+- **AND** the body MUST include `status: 'gone'`, a localised `message`, and `replacement: 'POST /api/dashboards/{uuid}/widgets with type:tile'`
+- **AND** no row MUST be inserted into `oc_mydash_tiles`
 
-#### Scenario: Create a tile with invalid link_type
-- GIVEN a logged-in user
-- WHEN they send POST /api/tiles with body `{"title": "Bad", "linkType": "ftp", "linkValue": "ftp://server"}`
-- THEN the system SHOULD return HTTP 400 with an error indicating that `linkType` must be either "app" or "url"
-- NOTE: Link type validation is NOT currently implemented -- any string value is accepted
+#### Scenario: Read endpoints still serve existing rows
 
-### REQ-TILE-002: List User Tiles
+- **GIVEN** the database contains a tile row created prior to the unified-add-widget-flow change
+- **WHEN** an authenticated user calls `GET /api/tiles`
+- **THEN** the response MUST be HTTP 200 with the row's fields in the documented shape
+- **AND** this MUST work as long as the `oc_mydash_tiles` table exists in the schema
+
+#### Scenario: Existing tile placements still render
+
+- **GIVEN** a dashboard with a tile placement created prior to the unified-add-widget-flow change (legacy field shape on the placement row)
+- **WHEN** the dashboard renders via the merged `TileWidget` (REQ-WDG-022)
+- **THEN** the tile MUST display with title + icon + colours + click-through correctly
+- **AND** no console errors MUST occur
+
+### Requirement: List User Tiles (REQ-TILE-002)
+
+@e2e exclude list user tiles tests REST endpoint — Newman scope
 
 Users MUST be able to retrieve all their custom tile definitions, scoped to their user ID.
 
@@ -122,7 +93,9 @@ Users MUST be able to retrieve all their custom tile definitions, scoped to thei
 - WHEN she sends GET /api/tiles
 - THEN the system MUST return HTTP 200 with an empty array
 
-### REQ-TILE-003: Update Custom Tile
+### Requirement: Update Custom Tile (REQ-TILE-003)
+
+@e2e exclude update tile tests REST PUT — Newman scope
 
 Users MUST be able to update the properties of their custom tiles with ownership verification.
 
@@ -159,7 +132,9 @@ Users MUST be able to update the properties of their custom tiles with ownership
 - THEN only `title` MUST be updated
 - AND all other fields (icon, iconType, backgroundColor, textColor, linkType, linkValue) MUST remain unchanged
 
-### REQ-TILE-004: Delete Custom Tile
+### Requirement: Delete Custom Tile (REQ-TILE-004)
+
+@e2e exclude delete tile tests REST DELETE — Newman scope
 
 Users MUST be able to delete their custom tile definitions with ownership verification.
 
@@ -182,7 +157,9 @@ Users MUST be able to delete their custom tile definitions with ownership verifi
 - THEN the system MUST return HTTP 403 (via `findByIdAndUser()`)
 - AND the tile MUST NOT be deleted
 
-### REQ-TILE-005: Place Tile on Dashboard
+### Requirement: Place Tile on Dashboard (REQ-TILE-005)
+
+@e2e exclude place tile on dashboard tests REST POST — Newman scope
 
 Users MUST be able to place tile data onto a dashboard, creating a widget placement with inline tile data.
 
@@ -222,7 +199,9 @@ Users MUST be able to place tile data onto a dashboard, creating a widget placem
 - THEN the system MUST return HTTP 403
 - AND `canAddWidget()` MUST block tile additions on view-only dashboards
 
-### REQ-TILE-006: Tile Icon Rendering
+### Requirement: Tile Icon Rendering (REQ-TILE-006)
+
+@e2e exclude tile icon rendering (emoji/CSS/URL/SVG path) requires a pre-placed tile on the dashboard — needs seeded state not available in CI fixture
 
 The frontend MUST support four icon formats: emoji, CSS class, URL, and SVG path.
 
@@ -250,7 +229,9 @@ The frontend MUST support four icon formats: emoji, CSS class, URL, and SVG path
 - THEN the system MUST render the path inside an `<svg viewBox="0 0 24 24">` element
 - AND the SVG fill MUST use the tile's textColor
 
-### REQ-TILE-007: Tile Color Validation
+### Requirement: Tile Color Validation (REQ-TILE-007)
+
+@e2e exclude tile color validation tests server-side validator — Newman scope
 
 Tile colors MUST be validated to ensure proper display and accessibility.
 
@@ -270,7 +251,9 @@ Tile colors MUST be validated to ensure proper display and accessibility.
 - WHEN the tile is created
 - THEN `backgroundColor` MUST default to `'#0082c9'` (Nextcloud primary) and `textColor` MUST default to `'#ffffff'` (white)
 
-### REQ-TILE-008: Tile Link Navigation
+### Requirement: Tile Link Navigation (REQ-TILE-008)
+
+@e2e exclude tile link navigation tests window.location or router.push inside a widget click — requires a placed tile; seeding not available
 
 Tiles MUST navigate correctly based on their linkType.
 
@@ -290,7 +273,9 @@ Tiles MUST navigate correctly based on their linkType.
 - WHEN the user hovers over it
 - THEN the tile MUST scale slightly (transform: scale(1.02)) with reduced opacity (0.95)
 
-### REQ-TILE-009: Tile Styling
+### Requirement: Tile Styling (REQ-TILE-009)
+
+@e2e exclude tile background/text colour CSS tests require a pre-placed tile — seeded state not available in CI fixture
 
 Tiles MUST apply their configured colors as CSS custom properties for consistent rendering.
 
@@ -313,7 +298,9 @@ Tiles MUST apply their configured colors as CSS custom properties for consistent
 - THEN the tile MUST fill the entire grid cell (`position: absolute; top: 0; left: 0; width: 100%; height: 100%`)
 - AND the tile MUST have no border radius and no border (overriding grid item defaults)
 
-### REQ-TILE-010: Tile Edit Mode
+### Requirement: Tile Edit Mode (REQ-TILE-010)
+
+@e2e exclude tile edit-mode button visibility requires a placed tile in edit mode — seeded state not available
 
 Tiles MUST support an edit mode that allows configuration changes.
 
@@ -334,7 +321,9 @@ Tiles MUST support an edit mode that allows configuration changes.
 - THEN the `TileWidget` component MUST emit an `edit` event
 - AND `click.prevent` MUST prevent link navigation when clicking the edit button
 
-### REQ-TILE-011: Tile Management UI
+### Requirement: Tile Management UI (REQ-TILE-011)
+
+@e2e exclude tile management UI (modal form) requires an existing tile placement — seeded state not available
 
 Users MUST be able to manage their tile definitions through a dedicated UI.
 
@@ -348,6 +337,23 @@ Users MUST be able to manage their tile definitions through a dedicated UI.
 - WHEN the tile editor opens
 - THEN `TileEditor.vue` MUST provide fields for title, icon, iconType, colors, linkType, and linkValue
 - AND changes MUST be saved via the tile API
+
+### Requirement: REQ-TILE-PLACEMENT Inline-content placement model — promoted to canonical
+
+@e2e exclude inline-content placement model is a data-model spec — no distinct UI surface beyond what REQ-TILE-010/011 cover
+
+Tile placements (rows in `oc_mydash_widget_placements` with `tileType: 'custom'` historically, or `widgetId: 'tile'` going forward) MUST store their data INLINE on the placement. This MUST be treated as the canonical model for tile data on dashboards going forward.
+
+New tile placements created via the unified add-widget flow (REQ-WDG-010 + REQ-WDG-022) MUST store their data in `placement.content.{title, icon, iconType, backgroundColor, textColor, linkType, linkValue}` — the standard widget-content shape. Legacy placements with the flat `placement.tileTitle / tileIcon / ...` shape MUST continue to work via the renderer's dual-shape support (REQ-WDG-022 scenario "Tile renderer supports legacy and new content shapes").
+
+A future migration MAY rewrite legacy placements into the new content shape, but this is OUT OF SCOPE for the unified-add-widget-flow change.
+
+#### Scenario: New tile placement uses standard content shape
+
+- **GIVEN** a user opens the unified Add Custom Widget modal and picks "Tile"
+- **WHEN** they fill the form and save
+- **THEN** the resulting `oc_mydash_widget_placements` row MUST have its data in `content` (JSON column)
+- **AND** the legacy flat `tileTitle`/`tileIcon`/etc. columns MUST NOT be populated for new placements
 
 ## Non-Functional Requirements
 

@@ -1,0 +1,11 @@
+{
+  "label": "Admin guide",
+  "position": 2,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "title": "Admin guide",
+    "description": "Org-wide MyDash administration — toggling personal dashboards, authoring admin templates, marking group defaults, and restricting widgets per role."
+  }
+}

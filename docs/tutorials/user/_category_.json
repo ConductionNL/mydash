@@ -1,0 +1,11 @@
+{
+  "label": "User guide",
+  "position": 1,
+  "collapsible": true,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "title": "User guide",
+    "description": "Workflows for individual MyDash users — opening the app, customizing dashboards, switching between them, and pinning a default."
+  }
+}

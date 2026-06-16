@@ -30,18 +30,27 @@ use OCA\MyDash\Db\DashboardShare;
 use OCA\MyDash\Db\DashboardShareMapper;
 use OCA\MyDash\Db\WidgetPlacementMapper;
 use OCA\MyDash\Service\DashboardShareService;
+use OCA\MyDash\Service\RoleService;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\IUserManager;
 use OCP\User\Events\UserDeletedEvent;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
  * Handles user deletion: recipient cleanup + ownership transfer / cascade.
  *
  * @implements IEventListener<UserDeletedEvent>
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects) The retention cascade
+ *                                                  legitimately spans share,
+ *                                                  dashboard, placement,
+ *                                                  group and user services
+ *                                                  in one orchestrating
+ *                                                  listener.
  */
 class UserDeletedListener implements IEventListener
 {
@@ -55,6 +64,11 @@ class UserDeletedListener implements IEventListener
      * @param IGroupManager         $groupManager    The group manager.
      * @param IUserManager          $userManager     The user manager.
      * @param IDBConnection         $db              The DB connection.
+     * @param LoggerInterface       $logger          PSR-3 logger (PHP_SAPI-safe;
+     *                                               replaces deprecated
+     *                                               `\OC::$server->getLogger()`).
+     * @param RoleService           $roleService     Role-assignment cascade
+     *                                               (REQ-ROLE-010).
      */
     public function __construct(
         private readonly DashboardShareMapper $shareMapper,
@@ -64,6 +78,8 @@ class UserDeletedListener implements IEventListener
         private readonly IGroupManager $groupManager,
         private readonly IUserManager $userManager,
         private readonly IDBConnection $db,
+        private readonly LoggerInterface $logger,
+        private readonly RoleService $roleService,
     ) {
     }//end __construct()
 
@@ -77,6 +93,8 @@ class UserDeletedListener implements IEventListener
      * @param Event $event The event.
      *
      * @return void
+     *
+     * @spec openspec/specs/dashboard-cascade-events/spec.md
      */
     public function handle(Event $event): void
     {
@@ -85,6 +103,21 @@ class UserDeletedListener implements IEventListener
         }
 
         $userId = $event->getUser()->getUID();
+
+        // REQ-ROLE-010: cascade role-assignment cleanup. Best-effort —
+        // logged but never aborts the rest of the pipeline.
+        try {
+            $this->roleService->deleteByUserId(userId: $userId);
+        } catch (Throwable $t) {
+            $this->logger->error(
+                message: sprintf(
+                    'mydash UserDeletedListener: failed to cascade role assignment cleanup for user %s: %s',
+                    $userId,
+                    $t->getMessage()
+                ),
+                context: ['app' => 'mydash']
+            );
+        }
 
         // Step A: remove shares granted TO the deleted user.
         $this->shareMapper->deleteByRecipientUser(userId: $userId);
@@ -154,7 +187,7 @@ class UserDeletedListener implements IEventListener
             $this->db->rollBack();
             // Log but do not rethrow — we want to continue processing
             // the other dashboards.
-            \OC::$server->getLogger()->error(
+            $this->logger->error(
                 message: sprintf(
                     'mydash UserDeletedListener: failed to handle dashboard %d: %s',
                     $dashboardId,

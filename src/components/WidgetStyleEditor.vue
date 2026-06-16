@@ -9,7 +9,7 @@
 		:name="t('mydash', 'Widget style')"
 		size="normal"
 		@close="$emit('close')">
-		<div class="style-editor">
+		<div class="style-editor" data-testid="widget-style-editor">
 			<h2 class="style-editor__title">
 				{{ t('mydash', 'Customize widget') }}
 			</h2>
@@ -107,7 +107,7 @@
 					<NcButton type="secondary" @click="resetStyle">
 						{{ t('mydash', 'Reset') }}
 					</NcButton>
-					<NcButton type="primary" @click="saveStyle">
+					<NcButton type="primary" data-testid="widget-style-save" @click="saveStyle">
 						{{ t('mydash', 'Save') }}
 					</NcButton>
 				</div>
@@ -260,10 +260,12 @@ export default {
 
 	computed: {
 		selectedIcon: {
+			/** @spec openspec/specs/widgets/spec.md */
 			get() {
 				const option = this.iconOptions.find(opt => opt.icon === this.localStyle.customIcon)
 				return option || this.iconOptions[0]
 			},
+			/** @spec openspec/specs/widgets/spec.md */
 			set(value) {
 				this.localStyle.customIcon = value.icon
 			},
@@ -273,6 +275,7 @@ export default {
 	watch: {
 		placement: {
 			immediate: true,
+			/** @spec openspec/specs/widgets/spec.md */
 			handler(newPlacement) {
 				if (newPlacement) {
 					this.loadStyle()
@@ -282,11 +285,13 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/widgets/spec.md */
 		getNlDesignIconUrl(iconName) {
 			// Generate URL for NlDesign icons
 			return `${window.location.origin}/apps/nldesign/img/icons/${iconName}.svg`
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		loadStyle() {
 			const styleConfig = this.placement.styleConfig || {}
 			this.localStyle = {
@@ -307,10 +312,12 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		resetStyle() {
 			this.localStyle = { ...defaultStyle, padding: { ...defaultStyle.padding } }
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		saveStyle() {
 			const styleConfig = {
 				backgroundColor: this.localStyle.backgroundColor || null,

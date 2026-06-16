@@ -13,6 +13,7 @@ export const useTileStore = defineStore('tiles', {
 	}),
 
 	actions: {
+		/** @spec openspec/specs/tiles/spec.md */
 		async loadTiles() {
 			this.loading = true
 			try {
@@ -25,6 +26,7 @@ export const useTileStore = defineStore('tiles', {
 			}
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		async createTile(tileData) {
 			try {
 				const response = await api.createTile(tileData)
@@ -36,6 +38,7 @@ export const useTileStore = defineStore('tiles', {
 			}
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		async updateTile(id, tileData) {
 			try {
 				const response = await api.updateTile(id, tileData)
@@ -50,6 +53,7 @@ export const useTileStore = defineStore('tiles', {
 			}
 		},
 
+		/** @spec openspec/specs/tiles/spec.md */
 		async deleteTile(id) {
 			try {
 				await api.deleteTile(id)

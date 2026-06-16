@@ -26,7 +26,7 @@ namespace OCA\MyDash\Migration;
 use Closure;
 use OCP\DB\ISchemaWrapper;
 use OCP\DB\Types;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\IUserManager;
@@ -43,13 +43,13 @@ class Version001006Date20260430130000 extends SimpleMigrationStep
     /**
      * Constructor
      *
-     * @param IConfig       $config       The app config.
+     * @param IAppConfig    $appConfig    The app config.
      * @param IDBConnection $db           The database connection.
      * @param IUserManager  $userManager  The user manager.
      * @param IGroupManager $groupManager The group manager.
      */
     public function __construct(
-        private readonly IConfig $config,
+        private readonly IAppConfig $appConfig,
         private readonly IDBConnection $db,
         private readonly IUserManager $userManager,
         private readonly IGroupManager $groupManager,
@@ -72,83 +72,83 @@ class Version001006Date20260430130000 extends SimpleMigrationStep
     ): ?ISchemaWrapper {
         $schema = $schemaClosure();
 
-        if ($schema->hasTable(tableName: 'mydash_dashboard_shares') === true) {
+        if ($schema->hasTable('mydash_dashboard_shares') === true) {
             return null;
         }
 
-        $table = $schema->createTable(tableName: 'mydash_dashboard_shares');
+        $table = $schema->createTable('mydash_dashboard_shares');
 
         $table->addColumn(
-            name: 'id',
-            typeName: Types::BIGINT,
-            options: [
+            'id',
+            Types::BIGINT,
+            [
                 'autoincrement' => true,
                 'notnull'       => true,
                 'unsigned'      => true,
             ]
         );
         $table->addColumn(
-            name: 'dashboard_id',
-            typeName: Types::BIGINT,
-            options: [
+            'dashboard_id',
+            Types::BIGINT,
+            [
                 'notnull'  => true,
                 'unsigned' => true,
             ]
         );
         $table->addColumn(
-            name: 'share_type',
-            typeName: Types::STRING,
-            options: [
+            'share_type',
+            Types::STRING,
+            [
                 'notnull' => true,
                 'length'  => 16,
             ]
         );
         $table->addColumn(
-            name: 'share_with',
-            typeName: Types::STRING,
-            options: [
+            'share_with',
+            Types::STRING,
+            [
                 'notnull' => true,
                 'length'  => 255,
             ]
         );
         $table->addColumn(
-            name: 'permission_level',
-            typeName: Types::STRING,
-            options: [
+            'permission_level',
+            Types::STRING,
+            [
                 'notnull' => true,
                 'length'  => 32,
                 'default' => 'view_only',
             ]
         );
         $table->addColumn(
-            name: 'created_at',
-            typeName: Types::STRING,
-            options: [
+            'created_at',
+            Types::STRING,
+            [
                 'notnull' => false,
                 'length'  => 32,
             ]
         );
         $table->addColumn(
-            name: 'updated_at',
-            typeName: Types::STRING,
-            options: [
+            'updated_at',
+            Types::STRING,
+            [
                 'notnull' => false,
                 'length'  => 32,
             ]
         );
 
-        $table->setPrimaryKey(columnNames: ['id']);
+        $table->setPrimaryKey(['id']);
         $table->addIndex(
-            columnNames: ['dashboard_id'],
-            indexName: 'mydash_shares_dashboard'
+            ['dashboard_id'],
+            'mydash_shares_dashboard'
         );
         $table->addIndex(
-            columnNames: ['share_type', 'share_with'],
-            indexName: 'mydash_shares_recipient'
+            ['share_type', 'share_with'],
+            'mydash_shares_recipient'
         );
         $table->addUniqueIndex(
-            columnNames: ['dashboard_id', 'share_type', 'share_with'],
-            indexName: 'mydash_shares_unique'
+            ['dashboard_id', 'share_type', 'share_with'],
+            'mydash_shares_unique'
         );
 
         return $schema;
@@ -161,19 +161,19 @@ class Version001006Date20260430130000 extends SimpleMigrationStep
      * Only runs when `mydash.cleanup_orphan_shares` is explicitly `true`.
      * Default is `false` to avoid surprise deletions on federated environments.
      *
-     * @param IOutput $output  The migration output handler.
-     * @param Closure $closure The schema closure.
-     * @param array   $options The migration options.
+     * @param IOutput $output        The migration output handler.
+     * @param Closure $schemaClosure The schema closure.
+     * @param array   $options       The migration options.
      *
      * @return void
      */
     public function postSchemaChange(
         IOutput $output,
-        Closure $closure,
+        Closure $schemaClosure,
         array $options
     ): void {
-        $enabled = $this->config->getAppValue(
-            appName: 'mydash',
+        $enabled = $this->appConfig->getValueString(
+            app: 'mydash',
             key: 'cleanup_orphan_shares',
             default: 'false'
         );

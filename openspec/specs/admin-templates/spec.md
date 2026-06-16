@@ -21,7 +21,10 @@ Templates own their widget placements (in `oc_mydash_widget_placements`) which s
 
 ## Requirements
 
-### REQ-TMPL-001: Create Admin Template
+
+@e2e exclude all scenarios test REST CRUD for admin template dashboards — template distribution and UI admin forms are not yet implemented in this version
+
+### Requirement: Create Admin Template (REQ-TMPL-001)
 
 Nextcloud administrators MUST be able to create dashboard templates for distribution to users.
 
@@ -76,7 +79,7 @@ Nextcloud administrators MUST be able to create dashboard templates for distribu
 - THEN the system MUST assign a UUID v4 via `Ramsey\Uuid\Uuid::uuid4()` (unlike user dashboards which use a custom UUID generator in `DashboardFactory`)
 - AND the UUID MUST be unique across all dashboards
 
-### REQ-TMPL-002: List Admin Templates
+### Requirement: List Admin Templates (REQ-TMPL-002)
 
 Administrators MUST be able to view all existing templates with their configuration.
 
@@ -109,7 +112,7 @@ Administrators MUST be able to view all existing templates with their configurat
 - THEN the response MUST contain only her user dashboards
 - AND admin templates MUST NOT appear in the user's dashboard list
 
-### REQ-TMPL-003: Update Admin Template
+### Requirement: Update Admin Template (REQ-TMPL-003)
 
 Administrators MUST be able to modify template configuration including name, description, target groups, permission level, and grid columns.
 
@@ -144,7 +147,7 @@ Administrators MUST be able to modify template configuration including name, des
 - WHEN regular user "alice" sends PUT /api/admin/templates/1
 - THEN the system MUST return HTTP 403
 
-### REQ-TMPL-004: Delete Admin Template
+### Requirement: Delete Admin Template (REQ-TMPL-004)
 
 Administrators MUST be able to delete templates, with proper cleanup of associated widget placements.
 
@@ -180,7 +183,7 @@ Administrators MUST be able to delete templates, with proper cleanup of associat
 - AND no template MUST be the default afterward (this is allowed)
 - AND new users without a group-targeted template will get no template on first access
 
-### REQ-TMPL-005: Template Distribution on First Access
+### Requirement: Template Distribution on First Access (REQ-TMPL-005)
 
 When a user accesses MyDash for the first time, the system MUST create personal copies of matching templates via the `DashboardResolver` chain.
 
@@ -224,7 +227,7 @@ When a user accesses MyDash for the first time, the system MUST create personal 
 - THEN alice MUST receive a copy of "Marketing Dashboard" (group-targeted template takes priority over default)
 - NOTE: Only ONE template per first-access. Group-targeted templates are evaluated first; the default template is the fallback.
 
-### REQ-TMPL-006: Template Copy Independence
+### Requirement: Template Copy Independence (REQ-TMPL-006)
 
 User copies of templates MUST be fully independent from the source template after creation, with the exception of permission level resolution.
 
@@ -247,7 +250,7 @@ User copies of templates MUST be fully independent from the source template afte
 - AND alice's dashboard MUST retain all placements
 - AND permission resolution MUST fall back to the dashboard's own `permissionLevel` (template lookup caught by `DoesNotExistException`)
 
-### REQ-TMPL-007: Template Widget Management
+### Requirement: Template Widget Management (REQ-TMPL-007)
 
 Administrators MUST be able to manage widget placements on templates using the same API as regular dashboards.
 
@@ -275,7 +278,7 @@ Administrators MUST be able to manage widget placements on templates using the s
 - THEN the tile placement MUST be cloned with all inline tile data via `clonePlacement()`
 - AND the user copy MUST render the tile identically to the template
 
-### REQ-TMPL-008: Only One Default Template
+### Requirement: Only One Default Template (REQ-TMPL-008)
 
 The system MUST enforce that at most one template is marked as the default at any time.
 
@@ -298,7 +301,7 @@ The system MUST enforce that at most one template is marked as the default at an
 - THEN the template MUST have `isDefault` set to 0 (false)
 - AND no template MUST be the default (this is allowed)
 
-### REQ-TMPL-009: Get Template with Placements
+### Requirement: Get Template with Placements (REQ-TMPL-009)
 
 Administrators MUST be able to retrieve a specific template along with all its widget placements for editing.
 
@@ -318,7 +321,7 @@ Administrators MUST be able to retrieve a specific template along with all its w
 - WHEN the admin sends GET /api/admin/templates/2
 - THEN the system MUST return the template object with an empty placements array
 
-### REQ-TMPL-010: Template Group Resolution
+### Requirement: Template Group Resolution (REQ-TMPL-010)
 
 Template distribution MUST use Nextcloud's `IGroupManager` API to resolve user group memberships accurately.
 
@@ -343,7 +346,7 @@ Template distribution MUST use Nextcloud's `IGroupManager` API to resolve user g
 - THEN the template MUST NOT match any user (no user is in a non-existent group)
 - AND the system MUST NOT throw errors during group resolution
 
-### REQ-TMPL-011: Template Administration UI
+### Requirement: Template Administration UI (REQ-TMPL-011)
 
 The admin settings page MUST provide a UI for managing templates.
 
@@ -362,12 +365,247 @@ The admin settings page MUST provide a UI for managing templates.
 - THEN a group selector MUST allow selecting from available Nextcloud groups
 - NOTE: The current implementation uses `NcSelectTags` but `availableGroups` is hardcoded to an empty array. Groups are NOT fetched from the server.
 
+### Requirement: Primary-group resolution for workspace routing (REQ-TMPL-012)
+
+The system MUST expose a pure function `resolvePrimaryGroup(string $userId): string` that returns the Nextcloud group ID whose `group_shared` dashboards the user should see, OR the literal string `'default'` when no match is found. The algorithm MUST be:
+
+1. Read the admin-configured ordered list of group IDs from `admin_settings.group_order` (JSON `string[]`, default `[]`).
+2. Read the user's Nextcloud group memberships via `IGroupManager::getUserGroupIds($userId)`.
+3. Walk `group_order` left-to-right and return the first group ID that also appears in the user's memberships.
+4. If no match, return the literal string `'default'`.
+
+The function MUST be deterministic and idempotent (no writes).
+
+#### Scenario: First match wins by admin-configured priority
+
+- GIVEN admin has set `group_order = ["engineering", "all-staff"]`
+- AND user "alice" belongs to groups: `["all-staff", "engineering", "marketing"]`
+- WHEN `resolvePrimaryGroup("alice")` is called
+- THEN it MUST return `"engineering"` (because engineering appears first in group_order, even though all-staff is alphabetically earlier in alice's groups)
+
+#### Scenario: User in no active group falls through to default sentinel
+
+- GIVEN admin has set `group_order = ["engineering", "executives"]`
+- AND user "carol" belongs only to groups: `["support"]`
+- WHEN `resolvePrimaryGroup("carol")` is called
+- THEN it MUST return `"default"`
+
+#### Scenario: Empty group_order always returns default
+
+- GIVEN admin has not configured any active groups (`group_order = []`)
+- WHEN `resolvePrimaryGroup` is called for any user
+- THEN it MUST return `"default"` regardless of the user's actual group memberships
+
+#### Scenario: Configured group that the user is NOT in is skipped
+
+- GIVEN `group_order = ["executives", "engineering"]`
+- AND user "bob" belongs to: `["engineering", "support"]`
+- WHEN `resolvePrimaryGroup("bob")` is called
+- THEN it MUST skip "executives" and return `"engineering"`
+
+#### Scenario: Configured group that no longer exists in Nextcloud is harmless
+
+- GIVEN `group_order = ["deleted-group", "engineering"]`
+- AND the Nextcloud group "deleted-group" has been removed
+- AND user "alice" belongs to: `["engineering"]`
+- WHEN `resolvePrimaryGroup("alice")` is called
+- THEN it MUST return `"engineering"`
+- AND MUST NOT raise an error
+- NOTE: Cleanup of stale group IDs in `group_order` is the admin UI's responsibility; the resolver MUST be tolerant.
+
+### Requirement: Resolver is the single routing authority (REQ-TMPL-013)
+
+All workspace-rendering and dashboard-resolution code paths (REQ-DASH-013, REQ-DASH-018) MUST consult `resolvePrimaryGroup` for the user's primary group. There MUST NOT be parallel implementations of this lookup.
+
+#### Scenario: Single source of truth
+
+- GIVEN any future capability needs the user's primary workspace group
+- WHEN it computes a group ID
+- THEN it MUST go through `AdminTemplateService::resolvePrimaryGroup` (or its declared service interface)
+- AND duplicating the algorithm inline is forbidden by code review
+
+### Requirement: Template Gallery Endpoint (REQ-TMPL-014)
+
+The system MUST expose a read-only gallery endpoint that lists all `admin_template` dashboards with metadata suitable for discovery and instantiation.
+
+> NOTE (D2 — Index): The `WHERE type='admin_template' AND templateCategory=?` filter path MUST be backed by a composite index on `(type, templateCategory)`. The migration adding the three new metadata columns MUST also add this composite index to keep the optional category-filter query indexed at scale. The base `WHERE type='admin_template'` path already benefits from the existing index on `type`.
+
+#### Scenario: List all templates in gallery
+
+- GIVEN 3 admin templates exist with `templateCategory: 'marketing'`, `'engineering'`, and `null`
+- WHEN a logged-in user sends `GET /api/templates/gallery`
+- THEN the system MUST return HTTP 200 with an array of 3 template objects
+- AND each object MUST include: `uuid`, `name`, `description`, `category` (nullable string), `previewImage` (nullable URL), `gridColumns`, `widgetCount` (count of widget placements), `lastUpdatedAt`
+- AND the response MUST NOT include the widget tree or `isCompulsory` flag details (gallery is a list view, not a render)
+
+#### Scenario: Filter gallery by category
+
+- GIVEN 5 templates exist: 2 with `templateCategory: 'marketing'`, 2 with `templateCategory: 'engineering'`, 1 with `templateCategory: null`
+- WHEN a logged-in user sends `GET /api/templates/gallery?category=marketing`
+- THEN the system MUST return HTTP 200 with an array of 2 templates
+- AND the response MUST contain only templates where `templateCategory = 'marketing'`
+
+#### Scenario: Default sort order
+
+- GIVEN multiple templates exist with various categories and names
+- WHEN a user sends `GET /api/templates/gallery` (no sort parameter)
+- THEN results MUST be sorted first by `templateCategory` (null last), then by `name` alphabetically
+- AND this enables consistent ordering for pagination
+
+#### Scenario: Sort by recency
+
+- GIVEN 3 templates with `lastUpdatedAt` values: "2026-05-01 10:00:00", "2026-04-30 14:30:00", "2026-05-01 09:15:00"
+- WHEN a user sends `GET /api/templates/gallery?sort=updatedAt`
+- THEN the system MUST return results sorted by `lastUpdatedAt` descending (most recent first)
+- AND HTTP 200 MUST be returned
+
+#### Scenario: Gallery includes category null templates
+
+- GIVEN a template has `templateCategory: null`
+- WHEN a user calls `GET /api/templates/gallery` without category filter
+- THEN the template MUST be included
+- AND when calling `GET /api/templates/gallery?category=marketing`, the template with `null` category MUST NOT be included
+
+### Requirement: Save-as-template Action (REQ-TMPL-015)
+
+Any dashboard owner MUST be able to convert their current dashboard into a reusable admin template, creating a snapshot with a fresh UUID and a deep-copied widget tree.
+
+> NOTE (D3 — Deep-copy semantics): `save-as-template` creates a **deep copy**, not a link or reference. All widget placements are duplicated into a new row. The source dashboard is not modified. The new template row MUST have `basedOnTemplate = null` — templates do not chain and do not inherit lineage from the source dashboard. Edits to the source after save-as-template MUST NOT propagate to the template; this is consistent with the independence guarantee already provided by REQ-TMPL-006 for user copies.
+
+#### Scenario: Save a personal dashboard as a template
+
+- GIVEN user "alice" owns a personal dashboard with 4 widget placements
+- WHEN she sends `POST /api/dashboards/{uuid}/save-as-template` with body:
+  ```json
+  {
+    "name": "Product Roadmap Template",
+    "description": "Standard layout for product planning dashboards",
+    "category": "product",
+    "previewImage": "https://example.com/roadmap-preview.png"
+  }
+  ```
+- THEN the system MUST create a new dashboard with `type: 'admin_template'` and a fresh UUID
+- AND the new template MUST have all 4 widget placements deep-copied from the source
+- AND each copied placement MUST be independent (editing the source dashboard MUST NOT affect the template)
+- AND `userId` on the template MUST be null (templates are admin-collective, not user-owned)
+- AND the response MUST return HTTP 201 with the newly created template object
+
+#### Scenario: Save-as-template resets isActive flag
+
+- GIVEN a personal dashboard with `isActive: 1` (currently selected by the user)
+- WHEN the dashboard is saved as a template
+- THEN the resulting template MUST have `isActive: 0` (templates are not user dashboards; no dashboard is active for them)
+
+#### Scenario: Non-owner cannot save another's dashboard as template
+
+- GIVEN user "alice" owns dashboard "Work"
+- WHEN user "bob" sends `POST /api/dashboards/{uuid}/save-as-template` (alice's dashboard UUID)
+- THEN the system MUST return HTTP 403
+- AND the template MUST NOT be created
+
+#### Scenario: Save-as-template with admin_template source
+
+- GIVEN a user "alice" has a personal copy of an admin template (with `basedOnTemplate: 3`)
+- WHEN she sends `POST /api/dashboards/{uuid}/save-as-template` with her copy's UUID
+- THEN the system MUST create a new admin template
+- AND the new template's `basedOnTemplate` MUST be null (templates do not chain; they are independent)
+- AND the copy's source lineage is NOT preserved
+
+#### Scenario: Save-as-template with missing optional fields
+
+- GIVEN a user sends `POST /api/dashboards/{uuid}/save-as-template` with body `{"name": "My Template"}` (omitting description, category, previewImage)
+- THEN the system MUST create the template with:
+  - `templateDescription: null`
+  - `templateCategory: null`
+  - `templatePreviewImage: null`
+- AND HTTP 201 MUST be returned with the new template
+
+### Requirement: Template Metadata Fields (REQ-TMPL-016)
+
+Admin templates MUST support three new metadata fields for categorization and discovery: `templateCategory` (VARCHAR 64, nullable), `templateDescription` (TEXT, nullable), and `templatePreviewImage` (TEXT, nullable). The fields are stored as nullable columns on `oc_mydash_dashboards` and only meaningful for rows with `type = 'admin_template'`.
+
+#### Scenario: Template metadata in gallery response
+
+- GIVEN a template with `templateCategory: 'marketing'`, `templateDescription: 'Use for campaign planning'`, `templatePreviewImage: 'https://example.com/img.png'`
+- WHEN a user retrieves the template via `GET /api/templates/gallery`
+- THEN the response MUST include all three metadata fields exactly as stored
+
+#### Scenario: Metadata persists across updates
+
+- GIVEN a template with `templateCategory: 'engineering'`
+- WHEN an admin sends `PUT /api/admin/templates/{id}` to update the template name (via existing REQ-TMPL-003 endpoint)
+- THEN `templateCategory` MUST remain `'engineering'` (unchanged)
+
+#### Scenario: Update template metadata via save-as-template
+
+- GIVEN user "alice" saves her dashboard as a template with `category: 'product'`
+- THEN the new template's `templateCategory` MUST be set to `'product'`
+
+#### Scenario: Template description field length
+
+- GIVEN a user provides a `description` string of 500 characters when calling save-as-template
+- THEN the system MUST accept and store the full 500 characters (unlike the regular `description` field, which may be shorter)
+- NOTE: The `templateDescription` column stores longer text; validation MUST NOT truncate
+
+#### Scenario: Metadata fields are nullable
+
+- GIVEN a template with all metadata fields set to null
+- WHEN the template is returned via any API endpoint
+- THEN the response MUST include the fields with null values
+- AND no error MUST be thrown
+
+### Requirement: Preview Image Upload Endpoint (REQ-TMPL-017)
+
+Administrators MUST be able to upload a preview image for a template, persisted using the existing resource-uploads ("custom-icon-upload") pipeline. The endpoint accepts a base64 data URL body so it shares MIME validation, SVG sanitisation, and the 5 MB size cap with `POST /api/resources`.
+
+> NOTE (D4 — resource-uploads pipeline reuse): The `POST /api/admin/templates/{uuid}/preview-image` endpoint MUST delegate persistence to {@see ResourceService::upload()}. The body shape is `{base64: 'data:image/<type>;base64,<bytes>'}`. Allowed image types are PNG, JPG, GIF, WebP, SVG (sanitised). The persisted public URL is written to `templatePreviewImage` and returned as `{previewImage: '<url>'}`. Do not introduce a parallel image-persistence mechanism.
+
+#### Scenario: Upload preview image for a template
+
+- GIVEN an admin user and an admin template with UUID "abc123"
+- WHEN the admin sends `POST /api/admin/templates/abc123/preview-image` with a JSON body containing `{base64: 'data:image/png;base64,<bytes>'}`
+- THEN the system MUST save the image via the resource-uploads pipeline
+- AND the image MUST be persisted under `<appdata>/resources/` with a high-entropy filename
+- AND the template's `templatePreviewImage` field MUST be updated with the URL
+- AND the response MUST return HTTP 200 with `{"status": "success", "previewImage": "/apps/mydash/resource/<filename>"}`
+
+#### Scenario: Non-admin cannot upload preview image
+
+- GIVEN a regular user "alice"
+- WHEN she sends `POST /api/admin/templates/abc123/preview-image` with a base64 image
+- THEN the system MUST return HTTP 403
+- AND the template's `templatePreviewImage` MUST NOT be modified
+
+#### Scenario: Upload replaces previous preview image
+
+- GIVEN a template with `templatePreviewImage: '/apps/mydash/resource/old.png'`
+- WHEN an admin uploads a new image via `POST /api/admin/templates/{uuid}/preview-image`
+- THEN the system MUST overwrite the column with the new URL
+- AND `templatePreviewImage` MUST point to the new image
+- AND the old image file MAY be cleaned up (implementation-dependent)
+
+#### Scenario: Invalid file format is rejected
+
+- GIVEN an admin sends `POST /api/admin/templates/abc123/preview-image` with a `data:application/pdf;...` body
+- THEN the system MUST return HTTP 400 with an `invalid_image` error code
+- AND only image formats (PNG, JPG, GIF, WebP, SVG) MUST be accepted
+
+#### Scenario: Preview image URL in gallery response
+
+- GIVEN a template with a recently uploaded preview image
+- WHEN a user calls `GET /api/templates/gallery`
+- THEN the template object MUST include the `previewImage` URL
+- AND the image MUST be immediately accessible (no delay)
+
+> NOTE (D1 — Storage divergence): MyDash stores templates as `type='admin_template'` rows in `oc_mydash_dashboards`. This is a deliberate and permanent divergence from the reference implementation's `/{lang}/_templates/` filesystem-folder convention. Reasons: (1) the existing REQ-TMPL-001..011 capability is already shipped — switching storage models would be a breaking change; (2) `WHERE type='admin_template'` is a single indexed query; the filesystem approach requires a full page-tree walk with path-segment string-matching; (3) DB enum cleanly separates kind from location; (4) MyDash supports DB-backed dashboards that have no GroupFolder and therefore no `_templates/` folder — a cross-backend representation requires the DB type column; (5) ACL equivalence is already provided by the `dashboard-sharing` capability. Do not attempt to converge on the filesystem-folder approach.
+
 ## Non-Functional Requirements
 
-- **Performance**: Template distribution (copying placements) MUST complete within 2 seconds per user, even for templates with 20+ widget placements. The first-access check MUST add no more than 200ms to the initial dashboard load.
-- **Data integrity**: Template copies MUST be atomic -- if any placement fails to copy, the entire copy operation MUST be rolled back. The single-default invariant MUST be enforced at the database/service level.
+- **Performance**: Template distribution (copying placements) MUST complete within 2 seconds per user, even for templates with 20+ widget placements. The first-access check MUST add no more than 200ms to the initial dashboard load. `GET /api/templates/gallery` MUST return within 500ms even with 100+ templates; the gallery list SHOULD NOT fetch widget placements (use `WidgetPlacementMapper::countByDashboardId()` for the count, not `findByDashboardId()`).
+- **Data integrity**: Template copies MUST be atomic -- if any placement fails to copy, the entire copy operation MUST be rolled back. The single-default invariant MUST be enforced at the database/service level. Save-as-template (REQ-TMPL-015) deep-copy MUST also be atomic — if placement copy fails, the entire operation MUST be rolled back.
 - **Scalability**: Template distribution MUST work efficiently for organizations with 1000+ users. The system SHOULD NOT eagerly copy templates to all users; copies MUST be created on-demand at first access.
-- **Security**: Only Nextcloud admin users MUST be able to create, update, or delete templates. Group membership checks MUST use Nextcloud's `IGroupManager` API.
+- **Security**: Only Nextcloud admin users MUST be able to create, update, or delete templates. Only dashboard owners can call `POST /api/dashboards/{uuid}/save-as-template`. Only admins can call `POST /api/admin/templates/{uuid}/preview-image`. Group membership checks MUST use Nextcloud's `IGroupManager` API.
+- **Storage**: Preview images MUST be stored using the existing resource-uploads pipeline (same MIME validation, SVG sanitisation, 5 MB cap as `POST /api/resources`).
 - **Localization**: Admin template management UI labels and error messages MUST support English and Dutch.
 
 ### Current Implementation Status
@@ -382,6 +620,10 @@ The admin settings page MUST provide a UI for managing templates.
 - REQ-TMPL-007 (Template Widget Management): Templates share the same widget placement API as regular dashboards.
 - REQ-TMPL-008 (Only One Default): `clearDefaultTemplates()` on DashboardMapper ensures single default.
 - REQ-TMPL-009 (Get Template with Placements): `AdminTemplateService::getTemplateWithPlacements()` returns template + placements.
+- REQ-TMPL-014 (Gallery endpoint): `AdminTemplateService::getGallery()` + `TemplateController::gallery()` expose `GET /api/templates/gallery`. Backed by `DashboardMapper::findAllTemplatesForGallery()` and the composite `(type, template_category)` index added in `Version001012Date20260503000000`.
+- REQ-TMPL-015 (Save-as-template): `AdminTemplateService::saveAsTemplate()` + `TemplateController::saveAsTemplate()` expose `POST /api/dashboards/{uuid}/save-as-template`. Owner-only, transactional, uses `WidgetPlacementMapper::cloneToDashboard()` for the deep copy.
+- REQ-TMPL-016 (Metadata fields): `templateCategory`, `templateDescription`, `templatePreviewImage` columns added to `oc_mydash_dashboards`; serialised via `Dashboard::jsonSerialize()`.
+- REQ-TMPL-017 (Preview image upload): `AdminTemplateService::uploadPreviewImage()` + `AdminController::uploadTemplatePreviewImage()` expose `POST /api/admin/templates/{uuid}/preview-image`. Reuses `ResourceService::upload()` for storage.
 
 **Not yet implemented:**
 - REQ-TMPL-001 validation: No server-side validation for `permissionLevel` values.

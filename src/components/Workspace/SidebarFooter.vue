@@ -1,0 +1,215 @@
+<!--
+  - SPDX-FileCopyrightText: 2026 MyDash Contributors
+  - SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
+<!--
+	SidebarFooter — capability `dashboard-switcher`
+
+	Persistent footer block rendered at the bottom of the dashboard-switcher
+	sidebar (REQ-SWITCH-009). Contains:
+
+	  1. A "Powered by" caption with two brand logos:
+	     - Sendent  → https://sendent.com
+	     - Conduction → https://conduction.nl
+	     Both wrapped in `<a target="_blank" rel="noopener noreferrer">`
+	     (security gate — never omit `noopener noreferrer`).
+	  2. A Documentation link (icon + label) targeting the same URL the
+	     gear-menu Documentation entry used before runtime-shell-trim
+	     removed it (https://mydash.conduction.nl).
+
+	The footer itself is a stateless block; the parent
+	(`DashboardSwitcherSidebar`) owns the `position: sticky; bottom: 0`
+	wrapper so the footer pins to the bottom of the viewport while the
+	dashboards list above scrolls.
+-->
+
+<template>
+	<footer
+		class="dashboard-switcher-sidebar-footer"
+		data-testid="sidebar-footer">
+		<a
+			class="dashboard-switcher-sidebar-footer__doc-link"
+			:href="docsUrl"
+			target="_blank"
+			rel="noopener noreferrer">
+			<BookOpenVariantOutline :size="18" />
+			<span class="dashboard-switcher-sidebar-footer__doc-label">
+				{{ t('mydash', 'Documentation') }}
+			</span>
+		</a>
+
+		<div class="dashboard-switcher-sidebar-footer__brand">
+			<span class="dashboard-switcher-sidebar-footer__brand-caption">
+				{{ t('mydash', 'Powered by') }}
+			</span>
+			<div class="dashboard-switcher-sidebar-footer__brand-logos">
+				<a
+					class="dashboard-switcher-sidebar-footer__brand-link"
+					href="https://sendent.com"
+					target="_blank"
+					rel="noopener noreferrer"
+					aria-label="Sendent">
+					<img
+						:src="sendentLogo"
+						alt="Sendent"
+						class="dashboard-switcher-sidebar-footer__brand-image">
+				</a>
+				<a
+					class="dashboard-switcher-sidebar-footer__brand-link"
+					href="https://conduction.nl"
+					target="_blank"
+					rel="noopener noreferrer"
+					aria-label="Conduction">
+					<img
+						:src="conductionLogo"
+						alt="Conduction"
+						class="dashboard-switcher-sidebar-footer__brand-image dashboard-switcher-sidebar-footer__brand-image--invert">
+				</a>
+			</div>
+		</div>
+	</footer>
+</template>
+
+<script>
+import { t } from '@nextcloud/l10n'
+import { generateFilePath } from '@nextcloud/router'
+
+import BookOpenVariantOutline from 'vue-material-design-icons/BookOpenVariantOutline.vue'
+
+/**
+ * Documentation URL targeted by both the (now-removed) gear menu entry
+ * and the new sidebar footer link. Kept in module scope so the test
+ * suite can assert exact value parity with the previous gear-menu link.
+ *
+ * Points at the docs intro page rather than the marketing landing —
+ * the click context is a user inside the app reaching for docs, not
+ * a prospect evaluating the product.
+ */
+export const DOCS_URL = 'https://mydash.conduction.nl/docs/intro'
+
+export default {
+	name: 'SidebarFooter',
+
+	components: {
+		BookOpenVariantOutline,
+	},
+
+	computed: {
+		/** @spec openspec/specs/footer-customization/spec.md */
+		docsUrl() {
+			return DOCS_URL
+		},
+		/** @spec openspec/specs/footer-customization/spec.md */
+		sendentLogo() {
+			return generateFilePath('mydash', 'img', 'sendent-logo.png')
+		},
+		/** @spec openspec/specs/footer-customization/spec.md */
+		conductionLogo() {
+			return generateFilePath('mydash', 'img', 'conduction-logo.png')
+		},
+	},
+
+	methods: {
+		t,
+	},
+}
+</script>
+
+<style scoped>
+.dashboard-switcher-sidebar-footer {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 12px 16px;
+	background: var(--color-main-background, #fff);
+	border-top: 1px solid var(--color-border, #e0e0e0);
+}
+
+.dashboard-switcher-sidebar-footer__doc-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+	border-radius: 4px;
+	color: var(--color-main-text, #222);
+	text-decoration: none;
+	font-size: 13px;
+	transition: background-color 0.15s ease;
+}
+
+.dashboard-switcher-sidebar-footer__doc-link:hover,
+.dashboard-switcher-sidebar-footer__doc-link:focus {
+	background: var(--color-background-hover, #f5f5f5);
+	outline: none;
+	text-decoration: none;
+}
+
+.dashboard-switcher-sidebar-footer__doc-label {
+	font-weight: 500;
+}
+
+.dashboard-switcher-sidebar-footer__brand {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+}
+
+.dashboard-switcher-sidebar-footer__brand-caption {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+	color: var(--color-text-maxcontrast, #757575);
+}
+
+.dashboard-switcher-sidebar-footer__brand-logos {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-wrap: nowrap;
+	gap: 12px;
+	width: 100%;
+	min-width: 0;
+}
+
+.dashboard-switcher-sidebar-footer__brand-link {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 1 auto;
+	min-width: 0;
+	padding: 2px 4px;
+	border-radius: 4px;
+	transition: background-color 0.15s ease;
+}
+
+.dashboard-switcher-sidebar-footer__brand-link:hover,
+.dashboard-switcher-sidebar-footer__brand-link:focus {
+	background: var(--color-background-hover, #f5f5f5);
+	outline: none;
+}
+
+.dashboard-switcher-sidebar-footer__brand-image {
+	height: 16px;
+	width: auto;
+	max-width: 100%;
+	object-fit: contain;
+	display: block;
+}
+
+/*
+ * The Conduction logo is shipped as a WHITE wordmark on transparent —
+ * designed for dark backgrounds. The Nextcloud `--background-invert-if-bright`
+ * CSS variable resolves to `invert(100%)` on light themes and `no` (i.e.
+ * the fallback `none`) on dark themes. Using it directly inverts on
+ * light (white → black, visible on the white footer) and leaves the
+ * logo untouched on dark themes (white → still white, visible on the
+ * dark footer). No fallback `invert(1)` is needed — and adding one
+ * causes a double-invert that cancels out on light themes.
+ */
+.dashboard-switcher-sidebar-footer__brand-image--invert {
+	filter: var(--background-invert-if-bright, none);
+}
+</style>

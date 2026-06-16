@@ -2,12 +2,12 @@ name: Documentation
 
 on:
   push:
-    branches: [development, documentation]
+    branches: [documentation]
   pull_request:
-    branches: [development, documentation]
+    branches: [documentation]
 
 jobs:
   deploy:
     uses: ConductionNL/.github/.github/workflows/documentation.yml@main
     with:
-      cname: mydash.app
+      cname: mydash.conduction.nl

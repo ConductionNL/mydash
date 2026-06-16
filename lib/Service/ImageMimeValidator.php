@@ -69,6 +69,8 @@ class ImageMimeValidator
      * @throws CorruptImageException When the bytes cannot be decoded.
      * @throws MimeMismatchException When the detected MIME differs from
      *                               the declared type.
+     *
+     * @spec openspec/specs/resource-uploads/spec.md
      */
     public function validate(string $declaredType, string $bytes): void
     {
@@ -106,7 +108,7 @@ class ImageMimeValidator
             throw new CorruptImageException();
         }
 
-        $detectedMime = $info['mime'];
+        $detectedMime = ($info['mime'] ?? '');
         if ($detectedMime !== $expectedMime) {
             throw new MimeMismatchException();
         }

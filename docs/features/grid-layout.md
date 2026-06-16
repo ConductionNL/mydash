@@ -26,4 +26,4 @@ The grid layout system powers the drag-and-drop dashboard experience in MyDash, 
 
 ## Screenshot
 
-![Grid Layout](../screenshots/mydash-dashboard-overview.png)
+![Grid Layout](/screenshots/mydash-dashboard-overview.png)

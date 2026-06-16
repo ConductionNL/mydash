@@ -161,6 +161,8 @@ class SvgSanitiser
      *
      * @return string|null The sanitised SVG, or null when unparseable
      *                     or sanitised to an empty result.
+     *
+     * @spec openspec/specs/resource-uploads/spec.md
      */
     public function sanitize(string $bytes): ?string
     {
@@ -174,9 +176,11 @@ class SvgSanitiser
         $document->preserveWhiteSpace = false;
         $document->formatOutput       = false;
 
+        // C2: LIBXML_NOENT removed — it resolves (not disables) entities,
+        // enabling XXE. LIBXML_NONET blocks external DTD/entity fetches.
         $loaded = $document->loadXML(
             source: $bytes,
-            options: (LIBXML_NONET | LIBXML_NOENT)
+            options: LIBXML_NONET
         );
 
         libxml_clear_errors();

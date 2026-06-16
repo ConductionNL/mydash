@@ -22,7 +22,10 @@ Both maps persist for the lifetime of the page. Registration is additive — re-
 
 ## Requirements
 
-### REQ-LWB-001: Intercept legacy widget registration at bootstrap
+
+@e2e exclude purely client-side JavaScript bridge for legacy OCA.Dashboard.register() — no Playwright-observable DOM surface; bridge internals tested by Vitest unit tests
+
+### Requirement: Intercept legacy widget registration at bootstrap (REQ-LWB-001)
 
 The system MUST intercept calls to `window.OCA.Dashboard.register` and `window.OCA.Dashboard.registerStatus` made by legacy Nextcloud widgets so that their render callbacks can be captured for later mounting by MyDash. Interception is installed once when the bridge singleton is constructed. The system MUST preserve any previously installed `register` / `registerStatus` implementation so that Nextcloud code that depends on the original registrar continues to work.
 
@@ -47,7 +50,7 @@ The system MUST intercept calls to `window.OCA.Dashboard.register` and `window.O
 - THEN the system MUST create the `OCA` and `OCA.Dashboard` objects before installing the `register` / `registerStatus` overrides
 - AND subsequent legacy registrations MUST still be captured correctly
 
-### REQ-LWB-002: Mount a captured legacy widget into a DOM container
+### Requirement: Mount a captured legacy widget into a DOM container (REQ-LWB-002)
 
 The system MUST provide a way for MyDash to render a legacy widget by invoking its captured callback against a DOM container element. Widgets that did not register a callback MUST NOT silently mount; a diagnostic warning MUST be emitted so missing registrations surface during development. Errors raised by a widget's callback MUST NOT propagate — a single broken legacy widget MUST NOT prevent the rest of the dashboard from rendering.
 
@@ -73,7 +76,7 @@ The system MUST provide a way for MyDash to render a legacy widget by invoking i
 - THEN the system MUST catch the error and log it together with the widgetId
 - AND the error MUST NOT propagate to the caller
 
-### REQ-LWB-003: Mount a captured legacy status widget
+### Requirement: Mount a captured legacy status widget (REQ-LWB-003)
 
 The system MUST provide a way to render a legacy status widget. Status widgets differ from regular widgets in their callback signature: they receive only the container element, with no metadata argument.
 
@@ -100,7 +103,7 @@ The system MUST provide a way to render a legacy status widget. Status widgets d
 
 **Notes**: The missing-callback behaviour differs between `mountWidget` (warn) and `mountStatusWidget` (silent). This is observed, not obviously intentional — status widgets may legitimately be absent on dashboards that do not request them, while regular widgets are usually explicit. Flagged for future REQ tightening once a call-site audit confirms the rationale.
 
-### REQ-LWB-004: Query widget-bridge registration state
+### Requirement: Query widget-bridge registration state (REQ-LWB-004)
 
 The system MUST expose a way for MyDash render logic to query which widget callbacks have been captured so that it can choose between the legacy mounting path and the modern v2 rendering path without attempting a mount first.
 
@@ -120,3 +123,48 @@ The system MUST expose a way for MyDash render logic to query which widget callb
 - AND the order of appIds MUST reflect registration order (Map iteration order)
 
 **Notes**: `hasWidgetCallback` and `getRegisteredWidgetIds` are combined into a single REQ because they expose the same read-only inspection capability over the widget-callback map. Status callbacks are not exposed via either query — the bridge does not currently need introspection on the status map. Noted for future REQ extension if that need arises.
+
+### Requirement: Polling helper for late callback registration (REQ-LWB-005)
+
+The bridge singleton MUST expose `pollForCallback(widgetId: string, options?: {intervalMs?: number, maxRetries?: number, signal?: AbortSignal}): Promise<boolean>` that periodically checks whether a callback has been registered for the given `widgetId`. Defaults: `intervalMs = 200`, `maxRetries = 15` (~3 s total). The promise MUST resolve to `true` as soon as a callback is detected, OR to `false` after the max retries are exhausted. Each call MUST be cancellable via the AbortSignal of an `AbortController` passed in `options.signal` (so callers can abort polling on unmount).
+
+This helper exists to support the `nc-widget` renderer (REQ-WDG-019), which needs to fall through to API rendering immediately while still upgrading to native-callback rendering when the widget bundle finishes loading later.
+
+#### Scenario: Resolve true when callback registers mid-poll
+
+- GIVEN no callback for `'notes'` is currently registered
+- WHEN a caller invokes `pollForCallback('notes')` (defaults)
+- AND a `OCA.Dashboard.register('notes', cb)` call happens 600 ms later
+- THEN the promise MUST resolve `true` within ~800 ms (next poll tick after registration)
+
+#### Scenario: Resolve false on timeout
+
+- GIVEN no callback for `'fictional_widget'` is ever registered
+- WHEN `pollForCallback('fictional_widget')` is invoked
+- THEN after ~3 seconds (15 x 200 ms) the promise MUST resolve `false`
+- AND no further interval ticks MUST fire
+
+#### Scenario: Abort cancels polling
+
+- GIVEN a poll is in progress for `'notes'`
+- WHEN the caller aborts via `AbortController.abort()`
+- THEN the promise MUST resolve `false` immediately
+- AND the underlying `setInterval` MUST be cleared
+- AND no further poll ticks MUST run
+
+#### Scenario: Already-registered callback resolves immediately
+
+- GIVEN a callback for `'notes'` IS already in the bridge map
+- WHEN `pollForCallback('notes')` is invoked
+- THEN the promise MUST resolve `true` synchronously (or on the very next microtask)
+- AND no `setInterval` MUST be scheduled
+
+### Requirement: hasWidgetCallback consistency (REQ-LWB-006)
+
+`hasWidgetCallback(widgetId)` (already declared in REQ-LWB-004) MUST return `true` if and only if `pollForCallback` would resolve `true` immediately. The polling helper MUST use `hasWidgetCallback` internally as its check function — there MUST NOT be two parallel "is registered" code paths.
+
+#### Scenario: Single source of truth
+
+- WHEN the polling helper checks for registration
+- THEN it MUST call `this.hasWidgetCallback(widgetId)`
+- AND the result of `hasWidgetCallback` and the poll's first synchronous check MUST agree

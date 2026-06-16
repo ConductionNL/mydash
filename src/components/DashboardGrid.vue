@@ -17,7 +17,7 @@
 				:gs-h="placement.gridHeight"
 				:gs-min-w="2"
 				:gs-min-h="2"
-				@contextmenu.prevent="onWidgetRightClick($event, placement)">
+				@contextmenu="onItemContextMenu($event, placement)">
 				<div class="grid-stack-item-content">
 					<!-- Render Tile directly for tile placements. -->
 					<TileWidget
@@ -39,25 +39,36 @@
 			</div>
 		</div>
 
-		<!-- Widget context menu popover -->
+		<!-- Widget context menu popover.
+		     `v-if` gates the render on the local `contextMenu.show` flag.
+		     Without it the popover renders unconditionally with no inline
+		     top/left and stacks at flow position (visible leftover at
+		     0,0). The newer composable-driven popover in Views.vue already
+		     handles the right-click flow; this component remains for
+		     legacy callers, but must not paint when no menu is open. -->
 		<WidgetContextMenu
-			:show="contextMenu.show"
-			:x="contextMenu.x"
-			:y="contextMenu.y"
-			:widget="contextMenu.widget"
-			@edit="onContextEdit"
-			@remove="onContextRemove"
+			v-if="contextMenu.show"
+			:top="contextMenu.y"
+			:left="contextMenu.x"
+			@edit="onContextEdit(contextMenu.widget)"
+			@remove="onContextRemove(contextMenu.widget)"
 			@close="closeContextMenu" />
 	</div>
 </template>
 
 <script>
 import { GridStack } from 'gridstack'
+import {
+	CELL_HEIGHT,
+	GRID_MARGIN,
+	DEFAULT_COLUMNS,
+	getColumnOpts,
+	syncCellHeightCssVar,
+} from '../composables/useGridManager.js'
 import WidgetWrapper from './WidgetWrapper.vue'
 import TileWidget from './TileWidget.vue'
 import WidgetContextMenu from './Widgets/WidgetContextMenu.vue'
 import { placeNewWidget } from '../utils/widgetPlacement.js'
-import { CELL_HEIGHT, GRID_MARGIN, BREAKPOINTS, COLUMN_LAYOUT } from '../constants/gridConfig.js'
 
 export default {
 	name: 'DashboardGrid',
@@ -83,11 +94,18 @@ export default {
 		},
 		gridColumns: {
 			type: Number,
-			default: 12,
+			default: DEFAULT_COLUMNS,
 		},
 	},
 
-	emits: ['update:placements', 'widget-remove', 'widget-style', 'tile-edit', 'widget-edit'],
+	emits: [
+		'update:placements',
+		'widget-remove',
+		'widget-style',
+		'tile-edit',
+		'widget-edit',
+		'widget-right-click',
+	],
 
 	data() {
 		return {
@@ -103,6 +121,7 @@ export default {
 	},
 
 	watch: {
+		/** @spec openspec/specs/grid-layout/spec.md */
 		editMode(newVal) {
 			if (this.grid) {
 				if (newVal) {
@@ -115,6 +134,7 @@ export default {
 
 		placements: {
 			deep: true,
+			/** @spec openspec/specs/grid-layout/spec.md */
 			handler(newPlacements) {
 				if (this.grid) {
 					this.syncGridItems(newPlacements)
@@ -123,6 +143,7 @@ export default {
 		},
 	},
 
+	/** @spec openspec/specs/grid-layout/spec.md */
 	mounted() {
 		this.initGrid()
 		this.computeViewportRows()
@@ -130,6 +151,7 @@ export default {
 		document.addEventListener('click', this.handleDocumentClick)
 	},
 
+	/** @spec openspec/specs/grid-layout/spec.md */
 	beforeDestroy() {
 		if (this.grid) {
 			this.grid.destroy(false)
@@ -140,13 +162,30 @@ export default {
 
 	methods: {
 		/**
-		 * Place a new widget using the collision placement algorithm (REQ-GRID-006, REQ-GRID-014).
-		 * Returns the placement position {x, y, w, h} for the new widget.
-		 * Caller MUST persist this position via the standard updatePlacements API.
+		 * Forward right-click events on a grid item up to the workspace
+		 * shell (REQ-WDG-015). The shell is responsible for deciding
+		 * whether to swallow the native menu (edit mode) or let it through
+		 * (view mode) — this component MUST NOT call `preventDefault()`
+		 * itself, otherwise view-mode loses the browser's native menu.
+		 *
+		 * @param {MouseEvent} event the contextmenu event
+		 * @param {object} placement the placement under the cursor
+		 */
+		/** @spec openspec/specs/grid-layout/spec.md */
+		onItemContextMenu(event, placement) {
+			this.$emit('widget-right-click', event, placement)
+		},
+
+		/**
+		 * Place a new widget using the collision placement algorithm
+		 * (REQ-GRID-006, REQ-GRID-014). Returns the placement position
+		 * `{x, y, w, h}` for the new widget. Caller MUST persist this
+		 * position via the standard updatePlacements API.
 		 *
 		 * @param {object} spec widget spec with optional {w, h} dimensions
 		 * @return {object} placement position {x, y, w, h}
 		 */
+		/** @spec openspec/specs/grid-layout/spec.md */
 		placeWidget(spec) {
 			return placeNewWidget(spec, this.placements, this.grid, this.viewportRows)
 		},
@@ -155,6 +194,7 @@ export default {
 		 * Compute viewport rows from the grid container height.
 		 * Called on mount and resize events.
 		 */
+		/** @spec openspec/specs/grid-layout/spec.md */
 		computeViewportRows() {
 			if (!this.$refs.gridContainer) return
 			const containerHeight = this.$refs.gridContainer.offsetHeight
@@ -162,6 +202,7 @@ export default {
 			this.viewportRows = Math.ceil(containerHeight / rowHeight)
 		},
 
+		/** @spec openspec/specs/grid-layout/spec.md */
 		getPlacementKey(placement) {
 			// Generate a key that changes when placement properties update.
 			// Include updatedAt or stringify relevant properties to force re-render.
@@ -172,11 +213,13 @@ export default {
 			return this.widgets.find(w => w.id === widgetId)
 		},
 
+		/** @spec openspec/specs/grid-layout/spec.md */
 		isTilePlacement(placement) {
 			// Check if this placement is for a tile (has tileType field).
 			return placement.tileType === 'custom'
 		},
 
+		/** @spec openspec/specs/grid-layout/spec.md */
 		getTileData(placement) {
 			// Return tile data from the placement itself.
 			if (!this.isTilePlacement(placement)) return null
@@ -193,20 +236,28 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/grid-layout/spec.md */
 		initGrid() {
+			// Mirror the JS cell-height constant into the CSS custom
+			// property BEFORE GridStack initialises so any first-paint
+			// `calc()` expression already reads the correct value.
+			// See REQ-GRID-012 (cell geometry constants).
+			syncCellHeightCssVar()
+
 			this.grid = GridStack.init({
 				column: this.gridColumns,
 				cellHeight: CELL_HEIGHT,
 				margin: GRID_MARGIN,
-				columnOpts: {
-					breakpoints: BREAKPOINTS,
-					layout: COLUMN_LAYOUT,
-				},
 				float: true,
 				animate: true,
 				disableDrag: !this.editMode,
 				disableResize: !this.editMode,
 				removable: false,
+				// REQ-GRID-007 (responsive breakpoints): four explicit
+				// width:column entries with the `moveScale` reflow
+				// algorithm so widgets proportionally rescale on
+				// viewport changes.
+				columnOpts: getColumnOpts(),
 			}, this.$refs.gridContainer.querySelector('.grid-stack'))
 
 			// Listen for changes
@@ -215,6 +266,7 @@ export default {
 			})
 		},
 
+		/** @spec openspec/specs/grid-layout/spec.md */
 		handleGridChange(items) {
 			if (!items || items.length === 0) return
 
@@ -242,6 +294,7 @@ export default {
 			this.$emit('update:placements', updatedPlacements)
 		},
 
+		/** @spec openspec/specs/grid-layout/spec.md */
 		syncGridItems(placements) {
 			// Add new items
 			for (const placement of placements) {
@@ -276,6 +329,7 @@ export default {
 		 * @param {MouseEvent} event right-click event
 		 * @param {object} placement widget placement object
 		 */
+		/** @spec openspec/specs/grid-layout/spec.md */
 		onWidgetRightClick(event, placement) {
 			if (!this.editMode) {
 				// In view mode, let the browser native menu appear
@@ -293,6 +347,7 @@ export default {
 		/**
 		 * Close the context menu (REQ-WDG-016).
 		 */
+		/** @spec openspec/specs/grid-layout/spec.md */
 		closeContextMenu() {
 			this.contextMenu.show = false
 			this.contextMenu.widget = null
@@ -304,6 +359,7 @@ export default {
 		 *
 		 * @param {object} placement widget placement object
 		 */
+		/** @spec openspec/specs/grid-layout/spec.md */
 		onContextEdit(placement) {
 			this.$emit('widget-edit', placement)
 		},
@@ -314,6 +370,7 @@ export default {
 		 *
 		 * @param {object} placement widget placement object
 		 */
+		/** @spec openspec/specs/grid-layout/spec.md */
 		onContextRemove(placement) {
 			this.$emit('widget-remove', placement.id)
 		},
@@ -323,6 +380,7 @@ export default {
 		 *
 		 * @param {MouseEvent} event click event
 		 */
+		/** @spec openspec/specs/grid-layout/spec.md */
 		handleDocumentClick(event) {
 			if (!this.contextMenu.show) {
 				return

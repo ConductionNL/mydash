@@ -40,6 +40,7 @@ export default {
 	emits: ['switch'],
 
 	computed: {
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		dashboardOptions() {
 			return this.dashboards.map(d => ({
 				id: d.id,
@@ -48,9 +49,11 @@ export default {
 		},
 
 		selectedDashboard: {
+			/** @spec openspec/specs/dashboard-switcher/spec.md */
 			get() {
 				return this.dashboardOptions.find(d => d.id === this.activeId) || null
 			},
+			/** @spec openspec/specs/dashboard-switcher/spec.md */
 			set() {
 				// Handled by @input
 			},
@@ -58,6 +61,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/dashboard-switcher/spec.md */
 		switchDashboard(option) {
 			if (option && option.id !== this.activeId) {
 				this.$emit('switch', option.id)

@@ -12,6 +12,9 @@
  * @license   EUPL-1.2 https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
  * @version   GIT:auto
  * @link      https://conduction.nl
+ *
+ * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-1
+ * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-2
  */
 
 declare(strict_types=1);
@@ -43,47 +46,14 @@ class DashboardRequestValidator
     }//end __construct()
 
     /**
-     * Check update permissions based on whether placements are included.
-     *
-     * REQ-PERM-007: Metadata-only updates (name, description) are allowed
-     * for all permission levels. Widget/tile/layout changes require
-     * add_only or full permission.
-     *
-     * @param string     $userId      The user ID.
-     * @param int        $dashboardId The dashboard ID.
-     * @param array|null $placements  The placements (null = metadata-only).
-     *
-     * @return JSONResponse|null Error response or null if allowed.
-     *
-     * @SuppressWarnings(PHPMD.StaticAccess) — ResponseHelper uses static methods by design
-     */
-    public function checkUpdatePermissions(string $userId, int $dashboardId, ?array $placements): ?JSONResponse
-    {
-        $allowed = $this->permissionService->canEditDashboard(
-            userId: $userId,
-            dashboardId: $dashboardId
-        );
-        if ($placements === null) {
-            $allowed = $this->permissionService->canEditDashboardMetadata(
-                userId: $userId,
-                dashboardId: $dashboardId
-            );
-        }
-
-        if ($allowed === false) {
-            return ResponseHelper::forbidden();
-        }
-
-        return null;
-    }//end checkUpdatePermissions()
-
-    /**
      * Resolve create parameters from JSON body or individual params.
      *
      * @param mixed       $name        The name parameter.
      * @param string|null $description The description parameter.
      *
      * @return array The resolved name and description.
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-2
      */
     public function resolveCreateParams(
         $name,
@@ -110,6 +80,8 @@ class DashboardRequestValidator
      * @return JSONResponse|null Error response or null if allowed.
      *
      * @SuppressWarnings(PHPMD.StaticAccess) — ResponseHelper uses static methods by design
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-1
      */
     public function checkCreatePermissions(string $userId): ?JSONResponse
     {
@@ -126,9 +98,7 @@ class DashboardRequestValidator
             userId: $userId
         );
         if (empty($existing) === false
-            && $this->permissionService->canHaveMultipleDashboards(
-                userId: $userId
-            ) === false
+            && $this->permissionService->canHaveMultipleDashboards() === false
         ) {
             return ResponseHelper::forbidden(
                 message: $this->l10n->t('Multiple dashboards not allowed')
@@ -146,6 +116,8 @@ class DashboardRequestValidator
      * @param array|null  $placements  The placements.
      *
      * @return array The non-null update data.
+     *
+     * @spec openspec/changes/archive/2026-05-24-retrofit-dashboards/tasks.md#task-2
      */
     public function buildUpdateData(
         ?string $name,

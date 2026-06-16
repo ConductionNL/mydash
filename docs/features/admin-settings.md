@@ -26,4 +26,4 @@ Admin settings provide Nextcloud administrators with global configuration option
 
 ## Screenshot
 
-![Dashboard Overview](../screenshots/mydash-dashboard-overview.png)
+![Dashboard Overview](/screenshots/mydash-dashboard-overview.png)

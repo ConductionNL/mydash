@@ -44,6 +44,8 @@ class MetricsQueryService
      * @return array<string, int> Map of type to count.
      *
      * @throws \Exception When the database query fails.
+     *
+     * @spec openspec/changes/retrofit-2026-05-24-annotate-mydash/tasks.md#task-26
      */
     public function queryDashboardCounts(): array
     {
@@ -79,6 +81,8 @@ class MetricsQueryService
      * @param string $tableName The table name.
      *
      * @return int The row count.
+     *
+     * @spec openspec/specs/prometheus-metrics/spec.md
      */
     public function countTable(string $tableName): int
     {

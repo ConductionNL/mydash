@@ -4,7 +4,11 @@
 -->
 
 <template>
-	<div class="mydash-widget" :style="widgetStyles">
+	<div
+		class="mydash-widget"
+		:data-testid="placement?.id ? `widget-placement-${placement.id}` : 'widget-placement'"
+		:data-widget-id="placement?.widgetId"
+		:style="widgetStyles">
 		<!-- Widget header -->
 		<div v-if="showHeader" class="mydash-widget__header" :style="headerStyles">
 			<div class="mydash-widget__header-left">
@@ -22,6 +26,7 @@
 				<NcButton
 					type="tertiary"
 					:aria-label="t('mydash', 'Edit widget')"
+					data-testid="widget-edit-cog"
 					@click="$emit('edit', placement)">
 					<template #icon>
 						<Cog :size="20" />
@@ -83,42 +88,64 @@ export default {
 
 	computed: {
 		isTileWidget() {
-			const result = this.placement.widgetId && this.placement.widgetId.startsWith('tile-')
-			console.log('[WidgetWrapper] isTileWidget check:', {
-				widgetId: this.placement.widgetId,
-				result,
-			})
-			return result
+			return this.placement.widgetId && this.placement.widgetId.startsWith('tile-')
 		},
 
+		/**
+		 * Widget types that own their entire visual surface — labels,
+		 * dividers, header banners, and the registry-driven `tile` are
+		 * "chrome-less": rendering a "Widget"-titled wrapper above them
+		 * is visual noise that competes with the renderer's own
+		 * heading. The wrapper still draws its frame for any other
+		 * type AND for these types when the user has set a per-placement
+		 * `customTitle` (which is an explicit opt-in to show chrome).
+		 */
+		isChromelessType() {
+			return ['label', 'divider', 'header', 'tile'].includes(this.placement?.widgetId)
+		},
+
+		/** @spec openspec/specs/widgets/spec.md */
 		showHeader() {
-			// Tiles don't show headers - they render directly.
-			const show = this.isTileWidget ? false : (this.placement.showTitle !== false)
-			console.log('[WidgetWrapper] showHeader:', show, 'isTileWidget:', this.isTileWidget)
-			return show
+			// Tiles (legacy `tile-{id}` widgetId) render directly with no
+			// wrapper. Registry-driven chrome-less types keep the wrapper
+			// frame but skip the header row unless the user supplied a
+			// `customTitle` override.
+			if (this.isTileWidget) {
+				return false
+			}
+			if (this.isChromelessType && !this.placement.customTitle) {
+				return false
+			}
+			return this.placement.showTitle !== false
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		widgetTitle() {
 			return this.placement.customTitle || this.widget?.title || this.t('mydash', 'Widget')
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		widgetIconUrl() {
 			return this.widget?.iconUrl || null
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		widgetButtons() {
 			return this.widget?.buttons || []
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		canRemove() {
 			// Can't remove compulsory widgets unless full permission
 			return !this.placement.isCompulsory
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		styleConfig() {
 			return this.placement.styleConfig || {}
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		widgetStyles() {
 			const styles = {}
 
@@ -150,6 +177,7 @@ export default {
 			return styles
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		headerStyles() {
 			const styles = {}
 
@@ -167,6 +195,7 @@ export default {
 	},
 
 	methods: {
+		/** @spec openspec/specs/widgets/spec.md */
 		hexToRgba(hex, opacity) {
 			if (!hex) return 'transparent'
 			const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)

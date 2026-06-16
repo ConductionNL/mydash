@@ -24,7 +24,7 @@ the template + ADR cleanup PR.
 | 003 | Thin controllers | ✅ | most methods under 20 lines; `DashboardApiController::update` is the largest at ~45 lines due to metadata-vs-layout branch |
 | 003 | DI via constructor + `private readonly` | ✅ | verified across `lib/Controller/` and `lib/Service/` |
 | 003 | No `\OC::$server` or static locators | ✅ | post-PR: `grep -rnE '\\OC::\\$server\\|Server::get(\\|new \\OC_' lib/` returns zero |
-| 003 | `@spec` on every class + public method | ❌ | **deferred** — 0 of ~215 public methods tagged. Tracked as [openspec change + issue](#follow-ups) |
+| 003 | `@spec` on every class + public method | ✅ | 62 `@spec` tags now annotate every public method that maps to a capability Requirement (Bucket 1 from `openspec/coverage-report.md`); enforced by `composer lint:spec-annotations` against `tools/spec-annotations-allowlist.txt` |
 | 003 | Specific routes before wildcard | ✅ | no wildcard routes |
 | **004** Frontend | Vue 2 + Pinia + Options API | ✅ | Vue 2.7 + Pinia stores + Webpack (template-aligned) |
 | 004 | Never import from `@nextcloud/vue` directly — use `@conduction/nextcloud-vue` | ✅ | post-PR: all 9 direct imports migrated |
@@ -63,25 +63,21 @@ the template + ADR cleanup PR.
 
 ## Summary
 
-- **Compliant:** 25 rules (incl. compound rules)
+- **Compliant:** 26 rules (incl. compound rules)
 - **Partial:** 4 rules (ADR-005 `PasswordConfirmationRequired`, ADR-008
   PHPUnit breadth, ADR-010 deep WCAG AA, ADR-018 `header-actions`
   slot by design)
-- **Gaps:** 2 rules (ADR-003 `@spec` tag coverage, ADR-008 Newman)
+- **Gaps:** 1 rule (ADR-008 Newman)
 - **N/A:** 14 rules (no OR consumption, no registry provider, no fine-
   grained actions, hydra-infra rules)
 
 ## Follow-ups
 
-The two remaining `❌` items are tracked as formal OpenSpec changes +
-GitHub issues so Hydra's pipeline can pick them up after this PR
+The remaining `❌` item is tracked as a formal OpenSpec change +
+GitHub issue so Hydra's pipeline can pick it up after this PR
 merges:
 
-1. **`@spec` annotation pass across 64 PHP files / 215 public methods**
-   — needs a full `/opsx-annotate` run against the 10 archived changes
-   in `openspec/changes/archive/`. Scope is too large to pack into this
-   PR.
-2. **Newman / Postman integration collection** — covering the 17 OCS
+1. **Newman / Postman integration collection** — covering the 17 OCS
    endpoints, with env-placeholder credentials and CI wiring.
 
 Partial items that may warrant their own follow-up PRs later (not

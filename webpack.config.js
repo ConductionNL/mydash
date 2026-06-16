@@ -33,6 +33,12 @@ webpackConfig.resolve = {
 		'pinia$': path.resolve(__dirname, 'node_modules/pinia'),
 		'@nextcloud/vue$': path.resolve(__dirname, 'node_modules/@nextcloud/vue'),
 		'@nextcloud/dialogs$': path.resolve(__dirname, 'node_modules/@nextcloud/dialogs'),
+		// `@nextcloud/axios@2.6+` is ESM-only and its `exports` map has no
+		// `require` condition, so the CJS bundle of `@nextcloud/vue@8.x`
+		// (which does `require('@nextcloud/axios')`) fails to resolve.
+		// Alias directly to the ESM entry so webpack bypasses the exports
+		// map and transforms/interops the ESM module itself.
+		'@nextcloud/axios$': path.resolve(__dirname, 'node_modules/@nextcloud/axios/dist/index.js'),
 	},
 	// Ensure webpack resolves dependencies from the app's node_modules first,
 	// preventing Vue 3 packages from nextcloud-vue/node_modules leaking in.

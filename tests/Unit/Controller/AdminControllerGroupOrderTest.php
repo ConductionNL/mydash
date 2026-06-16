@@ -20,9 +20,8 @@ declare(strict_types=1);
 
 namespace Unit\Controller;
 
-use OCA\MyDash\Controller\AdminController;
+use OCA\MyDash\Controller\AdminSettingsController;
 use OCA\MyDash\Service\AdminSettingsService;
-use OCA\MyDash\Service\AdminTemplateService;
 use OCP\AppFramework\Http;
 use OCP\IGroupManager;
 use OCP\IRequest;
@@ -33,11 +32,9 @@ use PHPUnit\Framework\TestCase;
 
 class AdminControllerGroupOrderTest extends TestCase
 {
-    private AdminController $controller;
+    private AdminSettingsController $controller;
     /** @var IRequest&MockObject */
     private $request;
-    /** @var AdminTemplateService&MockObject */
-    private $templateService;
     /** @var AdminSettingsService&MockObject */
     private $settingsService;
     /** @var IGroupManager&MockObject */
@@ -48,14 +45,12 @@ class AdminControllerGroupOrderTest extends TestCase
     protected function setUp(): void
     {
         $this->request         = $this->createMock(IRequest::class);
-        $this->templateService = $this->createMock(AdminTemplateService::class);
         $this->settingsService = $this->createMock(AdminSettingsService::class);
         $this->groupManager    = $this->createMock(IGroupManager::class);
         $this->userSession     = $this->createMock(IUserSession::class);
 
-        $this->controller = new AdminController(
+        $this->controller = new AdminSettingsController(
             request: $this->request,
-            templateService: $this->templateService,
             settingsService: $this->settingsService,
             groupManager: $this->groupManager,
             userSession: $this->userSession,

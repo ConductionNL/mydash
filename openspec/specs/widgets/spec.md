@@ -1,5 +1,9 @@
 ---
 status: implemented
+retrofit_extensions:
+  - REQ-WDG-024
+  - REQ-WDG-025
+  - REQ-WDG-026
 ---
 
 # Widgets Specification
@@ -9,6 +13,9 @@ status: implemented
 Widgets are the primary content blocks on MyDash dashboards. MyDash integrates with the Nextcloud Dashboard Widget API (v1 and v2) via `OCP\Dashboard\IManager::getWidgets()` to discover all registered dashboard widgets across installed Nextcloud apps. Users can add these discovered widgets to their dashboards as "placements" -- records that track the widget's position on the grid, display configuration, and custom styling. Widget placements bridge the Nextcloud widget ecosystem with the MyDash grid layout system.
 
 ## Data Model
+
+
+@e2e exclude all 89 scenarios test REST widget-discovery/placement/update/batch API — widget add/edit UI flows are covered by the widget-specific specs (label-widget, text-display-widget, image-widget etc.)
 
 ### Widget Discovery
 Widgets are discovered at runtime from Nextcloud's `IManager::getWidgets()`. Each widget provides:
@@ -40,7 +47,7 @@ Widgets are discovered at runtime from Nextcloud's `IManager::getWidgets()`. Eac
 
 ## Requirements
 
-### REQ-WDG-001: Discover Available Widgets
+### Requirement: Discover Available Widgets (REQ-WDG-001)
 
 The system MUST provide an API to list all Nextcloud dashboard widgets available for placement.
 
@@ -69,7 +76,7 @@ The system MUST provide an API to list all Nextcloud dashboard widgets available
 - THEN the output MUST include standardized fields for the frontend
 - AND widgets MUST be sorted by their order property
 
-### REQ-WDG-002: Fetch Widget Items
+### Requirement: Fetch Widget Items (REQ-WDG-002)
 
 The system MUST provide an API to fetch the content items for widgets that support item loading via the Nextcloud Widget API.
 
@@ -96,7 +103,7 @@ The system MUST provide an API to fetch the content items for widgets that suppo
 - WHEN widget items are fetched
 - THEN the endpoint MUST have `#[NoCSRFRequired]` to support async loading from the frontend
 
-### REQ-WDG-003: Add Widget to Dashboard
+### Requirement: Add Widget to Dashboard (REQ-WDG-003)
 
 Users MUST be able to place a discovered widget onto their dashboard with grid coordinates.
 
@@ -139,7 +146,7 @@ Users MUST be able to place a discovered widget onto their dashboard with grid c
 - THEN the system MUST accept the request (for forward compatibility if apps are temporarily disabled)
 - NOTE: Widget ID validation against registered widgets is NOT currently implemented.
 
-### REQ-WDG-004: Update Widget Placement
+### Requirement: Update Widget Placement (REQ-WDG-004)
 
 Users MUST be able to update a widget placement's position, size, title, visibility, and styling via `PlacementUpdater`.
 
@@ -180,7 +187,7 @@ Users MUST be able to update a widget placement's position, size, title, visibil
 - THEN `TileUpdater::applyTileUpdates()` MUST update the tile-specific fields
 - AND both grid and tile updates can be applied in a single request
 
-### REQ-WDG-005: Remove Widget from Dashboard
+### Requirement: Remove Widget from Dashboard (REQ-WDG-005)
 
 Users MUST be able to remove widget placements from their dashboards, subject to permission level and compulsory widget checks.
 
@@ -213,7 +220,7 @@ Users MUST be able to remove widget placements from their dashboards, subject to
 - THEN all 3 conditional rules MUST also be deleted
 - NOTE: `PlacementService::removePlacement()` does NOT explicitly cascade-delete conditional rules. This depends on database-level cascade constraints.
 
-### REQ-WDG-006: Widget Placement Visibility
+### Requirement: Widget Placement Visibility (REQ-WDG-006)
 
 The system MUST support widget placement visibility via an `isVisible` SMALLINT (0/1) flag plus optional ConditionalRule records to control rendering.
 
@@ -240,7 +247,7 @@ The system MUST support widget placement visibility via an `isVisible` SMALLINT 
 - THEN the system MUST update `isVisible` to 0
 - AND the widget MUST be hidden on next render regardless of conditional rules
 
-### REQ-WDG-007: Widget Sort Order
+### Requirement: Widget Sort Order (REQ-WDG-007)
 
 Widget placements MUST maintain a sort order for consistent rendering and tab navigation.
 
@@ -260,7 +267,7 @@ Widget placements MUST maintain a sort order for consistent rendering and tab na
 - WHEN the user presses Tab in view mode
 - THEN focus MUST move through widgets in sortOrder sequence
 
-### REQ-WDG-008: Batch Update Placements
+### Requirement: Batch Update Placements (REQ-WDG-008)
 
 The system MUST support updating multiple widget placements via the dashboard update endpoint for efficient grid saves.
 
@@ -282,7 +289,7 @@ The system MUST support updating multiple widget placements via the dashboard up
 - WHEN DashboardGrid emits `update:placements` with updated positions
 - THEN the parent component MUST send PUT /api/dashboard/{id} with `{"placements": [{"id": 10, "gridX": 0, "gridY": 0, "gridWidth": 4, "gridHeight": 4}, ...]}`
 
-### REQ-WDG-009: Widget Rendering Architecture
+### Requirement: Widget Rendering Architecture (REQ-WDG-009)
 
 The frontend MUST use a layered rendering architecture: `DashboardGrid` -> `WidgetWrapper` -> `WidgetRenderer`.
 
@@ -315,9 +322,49 @@ The frontend MUST use a layered rendering architecture: `DashboardGrid` -> `Widg
 - AND render `TileWidget` directly instead of `WidgetWrapper`
 - AND WidgetWrapper applies transparent background and no padding for tile-type widgetIds
 
-### REQ-WDG-010: Widget Picker
+### Requirement: Widget Picker (REQ-WDG-010)
 
-Users MUST be able to browse and select widgets to add to their dashboard.
+The widget picker MUST be implemented as a single modal that handles both creation and editing flows. The modal MUST present a type selector at the top (unless a type was preselected by the caller) followed by the per-type configuration sub-form for the currently selected type. Submit MUST emit `{type, content}` where `content` carries only the fields relevant to the selected type — fields belonging to other types MUST NOT be included.
+
+#### Scenario: Open in create mode without preselected type
+
+- GIVEN no widget is being edited and no type was preselected
+- WHEN the user opens the modal with `show=true, preselectedType=null, editingWidget=null`
+- THEN the modal MUST render a `<select>` listing every registered widget type
+- AND the form area MUST render the sub-form for the first type (alphabetical or registry order)
+- AND the action button MUST read `t('Add')`
+
+#### Scenario: Open in create mode with preselected type
+
+- GIVEN the toolbar dropdown invoked the modal with a specific type
+- WHEN the user opens the modal with `show=true, preselectedType='text', editingWidget=null`
+- THEN the type `<select>` MUST NOT be visible
+- AND the form area MUST render the text sub-form
+- AND the action button MUST read `t('Add')`
+
+#### Scenario: Open in edit mode
+
+- GIVEN an existing widget placement is being edited
+- WHEN the user opens the modal with `editingWidget={type:'image', content:{url:'/img/x.png', alt:'X', fit:'cover'}}`
+- THEN the type `<select>` MUST be hidden (cannot change a placement's type via edit)
+- AND the image sub-form's fields MUST be pre-filled from the editing widget's `content`
+- AND the action button MUST read `t('Save')`
+- AND the modal title MUST read `t('Edit Widget')` instead of `t('Add Widget')`
+
+#### Scenario: Switching type resets form state
+
+- GIVEN the modal is open in create mode with `text` type and the user has typed text
+- WHEN the user switches the type to `image` via the `<select>`
+- THEN the form MUST swap to the image sub-form
+- AND any previously-entered text MUST NOT leak into the image sub-form
+- AND switching back to `text` MUST reset its fields to defaults (no recovery of the lost input — explicit trade-off)
+
+#### Scenario: Submit emits only relevant fields
+
+- GIVEN the user fills the text sub-form with `{text: "Hello", fontSize: "16px"}`
+- WHEN they click `Add`
+- THEN the modal MUST emit `submit({type: 'text', content: {text: 'Hello', fontSize: '16px'}})`
+- AND `content` MUST NOT contain image fields like `url`, `alt`, etc.
 
 #### Scenario: Widget picker displays available widgets
 - GIVEN the user wants to add a widget
@@ -337,7 +384,7 @@ Users MUST be able to browse and select widgets to add to their dashboard.
 - THEN POST /api/dashboard/{id}/widgets MUST be sent with the selected widgetId
 - AND GridStack MUST auto-place the new widget at the next available position
 
-### REQ-WDG-011: Widget Style Editor
+### Requirement: Widget Style Editor (REQ-WDG-011)
 
 Users MUST be able to customize widget appearance through a style editor.
 
@@ -364,6 +411,333 @@ Users MUST be able to customize widget appearance through a style editor.
 - THEN PUT /api/widgets/{placementId} MUST be sent with updated `styleConfig`
 - AND the widget MUST immediately reflect the new style
 
+### Requirement: Per-type validation contract (REQ-WDG-012)
+
+Each per-type sub-form component MUST expose a `validate(): string[]` method that returns an array of human-readable error messages (empty array = valid). The modal MUST disable its primary action button when the active sub-form's `validate()` returns a non-empty array. The button MUST re-enable as soon as `validate()` returns empty (reactive on form input).
+
+#### Scenario: Required field empty disables submit
+
+- GIVEN the text sub-form requires `text` to be non-empty
+- AND the user has not entered any text
+- WHEN the modal renders
+- THEN the `Add` button MUST be disabled
+- AND tooltip / aria-describedby MAY surface the validation message (UX choice)
+
+#### Scenario: Filling required field enables submit
+
+- GIVEN the `Add` button is disabled because text is empty
+- WHEN the user types `Hello`
+- THEN the button MUST become enabled within the next render cycle
+
+### Requirement: Modal close discipline (REQ-WDG-013)
+
+The modal MUST close on three triggers:
+
+1. Click on the cancel button (emit `close`)
+2. Click on the backdrop overlay (emit `close`)
+3. Press the `Escape` key while the modal is focused (emit `close`)
+
+Closing the modal MUST NOT submit. Reopening after a close MUST reset all form state to defaults (or re-load `editingWidget` if still set).
+
+#### Scenario: Backdrop click closes without submit
+
+- GIVEN the modal is open with valid form state
+- WHEN the user clicks the backdrop
+- THEN the modal MUST emit `close` only
+- AND MUST NOT emit `submit`
+
+#### Scenario: Esc key closes modal
+
+- GIVEN the modal is open
+- WHEN the user presses `Escape`
+- THEN the modal MUST emit `close`
+- AND focus MUST return to the element that triggered the open
+
+#### Scenario: Cancel button closes without submit
+
+- GIVEN the modal is open with valid form state
+- WHEN the user clicks the cancel button
+- THEN the modal MUST emit `close` only
+- AND MUST NOT emit `submit`
+
+### Requirement: Sub-form registry (REQ-WDG-014)
+
+The set of supported widget types MUST come from a single in-frontend registry that maps `type → { component, label, defaults }`. The toolbar dropdown, the modal type selector, and the grid renderer MUST all consult the same registry.
+
+#### Scenario: Adding a new widget type
+
+- GIVEN a developer needs to register a new widget type
+- WHEN they add a new entry to the widget registry (`{component, label, defaults}`)
+- THEN the new type MUST automatically appear in the toolbar dropdown
+- AND the modal type selector MUST list it
+- AND the grid renderer MUST render placements of the new type
+- AND no other UI code MUST need to be changed to support the new type
+
+#### Scenario: Registry is the single source of truth
+
+- GIVEN the widget registry contains exactly 5 entries (`text`, `label`, `image`, `linkButton`, `ncDashboardProxy`)
+- WHEN any consumer (toolbar, modal, renderer) enumerates widget types
+- THEN it MUST list those 5 types
+- AND MUST NOT hard-code any type name elsewhere in the codebase
+
+### Requirement: Right-click context menu in edit mode (REQ-WDG-015)
+
+When the user is in edit mode (per REQ-SHELL-002 `canEdit === true`), right-clicking any widget placement on the grid MUST open a small popover at the cursor position offering at least these three actions: **Edit**, **Remove**, **Cancel**. The popover MUST suppress the browser's native context menu via `event.preventDefault()`. In view mode the right-click MUST fall through to native behaviour (no popover).
+
+#### Scenario: Right-click in edit mode opens popover
+
+- GIVEN `canEdit === true` and a widget placement is rendered at coordinates (300, 400) on screen
+- WHEN the user right-clicks anywhere within that widget's content area
+- THEN the system MUST emit a popover at the click position (300, 400)
+- AND the popover MUST contain three buttons: `t('Edit')`, `t('Remove')`, `t('Cancel')`
+- AND the browser's native context menu MUST NOT appear
+
+#### Scenario: Right-click in view mode does nothing
+
+- GIVEN `canEdit === false`
+- WHEN the user right-clicks any widget
+- THEN the popover MUST NOT open
+- AND the browser's native context menu MUST appear normally
+
+#### Scenario: Edit click opens the add/edit modal
+
+- GIVEN the popover is open for widget `W`
+- WHEN the user clicks `Edit`
+- THEN the system MUST close the popover
+- AND MUST open the add/edit modal (REQ-WDG-010) with `editingWidget = W`
+
+#### Scenario: Remove click deletes the placement
+
+- GIVEN the popover is open for widget `W`
+- WHEN the user clicks `Remove`
+- THEN the system MUST close the popover
+- AND MUST trigger the placement deletion path of REQ-WDG-005 (DELETE `/api/placements/{id}`)
+- AND on success MUST remove the widget's DOM via GridStack `removeWidget`
+
+#### Scenario: Cancel click closes without action
+
+- GIVEN the popover is open
+- WHEN the user clicks `Cancel`
+- THEN the popover MUST close
+- AND no API call MUST fire
+- AND no widget state MUST change
+
+### Requirement: Auto-close on outside interaction (REQ-WDG-016)
+
+The popover MUST close when the user clicks anywhere outside its bounding box (including on another widget). Right-clicking a different widget while the popover is open MUST close the current popover and open a new one at the new cursor position. Closing on outside click MUST be wired via a single document-level listener that the grid composable manages on mount/unmount.
+
+#### Scenario: Click outside closes
+
+- GIVEN the popover is open
+- WHEN the user clicks anywhere not inside `.widget-context-menu`
+- THEN the popover MUST close
+
+#### Scenario: Right-click another widget switches popover
+
+- GIVEN the popover is open for widget `W1`
+- WHEN the user right-clicks widget `W2`
+- THEN the popover MUST close for `W1` and reopen for `W2` at the new cursor position
+- AND only one popover MUST be visible at a time
+
+#### Scenario: Listener cleanup on unmount
+
+- GIVEN the workspace shell unmounts
+- WHEN the unmount lifecycle runs
+- THEN the document-level `click` listener MUST be removed
+- AND no popover state MUST leak into a subsequent mount
+
+### Requirement: Position constraints (REQ-WDG-017)
+
+The popover MUST be absolutely positioned at the click coordinates with `min-width: 150px`. If the popover would overflow the viewport on the right or bottom edge, the system SHOULD shift it left/up so it remains fully visible. Z-index MUST be `10000` (above grid, level with modals — popover-then-modal interaction is acceptable since clicking a popover item closes it before the modal opens).
+
+#### Scenario: Popover stays within viewport on right edge
+
+- GIVEN the user right-clicks at `(viewportWidth - 50, 200)` (50 px from right edge)
+- AND the popover's `min-width` is 150 px
+- WHEN the popover renders
+- THEN its `right` edge MUST NOT exceed `viewportWidth`
+- AND its rendered `left` MUST be adjusted to keep it on-screen
+
+#### Scenario: Popover stays within viewport on bottom edge
+
+- GIVEN the user right-clicks at `(400, viewportHeight - 20)` (20 px from bottom edge)
+- WHEN the popover renders
+- THEN its `bottom` edge MUST NOT exceed `viewportHeight`
+- AND its rendered `top` MUST be adjusted upward so the popover is fully visible
+
+#### Scenario: Z-index sits at 10000
+
+- GIVEN the popover is open over a widget
+- WHEN computed styles are inspected
+- THEN the popover element MUST have `z-index: 10000`
+- AND MUST have `min-width: 150px`
+
+### Requirement: nc-widget placement type (REQ-WDG-018)
+
+The widget registry MUST include the type `nc-widget` representing a Nextcloud Dashboard widget rendered inside MyDash. Its persisted content shape MUST be:
+
+```jsonc
+{
+  "type": "nc-widget",
+  "content": {
+    "widgetId": "string (required, e.g. 'weather_status')",
+    "displayMode": "'vertical' | 'horizontal' (default 'vertical')"
+  }
+}
+```
+
+The renderer MUST be `NcDashboardWidget.vue`. The form MUST present (a) a `<select>` populated from `IManager::getWidgets()` (REQ-WDG-001 — passed in via initial state) and (b) a display-mode `<select>`.
+
+#### Scenario: Form picker lists discovered widgets
+
+- GIVEN initial state `widgets = [{id:'weather_status', title:'Weather'}, {id:'recommendations', title:'Recommended'}]`
+- WHEN the user opens the nc-widget sub-form
+- THEN the picker `<select>` MUST list both options
+- AND validation MUST require a widgetId before Add is enabled
+
+### Requirement: Two-mode rendering with bridge polling (REQ-WDG-019)
+
+The renderer MUST attempt native-callback rendering (REQ-LWB-002 mountWidget) immediately on mount. If no callback is registered for the `widgetId`, the renderer MUST fall back to the API list path (REQ-WDG-002 widget items) AND start a polling watcher that re-checks for the callback every 200 ms for up to 15 retries (~3 s total). If the callback registers within the polling window, the renderer MUST switch to native-callback mode (cancelling the in-flight or completed API render).
+
+#### Scenario: Native callback already registered at mount
+
+- GIVEN a Nextcloud widget bundle has registered its callback before the workspace mounts
+- AND a placement of type `nc-widget` with `widgetId = 'notes'` mounts
+- WHEN the renderer's `onMounted` runs
+- THEN it MUST mount via `widgetBridge.mountWidget('notes', containerEl, {...})`
+- AND it MUST NOT issue any `GET /api/widgets/items` request
+
+#### Scenario: Callback registers late within the polling window
+
+- GIVEN no callback for `'notes'` is registered when the renderer mounts
+- AND the `notes` bundle finishes loading 1 second later and registers
+- WHEN the renderer mounts
+- THEN it MUST start the API fallback (issue the items request)
+- AND simultaneously start the 200-ms polling loop
+- WHEN the poll detects the registration on the next tick
+- THEN the renderer MUST switch to native-callback mode (mount via `widgetBridge.mountWidget`)
+- AND any pending or completed API list MUST be hidden (no flicker between modes)
+
+#### Scenario: Callback never registers full API fallback
+
+- GIVEN no callback for `'weather_status'` is registered within 3 seconds
+- WHEN the polling loop reaches retry 15 (~3 s elapsed)
+- THEN polling MUST stop
+- AND the API list MUST remain rendered as the final state
+- AND no further callback checks MUST occur
+
+### Requirement: Display modes (REQ-WDG-020)
+
+The API list MUST render in one of two display modes:
+
+- **`vertical`** — flex-column list, 32 px square icon left, title + subtitle right; ellipsis overflow; 8 px gap between rows.
+- **`horizontal`** — flex-row wrap, 120 px square cards, 44 px icon top, centred title + subtitle below; 12 px gap.
+
+The header (above the list area) MUST always render the widget's title + iconUrl from `widgetMeta` (the `IManager::getWidgets()` descriptor).
+
+#### Scenario: Vertical mode list rendering
+
+- GIVEN content `{widgetId: 'recommendations', displayMode: 'vertical'}` and the API returns 4 items
+- WHEN the API fallback renders
+- THEN the list MUST be a flex-column with 4 `<a>` rows
+- AND each row MUST show its icon at 32 px on the left and title/subtitle on the right
+- AND long titles MUST be truncated with ellipsis
+
+#### Scenario: Horizontal mode card rendering
+
+- GIVEN the same content but `displayMode: 'horizontal'`
+- WHEN the API fallback renders
+- THEN the list MUST be a flex-row wrap with 4 cards of approximately 120 px width
+- AND each card MUST show a 44 px icon top + centred text below
+
+### Requirement: API call shape (REQ-WDG-021)
+
+When falling back to the API path, the renderer MUST issue exactly:
+
+`GET /ocs/v2.php/apps/mydash/api/widgets/items?widgets[]={widgetId}&limit=7`
+
+The response MUST be parsed as `{items: {[widgetId]: WidgetItem[]}, meta: {[widgetId]: {iconUrl}}}` (the existing REQ-WDG-002 contract). When the response shape is malformed, the renderer MUST display the empty-state `t('No items available')` and MUST NOT throw.
+
+#### Scenario: Default item limit is 7
+
+- GIVEN any nc-widget renders via API fallback
+- WHEN it issues the items request
+- THEN the URL MUST include `limit=7`
+
+#### Scenario: Empty-list state
+
+- GIVEN the items response contains an empty array for the widgetId
+- WHEN the API fallback renders
+- THEN the cell MUST display `t('No items available')` centred
+- AND no `<a>` items MUST render
+
+### Requirement: Tile widget type registered (REQ-WDG-022)
+
+The widget registry (`src/constants/widgetRegistry.js`) MUST include a `tile` widget type that:
+
+- Renders a clickable card with title + icon + background/text colours
+- Supports `iconType` discriminator (`class` | `url` | `emoji` | `svg`)
+- Supports `linkType` discriminator (`app` | `url`) and dispatches click accordingly
+- Suppresses click handling while the dashboard is in edit mode (consistent with REQ-WDG-014)
+- Has `defaultContent: {title:'', icon:'', iconType:'class', backgroundColor:'#3b82f6', textColor:'#ffffff', linkType:'app', linkValue:''}`
+
+The tile widget type MUST be selectable from the unified "Add custom widget" picker (REQ-WDG-010) and surfaced alongside `label`, `text`, `image`, `link`, and `nc-widget`.
+
+#### Scenario: Tile widget appears in the picker
+
+- **GIVEN** the unified Add Custom Widget modal is open
+- **WHEN** the user opens the type picker
+- **THEN** the picker MUST list `tile` as a selectable type
+- **AND** picking it MUST mount the `TileForm` sub-form
+
+#### Scenario: Tile renders with content from placement
+
+- **GIVEN** a widget placement with `type: 'tile'` and `content: {title: 'Files', icon: 'icon-folder', iconType: 'class', linkType: 'app', linkValue: '/apps/files', backgroundColor: '#3b82f6', textColor: '#ffffff'}`
+- **WHEN** the placement renders
+- **THEN** a card with the icon + "Files" label + blue background + white text MUST appear
+- **AND** clicking the card (in view mode) MUST navigate to `/apps/files`
+
+#### Scenario: Tile renderer supports legacy and new content shapes
+
+- **GIVEN** a placement created via the deprecated `oc_mydash_tiles` flow with `placement.tileTitle: 'Old Tile'` and `placement.tileIcon: '📁'` (legacy shape)
+- **WHEN** the placement renders via `TileWidget`
+- **THEN** the title and icon MUST display correctly
+- **AND** no console errors MUST occur from the missing `placement.content` field
+
+### Requirement: REQ-WDG-023 Widget registry completeness verifiable in CI
+
+The widget registry (`src/constants/widgetRegistry.js`) MUST be covered by an explicit completeness test (`src/constants/__tests__/widgetRegistry.completeness.spec.js`) that asserts a canonical EXPECTED_TYPES set:
+
+- `calendar`, `container`, `divider`, `files`, `header`, `image`, `label`, `link`, `links`, `menu`, `nc-widget`, `news`, `people`, `quicklinks`, `text`, `tile`, `video` (current set; updated when widget capabilities are added or removed)
+
+The test MUST fail if:
+
+- A registered type is missing from EXPECTED_TYPES (registry has more types than expected -> drift undocumented)
+- An EXPECTED_TYPES entry is missing from the registry (regression -- type silently disappeared from the picker)
+- Any registered entry lacks `renderer`, `form`, `displayName`, `defaultContent`, or `icon` fields (incomplete entry -> would be filtered out by REQ-WDG-014's `listWidgetTypes`, hiding it from users)
+
+When a new widget capability lands, the EXPECTED_TYPES constant MUST be updated in the same commit. When a widget capability is deprecated, EXPECTED_TYPES MUST be updated in the same commit as its registry removal.
+
+#### Scenario: Test fails when a widget type is silently dropped
+
+- **GIVEN** the registry currently contains every member of EXPECTED_TYPES (including `tile`)
+- **AND** EXPECTED_TYPES is the same set
+- **WHEN** a refactor accidentally removes the `tile` entry from `widgetRegistry.js` without updating EXPECTED_TYPES
+- **THEN** `npm test` MUST fail with a clear diff message naming `tile` as the missing type
+
+#### Scenario: Test fails when registry adds a type without updating EXPECTED_TYPES
+
+- **GIVEN** EXPECTED_TYPES lists the canonical set
+- **WHEN** a new widget capability adds `chart` to `widgetRegistry.js` without updating EXPECTED_TYPES
+- **THEN** `npm test` MUST fail with a diff message naming `chart` as the unexpected addition
+- **AND** the failure message MUST instruct: "Update EXPECTED_TYPES in widgetRegistry.completeness.spec.js"
+
+#### Scenario: Test fails when an entry is incomplete
+
+- **GIVEN** a new widget type added to the registry without a `form` field (set to `null`)
+- **WHEN** `npm test` runs
+- **THEN** the test MUST fail with a clear message naming the type and the missing field
+
 ## Non-Functional Requirements
 
 - **Performance**: GET /api/widgets MUST return within 1 second even with 50+ registered widgets. Widget item fetching SHOULD be parallelized across widget types.
@@ -386,6 +760,8 @@ Users MUST be able to customize widget appearance through a style editor.
 - REQ-WDG-009 (Rendering Architecture): `DashboardGrid.vue` -> `WidgetWrapper.vue` -> `WidgetRenderer.vue` chain. `TileWidget.vue` for tile placements.
 - REQ-WDG-010 (Widget Picker): `WidgetPicker.vue` component exists.
 - REQ-WDG-011 (Widget Style Editor): `WidgetStyleEditor.vue` component exists.
+- REQ-WDG-015..017 (Right-click context menu, auto-close, position constraints): `WidgetContextMenu.vue` + `useGridManager.js` composable; wired in `Views.vue` via `DashboardGrid`'s `widget-right-click` event.
+- REQ-WDG-023 (Registry completeness CI guard): `src/constants/__tests__/widgetRegistry.completeness.spec.js` asserts EXPECTED_TYPES matches `widgetRegistry` keys exactly, every entry surfaces in `listWidgetTypes()` with non-null form + renderer, and every entry carries displayName + defaultContent + icon.
 
 **Not yet implemented:**
 - REQ-WDG-003 grid bounds validation: No server-side validation for gridX + gridWidth <= gridColumns.
@@ -400,3 +776,86 @@ Users MUST be able to customize widget appearance through a style editor.
 - Nextcloud Widget Item format: title, subtitle, link, iconUrl (from `IWidgetItem`)
 - WCAG 2.1 AA: Widget labels via customTitle or default widget title for screen readers
 - WAI-ARIA: Widget placements should have appropriate landmark roles for keyboard navigation
+
+### REQ-WDG-024: Widget formatter envelope contract
+
+The system MUST format every Nextcloud `IWidget` into a canonical envelope via `WidgetFormatter::format()`. The envelope MUST include the base fields (`id`, `title`, `order`, `iconClass`, `iconUrl`, `widgetUrl`, `itemIconsRound`, `itemApiVersions`, `reloadInterval`, `buttons`) and MUST conditionally enrich them based on which Nextcloud capability interfaces the widget implements:
+
+- `IIconWidget` → populate `iconUrl` via `getIconUrl()`
+- `IAPIWidget` → append `1` to `itemApiVersions`
+- `IAPIWidgetV2` → append `2` to `itemApiVersions`
+- `IButtonWidget` → populate `buttons[]` via `getWidgetButtons($userId)`, each button serialized as `{type, text, link}`
+- `IOptionWidget` → set `itemIconsRound` from `getWidgetOptions()->withRoundItemIcons()`
+- `IReloadableWidget` → set `reloadInterval` from `getReloadInterval()`
+
+Widgets that implement none of the optional capability interfaces MUST receive the base envelope unchanged (`itemApiVersions: []`, `buttons: []`, `reloadInterval: 0`, `iconUrl: null`, `itemIconsRound: false`).
+
+#### Scenario: Format a basic widget with no optional capabilities
+
+- GIVEN an `IWidget` that does not implement any of the optional capability interfaces
+- WHEN `WidgetFormatter::format($widget, $userId)` is called
+- THEN the result has `itemApiVersions: []`, `buttons: []`, `reloadInterval: 0`, `iconUrl: null`, `itemIconsRound: false`
+- AND the result still includes the base `id`, `title`, `order`, `iconClass`, `widgetUrl` from the widget
+
+#### Scenario: Format a widget that implements both API versions
+
+- GIVEN an `IWidget` that implements both `IAPIWidget` and `IAPIWidgetV2`
+- WHEN `WidgetFormatter::format($widget, $userId)` is called
+- THEN the result has `itemApiVersions: [1, 2]` (in declaration order, V1 first)
+
+#### Scenario: Format a button widget includes per-button serialization
+
+- GIVEN an `IButtonWidget` whose `getWidgetButtons($userId)` returns two buttons (Add: `link=/add`, Settings: `link=/settings`)
+- WHEN `WidgetFormatter::format($widget, $userId)` is called
+- THEN `result.buttons` is `[{type: 'Add', text: '...', link: '/add'}, {type: 'Settings', text: '...', link: '/settings'}]`
+
+### REQ-WDG-025: Widget item loader strategy
+
+The system MUST load widget items via `WidgetItemLoader::loadItems()`, which accepts a map of registered widgets, a user ID, a list of widget IDs to load, and a per-widget item limit (default 7). For each requested widget ID:
+
+- If the widget is NOT in the registered-widgets map, the loader MUST silently skip it (no entry in the result)
+- If the widget implements `IAPIWidgetV2`, the loader MUST use the V2 API (`getItemsV2(userId, since: null, limit)`)
+- Else if the widget implements `IAPIWidget`, the loader MUST fall back to the V1 API (`getItems(userId, since: null, limit)`)
+- Else the loader MUST return the empty-default envelope `{items: [], emptyContentMessage: '', halfEmptyContentMessage: ''}` for that widget ID
+
+The result MUST be keyed by widget ID and MUST contain one entry per non-skipped widget ID.
+
+#### Scenario: Loader skips unknown widget IDs silently
+
+- GIVEN a registered-widgets map containing only `widget-a`
+- WHEN `loadItems($widgets, $userId, ['widget-a', 'widget-unknown'], 7)` is called
+- THEN the result contains exactly one key `'widget-a'` (no entry for `'widget-unknown'`)
+
+#### Scenario: V2-capable widget uses V2 API
+
+- GIVEN a widget that implements both `IAPIWidget` and `IAPIWidgetV2`
+- WHEN the loader processes that widget
+- THEN `getItemsV2()` is called (V1 API is NOT called)
+
+#### Scenario: Non-API widget gets empty-default envelope
+
+- GIVEN a widget that implements neither `IAPIWidget` nor `IAPIWidgetV2`
+- WHEN the loader processes that widget
+- THEN the entry for that widget ID is `{items: [], emptyContentMessage: '', halfEmptyContentMessage: ''}`
+
+### REQ-WDG-026: Widget item serialization and empty-content messaging
+
+The system MUST serialize widget items via `WidgetItem::jsonSerialize()` (both V1 and V2 APIs). The V2 API MUST additionally surface `emptyContentMessage` and `halfEmptyContentMessage` from the `WidgetItems` collection getter. The V1 API MUST set both messages to the empty string (the V1 contract does not provide them).
+
+#### Scenario: V2 serializes items and empty-content messages
+
+- GIVEN a V2 widget returning two items + empty message `'No items'` + half-empty message `'Almost empty'`
+- WHEN the loader processes that widget
+- THEN the entry has `items: [<2 serialized items>], emptyContentMessage: 'No items', halfEmptyContentMessage: 'Almost empty'`
+
+#### Scenario: V1 serializes items and returns empty messages
+
+- GIVEN a V1 widget returning three items
+- WHEN the loader processes that widget
+- THEN the entry has `items: [<3 serialized items>], emptyContentMessage: '', halfEmptyContentMessage: ''`
+
+#### Notes (REQ-WDG-024..026)
+
+- `applyButtons` reaches into the widget impl per-user; button visibility is a widget-impl concern, not the formatter's. The REQ documents the call site, not the underlying permission model.
+- Loader's silent-skip of unknown widget IDs means callers cannot distinguish "widget returned no items" from "widget not registered". Future tightening (e.g. return a `null` sentinel for skipped IDs) is deferred — would be a breaking API change.
+- The V1/V2 empty-message asymmetry is inherent in the Nextcloud `IAPIWidget` contract; V1 callers will always see `emptyContentMessage: ''`. The frontend already special-cases the empty string.

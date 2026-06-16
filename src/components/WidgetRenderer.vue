@@ -5,9 +5,20 @@
 
 <template>
 	<div class="widget-renderer">
-		<!-- Custom Tile Widget -->
+		<!-- Registry-driven custom widget (label, text, image, link, header,
+		     divider, files, people, quicklinks, news, video, calendar, links,
+		     menu, container, tile, nc-widget). The placement's content blob
+		     is forwarded so each renderer reads its own type-specific shape
+		     without further branching here. -->
+		<component
+			:is="registryEntry.renderer"
+			v-if="registryEntry"
+			:content="placement.content || {}"
+			:placement="placement" />
+
+		<!-- Custom Tile Widget (legacy path: widgetId === 'tile-{id}') -->
 		<TileWidget
-			v-if="isTileWidget && tileData"
+			v-else-if="isTileWidget && tileData"
 			:tile="tileData" />
 
 		<!-- API Widget V1 or V2 - Use NcDashboardWidget -->
@@ -57,6 +68,7 @@ import { useWidgetStore } from '../stores/widgets.js'
 import { useTileStore } from '../stores/tiles.js'
 import { widgetBridge } from '../services/widgetBridge.js'
 import TileWidget from './TileWidget.vue'
+import { getWidgetTypeEntry } from '../constants/widgetRegistry.js'
 
 export default {
 	name: 'WidgetRenderer',
@@ -91,15 +103,39 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Resolve the registry entry for this placement's widget type.
+		 * Returns null when the widgetId is not a registry-driven custom
+		 * type — falling back to the existing tile / API-widget / legacy
+		 * branches. The registry filters out entries with a null `form`,
+		 * but this dispatcher only needs `renderer`, so we go through
+		 * `getWidgetTypeEntry` to keep types like `nc-widget` (renderer-only
+		 * proxy) flowing through this branch as well.
+		 */
+		/** @spec openspec/specs/widgets/spec.md */
+		registryEntry() {
+			const widgetId = this.placement?.widgetId
+			if (typeof widgetId !== 'string' || widgetId === '') {
+				return null
+			}
+			const entry = getWidgetTypeEntry(widgetId)
+			if (!entry || !entry.renderer) {
+				return null
+			}
+			return entry
+		},
+
 		isTileWidget() {
 			return this.placement.widgetId && this.placement.widgetId.startsWith('tile-')
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		tileId() {
 			if (!this.isTileWidget) return null
 			return parseInt(this.placement.widgetId.replace('tile-', ''))
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		tileData() {
 			if (!this.isTileWidget) return null
 			const { tiles } = storeToRefs(useTileStore())
@@ -118,11 +154,13 @@ export default {
 			return this.isApiWidgetV1 || this.isApiWidgetV2
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		widgetItemsData() {
 			// Return local reactive data that is updated by watcher.
 			return this.localWidgetItemsData
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		widgetItems() {
 			const items = this.widgetItemsData.items || []
 			console.log('[WidgetRenderer] widgetItems computed:', {
@@ -148,6 +186,7 @@ export default {
 			}))
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		emptyContentMessage() {
 			return this.widgetItemsData.emptyContentMessage || ''
 		},
@@ -156,6 +195,7 @@ export default {
 	watch: {
 		widget: {
 			immediate: false, // Don't run immediately, wait for mounted
+			/** @spec openspec/specs/widgets/spec.md */
 			handler(newWidget) {
 				console.log('[WidgetRenderer] widget watch triggered:', newWidget?.id, newWidget)
 				if (newWidget || this.isTileWidget) {
@@ -165,6 +205,7 @@ export default {
 		},
 		placement: {
 			immediate: false, // Don't run immediately
+			/** @spec openspec/specs/widgets/spec.md */
 			handler() {
 				console.log('[WidgetRenderer] placement watch triggered:', this.placement)
 				if (this.isTileWidget) {
@@ -174,16 +215,25 @@ export default {
 		},
 	},
 
+	/** @spec openspec/specs/widgets/spec.md */
 	mounted() {
 		// Initialize widget after component is mounted and refs are available
 		console.log('[WidgetRenderer] mounted hook called')
 		// Set up store subscription.
 		this.setupStoreSubscription()
+		// Registry-driven custom widgets render their own template directly
+		// from `placement.content` and never need the API/legacy bootstrap
+		// paths — skip initWidget() so we don't fire a `loadWidgetItems`
+		// fetch keyed on a Nextcloud-Dashboard widget id that doesn't exist.
+		if (this.registryEntry) {
+			return
+		}
 		if (this.widget || this.isTileWidget) {
 			this.initWidget()
 		}
 	},
 
+	/** @spec openspec/specs/widgets/spec.md */
 	beforeDestroy() {
 		if (this.refreshInterval) {
 			clearInterval(this.refreshInterval)
@@ -197,6 +247,7 @@ export default {
 	methods: {
 		...mapActions(useWidgetStore, ['loadWidgetItems', 'refreshWidgetItems']),
 
+		/** @spec openspec/specs/widgets/spec.md */
 		setupStoreSubscription() {
 			// Subscribe to store changes.
 			const widgetStore = useWidgetStore()
@@ -211,6 +262,7 @@ export default {
 			})
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		updateLocalWidgetItems() {
 			if (!this.widget?.id) return
 			const widgetStore = useWidgetStore()
@@ -221,6 +273,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		async initWidget() {
 			console.log('[WidgetRenderer] initWidget called:', {
 				widgetId: this.widget?.id,
@@ -282,6 +335,7 @@ export default {
 			}
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		mountLegacyWidget() {
 			if (!this.$refs.legacyWidgetContainer) {
 				console.error('[WidgetRenderer] No legacyWidgetContainer ref found!')
@@ -318,6 +372,7 @@ export default {
 			})
 		},
 
+		/** @spec openspec/specs/widgets/spec.md */
 		setupAutoRefresh(intervalSeconds) {
 			if (this.refreshInterval) {
 				clearInterval(this.refreshInterval)

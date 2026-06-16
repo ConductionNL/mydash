@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * Tile Entity
  *
@@ -15,6 +13,8 @@ declare(strict_types=1);
  * @version   GIT:auto
  * @link      https://conduction.nl
  */
+
+declare(strict_types=1);
 
 namespace OCA\MyDash\Db;
 
